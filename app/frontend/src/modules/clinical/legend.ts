@@ -26,7 +26,7 @@ export const surfacesOf = (t: number): Surface[] => ['M', 'D', isAnterior(t) ? '
 /** Stored 'L' is shown as 'P' (palatal) on upper teeth; never sent as 'P'. */
 export const surfaceLabel = (t: number, s: Surface) => (s === 'L' && isUpper(t) ? 'P' : s)
 export const surfaceName = (t: number, s: Surface) =>
-  s === 'L' ? (isUpper(t) ? 'Palatal' : 'Lingual') : ({ M: 'Mesial', D: 'Distal', O: 'Oklusal', I: 'Insisal', B: 'Bukal/labial' } as const)[s]
+  s === 'L' ? (isUpper(t) ? 'Palatal' : 'Lingual') : s === 'B' ? (isAnterior(t) ? 'Labial' : 'Bukal') : ({ M: 'Mesial', D: 'Distal', O: 'Oklusal', I: 'Insisal' } as const)[s]
 export const findingText = (f: { tooth: number; surface: Surface | null; condition: string }) =>
   `Gigi ${f.tooth}${f.surface ? ` ${surfaceLabel(f.tooth, f.surface)} (${surfaceName(f.tooth, f.surface)})` : ''}: ${conditionOf(f.condition)?.label ?? f.condition}`
 

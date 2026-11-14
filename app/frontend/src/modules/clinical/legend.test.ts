@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { findingText, STATUSES, surfaceLabel, surfacesOf } from './legend'
+import { findingText, STATUSES, surfaceLabel, surfaceName, surfacesOf } from './legend'
 
 test('L is labelled P on upper teeth (quadrants 1, 2, 5, 6) and L on lower teeth', () => {
   for (const t of [16, 21, 55, 61]) expect(surfaceLabel(t, 'L')).toBe('P')
@@ -19,4 +19,9 @@ test('procedure statuses mirror ProcedureStatus::TRANSITIONS: six keys, selesai 
   expect(STATUSES.map((s) => s.key)).toEqual(['kondisi_pantau', 'ada_di_klinik_ini', 'ada_di_tempat_lain', 'direncanakan', 'selesai', 'dirujuk'])
   expect(STATUSES.find((s) => s.key === 'selesai')!.next).toEqual([])
   for (const s of STATUSES) for (const n of s.next) expect(STATUSES.some((x) => x.key === n)).toBe(true)
+})
+
+test('B is Labial on anterior teeth and Bukal on posterior teeth', () => {
+  for (const t of [11, 13, 43, 51, 83]) expect(surfaceName(t, 'B')).toBe('Labial')
+  for (const t of [14, 16, 46, 55, 85]) expect(surfaceName(t, 'B')).toBe('Bukal')
 })
