@@ -189,6 +189,14 @@ html { scroll-padding-top: 160px; } /* scrollIntoView lands below the pinned top
 .patient-head-main { flex: 1 1 320px; min-width: 0; display: grid; gap: var(--space-1); }
 .patient-head h1 { margin: 0; overflow-wrap: anywhere; }
 .patient-head p { margin: 0; }
+.patient-head-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--space-3); }
+.patient-mrn { white-space: nowrap; }
+.patient-mrn strong { color: var(--text); }
+.patient-chip-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+/* In-progress visit status (not a medical alert): teal, same size as the compact alert chips. */
+.visit-chip { display: inline-flex; align-items: center; gap: 6px; font-size: var(--font-size-xs); font-weight: 600; line-height: 1.3; border: 1px solid var(--color-primary-200);
+  border-radius: var(--radius-pill); padding: 2px 12px; background: var(--color-primary-50); color: var(--color-primary-700); }
+.visit-chip::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
 .avatar-lg { width: 48px; height: 48px; flex: none; }
 .patient-head-actions { display: flex; align-items: center; gap: var(--space-2); flex: none; }
 /* Header chips wrap (never scroll away): allergies stay visible. */

@@ -5,6 +5,7 @@ import { getAlerts, type Alerts } from './api'
 // Premedication and the urgent note come first and are highlighted.
 export const ALERTS_CHANGED = 'ehr:alerts-changed'
 
+const PREFIX = 'Kondisi: '
 type Chip = { type: 'premedikasi' | 'catatan_penting' | 'alergi' | 'penyakit' | 'obat' | 'kosong'; text: string }
 
 export function alertChips(a: Alerts): Chip[] {
@@ -13,15 +14,15 @@ export function alertChips(a: Alerts): Chip[] {
     ...(a.premedication_required ? [{ type: 'premedikasi', text: 'Perlu premedikasi' } as Chip] : []),
     ...(a.has_urgent_note ? [{ type: 'catatan_penting', text: a.urgent_note ? 'Penting: ' + a.urgent_note : 'Ada catatan penting (tanyakan dokter)' } as Chip] : []),
     ...(a.allergies.length ? a.allergies.map((t): Chip => ({ type: 'alergi', text: 'Alergi: ' + t })) : [{ type: 'kosong', text: 'Tidak ada alergi tercatat' } as Chip]),
-    ...(a.problems ?? []).map((t): Chip => ({ type: 'penyakit', text: 'Kondisi: ' + t })),
+    ...(a.problems ?? []).map((t): Chip => ({ type: 'penyakit', text: PREFIX + t })),
     ...(a.medications ?? []).map((t): Chip => ({ type: 'obat', text: 'Obat: ' + t })),
   ]
 }
 
 const ICON: Record<Chip['type'], string> = { premedikasi: '⚠', catatan_penting: '❗', alergi: '⚠', penyakit: '♥', obat: '℞', kosong: '' }
 
-// Collapsed (compact) hides only conditions/medications; premed, urgent note, allergies and empty states always show.
-const MINOR: Chip['type'][] = ['penyakit', 'obat']
+// Collapsed (compact) hides only medications; premed, urgent note, allergies, conditions and empty states always show.
+const MINOR: Chip['type'][] = ['obat']
 
 export function AlertRibbon({ patientId, compactDefault = false, label = 'Peringatan medis pasien aktif', className = '' }: { patientId: string; compactDefault?: boolean; label?: string; className?: string }) {
   // User override resets when the route default changes (chart vs other pages).
@@ -47,7 +48,9 @@ export function AlertRibbon({ patientId, compactDefault = false, label = 'Pering
         : !s?.alerts ? <span className="muted small">Memuat peringatan medis…</span>
         : chips.filter((c) => open || !MINOR.includes(c.type)).map((c, i) => (
           <span key={i} className={'alert-chip alert-' + c.type} data-type={c.type}>
-            {ICON[c.type] && <span aria-hidden="true">{ICON[c.type]}</span>}{c.text}
+            {ICON[c.type] && <span aria-hidden="true">{ICON[c.type]}</span>}
+            {/* Compact header shows the bare condition (as in the sketch); screen readers still hear the type. */}
+            {!open && c.type === 'penyakit' ? <><span className="sr-only">{PREFIX}</span>{c.text.slice(PREFIX.length)}</> : c.text}
           </span>
         ))}
       {minor > 0 && (

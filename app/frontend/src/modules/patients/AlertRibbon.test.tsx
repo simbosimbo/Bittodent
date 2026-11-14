@@ -53,24 +53,27 @@ test('front desk (not full): allergy + premed + urgent flag without its text; em
   expect(await screen.findByText('Riwayat medis belum diisi')).toBeInTheDocument()
 })
 
-test('compact (chart route): safety chips always shown, conditions/medications behind Selengkapnya', async () => {
+test('compact (chart route): safety + condition chips always shown, medications behind Selengkapnya', async () => {
   stub(alerts())
   act(() => setActivePatient({ id: 'p1', name: 'Sari Sintetis' }))
   render(<AlertRibbon patientId="p1" compactDefault />)
   expect(await screen.findByText('Alergi: Penisilin')).toBeInTheDocument()
   expect(screen.getByText('Perlu premedikasi')).toBeInTheDocument()
   expect(screen.getByText('Penting: Riwayat pingsan saat anestesi')).toBeInTheDocument()
-  expect(screen.queryByText('Kondisi: Hipertensi')).toBeNull()
+  const cond = screen.getByText('Hipertensi') // bare condition text; type stays in the accessible name
+  expect(cond).toHaveClass('alert-penyakit')
+  expect(cond).toHaveTextContent('Kondisi: Hipertensi')
   expect(screen.queryByText('Obat: Amlodipin')).toBeNull()
   expect(screen.getByRole('link', { name: 'Riwayat medis →' })).toBeInTheDocument()
   const more = screen.getByRole('button', { name: /Selengkapnya/ })
   expect(more).toHaveAttribute('aria-expanded', 'false')
-  expect(more).toHaveTextContent('+2 lainnya')
+  expect(more).toHaveTextContent('+1 lainnya')
   act(() => more.click())
   expect(screen.getByText('Kondisi: Hipertensi')).toBeInTheDocument()
   expect(screen.getByText('Obat: Amlodipin')).toBeInTheDocument()
   act(() => screen.getByRole('button', { name: 'Ciutkan' }).click())
-  expect(screen.queryByText('Kondisi: Hipertensi')).toBeNull()
+  expect(screen.queryByText('Obat: Amlodipin')).toBeNull()
+  expect(screen.getByText('Hipertensi')).toBeInTheDocument()
   expect(screen.getByText('Alergi: Penisilin')).toBeInTheDocument()
 })
 
@@ -79,7 +82,7 @@ test('compact keeps empty safety states visible', async () => {
   act(() => setActivePatient({ id: 'p1', name: 'Sari Sintetis' }))
   const { unmount } = render(<AlertRibbon patientId="p1" compactDefault />)
   expect(await screen.findByText('Tidak ada alergi tercatat')).toBeInTheDocument()
-  expect(screen.queryByText('Kondisi: Diabetes')).toBeNull()
+  expect(screen.getByText('Diabetes')).toBeInTheDocument()
   unmount()
 
   stub(alerts({ version: null }))

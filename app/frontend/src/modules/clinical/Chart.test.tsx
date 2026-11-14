@@ -2,9 +2,10 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import { afterEach, expect, test, vi } from 'vitest'
 import { clearActivePatients } from '../../shared/activePatient'
 import type { Me } from '../../shared/session'
-import ChartPage from './Chart'
+import ChartPage, { visitStatusText } from './Chart'
 import { manifest, mockTooth3D } from './tooth3dMock'
 import css from './clinical.css?raw'
+import baseCss from '../../shared/ui/styles.css?raw'
 
 // Synthetic data only.
 const me: Me = {
@@ -44,9 +45,9 @@ test('chart sits inside the patient page (no outer tab bar; Profil/Keluarga/Riwa
   expect(await screen.findByText('Buka janji hari ini')).toHaveAttribute('href', '#/jadwal')
   expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Budi Contoh')
   expect(document.body).not.toHaveTextContent('1960-01-01')
-  expect(document.body).toHaveTextContent('1 Jan 1960')
-  expect(document.body).toHaveTextContent('Laki-laki · Penjamin Umum')
-  expect(document.body).not.toHaveTextContent(/laki_laki|Penjamin umum/)
+  expect(document.body).not.toHaveTextContent('1 Jan 1960') // DOB + payer live on Profil, not the compact header
+  expect(document.body).toHaveTextContent(/\d+ tahun · Laki-laki · No\. RM BT-000007/)
+  expect(document.body).not.toHaveTextContent(/laki_laki|Penjamin| th\b/)
   expect(screen.queryByRole('button', { name: /mulai kunjungan/i })).toBeNull()
   expect(screen.queryByText(/mulai kunjungan/i)).toBeNull()
 })
@@ -166,13 +167,65 @@ const visit = { id: 'v1', appointment_id: null, branch_id: 'b1', started_at: '20
 const pad = () => within(screen.getByRole('group', { name: 'Permukaan' }))
 const surfaces = () => pad().getAllByRole('button').map((b) => b.textContent)
 
-test('header: allergy chip always visible from one alerts fetch, No. RM from the API', async () => {
+test('header: "N tahun · sex · No. RM" (nowrap), allergy + condition chips from one alerts fetch, no visit chip without an active visit', async () => {
+  const style = document.head.appendChild(document.createElement('style'))
+  style.textContent = baseCss
   renderChart()
   const head = await screen.findByRole('region', { name: 'Peringatan medis pasien' })
   expect(await within(head).findByText('Alergi: Penisilin')).toBeVisible()
-  expect(within(head).queryByText(/Kondisi Sintetis/)).toBeNull() // minor chips behind Selengkapnya
-  expect(document.body).toHaveTextContent('No. RM: BT-000007')
+  const cond = within(head).getByText('Kondisi Sintetis') // condition shown in compact, type kept for screen readers
+  expect(cond).toHaveTextContent('Kondisi: Kondisi Sintetis')
+  expect(cond.querySelector('.sr-only')).toHaveTextContent('Kondisi:')
+  const years = Math.floor((Date.now() - Date.parse('1960-01-01T00:00:00Z')) / 31_557_600_000)
+  const sub = screen.getByRole('heading', { level: 1 }).nextElementSibling!
+  expect(sub).toHaveTextContent(`${years} tahun · Laki-laki · No. RM BT-000007`)
+  const mrn = sub.querySelector('.patient-mrn')!
+  expect(mrn).toHaveTextContent(/^No\. RM BT-000007$/)
+  expect(getComputedStyle(mrn).whiteSpace).toBe('nowrap')
+  expect(document.body).not.toHaveTextContent('No. RM:')
+  expect(document.body).not.toHaveTextContent(/Kunjungan aktif|Sedang dirawat/)
+  expect(screen.queryByRole('note', { name: 'Status kunjungan' })).toBeNull()
   expect(vi.mocked(fetch).mock.calls.filter(([u]) => String(u).endsWith('/alerts'))).toHaveLength(1)
+  style.remove()
+})
+
+test('header: missing MRN reads "No. RM belum ada"; unknown DOB/sex segments are omitted', async () => {
+  vi.stubGlobal('fetch', vi.fn(async (url: string) => new Response(JSON.stringify(
+    url.endsWith('/chart') ? chart : url.endsWith('/alerts') ? alerts : { ...full, mrn: null, dob: null, sex: null }), { status: 200 })))
+  render(<ChartPage patientId="p1" me={me} />)
+  const sub = (await screen.findByRole('heading', { level: 1 })).nextElementSibling!
+  expect(sub.textContent).toBe('No. RM belum ada')
+  expect(sub.querySelector('.patient-mrn')).toHaveTextContent('No. RM belum ada')
+})
+
+test('header: in-progress visit shows "Sedang dirawat · drg. … · sejak HH.MM" (Asia/Jakarta) in the chip row', async () => {
+  renderChart({ visits: [visit] })
+  const chip = await screen.findByRole('note', { name: 'Status kunjungan' })
+  expect(chip).toHaveTextContent(/^Sedang dirawat · drg\. Uji Sintetis · sejak 10\.00$/)
+  expect(chip).toHaveClass('visit-chip')
+  expect(chip).not.toHaveClass('alert-chip')
+  expect(chip.closest('.patient-chip-row')).toContainElement(screen.getByRole('region', { name: 'Peringatan medis pasien' }))
+  expect(document.body).not.toHaveTextContent('Kunjungan aktif')
+})
+
+test('header: no visit chip for a finished or signed visit', async () => {
+  const signed = { ...visit, notes: [{ id: 'n1', author_id: 'u1', versions: [{ status: 'final', signed_at: '2026-01-05T04:00:00Z' }] }] }
+  const { unmount } = renderChart({ visits: [{ ...visit, status: 'selesai' }] })
+  await screen.findByRole('region', { name: 'Odontogram' })
+  expect(screen.queryByRole('note', { name: 'Status kunjungan' })).toBeNull()
+  unmount()
+  renderChart({ visits: [signed] })
+  await screen.findByRole('region', { name: 'Odontogram' })
+  expect(screen.queryByRole('note', { name: 'Status kunjungan' })).toBeNull()
+})
+
+test('visitStatusText: adds "drg." only when missing; omits an unknown dentist', () => {
+  const at = '2026-01-05T03:00:00Z'
+  expect(visitStatusText({ started_at: at, dentist: { id: 'u2', name: 'Nadia Putri' } })).toBe('Sedang dirawat · drg. Nadia Putri · sejak 10.00')
+  expect(visitStatusText({ started_at: at, dentist: { id: 'u2', name: 'Drg. Nadia Putri' } })).toBe('Sedang dirawat · Drg. Nadia Putri · sejak 10.00')
+  expect(visitStatusText({ started_at: at, dentist: { id: 'u2', name: 'dr. Nadia Putri' } })).toBe('Sedang dirawat · dr. Nadia Putri · sejak 10.00')
+  expect(visitStatusText({ started_at: at, dentist: { id: 'u2', name: null } })).toBe('Sedang dirawat · sejak 10.00')
+  expect(visitStatusText({ started_at: at, dentist: { id: 'u2', name: '  ' } })).toBe('Sedang dirawat · sejak 10.00')
 })
 
 test('odontogram region + tooth detail panel; surface keypad uses clinical labels and 44px targets', async () => {
@@ -185,6 +238,7 @@ test('odontogram region + tooth detail panel; surface keypad uses clinical label
 
   fireEvent.click(document.getElementById('t16-O')!)
   expect(within(panel).getByRole('heading', { name: 'Gigi 16' })).toBeInTheDocument()
+  expect(panel).toHaveTextContent('Molar pertama kanan atas')
   expect(surfaces()).toEqual(['P', 'M', 'O', 'D', 'B']) // upper posterior: O, lingual shown as P
   expect(pad().queryByRole('button', { name: 'I' })).toBeNull()
   for (const b of pad().getAllByRole('button')) {
@@ -206,6 +260,9 @@ test('odontogram region + tooth detail panel; surface keypad uses clinical label
   fireEvent.click(document.getElementById('t36-O')!)
   expect(surfaces()).toEqual(['L', 'M', 'O', 'D', 'B']) // lower: lingual stays L
   expect(surfaces()).not.toContain('P')
+  expect(within(panel).getByRole('heading', { name: 'Gigi 36' })).toBeInTheDocument()
+  expect(panel).toHaveTextContent('Molar pertama kiri bawah')
+  expect(within(panel).getByRole('status')).toHaveTextContent('Dipilih: Gigi 36 · Oklusal (O)')
 
   fireEvent.click(within(panel).getByRole('button', { name: 'Tutup detail gigi' }))
   expect(panel).toHaveTextContent('Pilih gigi untuk melihat detail')
@@ -244,6 +301,7 @@ test('390px: selecting a tooth opens a bottom sheet named for the tooth; keypad 
   fireEvent.click(document.getElementById('t16-O')!)
   const sheet = screen.getByRole('dialog', { name: 'Detail gigi 16' })
   expect(sheet).toHaveClass('tooth-sheet')
+  expect(sheet).toHaveTextContent('Molar pertama kanan atas')
   expect(surfaces()).toEqual(['P', 'M', 'O', 'D', 'B'])
   for (const b of pad().getAllByRole('button')) {
     expect(parseFloat(getComputedStyle(b).minWidth)).toBeGreaterThanOrEqual(44)
@@ -258,6 +316,7 @@ test('390px: selecting a tooth opens a bottom sheet named for the tooth; keypad 
 
   fireEvent.click(document.getElementById('t36-O')!)
   expect(surfaces()).toEqual(['L', 'M', 'O', 'D', 'B'])
+  expect(screen.getByRole('dialog', { name: 'Detail gigi 36' })).toHaveTextContent('Molar pertama kiri bawah')
   fireEvent.keyDown(screen.getByRole('dialog', { name: 'Detail gigi 36' }), { key: 'Escape' })
   expect(screen.queryByRole('dialog')).toBeNull()
   style.remove()

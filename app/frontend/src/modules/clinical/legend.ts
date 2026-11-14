@@ -22,6 +22,15 @@ export const LOWER_PRIMARY = [85, 84, 83, 82, 81, 71, 72, 73, 74, 75]
 export const isAnterior = (t: number) => t % 10 <= 3
 /** Upper jaw = FDI quadrants 1, 2, 5, 6. */
 export const isUpper = (t: number) => [1, 2, 5, 6].includes(Math.floor(t / 10))
+const PERMANENT = ['Insisor sentral', 'Insisor lateral', 'Kaninus', 'Premolar pertama', 'Premolar kedua', 'Molar pertama', 'Molar kedua', 'Molar ketiga']
+const PRIMARY = ['Insisor sentral', 'Insisor lateral', 'Kaninus', 'Molar pertama', 'Molar kedua'] // sulung: no premolars
+/** Indonesian anatomical name; kanan/kiri = the patient's side (FDI quadrants 1,4,5,8 = right). Unknown FDI -> "Gigi {n}". */
+export function toothAnatomicalName(t: number): string {
+  const q = Math.floor(t / 10), primary = q >= 5
+  const kind = Number.isInteger(t) && q >= 1 && q <= 8 ? (primary ? PRIMARY : PERMANENT)[(t % 10) - 1] : undefined
+  if (!kind) return `Gigi ${t}`
+  return `${kind}${primary ? ' sulung' : ''} ${[1, 4, 5, 8].includes(q) ? 'kanan' : 'kiri'} ${isUpper(t) ? 'atas' : 'bawah'}`
+}
 export const surfacesOf = (t: number): Surface[] => ['M', 'D', isAnterior(t) ? 'I' : 'O', 'B', 'L']
 /** Stored 'L' is shown as 'P' (palatal) on upper teeth; never sent as 'P'. */
 export const surfaceLabel = (t: number, s: Surface) => (s === 'L' && isUpper(t) ? 'P' : s)

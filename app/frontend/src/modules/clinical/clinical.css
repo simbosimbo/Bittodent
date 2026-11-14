@@ -151,6 +151,7 @@ label.check { flex-direction: row; gap: 8px; align-items: flex-start; font-weigh
 .tooth-panel .picker-pop { margin: 0; }
 .tooth-empty { padding: var(--space-6) 0; text-align: center; }
 .tooth-panel-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.tooth-name { font-weight: 700; color: var(--text); }
 .tooth-close { min-width: var(--shells-a-size-touch); min-height: var(--shells-a-size-touch); font-size: 20px; line-height: 1; }
 .surf-pad { display: grid; grid-template-columns: repeat(3, 44px); grid-template-areas: '. top .' 'left center right' '. bottom .'; gap: 6px; justify-content: start; }
 .surf { min-width: 44px; min-height: 44px; border: 1px solid var(--color-neutral-200); border-radius: var(--radius-sm); background: var(--surface);

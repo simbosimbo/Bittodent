@@ -6,13 +6,13 @@ import { Icon, ICONS } from '../../shared/ui/Icon'
 import { Menu } from '../../shared/ui/Menu'
 import { ALERTS_CHANGED, AlertRibbon } from './AlertRibbon'
 import { getFamily, getMedicalHistory, getPatient, saveMedicalHistory, type Family, type MedicalHistory, type PatientFull } from './api'
-import { age, dob, PAYER, SEX } from './Patients'
+import { age, ageTahun, dob, SEX } from './Patients'
 
 const TABS = [['pasien', 'Profil'], ['rekam-medis', 'Rekam Medis'], ['keluarga', 'Keluarga'], ['riwayat-medis', 'Riwayat Medis']] as const
 
 /** Header (with the Profil / Rekam Medis / Keluarga / Riwayat Medis menu) shared by the patient screens; loading the patient makes it the active patient.
- *  `alerts`: allergy/premed chips in the header (one /alerts fetch); used on Rekam Medis. */
-export function PatientPage({ id, tab, canChart, actions, alerts, children }: { id: string; tab: string; canChart: boolean; actions?: ReactNode; alerts?: boolean; children: (p: PatientFull) => ReactNode }) {
+ *  `alerts`: allergy/premed/condition chips in the header (one /alerts fetch); `status`: extra chip in the same row (visit status). Both used on Rekam Medis. */
+export function PatientPage({ id, tab, canChart, actions, alerts, status, children }: { id: string; tab: string; canChart: boolean; actions?: ReactNode; alerts?: boolean; status?: ReactNode; children: (p: PatientFull) => ReactNode }) {
   const [p, setP] = useState<PatientFull | null>(null)
   const [error, setError] = useState('')
   useEffect(() => {
@@ -26,9 +26,17 @@ export function PatientPage({ id, tab, canChart, actions, alerts, children }: { 
       <div className="patient-head">
         <span className="avatar avatar-lg" aria-hidden="true">{initials(p.name)}</span>
         <div className="patient-head-main">
-          <h1>{p.name}</h1>
-          <p className="muted small">{[`${dob(p.dob)}${age(p.dob) ? ` (${age(p.dob)})` : ''}`, p.sex && (SEX[p.sex] ?? p.sex), `Penjamin ${PAYER[p.payer_type] ?? p.payer_type}`, `No. RM: ${p.mrn ?? 'belum ada'}`].filter(Boolean).join(' · ')}</p>
-          {alerts && <AlertRibbon patientId={p.id} compactDefault label="Peringatan medis pasien" className="patient-alerts" />}
+          <div className="patient-head-title">
+            <h1>{p.name}</h1>
+            {/* DOB and payer live on Profil; "No. RM …" never breaks mid-token. */}
+            <p className="muted small">{[ageTahun(p.dob), p.sex && (SEX[p.sex] ?? p.sex)].filter(Boolean).map((x) => x + ' · ')}<span className="patient-mrn">No. RM <strong>{p.mrn ?? 'belum ada'}</strong></span></p>
+          </div>
+          {(alerts || status) && (
+            <div className="patient-chip-row">
+              {alerts && <AlertRibbon patientId={p.id} compactDefault label="Peringatan medis pasien" className="patient-alerts" />}
+              {status}
+            </div>
+          )}
         </div>
         <div className="patient-head-actions">
           {actions}
