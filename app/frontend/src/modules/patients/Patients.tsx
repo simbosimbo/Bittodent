@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { errorText } from '../../shared/api/http'
-import { initials } from '../../shared/format'
+import { initials, TZ } from '../../shared/format'
 import { Icon, ICONS } from '../../shared/ui/Icon'
 import { useIsMobile } from '../../shared/useIsMobile'
-import { searchPatients, type PatientRow } from './api'
+import { getDentists, searchPatients, type ListFilter, type PatientRow } from './api'
 import { PatientPage } from './Records'
 import './patients.css'
 
@@ -19,7 +19,8 @@ export const dob = (d: string | null) => { const t = birthDate(d); return t ? ne
 export const age = (d: string | null) => { const t = birthDate(d); return t ? Math.floor((Date.now() - t.getTime()) / 31_557_600_000) + ' th' : '' }
 
 /** Debounced patient search against the API; stale responses are dropped. */
-export function usePatientSearch(q: string, delay = 300) {
+export function usePatientSearch(q: string, delay = 300, filter: ListFilter = {}) {
+  const { care_status, dentist_id } = filter
   const [rows, setRows] = useState<PatientRow[] | null>(null)
   const [next, setNext] = useState<string | null>(null)
   const [error, setError] = useState('')
@@ -29,7 +30,7 @@ export function usePatientSearch(q: string, delay = 300) {
     setLoading(true)
     const t = setTimeout(async () => {
       try {
-        const res = await searchPatients(q)
+        const res = await searchPatients(q, undefined, { care_status, dentist_id })
         if (!live) return
         setRows(res.data)
         setNext(res.next_cursor)
@@ -41,33 +42,40 @@ export function usePatientSearch(q: string, delay = 300) {
       }
     }, delay)
     return () => { live = false; clearTimeout(t) }
-  }, [q, delay])
+  }, [q, delay, care_status, dentist_id])
 
   async function more() {
     if (!next) return
-    const res = await searchPatients(q, next)
+    const res = await searchPatients(q, next, { care_status, dentist_id })
     setRows((r) => [...(r ?? []), ...res.data])
     setNext(res.next_cursor)
   }
   return { rows, next, error, loading, more }
 }
 
-// Labels for patient.status (MySQL default 'aktif'; postgres target adds meninggal/diarsip). Unknown values show raw.
-const STATUS: Record<string, string> = { aktif: 'Aktif', tidak_aktif: 'Tidak aktif', meninggal: 'Meninggal', diarsip: 'Diarsip' }
-// Value not in the API (last visit; mrn on old draft rows): say so instead of inventing values.
+// Care status (derived server-side by Patients\Domain\CareStatus); admin patient.status is not shown on the list.
+const CARE: Record<string, [string, string]> = {
+  dalam_perawatan: ['Dalam perawatan', 'chip-aktif'], perlu_kontrol: ['Perlu kontrol', 'chip-kontrol'], tidak_aktif: ['Tidak aktif', 'chip-neutral'],
+}
+// Value not in the API (no visit yet; mrn on old draft rows): say so instead of inventing values.
 const Missing = () => <><span aria-hidden="true">—</span><span className="sr-only">Belum ada</span></>
+const day = (iso: string) => new Intl.DateTimeFormat('id-ID', { timeZone: TZ, day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(iso))
+const Care = ({ s }: { s?: string }) => s ? <span className={'chip ' + (CARE[s]?.[1] ?? 'chip-neutral')}>{CARE[s]?.[0] ?? s}</span> : null
+const Allergies = ({ a }: { a?: string[] }) => a?.length
+  ? <span className="pl-allergies"><span className="sr-only">Alergi: </span>{a.map((x) => <span key={x} className="chip chip-alergi">{x}</span>)}</span>
+  : null
 
 export function PatientList({ canCreate, canChart = false, initialQ = '' }: { canCreate: boolean; canChart?: boolean; initialQ?: string }) {
   const [q, setQ] = useState(initialQ)
-  const [status, setStatus] = useState('')
-  const { rows, next, error, loading, more } = usePatientSearch(q)
+  const [care, setCare] = useState('')
+  const [dentist, setDentist] = useState('')
+  const [dentists, setDentists] = useState<{ id: string; name: string }[]>([])
+  const { rows, next, error, loading, more } = usePatientSearch(q, 300, { care_status: care, dentist_id: dentist })
   const mobile = useIsMobile()
-  // Counts cover only the loaded results (no totals endpoint).
-  const counts: Record<string, number> = {}
-  for (const p of rows ?? []) if (p.status) counts[p.status] = (counts[p.status] ?? 0) + 1
-  const active = counts[status] ? status : ''
-  const shown = active ? rows?.filter((p) => p.status === active) : rows
-  const filters: [string, string, number][] = [['', 'Semua', rows?.length ?? 0], ...Object.entries(counts).map(([k, n]): [string, string, number] => [k, STATUS[k] ?? k, n])]
+  useEffect(() => { getDentists().then((r) => setDentists(r.data), () => setDentists([])) }, [])
+  // Filters run on the server (whole list, not just the loaded page): no counts, the API has no totals.
+  const filters: [string, string][] = [['', 'Semua'], ...Object.entries(CARE).map(([k, [label]]): [string, string] => [k, label])]
+  const filtered = !!(care || dentist)
   return (
     <>
       <div className="page-head"><h1 className="shell-dup-title">Daftar Pasien</h1></div>
@@ -77,28 +85,33 @@ export function PatientList({ canCreate, canChart = false, initialQ = '' }: { ca
             <span className="pl-search-box"><Icon d={ICONS.search} size={18} />
               <input type="search" placeholder="Awalan nama, No. RM, atau NIK / no. HP lengkap" value={q} onChange={(e) => setQ(e.target.value)} /></span>
           </label>
+          <label className="pl-dentist">Dokter
+            <select value={dentist} onChange={(e) => setDentist(e.target.value)}>
+              <option value="">Semua dokter</option>
+              {dentists.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </select>
+          </label>
           {canCreate && <a className="btn btn-primary" href="#/pasien/baru">Pasien baru</a>}
         </div>
-        {rows && rows.length > 0 && (
-          <div className="pl-filters" role="group" aria-label="Saring status pasien">
-            {filters.map(([k, label, n]) => (
-              <button key={k} type="button" aria-pressed={active === k} onClick={() => setStatus(k)}>{label} <span className="pl-count">{n}</span></button>
-            ))}
-          </div>
-        )}
+        <div className="pl-filters" role="group" aria-label="Saring status perawatan">
+          {filters.map(([k, label]) => (
+            <button key={k} type="button" aria-pressed={care === k} onClick={() => setCare(k)}>{label}</button>
+          ))}
+        </div>
         {error ? <p className="state-card error">{error}</p>
-          : !rows || !shown ? <p className="state-card muted">Memuat…</p>
-          : rows.length === 0 ? <p className="state-card muted">{q ? `Tidak ada pasien yang cocok dengan “${q}”.` : 'Belum ada pasien.'}</p>
+          : !rows ? <p className="state-card muted">Memuat…</p>
+          : rows.length === 0 ? <p className="state-card muted">{q ? `Tidak ada pasien yang cocok dengan “${q}”.` : filtered ? 'Tidak ada pasien dengan saringan ini.' : 'Belum ada pasien.'}</p>
           : mobile ? (
             // Mobile: one card per patient instead of the wide table; same row/link rules.
             <ul className={'pl-cards' + (loading ? ' is-loading' : '')} aria-label="Daftar pasien">
-              {shown.map((p) => (
+              {rows.map((p) => (
                 <li key={p.id} onClick={() => (location.hash = '/pasien/' + p.id)}>
                   <span className="avatar" aria-hidden="true">{initials(p.name) || '?'}</span>
                   <div className="pl-card-body">
                     <a href={'#/pasien/' + p.id} className="strong pl-name-text">{p.name}</a>
                     <span className="muted small">{[p.mrn, age(p.dob), p.sex && (SEX[p.sex] ?? p.sex), PAYER[p.payer_type] ?? p.payer_type].filter(Boolean).join(' · ')}</span>
-                    {p.status && <span><span className={'chip ' + (p.status === 'aktif' ? 'chip-aktif' : 'chip-neutral')}>{STATUS[p.status] ?? p.status}</span></span>}
+                    <span className="muted small">{p.last_visit_at ? `Terakhir ${day(p.last_visit_at)}${p.last_dentist_name ? ' · ' + p.last_dentist_name : ''}` : 'Belum ada kunjungan'}</span>
+                    {(p.care_status || p.allergies?.length) ? <span className="pl-chips"><Care s={p.care_status} /><Allergies a={p.allergies} /></span> : null}
                     {canChart && <a className="btn-link row-action" href={'#/rekam-medis/' + p.id}
                       aria-label={'Rekam Medis ' + p.name} onClick={(e) => e.stopPropagation()}>Rekam Medis</a>}
                   </div>
@@ -108,19 +121,21 @@ export function PatientList({ canCreate, canChart = false, initialQ = '' }: { ca
             </ul>
           ) : (
             <table className={'table pl-table' + (loading ? ' is-loading' : '')}>
-              <thead><tr><th className="pl-col-name">Pasien</th><th>No. RM</th><th>Umur</th><th>Kunjungan terakhir</th><th>Status</th><th><span className="sr-only">Aksi</span></th></tr></thead>
+              <thead><tr><th className="pl-col-name">Pasien</th><th>No. RM</th><th>Umur</th><th>Kunjungan terakhir</th><th>Dokter</th><th>Status</th><th><span className="sr-only">Aksi</span></th></tr></thead>
               <tbody>
-                {shown.map((p) => (
+                {rows.map((p) => (
                   <tr key={p.id} onClick={() => (location.hash = '/pasien/' + p.id)}>
                     <td><div className="pl-name">
                       <span className="avatar" aria-hidden="true">{initials(p.name) || '?'}</span>
                       <span><a href={'#/pasien/' + p.id} className="strong pl-name-text">{p.name}</a>
-                        <span className="muted small pl-payer">{PAYER[p.payer_type] ?? p.payer_type}</span></span>
+                        <span className="muted small pl-payer">{PAYER[p.payer_type] ?? p.payer_type}</span>
+                        <Allergies a={p.allergies} /></span>
                     </div></td>
                     <td className={p.mrn ? undefined : 'muted'}>{p.mrn ?? <Missing />}</td>
                     <td title={p.dob ? 'Lahir ' + dob(p.dob) : undefined}>{age(p.dob) || <Missing />}</td>
-                    <td className="muted"><Missing /></td>
-                    <td>{p.status ? <span className={'chip ' + (p.status === 'aktif' ? 'chip-aktif' : 'chip-neutral')}>{STATUS[p.status] ?? p.status}</span> : <Missing />}</td>
+                    <td className={p.last_visit_at ? undefined : 'muted'}>{p.last_visit_at ? day(p.last_visit_at) : <Missing />}</td>
+                    <td className={p.last_dentist_name ? undefined : 'muted'}>{p.last_dentist_name ?? <Missing />}</td>
+                    <td>{p.care_status ? <Care s={p.care_status} /> : <Missing />}</td>
                     <td className="cell-action">
                       {canChart && <a className="btn-link row-action" href={'#/rekam-medis/' + p.id}
                         aria-label={'Rekam Medis ' + p.name} onClick={(e) => e.stopPropagation()}>Rekam Medis</a>}

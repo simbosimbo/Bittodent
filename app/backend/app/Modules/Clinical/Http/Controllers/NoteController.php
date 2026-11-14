@@ -11,6 +11,7 @@ use App\Modules\Clinical\Models\ClinicalNoteVersion;
 use App\Modules\Clinical\Models\CorrectionRequest;
 use App\Modules\Clinical\Models\ToothFinding;
 use App\Modules\Clinical\Models\Visit;
+use App\Modules\Clinical\Services\PatientCareSync;
 use App\Modules\Identity\Contracts\UserDirectory;
 use App\Modules\Integrations\Contracts\OutboxPublisher;
 use App\Modules\Tenancy\Contracts\TenancyDirectory;
@@ -59,11 +60,11 @@ class NoteController extends Controller
     }
 
     /** POST /api/visits/{id}/sign {revision, confirm: true, code}: dentist role (route) + author + fresh TOTP. */
-    public function sign(SignRequest $request, string $id, UserDirectory $users)
+    public function sign(SignRequest $request, string $id, UserDirectory $users, PatientCareSync $care)
     {
         $ctx = Ctx::current();
 
-        return DB::transaction(function () use ($request, $id, $users, $ctx) {
+        return DB::transaction(function () use ($request, $id, $users, $ctx, $care) {
             $visit = Visit::lockForUpdate()->findOrFail($id);
             $note = ClinicalNote::where('visit_id', $id)->orderBy('created_at')->first();
             $draft = $note?->versions->firstWhere('state', 'draft');
@@ -89,6 +90,7 @@ class NoteController extends Controller
             $drafts->where('status', 'selesai')->each(fn ($f) => FindingController::recorded($f));
             $this->outbox->enqueue('satusehat', 'satusehat:note_version:'.$draft->id, ['note_version_id' => $draft->id, 'visit_id' => $id]);
             Audit::log('tanda_tangan', 'clinical_note_version', $draft->id, ['visit_id' => $id, 'findings' => $findings]);
+            $care->push($visit->patient_id); // findings just became final: unfinished procedures may have changed
 
             return response()->json(['version_id' => $draft->id, 'signed_at' => $now, 'content_hash' => $draft->content_hash, 'findings_locked' => $findings]);
         });

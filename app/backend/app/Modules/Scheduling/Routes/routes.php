@@ -5,6 +5,7 @@ use App\Modules\Scheduling\Http\Controllers\PlannedAppointmentController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth:sanctum', '2fa', 'tenant'])->group(function () {
+    Route::get('/dentists', [AppointmentController::class, 'dentists'])->middleware('perm:appointment.read');
     Route::get('/schedule', [AppointmentController::class, 'schedule'])->middleware('perm:appointment.read');
     Route::post('/appointments', [AppointmentController::class, 'store'])->middleware('perm:appointment.create');
     Route::post('/appointments/{id}/reschedule', [AppointmentController::class, 'reschedule'])->middleware('perm:appointment.create');

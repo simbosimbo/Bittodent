@@ -7,6 +7,7 @@ use App\Modules\Clinical\Models\CorrectionRequest;
 use App\Modules\Clinical\Models\ToothBaseline;
 use App\Modules\Clinical\Models\ToothFinding;
 use App\Modules\Clinical\Models\Visit;
+use App\Modules\Clinical\Services\PatientCareSync;
 use App\Modules\Identity\Contracts\UserDirectory;
 use App\Modules\Patients\Contracts\PatientDirectory;
 use App\Modules\Scheduling\Contracts\AppointmentDirectory;
@@ -58,7 +59,7 @@ class ChartController extends Controller
     }
 
     /** POST /api/appointments/{id}/visit: idempotent (unique tenant_id+appointment_id). */
-    public function visitFromAppointment(string $id, AppointmentDirectory $appointments)
+    public function visitFromAppointment(string $id, AppointmentDirectory $appointments, PatientCareSync $care)
     {
         $a = $appointments->findOrFail($id);
         if (! Ctx::current()->coversBranch($a['branch_id'])) {
@@ -77,6 +78,7 @@ class ChartController extends Controller
             return response()->json(self::visit(Visit::where('appointment_id', $id)->firstOrFail()));
         }
         Audit::log('buat', 'visit', $v->id, ['appointment_id' => $id]);
+        $care->push($v->patient_id);
 
         return response()->json(self::visit($v), 201);
     }

@@ -11,6 +11,7 @@ use App\Modules\Clinical\Models\ConsentRecord;
 use App\Modules\Clinical\Models\ToothBaseline;
 use App\Modules\Clinical\Models\ToothFinding;
 use App\Modules\Clinical\Models\Visit;
+use App\Modules\Clinical\Services\PatientCareSync as ClinicalCareSync;
 use App\Modules\Identity\Models\User;
 use App\Modules\Patients\Models\Guardian;
 use App\Modules\Patients\Models\Household;
@@ -24,6 +25,7 @@ use App\Modules\Recall\Models\ReminderLog;
 use App\Modules\Scheduling\Models\Appointment;
 use App\Modules\Scheduling\Models\Chair;
 use App\Modules\Scheduling\Models\PlannedAppointment;
+use App\Modules\Scheduling\Services\PatientCareSync as SchedulingCareSync;
 use App\Modules\Tariffs\Domain\DifficultyTemplate;
 use App\Modules\Tariffs\Models\Tariff;
 use App\Modules\Tenancy\Models\Branch;
@@ -76,6 +78,7 @@ class DatabaseSeeder extends Seeder
             $this->appointments([$b1, $b2], $users['dokter@senyum.test'], $patients);
             $this->clinicalDemo($b1, $users['dokter@senyum.test'], $patients[0]);
             $this->c3Demo($b1, $users['dokter@senyum.test'], $patients, 1);
+            $this->careDemo($b1, $users['dokter@senyum.test'], $patients);
         }, $users['pemilik@senyum.test']->id);
 
         Ctx::runAs($b->id, function () use ($users) {
@@ -86,6 +89,7 @@ class DatabaseSeeder extends Seeder
             $patients = $this->patients(40, 2, [$b1->id]);
             $this->appointments([$b1], $users['dokter@ceria.test'], $patients);
             $this->c3Demo($b1, $users['dokter@ceria.test'], $patients, 2);
+            $this->careDemo($b1, $users['dokter@ceria.test'], $patients);
         }, $users['dokter@ceria.test']->id);
     }
 
@@ -268,6 +272,27 @@ class DatabaseSeeder extends Seeder
         $sign($rx1, ['dose' => '500 mg', 'route' => 'oral', 'frequency' => '3x sehari', 'duration_days' => 3]);
         PrescriptionVoid::create(['prescription_id' => $rx1->id, 'reason_enc' => Crypto::encrypt('Salah durasi (contoh)'), 'voided_by' => $dentist->id]);
         $sign($rx("R-$seed-0002", $rx1->id), ['dose' => '500 mg', 'route' => 'oral', 'frequency' => '3x sehari', 'duration_days' => 5]);
+    }
+
+    /**
+     * Patient list mix (no new patients): #30 visited 60 days ago + allergy => Perlu kontrol; #31 visited 400 days ago => Tidak aktif
+     * with a last visit; #32 allergy only, never visited. Then every patient's facts are pushed through the real writers
+     * (patients with today's/tomorrow's appointments or an open visit => Dalam perawatan).
+     */
+    private function careDemo(Branch $branch, User $dentist, array $patients): void
+    {
+        foreach ([30 => 60, 31 => 400] as $i => $days) {
+            Visit::create(['patient_id' => $patients[$i]->id, 'branch_id' => $branch->id, 'dentist_id' => $dentist->id,
+                'started_at' => now()->subDays($days), 'ended_at' => now()->subDays($days)->addHour(), 'status' => 'selesai']);
+        }
+        foreach ([30 => ['Ibuprofen (contoh)'], 32 => ['Lateks', 'Amoksisilin (contoh)']] as $i => $allergies) {
+            MedicalHistoryVersion::create(['patient_id' => $patients[$i]->id, 'version' => 1, 'premedication_required' => false, 'created_by' => $dentist->id,
+                'content_enc' => Crypto::encrypt(json_encode(['medications' => [], 'problems' => [], 'allergies' => $allergies, 'urgent_note' => null]))]);
+        }
+        foreach (Patient::pluck('id') as $id) {
+            app(ClinicalCareSync::class)->push($id);
+            app(SchedulingCareSync::class)->push($id);
+        }
     }
 
     public static function version(ClinicalNote $note, int $n, ?ClinicalNoteVersion $supersedes, array $soap, User $signer, ?string $reason = null, $at = null): ClinicalNoteVersion

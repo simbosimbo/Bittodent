@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Identity\Models\User;
+use App\Modules\Patients\Services\PatientCareStateService;
 use App\Modules\Recall\Services\ReminderService;
 use App\Modules\Tenancy\Models\Tenant;
 use App\Shared\Tenancy\Ctx;
@@ -51,3 +52,11 @@ Artisan::command('recall:send-reminders', function () {
         $this->line("$tenantId: $n");
     }
 })->purpose('Kirim pengingat janji yang jatuh tempo (kanal no-op; tercatat di reminder_log)');
+
+// Care status depends on time (appointments pass, visits age past 30 days / 12 months): recompute from stored facts, per tenant.
+// shortcut: run by hand/cron daily; not wired into the Laravel scheduler yet (no scheduler is configured in this prototype).
+Artisan::command('patients:refresh-care-status', function () {
+    foreach (Tenant::pluck('id') as $tenantId) {
+        $this->line("$tenantId: ".Ctx::runAs($tenantId, fn () => app(PatientCareStateService::class)->refreshAll()));
+    }
+})->purpose('Hitung ulang status perawatan pasien (daftar pasien) dari fakta tersimpan');

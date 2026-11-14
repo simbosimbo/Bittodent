@@ -11,8 +11,6 @@
 .pl-filters button:hover { background: var(--color-neutral-50); }
 .pl-filters button[aria-pressed='true'] { background: var(--color-primary-50); color: var(--color-primary-700); }
 .pl-filters button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.pl-count { font-size: var(--font-size-xs); border-radius: var(--radius-pill); padding: 0 7px; background: var(--color-neutral-50); color: var(--color-neutral-700); }
-.pl-filters button[aria-pressed='true'] .pl-count { background: var(--color-primary-700); color: #fff; }
 
 .pl-table th { text-transform: uppercase; letter-spacing: 0.04em; }
 .pl-table .pl-col-name { width: 38%; }
@@ -22,6 +20,13 @@
 .pl-name-text { display: block; white-space: normal; overflow-wrap: anywhere; }
 .pl-payer { display: block; }
 .chip-aktif { background: var(--color-success-bg); color: var(--color-success-fg); }
+.chip-kontrol { background: var(--color-warning-bg); color: var(--color-warning-fg); }
+/* Allergy chips: safety info, so they wrap instead of being clipped. */
+.pl-allergies { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.chip-alergi { background: var(--color-danger-bg); color: var(--color-danger-fg); white-space: normal; }
+.pl-chips { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.pl-dentist { display: grid; gap: var(--space-1); font-size: var(--font-size-xs); font-weight: 600; color: var(--muted); }
+.pl-dentist select { min-height: var(--shells-a-size-touch); font-size: var(--font-size-base); }
 .pl-table td.cell-action { white-space: nowrap; }
 .pl-chevron { display: inline-flex; vertical-align: middle; margin-left: var(--space-2); color: var(--muted); }
 
