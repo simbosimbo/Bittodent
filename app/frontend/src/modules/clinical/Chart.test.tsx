@@ -383,6 +383,30 @@ test('active visit: panel offers conditions; inner tab Catatan Klinis shows SOAP
   expect(screen.getByRole('region', { name: 'Odontogram' })).toBeInTheDocument()
 })
 
+// jsdom menilai @media pada lebar tetap 1024px: geser ambang agar CSS berlaku seperti pada lebar w.
+const cssAt = (text: string, w: number) => text.replace(/@media[^{]+/g, (m) => m.replace(/(\d+)px/g, (_, n) => `${Number(n) - (w - 1024)}px`))
+
+test('1280px: odontogram (8) and tooth panel (4) sit side by side; 1320px (full sidebar) stacks; surface keys stay 44px', async () => {
+  const style = document.head.appendChild(document.createElement('style'))
+  style.textContent = cssAt(baseCss + css, 1280)
+  renderChart()
+  const odo = await screen.findByRole('region', { name: 'Odontogram' })
+  const panel = screen.getByRole('complementary', { name: 'Detail gigi' })
+  expect(odo.closest('.chart-grid')).toBe(panel.parentElement)
+  expect(getComputedStyle(odo).gridColumn).toBe('span 8')
+  expect(getComputedStyle(panel).gridColumn).toBe('span 4')
+  fireEvent.click(document.getElementById('t16-O')!)
+  for (const b of pad().getAllByRole('button')) {
+    expect(parseFloat(getComputedStyle(b).minWidth)).toBeGreaterThanOrEqual(44)
+    expect(parseFloat(getComputedStyle(b).minHeight)).toBeGreaterThanOrEqual(44)
+  }
+  // 1281–1365px: sidebar penuh, chart dan panel bertumpuk.
+  style.textContent = cssAt(baseCss + css, 1320)
+  expect(getComputedStyle(odo).gridColumn).toBe('span 12')
+  expect(getComputedStyle(panel).gridColumn).toBe('span 12')
+  style.remove()
+})
+
 test('390px: selecting a tooth opens a bottom sheet named for the tooth; keypad labels + 44px; backdrop closes and clears the pick', async () => {
   vi.stubGlobal('matchMedia', (q: string) => ({ media: q, matches: true, addEventListener() {}, removeEventListener() {} }))
   const style = document.head.appendChild(document.createElement('style'))

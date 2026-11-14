@@ -256,16 +256,20 @@ html { scroll-padding-top: 160px; } /* scrollIntoView lands below the pinned top
 .alert-ribbon.is-compact .alert-chip { flex: none; font-size: var(--font-size-xs); padding: 2px 12px; white-space: nowrap; }
 .alert-ribbon.is-compact .alert-premedikasi, .alert-ribbon.is-compact .alert-catatan_penting { padding-block: 1px; }
 
-@media (max-width: 1100px) {
+/* ≤1280px (termasuk 1280×800): sidebar jadi rel ikon agar Rekam Medis muat odontogram 8 + panel gigi 4 berdampingan. */
+@media (max-width: 1280px) {
   .shell-nav-group { display: none; }
-  .shell-search { order: 5; max-width: none; }
   .alert-ribbon { padding: 8px 12px; }
   .shell-side { width: var(--shells-a-size-sidebar-compact); padding: 12px 8px; }
   .shell-brand span:last-child, .shell-nav-label, .shell-clinic, .shell-user-text { display: none; }
   .shell-top-synthetic { display: inline-block; }
   .shell-nav a { justify-content: center; padding: 0; }
-  .shell-top { flex-wrap: wrap; padding: 8px 12px; }
   .shell-main { padding: 12px; }
+}
+/* ≤1100px: pencarian pindah ke baris kedua top bar. */
+@media (max-width: 1100px) {
+  .shell-search { order: 5; max-width: none; }
+  .shell-top { flex-wrap: wrap; padding: 8px 12px; }
 }
 
 /* Dev quick login (local only) */

@@ -137,8 +137,8 @@ label.check { flex-direction: row; gap: 8px; align-items: flex-start; font-weigh
 .chart-tabs button.on { color: var(--color-primary-700); border-bottom-color: var(--color-primary-700); }
 .chart-tabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .chart-grid { align-items: start; }
-/* At ≤1365px (incl. 1280×800 with the full sidebar) a 4-col panel would squeeze the 3D chart: stack chart, then panel. */
-@media (max-width: 1365px) { .chart-grid > .span-8, .chart-grid > .span-4 { grid-column: span 12; } }
+/* 8 + 4 berdampingan sampai 1101px (≤1280 sidebar sudah rel ikon); di bawahnya .grid-12 menumpuk (styles.css). */
+@media (min-width: 1281px) and (max-width: 1365px) { .chart-grid > .span-8, .chart-grid > .span-4 { grid-column: span 12; } }
 /* 3D scaled with CSS zoom (layout + hit-testing scale together, so picks still land on the tooth). */
 .odo-card .odo3d { padding: var(--space-1) 0; }
 .odo-card .odo3d .chart { zoom: 0.78; }

@@ -5,6 +5,7 @@ import { PatientPage } from './modules/patients'
 import { setActivePatient } from './shared/activePatient'
 import { clinicSubtitle, pageTitle, Shell, withActivePatientHref } from './shared/layout/Shell'
 import type { Me } from './shared/session'
+import baseCss from './shared/ui/styles.css?raw'
 
 // Synthetic data only.
 const me: Me = {
@@ -24,7 +25,13 @@ const shell = (m: Me, patient: { id: string } | null = null, path?: string, onSw
 }
 const viewport = (w: number) => vi.stubGlobal('matchMedia', (q: string) => ({ media: q, matches: w <= 720, addEventListener() {}, removeEventListener() {} }))
 
-afterEach(() => { act(() => setActivePatient(null)); vi.unstubAllGlobals(); location.hash = '' })
+// jsdom menilai @media pada lebar tetap 1024px: geser ambang agar styles.css berlaku seperti pada lebar w.
+const cssAt = (w: number) => {
+  const el = document.head.appendChild(document.createElement('style'))
+  el.textContent = baseCss.replace(/@media[^{]+/g, (m) => m.replace(/(\d+)px/g, (_, n) => `${Number(n) - (w - 1024)}px`))
+}
+
+afterEach(() => { act(() => setActivePatient(null)); vi.unstubAllGlobals(); location.hash = ''; document.head.querySelectorAll('style').forEach((s) => s.remove()) })
 
 test('NAV: eight items; Rekam Medis leads to the patient list without a patient, to /rekam-medis/p1 with one; no Keluarga / Riwayat Medis', () => {
   expect(hrefs(null)).toEqual({ Beranda: '/', Jadwal: '/jadwal', Antrean: '/antrean', Pasien: '/pasien',
@@ -53,8 +60,9 @@ test('pageTitle: patient area reads Daftar Pasien, the form Pasien Baru, others 
   expect(pageTitle('/kasir', at('/kasir'))).toBe('Kasir')
 })
 
-test('1280px sidebar: Bittodent brand, clinic block, KLINIK / KLINIS / KEUANGAN groups, no branch picker, no bottom nav', () => {
-  viewport(1280)
+test('1440px sidebar: Bittodent brand, clinic block, KLINIK / KLINIS / KEUANGAN groups, no branch picker, no bottom nav', () => {
+  viewport(1440)
+  cssAt(1440)
   act(() => setActivePatient({ id: 'p1', name: 'Sari Sintetis' }))
   shell(me, { id: 'p1' }, '/rekam-medis')
   expect(screen.queryByRole('navigation', { name: 'Navigasi utama' })).toBeNull()
@@ -73,6 +81,31 @@ test('1280px sidebar: Bittodent brand, clinic block, KLINIK / KLINIS / KEUANGAN 
   expect(nav).not.toHaveTextContent('Pasien aktif')
   expect(within(nav).getByRole('link', { name: 'Rekam Medis' })).toHaveAttribute('href', '#/rekam-medis/p1')
   expect(within(nav).getByRole('link', { name: 'Rekam Medis' })).toHaveAttribute('aria-current', 'page')
+  expect(within(side).getByText('Bittodent')).toBeVisible()
+  expect(within(side).getByText('Klinik Gigi Senyum Sehat')).toBeVisible()
+  expect(within(nav).getByText('KLINIK')).toBeVisible()
+  expect(within(nav).getByText('Beranda')).toBeVisible()
+  expect(within(document.querySelector('header.shell-top') as HTMLElement).queryByText('DATA SINTETIS')).not.toBeVisible()
+})
+
+test('1280px sidebar: icon rail (no labels, captions, brand word or clinic block), links keep their names, DATA SINTETIS in the top bar, no bottom nav', () => {
+  viewport(1280)
+  cssAt(1280)
+  act(() => setActivePatient({ id: 'p1', name: 'Sari Sintetis' }))
+  shell(me, { id: 'p1' }, '/rekam-medis')
+  expect(screen.queryByRole('navigation', { name: 'Navigasi utama' })).toBeNull()
+  const side = document.querySelector('.shell-side') as HTMLElement
+  expect(side).toBeVisible()
+  expect(within(side).getByRole('link', { name: 'Bittodent' })).toHaveAttribute('href', '#/')
+  expect(within(side).getByText('Bittodent')).not.toBeVisible()
+  expect(within(side).getByText('Klinik Gigi Senyum Sehat')).not.toBeVisible()
+  expect(within(side).getByText('DATA SINTETIS')).not.toBeVisible()
+  const nav = screen.getByRole('navigation', { name: 'Modul utama' })
+  for (const c of ['KLINIK', 'KLINIS', 'KEUANGAN', 'Beranda', 'Rekam Medis', 'Laporan']) expect(within(nav).getByText(c)).not.toBeVisible()
+  expect(within(nav).getAllByRole('link').map((a) => a.getAttribute('title'))).toEqual(['Beranda', 'Jadwal', 'Antrean', 'Pasien', 'Rekam Medis', 'Resep', 'Kasir', 'Laporan'])
+  expect(within(nav).getByRole('link', { name: 'Beranda' })).toHaveAttribute('href', '#/')
+  expect(within(nav).getByRole('link', { name: 'Rekam Medis' })).toHaveAttribute('aria-current', 'page')
+  expect(within(document.querySelector('header.shell-top') as HTMLElement).getByText('DATA SINTETIS')).toBeVisible()
 })
 
 test('1280px top bar: title, search, + menu, disabled bell, user menu with branch switcher + Keluar', () => {
