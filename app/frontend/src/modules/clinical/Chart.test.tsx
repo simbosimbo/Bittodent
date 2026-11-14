@@ -221,3 +221,34 @@ test('active visit: panel offers conditions; inner tab Catatan Klinis shows SOAP
   fireEvent.click(screen.getByRole('tab', { name: 'Odontogram' }))
   expect(screen.getByRole('region', { name: 'Odontogram' })).toBeInTheDocument()
 })
+
+test('390px: selecting a tooth opens a bottom sheet named for the tooth; keypad labels + 44px; backdrop closes and clears the pick', async () => {
+  vi.stubGlobal('matchMedia', (q: string) => ({ media: q, matches: true, addEventListener() {}, removeEventListener() {} }))
+  const style = document.head.appendChild(document.createElement('style'))
+  style.textContent = css
+  renderChart({ visits: [visit] })
+  await screen.findByRole('region', { name: 'Odontogram' })
+  expect(screen.queryByRole('complementary', { name: 'Detail gigi' })).toBeNull()
+  expect(screen.queryByRole('dialog')).toBeNull()
+
+  fireEvent.click(document.getElementById('t16-O')!)
+  const sheet = screen.getByRole('dialog', { name: 'Detail gigi 16' })
+  expect(sheet).toHaveClass('tooth-sheet')
+  expect(surfaces()).toEqual(['P', 'M', 'O', 'D', 'B'])
+  for (const b of pad().getAllByRole('button')) {
+    expect(parseFloat(getComputedStyle(b).minWidth)).toBeGreaterThanOrEqual(44)
+    expect(parseFloat(getComputedStyle(b).minHeight)).toBeGreaterThanOrEqual(44)
+  }
+  expect(within(sheet).getByRole('group', { name: 'Pilih kondisi' })).toBeInTheDocument() // same editable rule as desktop
+  expect(within(sheet).getByRole('button', { name: 'Tutup detail gigi' })).toHaveFocus()
+
+  fireEvent.click(document.querySelector('.sheet-backdrop')!)
+  expect(screen.queryByRole('dialog')).toBeNull()
+  expect(document.querySelector('.tooth-surface.is-sel')).toBeNull()
+
+  fireEvent.click(document.getElementById('t36-O')!)
+  expect(surfaces()).toEqual(['L', 'M', 'O', 'D', 'B'])
+  fireEvent.keyDown(screen.getByRole('dialog', { name: 'Detail gigi 36' }), { key: 'Escape' })
+  expect(screen.queryByRole('dialog')).toBeNull()
+  style.remove()
+})

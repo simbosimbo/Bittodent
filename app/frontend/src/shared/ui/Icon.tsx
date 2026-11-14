@@ -13,4 +13,5 @@ export const ICONS = {
   right: 'M9 6l6 6-6 6',
   user: 'M20 21v-1a5 5 0 0 0-5-5H9a5 5 0 0 0-5 5v1M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8',
   card: 'M3 6h18v12H3zM3 10h18M7 15h4',
+  more: 'M5 11.5h1v1H5zM11.5 11.5h1v1h-1zM18 11.5h1v1h-1z',
 }

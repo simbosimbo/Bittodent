@@ -68,3 +68,31 @@ test('rows without status show no badge and do not crash', async () => {
   expect(screen.queryByText('Aktif')).toBeNull()
   expect(screen.getByRole('button', { name: 'Semua 1' })).toHaveAttribute('aria-pressed', 'true')
 })
+
+const viewport = (w: number) => vi.stubGlobal('matchMedia', (q: string) => ({ media: q, matches: w <= 720, addEventListener() {}, removeEventListener() {} }))
+
+test('390px: cards instead of the table; Rekam Medis link works without opening the profile', async () => {
+  viewport(390)
+  list(true)
+  const cards = await screen.findByRole('list', { name: 'Daftar pasien' })
+  expect(document.querySelector('.pl-table')).toBeNull()
+  expect(within(cards).getAllByRole('listitem')).toHaveLength(3)
+  const card = within(cards).getByText('Sari Sintetis').closest('li')!
+  expect(card).toHaveTextContent('Perempuan')
+  expect(within(card).getByText('Aktif')).toHaveClass('chip-aktif')
+  expect(within(card).getByRole('link', { name: 'Sari Sintetis' })).toHaveAttribute('href', '#/pasien/p1')
+  const rm = within(card).getByRole('link', { name: 'Rekam Medis Sari Sintetis' })
+  expect(rm).toHaveAttribute('href', '#/rekam-medis/p1')
+  fireEvent.click(rm)
+  expect(location.hash).not.toBe('#/pasien/p1')
+  fireEvent.click(within(cards).getByText('Budi Contoh').closest('li')!)
+  expect(location.hash).toBe('#/pasien/p2')
+})
+
+test('1280px: still the table', async () => {
+  viewport(1280)
+  list()
+  await screen.findByText('Sari Sintetis')
+  expect(screen.getByRole('table')).toHaveClass('pl-table')
+  expect(screen.queryByRole('list', { name: 'Daftar pasien' })).toBeNull()
+})

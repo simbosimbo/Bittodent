@@ -53,3 +53,15 @@ a.tl-block:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px
 .queue-sum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); margin-bottom: var(--space-3); }
 .queue-sum > div { display: flex; flex-direction: column; padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); font-size: var(--font-size-xs); font-weight: 600; }
 .queue-sum strong { font-size: var(--font-size-lg); }
+
+/* Mobile (≤720px): KPIs 2×2 (styles.css), then Antrean live, Janji hari ini, per-dentist strip (scrolls inside its card). */
+@media (max-width: 720px) {
+  .home-greet { font-size: var(--font-size-lg); }
+  .home-queue { order: 1; }
+  .home-today { order: 2; }
+  .home-board { order: 3; }
+  .tl { --tl-label: 132px; }
+  .stat .stat-value { font-size: var(--font-size-2xl); }
+  .stat-icon { width: 32px; height: 32px; }
+  .seg .btn { min-height: 44px; }
+}
