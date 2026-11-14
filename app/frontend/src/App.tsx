@@ -1,6 +1,6 @@
 // Composition root: routes + shell. Imports modules only through their index.ts.
 import { useCallback, useEffect, useState } from 'react'
-import { ApiError } from './shared/api/http'
+import { ApiError, hasCsrfCookie } from './shared/api/http'
 import { setActivePatient, useActivePatient } from './shared/activePatient'
 import { Shell, type NavItem } from './shared/layout/Shell'
 import type { Me } from './shared/session'
@@ -36,6 +36,8 @@ export default function App() {
   const patient = useActivePatient()
 
   const load = useCallback(async () => {
+    // No XSRF-TOKEN → never had a session here; skip /api/me so a fresh guest visit logs no 401.
+    if (!hasCsrfCookie()) { setMe(null); setState('guest'); return }
     try {
       setMe(await getMe())
       setState('ready')
