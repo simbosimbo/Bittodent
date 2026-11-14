@@ -46,9 +46,9 @@
 .cond-sehat { color: #0B7A45; } .cond-karies { color: #BE123C; } .cond-tambalan { color: #1E40AF; } .cond-mahkota { color: #6D28D9; }
 .cond-hilang { color: #3F3F46; } .cond-sisa_akar { color: #9A3412; } .cond-perlu_dicabut { color: #A15C00; } .cond-implan { color: #0F5F63; }
 
-.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 10px; flex-wrap: wrap; }
-.tabs button { background: none; border: none; border-bottom: 2px solid transparent; padding: 8px 10px; font: inherit; cursor: pointer; color: var(--muted); }
-.tabs button.is-active { color: inherit; border-bottom-color: var(--accent-600, #0E8579); font-weight: 650; }
+.soap .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 10px; flex-wrap: wrap; }
+.soap .tabs button { background: none; border: none; border-bottom: 2px solid transparent; padding: 8px 10px; font: inherit; cursor: pointer; color: var(--muted); }
+.soap .tabs button.is-active { color: inherit; border-bottom-color: var(--accent-600, #0E8579); font-weight: 650; }
 .soap-panel { display: grid; gap: 8px; }
 .soap-panel textarea, .dialog textarea { width: 100%; font: inherit; }
 
@@ -81,3 +81,7 @@ label.check { flex-direction: row; gap: 8px; align-items: flex-start; font-weigh
 .st-selesai { color: #0B7A45; background: #ECFDF5; }
 .st-dirujuk { color: #6D28D9; background: #fff; border-style: dotted; }
 .baseline-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+
+/* Chart inside PatientPage */
+.chart-meta { text-align: right; }
+.chart-cta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); margin: var(--space-3) 0 0; color: var(--text); }

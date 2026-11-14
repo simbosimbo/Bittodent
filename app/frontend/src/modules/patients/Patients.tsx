@@ -3,8 +3,8 @@ import { errorText } from '../../shared/api/http'
 import { searchPatients, type PatientRow } from './api'
 import { PatientPage } from './Records'
 
-const SEX: Record<string, string> = { laki_laki: 'Laki-laki', perempuan: 'Perempuan' }
-const PAYER: Record<string, string> = { umum: 'Umum', asuransi: 'Asuransi', bpjs: 'BPJS' }
+export const SEX: Record<string, string> = { laki_laki: 'Laki-laki', perempuan: 'Perempuan' }
+export const PAYER: Record<string, string> = { umum: 'Umum', asuransi: 'Asuransi', bpjs: 'BPJS' }
 // Accepts date-only or ISO datetime; uses only the YYYY-MM-DD part (UTC) so the day never shifts. null when unparseable.
 const birthDate = (d: string | null) => {
   const m = /^\d{4}-\d{2}-\d{2}/.exec(d ?? '')
