@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bittodent — Prototipe Kasir (DATA SINTETIS)</title>
+<title>Bittodent Kasir (DATA SINTETIS)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -44,7 +44,6 @@
     <div class="clinic">
       <b>Klinik Gigi Senyum Sehat</b>
       <span>Jl. Tebet Raya No. 21, Jakarta Selatan</span>
-      <span class="pill-synth">DATA SINTETIS</span>
     </div>
     <div class="nav-group" id="ng-klinik" data-roles="kasir dokter pemilik">KLINIK</div>
     <div role="list" aria-labelledby="ng-klinik">
@@ -70,7 +69,7 @@
       <label class="search"><svg width="18" height="18" aria-hidden="true"><use href="#i-search"/></svg><span class="sr-only">Cari</span><input type="search" placeholder="Cari pasien atau No. tagihan…"></label>
       <div class="user-chip">
         <span class="avatar" id="user-initials">SF</span>
-        <span class="who"><b id="user-name">Sari Front Desk</b><small id="user-role">Kasir · Front office</small></span>
+        <span class="who"><b id="user-name">Sari Front Desk</b><small id="user-role">Kasir</small></span>
       </div>
     </header>
 
@@ -84,7 +83,7 @@
       </div>
       <label class="lbl" for="screen-select">LAYAR</label>
       <select id="screen-select" class="input" style="width:auto;min-width:240px"></select>
-      <span class="synth-banner">DATA SINTETIS — prototipe, bukan aplikasi produksi</span>
+      <span class="synth-banner">DATA SINTETIS</span>
     </div>
 
     <main class="content" id="content">
@@ -94,25 +93,25 @@
      ====================================================== -->
 <section class="screen compact" id="screen-antrean" data-screen="antrean" aria-labelledby="h-antrean">
   <div class="page-head">
-    <div><h1 id="h-antrean">Antrean Kasir</h1><p>Sabtu, 14 November 2026 · 20.30 WIB · Cabang Tebet · shift buka sejak 08.00</p></div>
+    <div><h1 id="h-antrean">Antrean Kasir</h1><p>Sabtu, 14 November 2026, 20.30 WIB. Cabang Tebet.</p></div>
   </div>
 
   <div class="grid-12 antrean-grid">
     <div class="card kpi span-3"><div class="label">Menunggu bayar</div><div class="value">3</div><div class="hint">Total <span class="rp">Rp 1.500.000</span></div></div>
-    <div class="card kpi span-3"><div class="label">Lunas hari ini</div><div class="value">2</div><div class="hint">Tunai 1 · QRIS 1</div></div>
-    <div class="card kpi span-3"><div class="label">Sisa tagihan</div><div class="value">1</div><div class="hint">Belum dibayar <span class="rp">Rp 500.000</span></div></div>
-    <div class="card kpi span-3"><div class="label">Diterima hari ini</div><div class="value rp">Rp 850.000</div><div class="hint">Dari 2 tagihan lunas</div></div>
+    <div class="card kpi span-3"><div class="label">Lunas hari ini</div><div class="value">2</div><div class="hint">Tunai 1, QRIS 1</div></div>
+    <div class="card kpi span-3"><div class="label">Sisa tagihan</div><div class="value">1</div><div class="hint"><span class="rp">Rp 500.000</span></div></div>
+    <div class="card kpi span-3"><div class="label">Diterima hari ini</div><div class="value rp">Rp 850.000</div><div class="hint">2 tagihan</div></div>
 
     <div class="card span-8" id="queue-card">
       <div class="card-head">
-        <div><h2 class="card-title">Daftar menunggu</h2><p class="card-sub">Dari tindakan yang sudah ditandatangani dokter hari ini · semua pasien Umum</p></div>
+        <h2 class="card-title">Daftar menunggu</h2>
       </div>
       <div class="rows">
         <div class="row" id="q-budi">
           <span class="avatar">BS</span>
           <div class="grow">
             <div class="name">Budi Santoso <span class="chip chip-wait">menunggu bayar</span></div>
-            <div class="meta">36 th · drg. Nadia Putri · TG-2026-11014-001 · Tambalan komposit 36-O, Ekstraksi 48</div>
+            <div class="meta">36 th, drg. Nadia Putri, TG-2026-11014-001. Tambalan komposit 36-O, Ekstraksi 48</div>
           </div>
           <div class="amt"><b class="rp">Rp 800.000</b><span class="saldo">Saldo <span class="rp">Rp 200.000</span></span></div>
           <button class="btn btn-primary row-cta" data-go="tagihan">Bayar</button>
@@ -121,34 +120,34 @@
           <span class="avatar b">RD</span>
           <div class="grow">
             <div class="name">Ratna Dewi Anggraini <span class="chip chip-wait">menunggu bayar</span></div>
-            <div class="meta">29 th · drg. Arif Hidayat · TG-2026-11014-002 · Scaling (seluruh mulut)</div>
+            <div class="meta">29 th, drg. Arif Hidayat, TG-2026-11014-002. Scaling seluruh mulut</div>
           </div>
           <div class="amt"><b class="rp">Rp 400.000</b><span class="small muted">Saldo Rp 0</span></div>
-          <button class="btn btn-primary row-cta" data-toast="Prototipe: contoh tagihan lengkap hanya untuk Budi Santoso.">Bayar</button>
+          <button class="btn btn-primary row-cta" data-toast="Prototipe: contoh lengkap hanya Budi Santoso.">Bayar</button>
         </div>
         <div class="row" id="q-alya">
           <span class="avatar c">AR</span>
           <div class="grow">
             <div class="name">Alya Rahmawati <span class="chip chip-wait">menunggu bayar</span></div>
-            <div class="meta">6 th (anak) · drg. Clara Wijaya, Sp.KGA · TG-2026-11014-003 · Tambalan GIC 74-O</div>
+            <div class="meta">6 th, drg. Clara Wijaya, Sp.KGA, TG-2026-11014-003. Tambalan GIC 74-O</div>
           </div>
           <div class="amt"><b class="rp">Rp 300.000</b><span class="small muted">Saldo Rp 0</span></div>
-          <button class="btn btn-primary row-cta" data-toast="Prototipe: contoh tagihan lengkap hanya untuk Budi Santoso.">Bayar</button>
+          <button class="btn btn-primary row-cta" data-toast="Prototipe: contoh lengkap hanya Budi Santoso.">Bayar</button>
         </div>
       </div>
     </div>
 
     <div class="span-4 stack antrean-side">
       <div class="card" id="shift-card">
-        <div class="card-head"><h2 class="card-title">Shift kasir</h2><span class="chip chip-teal">buka · 08.00</span></div>
+        <div class="card-head"><h2 class="card-title">Shift kasir</h2><span class="chip chip-teal">buka 08.00</span></div>
         <div class="sumline tight"><span class="muted">Kasir</span><b>Sari Front Desk</b></div>
         <div class="sumline tight"><span class="muted">Kas awal</span><span class="rp">Rp 500.000</span></div>
         <div class="sumline tight"><span class="muted">+ Tunai masuk (1)</span><span class="rp">Rp 450.000</span></div>
-        <div class="sumline tight"><span class="muted">QRIS/EDC/Transfer (tidak di laci)</span><span class="rp">Rp 400.000</span></div>
+        <div class="sumline tight"><span class="muted">Non-tunai</span><span class="rp">Rp 400.000</span></div>
         <div class="sumline total"><span>Uang di laci</span><span class="rp">Rp 950.000</span></div>
         <div class="btn-pair">
           <button class="btn" data-go="buka-shift">Cek kas awal</button>
-          <button class="btn btn-primary" id="antrean-tutup-shift" data-go="tutup-shift">Tutup Shift</button>
+          <button class="btn btn-primary" id="antrean-tutup-shift" data-go="tutup-shift">Tutup shift</button>
         </div>
       </div>
 
@@ -156,12 +155,12 @@
         <div class="card-head"><h2 class="card-title">Sisa tagihan</h2><span class="chip chip-debt">1 pasien</span></div>
         <div class="row flush">
           <span class="avatar c">DL</span>
-          <div class="grow"><div class="name">Dewi Lestari</div><div class="meta">Mahkota 21 · dibayar Rp 2.000.000 dari Rp 2.500.000 · jatuh tempo 21 Nov 2026</div></div>
+          <div class="grow"><div class="name">Dewi Lestari</div><div class="meta">Mahkota 21, jatuh tempo 21 Nov 2026</div></div>
           <div class="amt"><b class="rp">Rp 500.000</b></div>
         </div>
         <div class="btn-pair">
           <button class="btn" data-wa="piutang"><svg aria-hidden="true"><use href="#i-wa"/></svg>Ingatkan WA</button>
-          <button class="btn" data-toast="Prototipe: buka tagihan Dewi Lestari — sisa Rp 500.000 bisa dibayar tunai/QRIS/EDC/Transfer atau dari saldo deposit.">Terima sisa</button>
+          <button class="btn" data-toast="Prototipe: contoh lengkap hanya Budi Santoso.">Terima sisa</button>
         </div>
       </div>
     </div>
@@ -171,12 +170,12 @@
       <div class="rows">
         <div class="row">
           <span class="avatar d">HG</span>
-          <div class="grow"><div class="name">Hendra Gunawan <span class="chip chip-paid">lunas</span></div><div class="meta">TG-2026-11014-005 · drg. Nadia Putri · Tunai · 14.10</div></div>
+          <div class="grow"><div class="name">Hendra Gunawan <span class="chip chip-paid">lunas</span></div><div class="meta">TG-2026-11014-005, drg. Nadia Putri, Tunai 14.10</div></div>
           <div class="amt"><b class="rp">Rp 450.000</b></div>
         </div>
         <div class="row">
           <span class="avatar b">JW</span>
-          <div class="grow"><div class="name">Joko Wijaya <span class="chip chip-paid">lunas</span></div><div class="meta">TG-2026-11014-004 · drg. Arif Hidayat · QRIS · 11.25</div></div>
+          <div class="grow"><div class="name">Joko Wijaya <span class="chip chip-paid">lunas</span></div><div class="meta">TG-2026-11014-004, drg. Arif Hidayat, QRIS 11.25</div></div>
           <div class="amt"><b class="rp">Rp 400.000</b></div>
         </div>
       </div>
@@ -190,8 +189,8 @@
 <section class="screen has-paybar" id="screen-tagihan" data-screen="tagihan" aria-labelledby="h-tagihan" hidden>
   <div class="crumb"><button type="button" data-go="antrean">Antrean Kasir</button> › Tagihan Budi Santoso</div>
   <div class="page-head">
-    <div><h1 id="h-tagihan">Tagihan Budi Santoso</h1><p>TG-2026-11014-001 · dibuat otomatis dari tindakan yang ditandatangani 14 Nov 2026</p></div>
-    <div class="actions"><span class="chip chip-wait">menunggu bayar</span><button class="btn btn-sm" data-wa="tagihan"><svg aria-hidden="true"><use href="#i-wa"/></svg>Kirim pengingat WA</button></div>
+    <div><h1 id="h-tagihan">Tagihan Budi Santoso</h1><p>TG-2026-11014-001, 14 Nov 2026</p></div>
+    <div class="actions"><span class="chip chip-wait">menunggu bayar</span><button class="btn btn-sm" data-wa="tagihan"><svg aria-hidden="true"><use href="#i-wa"/></svg>Ingatkan WA</button></div>
   </div>
 
   <div class="grid-12">
@@ -200,19 +199,19 @@
         <span class="avatar">BS</span>
         <div>
           <div style="font-size:18px;font-weight:700">Budi Santoso</div>
-          <div class="facts"><span><b>36 th</b> · laki-laki</span><span>Penjamin <b>Umum</b></span><span>Dokter <b>drg. Nadia Putri</b></span><span>No. tagihan <b>TG-2026-11014-001</b></span><span>Saldo deposit <span class="saldo rp">Rp 200.000</span></span></div>
+          <div class="facts"><span><b>36 th</b>, laki-laki</span><span>Penjamin <b>Umum</b></span><span>Dokter <b>drg. Nadia Putri</b></span><span>No. tagihan <b>TG-2026-11014-001</b></span><span>Saldo deposit <span class="saldo rp">Rp 200.000</span></span></div>
         </div>
       </div>
     </div>
 
     <div class="card span-8">
-      <div class="card-head"><div><h2 class="card-title">Item tagihan</h2><p class="card-sub">Hanya tindakan bertanda tangan hari ini · drg. Nadia Putri · 10.45 WIB</p></div></div>
+      <div class="card-head"><div><h2 class="card-title">Item tagihan</h2><p class="card-sub">Ditandatangani drg. Nadia Putri, 10.45</p></div></div>
 
       <div class="note" id="findings-note">
-        <b>Temuan odontogram (karies, gigi hilang, sisa akar, dll.) tidak ditagihkan.</b> Hanya tindakan yang sudah ditandatangani dokter yang masuk ke tagihan.
-        <div class="findings" aria-label="Temuan pasien ini, tidak ditagihkan">
-          <span class="finding">26-O karies · Tidak ditagihkan</span>
-          <span class="finding">46 hilang · Tidak ditagihkan</span>
+        <b>Temuan odontogram tidak ditagih.</b>
+        <div class="findings" aria-label="Temuan, tidak ditagih">
+          <span class="finding">26-O karies</span>
+          <span class="finding">46 hilang</span>
         </div>
       </div>
 
@@ -238,11 +237,11 @@
             <button type="button" data-disc="nominal" aria-pressed="false">Nominal</button>
           </div>
           <input class="input rp" id="disc-nominal" inputmode="numeric" placeholder="Rp 0" aria-label="Diskon nominal (rupiah)" hidden style="max-width:200px">
-          <p class="help">Bawaan tanpa diskon. Kasir maks. 10% atau Rp 100.000 (mana yang lebih kecil); di atas itu perlu PIN dokter atau admin.</p>
-          <p class="help" id="disc-approved" hidden style="color:var(--ok-fg);font-weight:700">Diskon 15% disetujui drg. Nadia Putri (PIN) · 20.26</p>
+          <p class="help">Batas kasir 10% atau Rp 100.000. Di atasnya perlu PIN dokter.</p>
+          <p class="help" id="disc-approved" hidden style="color:var(--ok-fg);font-weight:700">Diskon 15% disetujui drg. Nadia Putri, 20.26</p>
         </div>
         <div class="sumline"><span>Diskon <span data-b="disc-label">(tanpa)</span></span><span class="rp neg" data-b="disc-amt">Rp 0</span></div>
-        <label class="toggle"><input type="checkbox" id="use-saldo" checked><span style="flex:1">Gunakan saldo deposit <span class="small muted">(tersedia Rp 200.000)</span></span><span class="rp neg" data-b="saldo-amt">−Rp 200.000</span></label>
+        <label class="toggle"><input type="checkbox" id="use-saldo" checked><span style="flex:1">Pakai saldo deposit <span class="small muted">(Rp 200.000)</span></span><span class="rp neg" data-b="saldo-amt">−Rp 200.000</span></label>
         <div class="sumline total"><span>Sisa dibayar</span><span class="rp" data-b="due">Rp 600.000</span></div>
       </div>
     </div>
@@ -255,7 +254,6 @@
         <div class="sumline tight"><span class="muted">Diskon <span data-b="disc-label">(tanpa)</span></span><span class="rp" data-b="disc-amt">Rp 0</span></div>
         <div class="sumline tight"><span class="muted">Saldo deposit</span><span class="rp" data-b="saldo-amt">−Rp 200.000</span></div>
         <button class="btn btn-primary btn-xl btn-block" id="tagihan-bayar" data-go="bayar" style="margin-top:16px">Bayar<span class="rp" data-b="due">Rp 600.000</span></button>
-        <p class="help" style="margin-top:10px;text-align:center">Tunai, QRIS, EDC, Transfer, atau Split dipilih di layar berikutnya.</p>
       </div>
     </aside>
   </div>
@@ -272,21 +270,21 @@
      ====================================================== -->
 <section class="screen has-cta" id="screen-bayar" data-screen="bayar" aria-labelledby="h-bayar" hidden>
   <div class="charge-top">
-    <button class="btn" data-go="tagihan">← Kembali ke tagihan</button>
-    <div><h1 id="h-bayar">Terima pembayaran</h1><p class="muted small">Budi Santoso · TG-2026-11014-001 · Umum</p></div>
+    <button class="btn" data-go="tagihan">Kembali</button>
+    <div><h1 id="h-bayar">Terima pembayaran</h1><p class="muted small">Budi Santoso, TG-2026-11014-001</p></div>
   </div>
 
   <div class="charge">
     <div class="card charge-side">
       <span class="label-up">Sisa dibayar</span>
       <div class="charge-due rp" id="charge-due" data-b="due">Rp 600.000</div>
-      <p class="small muted">Subtotal Rp 800.000 · diskon <span data-b="disc-amt">Rp 0</span> · saldo deposit <span data-b="saldo-amt">−Rp 200.000</span></p>
+      <p class="small muted">Subtotal Rp 800.000, diskon <span data-b="disc-amt">Rp 0</span>, deposit <span data-b="saldo-amt">−Rp 200.000</span></p>
       <div class="tiles" role="radiogroup" aria-label="Metode bayar">
-        <button type="button" class="tile" role="radio" aria-checked="true" data-method="tunai" id="m-tunai"><svg aria-hidden="true"><use href="#i-cash"/></svg><span><b>Tunai</b><small>Masuk laci · hitung kembalian</small></span></button>
-        <button type="button" class="tile" role="radio" aria-checked="false" data-method="qris" id="m-qris"><svg aria-hidden="true"><use href="#i-qr"/></svg><span><b>QRIS</b><small>Tidak masuk laci</small></span></button>
-        <button type="button" class="tile" role="radio" aria-checked="false" data-method="edc" id="m-edc"><svg aria-hidden="true"><use href="#i-card"/></svg><span><b>EDC</b><small>Kartu debit/kredit · tidak masuk laci</small></span></button>
-        <button type="button" class="tile" role="radio" aria-checked="false" data-method="transfer" id="m-transfer"><svg aria-hidden="true"><use href="#i-bank"/></svg><span><b>Transfer</b><small>Ke rekening klinik · tidak masuk laci</small></span></button>
-        <button type="button" class="tile" role="radio" aria-checked="false" data-method="split" id="m-split"><svg aria-hidden="true"><use href="#i-split"/></svg><span><b>Split</b><small>Dua metode, mis. Tunai + QRIS</small></span></button>
+        <button type="button" class="tile" role="radio" aria-checked="true" data-method="tunai" id="m-tunai"><svg aria-hidden="true"><use href="#i-cash"/></svg><b>Tunai</b></button>
+        <button type="button" class="tile" role="radio" aria-checked="false" data-method="qris" id="m-qris"><svg aria-hidden="true"><use href="#i-qr"/></svg><b>QRIS</b></button>
+        <button type="button" class="tile" role="radio" aria-checked="false" data-method="edc" id="m-edc"><svg aria-hidden="true"><use href="#i-card"/></svg><b>EDC</b></button>
+        <button type="button" class="tile" role="radio" aria-checked="false" data-method="transfer" id="m-transfer"><svg aria-hidden="true"><use href="#i-bank"/></svg><b>Transfer</b></button>
+        <button type="button" class="tile" role="radio" aria-checked="false" data-method="split" id="m-split"><svg aria-hidden="true"><use href="#i-split"/></svg><b>Split</b></button>
       </div>
     </div>
 
@@ -298,9 +296,9 @@
         </div>
       </div>
       <div data-mpanel="split" hidden>
-        <div class="split-row"><span class="split-name"><b>1 · Tunai</b><small>diketik dengan keypad</small></span><output id="split-a" class="rp">Rp 0</output></div>
+        <div class="split-row"><span class="split-name"><b>Tunai</b></span><output id="split-a" class="rp">Rp 0</output></div>
         <div class="split-row">
-          <label class="split-name" for="split-b-method"><b>2 · Sisa lewat</b>
+          <label class="split-name" for="split-b-method"><b>Sisa lewat</b>
             <select class="input" id="split-b-method"><option value="QRIS">QRIS</option><option value="EDC">EDC</option><option value="Transfer">Transfer</option></select></label>
           <output id="split-b" class="rp">Rp 600.000</output>
         </div>
@@ -330,17 +328,16 @@
           <path fill="#16212B" d="M0 0h7v7H0zM1 1v5h5V1zM2 2h3v3H2zM14 0h7v7h-7zM15 1v5h5V1zM16 2h3v3h-3zM0 14h7v7H0zM1 15v5h5v-5zM2 16h3v3H2zM8 0h1v2H8zM10 1h2v1h-2zM9 3h3v1H9zM8 5h2v3H8zM11 6h2v2h-2zM0 8h2v1H0zM3 8h3v1H3zM2 10h2v2H2zM5 10h3v1H5zM9 9h3v3H9zM13 8h2v1h-2zM16 8h1v2h-1zM18 9h3v1h-3zM14 11h3v1h-3zM19 11h2v3h-2zM8 13h2v2H8zM11 13h3v1h-3zM15 14h3v2h-3zM9 16h2v1H9zM12 16h2v3h-2zM8 18h3v1H8zM16 17h2v1h-2zM19 16h2v2h-2zM15 19h2v2h-2zM18 19h3v2h-3zM9 20h2v1H9z"/>
         </svg>
         <p class="waiting">Menunggu pembayaran</p>
-        <p class="help" style="text-align:center">QR contoh. Konfirmasi otomatis dari penyedia tidak aktif di prototipe — tekan tombol di bawah setelah pasien membayar.</p>
       </div>
       <div data-mpanel="edc" hidden>
-        <p class="waiting">Gesek/tap kartu di mesin EDC</p>
-        <div class="field"><label for="edc-ref">No. referensi / approval code</label><input class="input" id="edc-ref" placeholder="Contoh: 004512"></div>
+        <p class="waiting">Tap kartu di EDC</p>
+        <div class="field"><label for="edc-ref">No. approval</label><input class="input" id="edc-ref" placeholder="004512"></div>
         <div class="field"><label for="edc-bank">Mesin EDC</label><select class="input" id="edc-bank"><option>EDC Bank A</option><option>EDC Bank B</option></select></div>
       </div>
       <div data-mpanel="transfer" hidden>
         <p class="waiting">Menunggu transfer masuk</p>
         <div class="field"><label for="tf-bank">Bank pengirim</label><select class="input" id="tf-bank"><option>Bank A</option><option>Bank B</option><option>Bank C</option></select></div>
-        <div class="field"><label for="tf-last4">4 digit akhir rekening (opsional)</label><input class="input" id="tf-last4" inputmode="numeric" maxlength="4" placeholder="••••"></div>
+        <div class="field"><label for="tf-last4">4 digit akhir rekening</label><input class="input" id="tf-last4" inputmode="numeric" maxlength="4" placeholder="••••"></div>
       </div>
 
       <button type="button" class="btn btn-primary btn-xl btn-block charge-cta" id="charge-cta" disabled>Terima Rp 600.000</button>
@@ -357,31 +354,31 @@
       <span class="check-big"><svg width="40" height="40" aria-hidden="true"><use href="#i-check"/></svg></span>
       <h1 id="h-lunas">Pembayaran diterima</h1>
       <div class="success-amt rp" data-b="paid">Rp 600.000</div>
-      <p class="muted"><b data-b="method">Tunai</b> · Budi Santoso · TG-2026-11014-001 · 14 Nov 2026, 20.28 · Sari Front Desk</p>
-      <p class="muted small" data-b="pay-line">Uang diterima Rp 600.000 · Kembalian Rp 0</p>
+      <p class="muted"><b data-b="method">Tunai</b>, Budi Santoso, TG-2026-11014-001, 20.28</p>
+      <p class="muted small" data-b="pay-line">Uang diterima Rp 600.000, Kembalian Rp 0</p>
       <div class="actions center" style="margin-top:12px">
         <span class="chip chip-paid" id="lunas-status">lunas</span>
-        <span class="chip chip-lock"><svg width="12" height="12" aria-hidden="true"><use href="#i-lock"/></svg>Terkunci · koreksi lewat Void/Refund</span>
+        <span class="chip chip-lock"><svg width="12" height="12" aria-hidden="true"><use href="#i-lock"/></svg>Terkunci</span>
       </div>
       <div class="banner banner-warn" id="refund-banner" style="margin-top:16px;text-align:left" hidden role="status"><span></span></div>
 
       <div class="receipt-actions">
-        <button class="btn btn-primary" id="lunas-cetak" data-toast="Prototipe: struk 80 mm dikirim ke printer (tidak ada printer tersambung)."><svg aria-hidden="true"><use href="#i-print"/></svg>Cetak struk</button>
+        <button class="btn btn-primary" id="lunas-cetak" data-toast="Prototipe: tidak ada printer."><svg aria-hidden="true"><use href="#i-print"/></svg>Cetak struk</button>
         <button class="btn" id="lunas-wa" data-wa="struk"><svg aria-hidden="true"><use href="#i-wa"/></svg>WhatsApp</button>
-        <button class="btn" id="lunas-email" data-toast="Prototipe: struk dikirim ke budi.santoso@example.com (alamat contoh) — tidak benar-benar terkirim."><svg aria-hidden="true"><use href="#i-mail"/></svg>Email</button>
+        <button class="btn" id="lunas-email" data-toast="Prototipe: email tidak dikirim."><svg aria-hidden="true"><use href="#i-mail"/></svg>Email</button>
       </div>
       <div class="actions center">
         <button class="btn" data-go="struk"><svg aria-hidden="true"><use href="#i-receipt"/></svg>Lihat struk</button>
-        <button class="btn" data-toast="Prototipe: buka Jadwal dengan saran kontrol Sabtu, 21 Nov 2026 (1 minggu pasca-ekstraksi)."><svg aria-hidden="true"><use href="#i-cal"/></svg>Buat janji kontrol</button>
+        <button class="btn" data-toast="Prototipe: saran kontrol 21 Nov 2026."><svg aria-hidden="true"><use href="#i-cal"/></svg>Buat janji</button>
       </div>
       <div class="actions center" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
-        <button class="btn btn-primary" data-go="antrean">Selesai · kembali ke antrean</button>
+        <button class="btn btn-primary" data-go="antrean">Selesai</button>
         <button class="btn btn-danger" id="refund-open-lunas" data-open="refund-modal">Void / Refund</button>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-head"><h2 class="card-title">Rincian (hanya baca)</h2><span class="card-sub">Item tidak bisa diubah setelah lunas</span></div>
+      <div class="card-head"><h2 class="card-title">Rincian</h2></div>
       <div class="table-wrap">
         <table>
           <thead><tr><th>Tindakan</th><th>Gigi (FDI)</th><th class="r">Jumlah</th></tr></thead>
@@ -395,8 +392,8 @@
         <div class="sumline"><span>Subtotal</span><span class="rp">Rp 800.000</span></div>
         <div class="sumline"><span>Diskon <span data-b="disc-label">(tanpa)</span></span><span class="rp" data-b="disc-amt">Rp 0</span></div>
         <div class="sumline"><span>Saldo deposit dipakai</span><span class="rp neg" data-b="saldo-amt">−Rp 200.000</span></div>
-        <div class="sumline total"><span>Dibayar · <span data-b="method">Tunai</span></span><span class="rp" data-b="paid">Rp 600.000</span></div>
-        <p class="help">Temuan 26-O karies dan 46 hilang tidak ditagihkan. Sisa saldo deposit pasien: <span data-b="saldo-sisa">Rp 0</span>.</p>
+        <div class="sumline total"><span>Dibayar (<span data-b="method">Tunai</span>)</span><span class="rp" data-b="paid">Rp 600.000</span></div>
+        <p class="help">Sisa saldo deposit: <span data-b="saldo-sisa">Rp 0</span></p>
       </div>
     </div>
   </div>
@@ -408,17 +405,17 @@
 <section class="screen" id="screen-struk" data-screen="struk" aria-labelledby="h-struk" hidden>
   <div class="crumb"><button type="button" data-go="lunas">Pembayaran Budi Santoso</button> › Struk</div>
   <div class="page-head">
-    <div><h1 id="h-struk">Pratinjau struk</h1><p>TG-2026-11014-001 · Budi Santoso</p></div>
+    <div><h1 id="h-struk">Pratinjau struk</h1><p>TG-2026-11014-001, Budi Santoso</p></div>
     <div class="actions">
-      <label class="toggle"><input type="checkbox" id="salinan-toggle"><span>Tandai SALINAN (cetak ulang)</span></label>
+      <label class="toggle"><input type="checkbox" id="salinan-toggle"><span>Tandai salinan</span></label>
       <button class="btn btn-danger" id="refund-open-struk" data-open="refund-modal">Void / Refund</button>
-      <button class="btn btn-primary" data-toast="Prototipe: dikirim ke printer (tidak ada printer tersambung)."><svg aria-hidden="true"><use href="#i-print"/></svg>Cetak</button>
+      <button class="btn btn-primary" data-toast="Prototipe: tidak ada printer."><svg aria-hidden="true"><use href="#i-print"/></svg>Cetak</button>
     </div>
   </div>
   <div class="tabs" role="tablist" aria-label="Ukuran kertas">
     <button role="tab" aria-selected="false" data-paper="w58">58 mm</button>
-    <button role="tab" aria-selected="true" data-paper="w80">80 mm thermal</button>
-    <button role="tab" aria-selected="false" data-paper="a5">Kuitansi A5</button>
+    <button role="tab" aria-selected="true" data-paper="w80">80 mm</button>
+    <button role="tab" aria-selected="false" data-paper="a5">A5</button>
   </div>
   <div class="desk">
     <article class="paper w80" id="paper" aria-label="Pratinjau struk">
@@ -440,7 +437,7 @@
       <div id="p-money"><!-- diisi app.js: subtotal, diskon, saldo, dibayar, metode --></div>
       <div class="p-sep"></div>
       <div class="p-foot">Terima kasih<br>Semoga lekas pulih 🙂<br><small>Bukti pembayaran, bukan dokumen klinis.</small></div>
-      <div class="p-foot salinan-note" hidden><small>Cetak ulang ke-1 · 14/11/2026 20.41 · Sari Front Desk</small></div>
+      <div class="p-foot salinan-note" hidden><small>Cetak ulang ke-1, 14/11/2026 20.41, Sari Front Desk</small></div>
     </article>
   </div>
 </section>
@@ -450,15 +447,15 @@
      ====================================================== -->
 <section class="screen" id="screen-laporan" data-screen="laporan" aria-labelledby="h-laporan" hidden>
   <div class="page-head">
-    <div><h1 id="h-laporan">Laporan Kasir</h1><p>Shift Sari Front Desk · Sabtu, 14 November 2026 · 08.00–20.30</p></div>
+    <div><h1 id="h-laporan">Laporan Kasir</h1><p>Sari Front Desk, 14 Nov 2026, 08.00-20.30</p></div>
     <div class="actions">
-      <button class="btn" data-toast="Unduhan prototipe — berkas tidak dibuat.">Unduh PDF</button>
-      <button class="btn" data-toast="Unduhan prototipe — berkas tidak dibuat.">Unduh Excel</button>
+      <button class="btn" data-toast="Prototipe: berkas tidak dibuat.">Unduh PDF</button>
+      <button class="btn" data-toast="Prototipe: berkas tidak dibuat.">Unduh Excel</button>
     </div>
   </div>
   <div class="banner banner-info readonly-banner" id="laporan-readonly" data-roles="pemilik" role="status">
     <svg width="18" height="18" aria-hidden="true"><use href="#i-lock"/></svg>
-    <span><b>Hanya lihat.</b> Pemilik meninjau laporan; hitung laci dan Tutup Shift dilakukan kasir yang bertugas.</span>
+    <span><b>Hanya lihat.</b></span>
   </div>
   <div class="tabs" role="tablist" aria-label="Bagian laporan">
     <button role="tab" aria-selected="true" data-tab="rekap" aria-controls="tp-rekap">Rekap per metode</button>
@@ -469,7 +466,7 @@
   <div class="tabpanel" id="tp-rekap" role="tabpanel">
     <div class="grid-12">
       <div class="card span-8">
-        <div class="card-head"><h2 class="card-title">Penerimaan per metode</h2><span class="card-sub">Termasuk pembayaran Budi Santoso 20.28</span></div>
+        <div class="card-head"><h2 class="card-title">Penerimaan per metode</h2></div>
         <div class="table-wrap">
           <table>
             <thead><tr><th>Metode</th><th>Ke laci?</th><th class="r">Transaksi</th><th class="r">Jumlah</th></tr></thead>
@@ -483,8 +480,8 @@
             <tfoot><tr><td>Total uang masuk</td><td></td><td class="r num">3</td><td class="r rp">Rp 1.450.000</td></tr></tfoot>
           </table>
         </div>
-        <p class="help" style="margin-top:12px">Saldo deposit dipakai Rp 200.000 (Budi Santoso) — bukan uang masuk hari ini, tidak dihitung di laci. Diskon hari ini: Rp 0.</p>
-        <div class="banner banner-info" style="margin-top:12px">2 tagihan masih menunggu bayar (Ratna Dewi Anggraini, Alya Rahmawati). Tagihan tetap di antrean setelah shift ditutup.</div>
+        <p class="help" style="margin-top:12px">Deposit dipakai Rp 200.000, tidak masuk laci.</p>
+        <p class="help">2 tagihan masih menunggu bayar.</p>
       </div>
       <div class="card span-4">
         <div class="card-head"><h2 class="card-title">Kas laci</h2><span class="chip chip-teal" id="laporan-shift-chip">shift buka</span></div>
@@ -492,9 +489,7 @@
         <div class="sumline"><span>+ Tunai masuk</span><span class="rp">Rp 1.050.000</span></div>
         <div class="sumline"><span>− Refund tunai</span><span class="rp" data-b="refund-tunai">Rp 0</span></div>
         <div class="sumline total"><span>Kas akhir (sistem)</span><span class="rp" data-b="kas-sistem">Rp 1.550.000</span></div>
-        <p class="help" style="margin-top:8px">QRIS/EDC/Transfer tidak masuk laci, jadi tidak ikut dihitung.</p>
-        <button class="btn btn-primary btn-block" id="laporan-tutup-shift" data-roles="kasir" data-go="tutup-shift" style="margin-top:12px">Tutup Shift · hitung laci</button>
-        <p class="help" data-roles="pemilik" style="margin-top:12px">Hitung fisik dan selisih tampil di Audit setelah kasir menutup shift.</p>
+        <button class="btn btn-primary btn-block" id="laporan-tutup-shift" data-roles="kasir" data-go="tutup-shift" style="margin-top:12px">Tutup shift</button>
       </div>
     </div>
   </div>
@@ -512,8 +507,8 @@
             <thead><tr><th>No. tagihan</th><th>Pasien</th><th>Dokter</th><th>Metode</th><th>Status</th><th class="r">Total</th></tr></thead>
             <tbody>
               <tr><td>TG-2026-11014-001</td><td>Budi Santoso</td><td>drg. Nadia Putri</td><td>Saldo + Tunai</td><td><span class="chip chip-paid">lunas</span></td><td class="r rp">Rp 800.000</td></tr>
-              <tr><td>TG-2026-11014-002</td><td>Ratna Dewi Anggraini</td><td>drg. Arif Hidayat</td><td>—</td><td><span class="chip chip-wait">menunggu bayar</span></td><td class="r rp">Rp 400.000</td></tr>
-              <tr><td>TG-2026-11014-003</td><td>Alya Rahmawati</td><td>drg. Clara Wijaya, Sp.KGA</td><td>—</td><td><span class="chip chip-wait">menunggu bayar</span></td><td class="r rp">Rp 300.000</td></tr>
+              <tr><td>TG-2026-11014-002</td><td>Ratna Dewi Anggraini</td><td>drg. Arif Hidayat</td><td>-</td><td><span class="chip chip-wait">menunggu bayar</span></td><td class="r rp">Rp 400.000</td></tr>
+              <tr><td>TG-2026-11014-003</td><td>Alya Rahmawati</td><td>drg. Clara Wijaya, Sp.KGA</td><td>-</td><td><span class="chip chip-wait">menunggu bayar</span></td><td class="r rp">Rp 300.000</td></tr>
               <tr><td>TG-2026-11014-004</td><td>Joko Wijaya</td><td>drg. Arif Hidayat</td><td>QRIS</td><td><span class="chip chip-paid">lunas</span></td><td class="r rp">Rp 400.000</td></tr>
               <tr><td>TG-2026-11014-005</td><td>Hendra Gunawan</td><td>drg. Nadia Putri</td><td>Tunai</td><td><span class="chip chip-paid">lunas</span></td><td class="r rp">Rp 450.000</td></tr>
             </tbody>
@@ -525,7 +520,7 @@
 
   <div class="tabpanel" id="tp-piutang" role="tabpanel" hidden>
     <div class="card">
-      <div class="card-head"><h2 class="card-title">Sisa tagihan</h2><span class="card-sub">Total belum dibayar <span class="rp">Rp 500.000</span> · 1 pasien</span></div>
+      <div class="card-head"><h2 class="card-title">Sisa tagihan</h2><span class="card-sub"><span class="rp">Rp 500.000</span>, 1 pasien</span></div>
       <div class="table-wrap">
         <table>
           <thead><tr><th>Pasien</th><th>No. tagihan</th><th>Asal</th><th class="r">Total</th><th class="r">Sudah dibayar</th><th class="r">Sisa</th><th>Jatuh tempo</th><th>Saldo deposit</th><th></th></tr></thead>
@@ -536,12 +531,11 @@
               <td>Mahkota <span class="tooth">21</span></td>
               <td class="r rp">Rp 2.500.000</td><td class="r rp">Rp 2.000.000</td><td class="r rp"><b>Rp 500.000</b></td>
               <td>21 Nov 2026<br><span class="small muted">7 hari lagi</span></td><td class="rp">Rp 0</td>
-              <td><button class="btn btn-sm" data-wa="piutang"><svg aria-hidden="true"><use href="#i-wa"/></svg>Kirim pengingat WA</button></td>
+              <td><button class="btn btn-sm" data-wa="piutang"><svg aria-hidden="true"><use href="#i-wa"/></svg>Ingatkan WA</button></td>
             </tr>
           </tbody>
         </table>
       </div>
-      <p class="help" style="margin-top:12px">Sisa tagihan bukan cicilan formal: sisa yang belum dibayar bisa dilunasi kapan saja di kasir, termasuk dari saldo deposit. Pengingat hanya untuk pasien yang memberi izin WhatsApp, tanpa data klinis.</p>
     </div>
   </div>
 </section>
@@ -552,11 +546,11 @@
 <section class="screen" id="screen-buka-shift" data-screen="buka-shift" aria-labelledby="h-buka" hidden>
   <div class="crumb"><button type="button" data-go="antrean">Antrean Kasir</button> › Buka shift</div>
   <div class="page-head">
-    <div><h1 id="h-buka">Buka shift</h1><p>Sari Front Desk · Sabtu, 14 November 2026 · 08.00 WIB (contoh awal hari)</p></div>
+    <div><h1 id="h-buka">Buka shift</h1><p>Sari Front Desk, 14 Nov 2026, 08.00</p></div>
   </div>
   <div class="grid-12" id="open-form">
     <div class="card span-7">
-      <div class="card-head"><div><h2 class="card-title">Hitung kas awal</h2><p class="card-sub">Hitung isi laci per pecahan sebelum menerima pasien</p></div></div>
+      <div class="card-head"><h2 class="card-title">Kas awal per pecahan</h2></div>
       <div class="denoms" id="denom-open"></div>
       <div class="count-total"><span>Total dihitung</span><span class="rp" id="open-total">Rp 500.000</span></div>
     </div>
@@ -564,10 +558,9 @@
       <div class="card">
         <span class="label-up">Kas awal</span>
         <div class="due-big rp" id="open-big">Rp 500.000</div>
-        <div class="sumline tight"><span class="muted">Kas awal standar klinik</span><span class="rp">Rp 500.000</span></div>
+        <div class="sumline tight"><span class="muted">Standar</span><span class="rp">Rp 500.000</span></div>
         <div class="change" id="open-diff" aria-live="polite"><span id="open-diff-label">Sesuai standar</span><span class="rp" id="open-diff-amt">Rp 0</span></div>
         <button class="btn btn-primary btn-xl btn-block" id="open-shift" style="margin-top:16px">Buka shift</button>
-        <p class="help" style="margin-top:8px">Prototipe: Antrean sudah memakai shift yang dibuka 08.00 dengan kas awal Rp 500.000.</p>
       </div>
     </div>
   </div>
@@ -576,8 +569,8 @@
       <span class="check-big"><svg width="40" height="40" aria-hidden="true"><use href="#i-check"/></svg></span>
       <h2 class="success-title">Shift dibuka 08.00</h2>
       <div class="success-amt rp" id="open-done-amt">Rp 500.000</div>
-      <p class="muted">Kas awal · Sari Front Desk · tercatat di audit</p>
-      <div class="actions center" style="margin-top:20px"><button class="btn btn-primary" data-go="antrean">Ke Antrean Kasir</button></div>
+      <p class="muted">Kas awal, Sari Front Desk</p>
+      <div class="actions center" style="margin-top:20px"><button class="btn btn-primary" data-go="antrean">Ke antrean</button></div>
     </div>
   </div>
 </section>
@@ -588,38 +581,37 @@
 <section class="screen" id="screen-tutup-shift" data-screen="tutup-shift" aria-labelledby="h-tutup" hidden>
   <div class="crumb"><button type="button" data-go="laporan">Laporan Kasir</button> › Tutup shift</div>
   <div class="page-head">
-    <div><h1 id="h-tutup">Tutup shift</h1><p>Sari Front Desk · Sabtu, 14 November 2026 · 08.00–20.30</p></div>
+    <div><h1 id="h-tutup">Tutup shift</h1><p>Sari Front Desk, 14 Nov 2026, 08.00-20.30</p></div>
   </div>
   <div class="grid-12" id="close-form">
     <div class="card span-7">
-      <div class="card-head"><div><h2 class="card-title">Hitung uang di laci</h2><p class="card-sub">Per pecahan. QRIS/EDC/Transfer tidak ada di laci.</p></div></div>
+      <div class="card-head"><h2 class="card-title">Uang di laci</h2></div>
       <div class="denoms" id="denom-close"></div>
       <div class="count-total"><span>Total dihitung</span><span class="rp" id="close-total">Rp 1.550.000</span></div>
-      <p class="help" style="margin-top:8px">Coba kurangi satu lembar 20.000 untuk melihat selisih.</p>
     </div>
     <div class="span-5 stack">
       <div class="card">
-        <h2 class="card-title" style="margin-bottom:8px">Ringkasan shift</h2>
+        <h2 class="card-title" style="margin-bottom:8px">Ringkasan</h2>
         <div class="sumline tight"><span>Kas awal</span><span class="rp">Rp 500.000</span></div>
-        <div class="sumline tight"><span>+ Tunai masuk (2 transaksi)</span><span class="rp">Rp 1.050.000</span></div>
+        <div class="sumline tight"><span>+ Tunai masuk (2)</span><span class="rp">Rp 1.050.000</span></div>
         <div class="sumline tight"><span>− Refund tunai</span><span class="rp" data-b="refund-tunai">Rp 0</span></div>
         <div class="sumline total"><span>Seharusnya di laci</span><span class="rp" data-b="kas-sistem">Rp 1.550.000</span></div>
         <div class="sumline"><span>Dihitung</span><b class="rp" id="close-counted">Rp 1.550.000</b></div>
         <div class="change" id="var-box" aria-live="polite"><span id="var-label">Selisih</span><span class="rp" id="var-amt">Rp 0</span></div>
         <div class="field" id="var-reason-wrap" style="margin-top:12px" hidden>
           <label for="var-reason">Alasan selisih (wajib)</label>
-          <textarea class="input" id="var-reason" placeholder="Contoh: kembalian salah hitung untuk pasien tunai sore"></textarea>
+          <textarea class="input" id="var-reason" placeholder="Contoh: kembalian salah hitung"></textarea>
         </div>
         <button class="btn btn-primary btn-xl btn-block" id="close-shift" style="margin-top:16px">Tutup shift</button>
       </div>
       <div class="card">
-        <h2 class="card-title" style="margin-bottom:8px">Non-tunai (tidak di laci)</h2>
-        <div class="sumline tight"><span>QRIS · 1 transaksi</span><span class="rp">Rp 400.000</span></div>
-        <div class="sumline tight"><span>EDC · 0</span><span class="rp">Rp 0</span></div>
-        <div class="sumline tight"><span>Transfer · 0</span><span class="rp">Rp 0</span></div>
-        <div class="sumline tight"><span class="muted">Saldo deposit dipakai (bukan uang masuk)</span><span class="rp muted">Rp 200.000</span></div>
+        <h2 class="card-title" style="margin-bottom:8px">Non-tunai</h2>
+        <div class="sumline tight"><span>QRIS (1)</span><span class="rp">Rp 400.000</span></div>
+        <div class="sumline tight"><span>EDC (0)</span><span class="rp">Rp 0</span></div>
+        <div class="sumline tight"><span>Transfer (0)</span><span class="rp">Rp 0</span></div>
+        <div class="sumline tight"><span class="muted">Deposit dipakai</span><span class="rp muted">Rp 200.000</span></div>
         <div class="sumline total"><span>Transaksi lunas</span><span class="num">3</span></div>
-        <p class="help">2 tagihan masih menunggu bayar dan tetap di antrean.</p>
+        <p class="help">2 tagihan masih menunggu bayar.</p>
       </div>
     </div>
   </div>
@@ -627,9 +619,9 @@
     <div class="card success-card">
       <span class="check-big"><svg width="40" height="40" aria-hidden="true"><use href="#i-check"/></svg></span>
       <h2 class="success-title">Shift ditutup 20.30</h2>
-      <p class="muted">Sari Front Desk · rekap dikirim ke pemilik · tidak bisa diubah, koreksi lewat Audit</p>
+      <p class="muted">Rekap dikirim ke pemilik.</p>
       <dl class="kv" id="close-summary"></dl>
-      <div class="actions center"><button class="btn" data-go="laporan">Lihat Laporan Kasir</button><button class="btn btn-primary" data-go="antrean">Kembali ke Antrean</button></div>
+      <div class="actions center"><button class="btn" data-go="laporan">Lihat laporan</button><button class="btn btn-primary" data-go="antrean">Ke antrean</button></div>
     </div>
   </div>
 </section>
@@ -638,7 +630,7 @@
      ====================================================== -->
 <section class="screen" id="screen-pendapatan" data-screen="pendapatan" aria-labelledby="h-pend" hidden>
   <div class="page-head">
-    <div><h1 id="h-pend">Pendapatan Saya</h1><p>drg. Nadia Putri · Klinik Gigi Senyum Sehat, Tebet</p></div>
+    <div><h1 id="h-pend">Pendapatan Saya</h1><p>drg. Nadia Putri, Tebet</p></div>
     <div class="seg" role="group" aria-label="Periode">
       <button type="button" data-period="hari" aria-pressed="true">Hari ini</button>
       <button type="button" data-period="bulan" aria-pressed="false">Bulan ini</button>
@@ -647,14 +639,14 @@
 
   <div data-periodpanel="hari">
     <div class="grid-12">
-      <div class="card kpi span-6"><div class="label">Pendapatan tindakan</div><div class="value rp">Rp 1.250.000</div><div class="hint">3 tindakan bertanda tangan · 14 Nov 2026</div></div>
-      <div class="card kpi span-6"><div class="label">Komisi saya</div><div class="value rp">Rp 500.000</div><div class="hint">Komisi 40% dari tindakan yang ditandatangani (tarif sebelum diskon)</div></div>
+      <div class="card kpi span-6"><div class="label">Pendapatan tindakan</div><div class="value rp">Rp 1.250.000</div><div class="hint">3 tindakan</div></div>
+      <div class="card kpi span-6"><div class="label">Komisi saya</div><div class="value rp">Rp 500.000</div><div class="hint">40% dari tarif, sebelum diskon</div></div>
       <div class="card span-12">
         <h2 class="card-title" style="margin-bottom:8px">Tindakan bertanda tangan</h2>
         <div class="rows">
-          <div class="row"><div class="grow"><div class="name">Tambalan komposit <span class="tooth">36-O</span></div><div class="meta">14 Nov · 10.45 · Budi Santoso · <span class="chip chip-paid">lunas</span></div></div><div class="amt"><b class="rp">Rp 450.000</b><span class="small muted rp">Komisi Rp 180.000</span></div></div>
-          <div class="row"><div class="grow"><div class="name">Ekstraksi gigi permanen <span class="tooth">48</span></div><div class="meta">14 Nov · 10.45 · Budi Santoso · <span class="chip chip-paid">lunas</span></div></div><div class="amt"><b class="rp">Rp 350.000</b><span class="small muted rp">Komisi Rp 140.000</span></div></div>
-          <div class="row"><div class="grow"><div class="name">Tambalan komposit <span class="tooth">15-MO</span></div><div class="meta">14 Nov · 13.30 · Hendra Gunawan · <span class="chip chip-paid">lunas</span></div></div><div class="amt"><b class="rp">Rp 450.000</b><span class="small muted rp">Komisi Rp 180.000</span></div></div>
+          <div class="row"><div class="grow"><div class="name">Tambalan komposit <span class="tooth">36-O</span></div><div class="meta">Budi Santoso, 10.45 <span class="chip chip-paid">lunas</span></div></div><div class="amt"><b class="rp">Rp 450.000</b><span class="small muted rp">Komisi Rp 180.000</span></div></div>
+          <div class="row"><div class="grow"><div class="name">Ekstraksi gigi permanen <span class="tooth">48</span></div><div class="meta">Budi Santoso, 10.45 <span class="chip chip-paid">lunas</span></div></div><div class="amt"><b class="rp">Rp 350.000</b><span class="small muted rp">Komisi Rp 140.000</span></div></div>
+          <div class="row"><div class="grow"><div class="name">Tambalan komposit <span class="tooth">15-MO</span></div><div class="meta">Hendra Gunawan, 13.30 <span class="chip chip-paid">lunas</span></div></div><div class="amt"><b class="rp">Rp 450.000</b><span class="small muted rp">Komisi Rp 180.000</span></div></div>
         </div>
       </div>
     </div>
@@ -662,16 +654,16 @@
 
   <div data-periodpanel="bulan" hidden>
     <div class="grid-12">
-      <div class="card kpi span-6"><div class="label">Pendapatan tindakan</div><div class="value rp">Rp 16.800.000</div><div class="hint">34 tindakan · 1–14 Nov 2026</div></div>
-      <div class="card kpi span-6"><div class="label">Komisi saya</div><div class="value rp">Rp 6.720.000</div><div class="hint">Komisi 40% dari tindakan yang ditandatangani (tarif sebelum diskon)</div></div>
+      <div class="card kpi span-6"><div class="label">Pendapatan tindakan</div><div class="value rp">Rp 16.800.000</div><div class="hint">34 tindakan, 1-14 Nov</div></div>
+      <div class="card kpi span-6"><div class="label">Komisi saya</div><div class="value rp">Rp 6.720.000</div><div class="hint">40% dari tarif, sebelum diskon</div></div>
       <div class="card span-12">
         <h2 class="card-title" style="margin-bottom:8px">Tindakan bertanda tangan (terbaru)</h2>
         <div class="rows">
-          <div class="row"><div class="grow"><div class="name">Tambalan komposit <span class="tooth">15-MO</span></div><div class="meta">14 Nov · Hendra Gunawan</div></div><div class="amt"><b class="rp">Rp 450.000</b><span class="small muted rp">Komisi Rp 180.000</span></div></div>
-          <div class="row"><div class="grow"><div class="name">Ekstraksi gigi permanen <span class="tooth">48</span></div><div class="meta">14 Nov · Budi Santoso</div></div><div class="amt"><b class="rp">Rp 350.000</b><span class="small muted rp">Komisi Rp 140.000</span></div></div>
-          <div class="row"><div class="grow"><div class="name">Tambalan komposit <span class="tooth">36-O</span></div><div class="meta">14 Nov · Budi Santoso</div></div><div class="amt"><b class="rp">Rp 450.000</b><span class="small muted rp">Komisi Rp 180.000</span></div></div>
-          <div class="row"><div class="grow"><div class="name">Perawatan saluran akar <span class="tooth">11</span></div><div class="meta">12 Nov · Agus Setiawan</div></div><div class="amt"><b class="rp">Rp 1.200.000</b><span class="small muted rp">Komisi Rp 480.000</span></div></div>
-          <div class="row"><div class="grow"><div class="name">Mahkota PFM <span class="tooth">21</span></div><div class="meta">7 Nov · Dewi Lestari · <span class="chip chip-debt">sisa tagihan</span></div></div><div class="amt"><b class="rp">Rp 2.500.000</b><span class="small muted rp">Komisi Rp 1.000.000</span></div></div>
+          <div class="row"><div class="grow"><div class="name">Tambalan komposit <span class="tooth">15-MO</span></div><div class="meta">14 Nov, Hendra Gunawan</div></div><div class="amt"><b class="rp">Rp 450.000</b><span class="small muted rp">Komisi Rp 180.000</span></div></div>
+          <div class="row"><div class="grow"><div class="name">Ekstraksi gigi permanen <span class="tooth">48</span></div><div class="meta">14 Nov, Budi Santoso</div></div><div class="amt"><b class="rp">Rp 350.000</b><span class="small muted rp">Komisi Rp 140.000</span></div></div>
+          <div class="row"><div class="grow"><div class="name">Tambalan komposit <span class="tooth">36-O</span></div><div class="meta">14 Nov, Budi Santoso</div></div><div class="amt"><b class="rp">Rp 450.000</b><span class="small muted rp">Komisi Rp 180.000</span></div></div>
+          <div class="row"><div class="grow"><div class="name">Perawatan saluran akar <span class="tooth">11</span></div><div class="meta">12 Nov, Agus Setiawan</div></div><div class="amt"><b class="rp">Rp 1.200.000</b><span class="small muted rp">Komisi Rp 480.000</span></div></div>
+          <div class="row"><div class="grow"><div class="name">Mahkota PFM <span class="tooth">21</span></div><div class="meta">7 Nov, Dewi Lestari <span class="chip chip-debt">sisa tagihan</span></div></div><div class="amt"><b class="rp">Rp 2.500.000</b><span class="small muted rp">Komisi Rp 1.000.000</span></div></div>
         </div>
         <p class="help" style="margin-top:8px">+ 29 tindakan lain bulan ini</p>
       </div>
@@ -684,16 +676,16 @@
      ====================================================== -->
 <section class="screen" id="screen-keuangan" data-screen="keuangan" aria-labelledby="h-keu" hidden>
   <div class="page-head">
-    <div><h1 id="h-keu">Keuangan</h1><p>Sabtu, 14 November 2026 · per 20.30 WIB · semua pasien Umum</p></div>
+    <div><h1 id="h-keu">Keuangan</h1><p>Sabtu, 14 November 2026, 20.30 WIB</p></div>
   </div>
   <div class="grid-12">
-    <div class="card kpi span-3"><div class="label">Pendapatan hari ini</div><div class="value rp">Rp 1.650.000</div><div class="hint">3 tagihan lunas · diskon Rp 0</div></div>
-    <div class="card kpi span-3"><div class="label">Bulan ini</div><div class="value rp">Rp 42.390.000</div><div class="hint">1–14 Nov 2026</div></div>
-    <div class="card kpi span-3"><div class="label">Sisa tagihan</div><div class="value rp">Rp 500.000</div><div class="hint">1 pasien · jatuh tempo 21 Nov</div></div>
+    <div class="card kpi span-3"><div class="label">Pendapatan hari ini</div><div class="value rp">Rp 1.650.000</div><div class="hint">3 tagihan lunas</div></div>
+    <div class="card kpi span-3"><div class="label">Bulan ini</div><div class="value rp">Rp 42.390.000</div><div class="hint">1-14 Nov</div></div>
+    <div class="card kpi span-3"><div class="label">Sisa tagihan</div><div class="value rp">Rp 500.000</div><div class="hint">1 pasien, jatuh tempo 21 Nov</div></div>
     <div class="card kpi span-3"><div class="label">Rata-rata per kunjungan</div><div class="value rp">Rp 510.723</div><div class="hint">83 kunjungan bulan ini</div></div>
 
     <div class="card span-8">
-      <div class="card-head"><div><h2 class="card-title">Pendapatan 7 hari terakhir</h2><p class="card-sub">Hari ini masih berjalan</p></div></div>
+      <div class="card-head"><h2 class="card-title">Pendapatan 7 hari</h2></div>
       <div class="bars" role="img" aria-label="Grafik batang: Minggu 8 Nov tutup; Senin 3,2 juta; Selasa 2,75 juta; Rabu 3,9 juta; Kamis 2,4 juta; Jumat 3,45 juta; Sabtu 1,65 juta">
         <div class="bar"><em>Tutup</em><i style="--h:2"></i><span>Min 8</span></div>
         <div class="bar"><em>3,2 jt</em><i style="--h:82"></i><span>Sen 9</span></div>
@@ -715,11 +707,11 @@
     </div>
 
     <div class="card span-4">
-      <div class="card-head"><h2 class="card-title">Per dokter</h2><span class="card-sub">Hari ini, setelah diskon</span></div>
+      <div class="card-head"><h2 class="card-title">Per dokter</h2><span class="card-sub">Hari ini</span></div>
       <div class="hbar"><span>drg. Nadia Putri</span><span class="rp">Rp 1.250.000</span><span class="track"><i style="width:76%"></i></span></div>
       <div class="hbar"><span>drg. Arif Hidayat</span><span class="rp">Rp 400.000</span><span class="track"><i style="width:24%"></i></span></div>
       <div class="hbar"><span>drg. Clara Wijaya, Sp.KGA</span><span class="rp">Rp 0</span><span class="track"><i style="width:0"></i></span></div>
-      <p class="help">Tagihan Alya Rahmawati (Rp 300.000) belum dibayar.</p>
+      <p class="help">Alya Rahmawati belum bayar.</p>
     </div>
 
     <div class="card span-4">
@@ -739,10 +731,10 @@
     <div class="card span-4">
       <div class="card-head"><h2 class="card-title">Sisa tagihan</h2><span class="chip chip-debt">1 terbuka</span></div>
       <div class="sumline"><span>Dewi Lestari</span><span class="rp">Rp 500.000</span></div>
-      <p class="help">Mahkota 21 · dibayar Rp 2.000.000 dari Rp 2.500.000 · jatuh tempo 21 Nov 2026 · bisa dilunasi dari saldo deposit</p>
+      <p class="help">Mahkota 21, jatuh tempo 21 Nov 2026</p>
       <div class="actions" style="margin-top:16px">
         <button class="btn btn-sm" data-go="laporan" data-tabgo="piutang">Lihat sisa tagihan</button>
-        <button class="btn btn-sm" data-go="audit">Audit void &amp; selisih</button>
+        <button class="btn btn-sm" data-go="audit">Buka audit</button>
       </div>
     </div>
   </div>
@@ -753,7 +745,7 @@
      ====================================================== -->
 <section class="screen" id="screen-audit" data-screen="audit" aria-labelledby="h-audit" hidden>
   <div class="page-head">
-    <div><h1 id="h-audit">Audit void, refund &amp; selisih kas</h1><p>Setiap baris wajib beralasan · catatan tidak bisa dihapus · refund di atas Rp 500.000 wajib PIN pemilik</p></div>
+    <div><h1 id="h-audit">Audit</h1><p>Catatan tidak bisa dihapus.</p></div>
   </div>
   <div class="filters" role="group" aria-label="Filter">
     <button type="button" data-filter="semua" aria-pressed="true">Semua</button>
@@ -768,9 +760,9 @@
         <table>
           <thead><tr><th>Waktu</th><th>Jenis</th><th>No. tagihan</th><th>Oleh</th><th class="r">Jumlah</th><th>Alasan</th><th>Status</th></tr></thead>
           <tbody id="audit-vr">
-            <tr data-kind="refund"><td>13 Nov 2026 15.20</td><td>Refund ke saldo</td><td>TG-2026-11013-004</td><td>Sari Front Desk</td><td class="r rp">Rp 150.000</td><td>Tindakan dibatalkan — uang muka dikembalikan sebagai saldo deposit.</td><td><span class="chip chip-draft">dicatat kasir (≤ Rp 500.000)</span></td></tr>
-            <tr data-kind="void"><td>12 Nov 2026 16.40</td><td>Void penuh</td><td>TG-2026-11012-005</td><td>Sari Front Desk</td><td class="r rp">Rp 350.000</td><td>Kesalahan input — tagihan dibuat untuk pasien yang salah; diganti TG-2026-11012-006.</td><td><span class="chip chip-draft">dicatat kasir (≤ Rp 500.000)</span></td></tr>
-            <tr data-kind="refund"><td>10 Nov 2026 11.05</td><td>Refund sebagian</td><td>TG-2026-11010-003</td><td>Sari Front Desk</td><td class="r rp">Rp 100.000</td><td>Kesalahan input — kelebihan bayar tunai; selisih dikembalikan ke pasien di tempat.</td><td><span class="chip chip-draft">dicatat kasir (≤ Rp 500.000)</span></td></tr>
+            <tr data-kind="refund"><td>13 Nov 2026 15.20</td><td>Refund ke saldo</td><td>TG-2026-11013-004</td><td>Sari Front Desk</td><td class="r rp">Rp 150.000</td><td>Tindakan dibatalkan. Uang muka jadi saldo deposit.</td><td><span class="chip chip-draft">tanpa PIN</span></td></tr>
+            <tr data-kind="void"><td>12 Nov 2026 16.40</td><td>Void penuh</td><td>TG-2026-11012-005</td><td>Sari Front Desk</td><td class="r rp">Rp 350.000</td><td>Kesalahan input. Pasien salah, diganti TG-2026-11012-006.</td><td><span class="chip chip-draft">tanpa PIN</span></td></tr>
+            <tr data-kind="refund"><td>10 Nov 2026 11.05</td><td>Refund sebagian</td><td>TG-2026-11010-003</td><td>Sari Front Desk</td><td class="r rp">Rp 100.000</td><td>Kesalahan input. Kelebihan bayar tunai.</td><td><span class="chip chip-draft">tanpa PIN</span></td></tr>
           </tbody>
         </table>
       </div>
@@ -781,9 +773,9 @@
         <table>
           <thead><tr><th>Shift</th><th>Kasir</th><th class="r">Kas awal</th><th class="r">Sistem</th><th class="r">Hitung fisik</th><th class="r">Selisih</th><th>Alasan</th></tr></thead>
           <tbody>
-            <tr><td>Sab, 14 Nov 2026</td><td>Sari Front Desk</td><td class="r rp">Rp 500.000</td><td class="r rp">Rp 1.550.000</td><td class="r rp">Rp 1.550.000</td><td class="r rp">Rp 0</td><td>Sesuai — tidak ada selisih.</td></tr>
-            <tr><td>Jum, 13 Nov 2026</td><td>Sari Front Desk</td><td class="r rp">Rp 500.000</td><td class="r rp">Rp 1.650.000</td><td class="r rp">Rp 1.630.000</td><td class="r rp"><span class="chip chip-debt">−Rp 20.000</span></td><td>Kembalian salah hitung untuk satu pasien tunai sore; dilaporkan ke pemilik.</td></tr>
-            <tr><td>Kam, 12 Nov 2026</td><td>Sari Front Desk</td><td class="r rp">Rp 500.000</td><td class="r rp">Rp 1.900.000</td><td class="r rp">Rp 1.900.000</td><td class="r rp">Rp 0</td><td>Sesuai — tidak ada selisih.</td></tr>
+            <tr><td>Sab, 14 Nov 2026</td><td>Sari Front Desk</td><td class="r rp">Rp 500.000</td><td class="r rp">Rp 1.550.000</td><td class="r rp">Rp 1.550.000</td><td class="r rp">Rp 0</td><td>Sesuai</td></tr>
+            <tr><td>Jum, 13 Nov 2026</td><td>Sari Front Desk</td><td class="r rp">Rp 500.000</td><td class="r rp">Rp 1.650.000</td><td class="r rp">Rp 1.630.000</td><td class="r rp"><span class="chip chip-debt">−Rp 20.000</span></td><td>Kembalian salah hitung.</td></tr>
+            <tr><td>Kam, 12 Nov 2026</td><td>Sari Front Desk</td><td class="r rp">Rp 500.000</td><td class="r rp">Rp 1.900.000</td><td class="r rp">Rp 1.900.000</td><td class="r rp">Rp 0</td><td>Sesuai</td></tr>
           </tbody>
         </table>
       </div>
@@ -796,12 +788,12 @@
      ====================================================== -->
 <section class="screen" id="screen-tarif" data-screen="tarif" aria-labelledby="h-tarif" hidden>
   <div class="page-head">
-    <div><h1 id="h-tarif">Tarif &amp; Kebijakan</h1><p>Berlaku untuk semua cabang · pasien Umum</p></div>
-    <button class="btn btn-primary" data-toast="Prototipe: perubahan tarif tidak disimpan.">Ubah tarif</button>
+    <div><h1 id="h-tarif">Tarif &amp; Kebijakan</h1><p>Semua cabang</p></div>
+    <button class="btn btn-primary" data-toast="Prototipe: tidak disimpan.">Ubah tarif</button>
   </div>
   <div class="grid-12">
     <div class="card span-8">
-      <div class="card-head"><h2 class="card-title">Tarif tindakan</h2><span class="card-sub">Temuan odontogram tidak punya tarif</span></div>
+      <div class="card-head"><h2 class="card-title">Tarif tindakan</h2></div>
       <div class="table-wrap">
         <table>
           <thead><tr><th>Tindakan</th><th>Berlaku untuk</th><th class="r">Tarif</th></tr></thead>
@@ -822,29 +814,29 @@
     </div>
     <div class="span-4 stack">
       <div class="card">
-        <h2 class="card-title" style="margin-bottom:12px">Batas diskon per peran</h2>
+        <h2 class="card-title" style="margin-bottom:12px">Batas diskon</h2>
         <div class="policy" style="grid-template-columns:1fr">
-          <div><span class="small muted">Kasir / FO</span><b>10% atau Rp 100.000</b><span class="small muted">mana yang lebih kecil</span></div>
-          <div><span class="small muted">Dokter</span><b>20%</b><span class="small muted">lewat PIN di perangkat kasir</span></div>
-          <div><span class="small muted">Pemilik</span><b>Tanpa batas</b><span class="small muted">tetap tercatat di audit</span></div>
+          <div><span class="small muted">Kasir / FO</span><b>10% atau Rp 100.000</b><span class="small muted">yang lebih kecil</span></div>
+          <div><span class="small muted">Dokter</span><b>20%</b><span class="small muted">lewat PIN</span></div>
+          <div><span class="small muted">Pemilik</span><b>Tanpa batas</b><span class="small muted">tercatat di audit</span></div>
         </div>
       </div>
       <div class="card">
-        <h2 class="card-title" style="margin-bottom:12px">Skema komisi dokter</h2>
+        <h2 class="card-title" style="margin-bottom:12px">Komisi dokter</h2>
         <table>
           <tbody>
             <tr><td>Dokter gigi umum</td><td class="r"><b>40%</b></td></tr>
             <tr><td>Dokter gigi spesialis</td><td class="r"><b>45%</b></td></tr>
           </tbody>
         </table>
-        <p class="help" style="margin-top:8px">Dari tarif tindakan yang ditandatangani dokter itu sendiri, sebelum diskon. Diskon ditanggung klinik.</p>
+        <p class="help" style="margin-top:8px">Dari tarif, sebelum diskon.</p>
       </div>
       <div class="card">
         <h2 class="card-title" style="margin-bottom:12px">Kebijakan kasir</h2>
-        <div class="sumline tight"><span>Diskon bawaan</span><b>0% (Tanpa)</b></div>
+        <div class="sumline tight"><span>Diskon bawaan</span><b>0%</b></div>
         <div class="sumline tight"><span>Void/refund oleh kasir</span><b>≤ Rp 500.000</b></div>
         <div class="sumline tight"><span>Di atas Rp 500.000</span><b>PIN pemilik</b></div>
-        <p class="help" style="margin-top:8px">Void/refund selalu wajib alasan dan tercatat di Audit. Sisa tagihan bukan cicilan formal — bisa dilunasi kapan saja, termasuk dari saldo deposit pasien.</p>
+        <div class="sumline tight"><span>Alasan void/refund</span><b>Wajib</b></div>
       </div>
     </div>
   </div>
@@ -859,17 +851,17 @@
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="disc-title" aria-describedby="disc-desc">
     <div data-step="form">
       <h2 id="disc-title">Persetujuan diskon</h2>
-      <p class="muted" id="disc-desc">Kasir Sari Front Desk meminta diskon di atas batasnya. Masukkan PIN dokter atau admin.</p>
+      <p class="muted" id="disc-desc">Di atas batas kasir. Perlu PIN dokter atau admin.</p>
       <dl class="kv">
-        <dt>Pasien</dt><dd>Budi Santoso · TG-2026-11014-001</dd>
+        <dt>Pasien</dt><dd>Budi Santoso, TG-2026-11014-001</dd>
         <dt>Subtotal</dt><dd class="rp">Rp 800.000</dd>
-        <dt>Diminta</dt><dd><span class="rp">15% · Rp 120.000</span></dd>
-        <dt>Batas kasir</dt><dd>10% atau Rp 100.000 (maks. Rp 80.000)</dd>
+        <dt>Diminta</dt><dd><span class="rp">15% (Rp 120.000)</span></dd>
+        <dt>Batas kasir</dt><dd>Rp 80.000</dd>
         <dt>Setelah diskon &amp; saldo</dt><dd class="rp">Rp 480.000</dd>
       </dl>
       <div class="field"><label for="disc-reason">Alasan (opsional)</label><input class="input" id="disc-reason" value="Pasien lama, dua tindakan sekaligus"></div>
       <fieldset style="border:0;padding:0;margin:16px 0 0">
-        <legend class="small" style="font-weight:700;color:var(--muted)">PIN 6 digit dokter/admin</legend>
+        <legend class="small" style="font-weight:700;color:var(--muted)">PIN dokter/admin</legend>
         <div class="pin" id="pin">
           <input inputmode="numeric" maxlength="1" aria-label="Digit PIN 1" autocomplete="off">
           <input inputmode="numeric" maxlength="1" aria-label="Digit PIN 2" autocomplete="off">
@@ -878,16 +870,16 @@
           <input inputmode="numeric" maxlength="1" aria-label="Digit PIN 5" autocomplete="off">
           <input inputmode="numeric" maxlength="1" aria-label="Digit PIN 6" autocomplete="off">
         </div>
-        <p class="help" style="text-align:center">Prototipe: 6 angka apa saja diterima. PIN tidak pernah disimpan atau ditampilkan.</p>
+        <p class="help" style="text-align:center">Prototipe: 6 angka apa saja.</p>
       </fieldset>
       <div class="actions">
-        <button class="btn btn-danger" data-close data-toast="Diskon ditolak — tagihan kembali ke diskon sebelumnya.">Tolak</button>
+        <button class="btn btn-danger" data-close data-toast="Diskon ditolak.">Tolak</button>
         <button class="btn btn-primary" id="disc-approve" disabled>Setujui</button>
       </div>
     </div>
     <div data-step="done" hidden>
-      <div class="success-hero"><span class="check"><svg width="28" height="28" aria-hidden="true"><use href="#i-check"/></svg></span><div><h2>Diskon disetujui</h2><p class="muted">15% (Rp 120.000) oleh drg. Nadia Putri · 20.26 · tercatat di audit</p></div></div>
-      <div class="actions"><button class="btn btn-primary" data-close>Kembali ke tagihan</button></div>
+      <div class="success-hero"><span class="check"><svg width="28" height="28" aria-hidden="true"><use href="#i-check"/></svg></span><div><h2>Diskon disetujui</h2><p class="muted">15% (Rp 120.000), drg. Nadia Putri, 20.26</p></div></div>
+      <div class="actions"><button class="btn btn-primary" data-close>Kembali</button></div>
     </div>
   </div>
 </div>
@@ -897,12 +889,11 @@
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="refund-title">
     <div data-rstep="form">
       <h2 id="refund-title">Void / Refund</h2>
-      <p class="muted">TG-2026-11014-001 · Budi Santoso · dibayar <span data-b="paid">Rp 600.000</span> (<span data-b="method">Tunai</span>) + saldo deposit Rp 200.000</p>
+      <p class="muted">TG-2026-11014-001, Budi Santoso. Dibayar <span data-b="paid">Rp 600.000</span> (<span data-b="method">Tunai</span>) + deposit Rp 200.000</p>
       <div class="field" style="margin-top:16px">
         <label for="refund-amount">Jumlah dikembalikan</label>
-        <input class="input rp" id="refund-amount" inputmode="numeric" aria-describedby="refund-amount-help">
+        <input class="input rp" id="refund-amount" inputmode="numeric" aria-describedby="refund-owner-note">
         <div class="preset"><button type="button" data-ramt="full">Penuh</button><button type="button" data-ramt="100000">Rp 100.000</button><button type="button" data-ramt="350000">Rp 350.000</button></div>
-        <p class="help" id="refund-amount-help">Maks. sisa yang belum dikembalikan (awal <span data-b="paid">Rp 600.000</span>). Kasir boleh sampai Rp 500.000 dengan alasan; di atasnya perlu PIN pemilik (deposit tidak dihitung). Metode pengembalian mengikuti pembayaran asli. Void penuh otomatis mengembalikan deposit yang dipakai ke saldo pasien.</p>
       </div>
       <div class="field" style="margin-top:12px">
         <label for="refund-reason">Alasan (wajib)</label>
@@ -919,31 +910,30 @@
         <textarea class="input" id="refund-note" placeholder="Contoh: harga ekstraksi salah pilih"></textarea>
       </div>
       <div class="field" style="margin-top:12px">
-        <span class="lbl2" id="refund-parts-label">Dikembalikan sesuai metode bayar asli</span>
+        <span class="lbl2" id="refund-parts-label">Dikembalikan</span>
         <div class="refund-parts" id="refund-parts" aria-labelledby="refund-parts-label" aria-live="polite"></div>
       </div>
       <fieldset class="opts" id="refund-account" hidden>
-        <legend>Rekening tujuan transfer (wajib untuk bagian QRIS/EDC/Transfer)</legend>
+        <legend>Rekening tujuan</legend>
         <div class="acct-grid">
           <div class="field"><label for="ra-bank">Bank</label><input class="input" id="ra-bank" value="BCA" required></div>
           <div class="field"><label for="ra-no">No. rekening</label><input class="input" id="ra-no" inputmode="numeric" value="1234567890" required></div>
           <div class="field"><label for="ra-name">Atas nama</label><input class="input" id="ra-name" value="Budi Santoso" required></div>
         </div>
-        <p class="help">Contoh rekening sintetis. Bagian non-tunai tidak dikembalikan dari laci.</p>
       </fieldset>
-      <div class="banner banner-warn" id="refund-owner-note" hidden>Di atas Rp 500.000 — langkah berikut: persetujuan pemilik (PIN).</div>
+      <div class="banner banner-warn" id="refund-owner-note" hidden>Di atas Rp 500.000: perlu PIN pemilik.</div>
       <div class="actions">
         <button class="btn" data-close>Batal</button>
-        <button class="btn btn-danger" id="refund-next" disabled>Catat pengembalian</button>
+        <button class="btn btn-danger" id="refund-next" disabled>Catat</button>
       </div>
     </div>
 
     <div data-rstep="owner" hidden>
       <h2>Persetujuan pemilik</h2>
-      <p class="muted">Pengembalian melebihi batas kasir Rp 500.000. Minta Rina Kusuma (pemilik) memasukkan PIN di perangkat ini.</p>
+      <p class="muted">Minta Rina Kusuma (pemilik) memasukkan PIN.</p>
       <dl class="kv" id="refund-summary"></dl>
       <fieldset style="border:0;padding:0;margin:0">
-        <legend class="small" style="font-weight:700;color:var(--muted)">PIN 6 digit pemilik</legend>
+        <legend class="small" style="font-weight:700;color:var(--muted)">PIN pemilik</legend>
         <div class="pin" id="refund-pin">
           <input inputmode="numeric" maxlength="1" aria-label="Digit PIN 1" autocomplete="off">
           <input inputmode="numeric" maxlength="1" aria-label="Digit PIN 2" autocomplete="off">
@@ -952,18 +942,18 @@
           <input inputmode="numeric" maxlength="1" aria-label="Digit PIN 5" autocomplete="off">
           <input inputmode="numeric" maxlength="1" aria-label="Digit PIN 6" autocomplete="off">
         </div>
-        <p class="help" style="text-align:center">Prototipe: 6 angka apa saja diterima. PIN tidak pernah disimpan atau ditampilkan.</p>
+        <p class="help" style="text-align:center">Prototipe: 6 angka apa saja.</p>
       </fieldset>
       <div class="actions">
         <button class="btn" id="refund-back">Kembali</button>
-        <button class="btn btn-danger" id="refund-approve" disabled>Setujui &amp; catat</button>
+        <button class="btn btn-danger" id="refund-approve" disabled>Setujui</button>
       </div>
     </div>
 
     <div data-rstep="done" hidden>
       <div class="success-hero"><span class="check"><svg width="28" height="28" aria-hidden="true"><use href="#i-check"/></svg></span><div><h2>Pengembalian dicatat</h2><p class="muted" id="refund-done-text"></p></div></div>
       <div class="refund-parts" id="refund-done-parts"></div>
-      <p class="help" style="margin-top:12px">Tagihan asli tetap tersimpan dan terkunci; tidak ada data yang dihapus. Tercatat di Audit.</p>
+      <p class="help" style="margin-top:12px">Tagihan asli tetap tersimpan.</p>
       <div class="actions"><button class="btn btn-primary" data-close>Selesai</button></div>
     </div>
   </div>
@@ -973,14 +963,14 @@
 <div class="backdrop" id="wa-modal" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="wa-title">
     <h2 id="wa-title">Pratinjau WhatsApp</h2>
-    <p class="muted" id="wa-to">Ke: Dewi Lestari · 0800-000-0000 (nomor contoh)</p>
+    <p class="muted" id="wa-to">Ke: Dewi Lestari, 0800-000-0000</p>
     <div class="wa" style="margin-top:12px">
       <div class="bubble"><span id="wa-text"></span><small>20.31 ✓</small></div>
     </div>
-    <p class="help" style="margin-top:12px">Template disetujui pemilik · hanya untuk pasien yang memberi izin · tanpa isi klinis. Prototipe: pesan tidak dikirim.</p>
+    <p class="help" style="margin-top:12px">Tanpa isi klinis.</p>
     <div class="actions">
       <button class="btn" data-close>Batal</button>
-      <button class="btn btn-primary" data-close data-toast="Prototipe: pesan masuk antrean kirim (outbox), tidak benar-benar terkirim."><svg aria-hidden="true"><use href="#i-wa"/></svg>Kirim</button>
+      <button class="btn btn-primary" data-close data-toast="Prototipe: masuk outbox, tidak terkirim."><svg aria-hidden="true"><use href="#i-wa"/></svg>Kirim</button>
     </div>
   </div>
 </div>

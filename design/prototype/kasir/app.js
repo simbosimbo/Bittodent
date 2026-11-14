@@ -7,25 +7,25 @@ const num = s => parseInt(String(s).replace(/\D/g, ''), 10) || 0;
 
 // section = <section data-screen> yang ditampilkan (default: id)
 const SCREENS = [
-  { id: 'antrean', role: 'kasir', nav: 'kasir', label: '1 · Antrean Kasir' },
-  { id: 'buka-shift', role: 'kasir', nav: 'kasir', label: '2 · Buka Shift (hitung kas awal)' },
-  { id: 'tagihan', role: 'kasir', nav: 'kasir', label: '3 · Detail Tagihan' },
-  { id: 'bayar', role: 'kasir', nav: 'kasir', label: '4 · Bayar (mode charge)' },
-  { id: 'lunas', role: 'kasir', nav: 'kasir', label: '5 · Lunas' },
-  { id: 'struk', role: 'kasir', nav: 'kasir', label: '6 · Struk' },
-  { id: 'refund', section: 'struk', role: 'kasir', nav: 'kasir', label: '7 · Void / Refund' },
-  { id: 'tutup-shift', role: 'kasir', nav: 'laporan', label: '8 · Tutup Shift (hitung laci)' },
-  { id: 'laporan', role: 'kasir', nav: 'laporan', label: '9 · Laporan Kasir' },
-  { id: 'diskon', section: 'tagihan', role: 'dokter', nav: 'kasir', label: '10 · Persetujuan Diskon (PIN)' },
-  { id: 'pendapatan', role: 'dokter', nav: 'pendapatan', label: '11 · Pendapatan Saya' },
-  { id: 'laporan-pemilik', section: 'laporan', role: 'pemilik', nav: 'laporan', label: '12 · Laporan Kasir (hanya lihat)' },
-  { id: 'keuangan', role: 'pemilik', nav: 'keuangan', label: '13 · Dashboard Keuangan' },
-  { id: 'audit', role: 'pemilik', nav: 'audit', label: '14 · Audit Void/Selisih' },
-  { id: 'tarif', role: 'pemilik', nav: 'tarif', label: '15 · Tarif & Kebijakan' },
+  { id: 'antrean', role: 'kasir', nav: 'kasir', label: '1. Antrean Kasir' },
+  { id: 'buka-shift', role: 'kasir', nav: 'kasir', label: '2. Buka Shift' },
+  { id: 'tagihan', role: 'kasir', nav: 'kasir', label: '3. Tagihan' },
+  { id: 'bayar', role: 'kasir', nav: 'kasir', label: '4. Bayar' },
+  { id: 'lunas', role: 'kasir', nav: 'kasir', label: '5. Lunas' },
+  { id: 'struk', role: 'kasir', nav: 'kasir', label: '6. Struk' },
+  { id: 'refund', section: 'struk', role: 'kasir', nav: 'kasir', label: '7. Void / Refund' },
+  { id: 'tutup-shift', role: 'kasir', nav: 'laporan', label: '8. Tutup Shift' },
+  { id: 'laporan', role: 'kasir', nav: 'laporan', label: '9. Laporan Kasir' },
+  { id: 'diskon', section: 'tagihan', role: 'dokter', nav: 'kasir', label: '10. Persetujuan Diskon' },
+  { id: 'pendapatan', role: 'dokter', nav: 'pendapatan', label: '11. Pendapatan Saya' },
+  { id: 'laporan-pemilik', section: 'laporan', role: 'pemilik', nav: 'laporan', label: '12. Laporan Kasir (pemilik)' },
+  { id: 'keuangan', role: 'pemilik', nav: 'keuangan', label: '13. Keuangan' },
+  { id: 'audit', role: 'pemilik', nav: 'audit', label: '14. Audit' },
+  { id: 'tarif', role: 'pemilik', nav: 'tarif', label: '15. Tarif & Kebijakan' },
 ];
 const DEFAULT = { kasir: 'antrean', dokter: 'pendapatan', pemilik: 'keuangan' };
 const USERS = {
-  kasir: ['SF', 'Sari Front Desk', 'Kasir · Front office'],
+  kasir: ['SF', 'Sari Front Desk', 'Kasir'],
   dokter: ['NP', 'drg. Nadia Putri', 'Dokter gigi'],
   pemilik: ['RK', 'Rina Kusuma', 'Pemilik klinik'],
 };
@@ -127,7 +127,7 @@ const WA = {
 };
 function openWa(kind, from) {
   const [name, text] = WA[kind];
-  $('#wa-to').textContent = `Ke: ${name} · 0800-000-0000 (nomor contoh)`;
+  $('#wa-to').textContent = `Ke: ${name}, 0800-000-0000`;
   $('#wa-text').textContent = typeof text === 'function' ? text() : text;
   openModal($('#wa-modal'), from);
 }
@@ -155,7 +155,7 @@ function bind() {
     'saldo-amt': rp(-saldoUsed()),
     paid: rp(paid.amount),
     method: paid.method,
-    'pay-line': paid.lines.map(([k, v]) => `${k} ${typeof v === 'number' ? rp(v) : v}`).join(' · '),
+    'pay-line': paid.lines.map(([k, v]) => `${k} ${typeof v === 'number' ? rp(v) : v}`).join(', '),
     'refund-tunai': rp(refundTunai),
     'refund-count': refundCount,
     'kas-sistem': rp(KAS_SISTEM - refundTunai),
@@ -200,7 +200,7 @@ $('#disc-nominal').addEventListener('input', e => {
   const over = v > KASIR_LIMIT && !approved;
   e.target.setAttribute('aria-invalid', over);
   e.target.style.borderColor = over ? 'var(--danger-fg)' : '';
-  if (over) toast(`Di atas batas kasir (maks. ${rp(KASIR_LIMIT)} untuk tagihan ini) — perlu PIN dokter atau admin.`);
+  if (over) toast(`Batas kasir ${rp(KASIR_LIMIT)}. Perlu PIN dokter.`);
   disc = { kind: 'nominal', amount: over ? KASIR_LIMIT : v }; bind();
 });
 $('#use-saldo').addEventListener('change', bind);
@@ -239,7 +239,7 @@ function renderCharge() {
   $('#split-b').textContent = rp(Math.max(0, d - a));
   const cta = $('#charge-cta');
   cta.disabled = method === 'tunai' ? cash < d : method === 'split' ? !(a > 0 && a < d) : false;
-  cta.textContent = (method === 'tunai' || method === 'split' ? 'Terima ' : 'Pembayaran diterima · ') + rp(d);
+  cta.textContent = 'Terima ' + rp(d);
 }
 $$('.tile').forEach(t => t.addEventListener('click', () => setMethod(t.dataset.method)));
 function pressKey(k) {
@@ -299,10 +299,10 @@ function refundParts(amt, parts = paid.parts, before = refunded) {
 console.assert(refundParts(300000, [{ method: 'tunai', amount: 200000 }, { method: 'qris', amount: 400000 }], 0)
   .map(p => p.amount).join() === '100000,200000', 'refund 300.000 dari 200k+400k → 100k+200k');
 const needsAcct = parts => parts.some(p => p.method !== 'tunai');
-const acct = () => `${$('#ra-name').value.trim()} · ${$('#ra-bank').value.trim()} ${$('#ra-no').value.trim()}`;
+const acct = () => `${$('#ra-bank').value.trim()} ${$('#ra-no').value.trim()} a.n. ${$('#ra-name').value.trim()}`;
 const partText = p => p.method === 'tunai'
-  ? `Tunai ${rp(p.amount)} dikembalikan dari laci kas — kas shift berkurang`
-  : `${METHOD_NAME[p.method]} ${rp(p.amount)} dikembalikan lewat transfer ke rekening ${acct()}`;
+  ? `Tunai ${rp(p.amount)} dari laci`
+  : `${METHOD_NAME[p.method]} ${rp(p.amount)} transfer ke ${acct()}`;
 const fullVoid = amt => amt > 0 && amt === refundable();
 const depText = amt => (fullVoid(amt) && paid.deposit ? `Deposit ${rp(paid.deposit)} kembali ke saldo pasien` : '');
 const partsHtml = amt => refundParts(amt).map(p => `<div class="rp-line">${esc(partText(p))}</div>`).join('') +
@@ -318,14 +318,14 @@ function refundCheck() {
   const acctOn = valid && needsAcct(refundParts(amt));
   $('#refund-account').hidden = !acctOn;
   const acctOk = !acctOn || ['#ra-bank', '#ra-no', '#ra-name'].every(s => $(s).value.trim());
-  $('#refund-parts').innerHTML = valid ? partsHtml(amt) : '<div class="rp-line">Isi jumlah 1 s.d. sisa yang belum dikembalikan.</div>';
-  $('#refund-note-req').textContent = other ? '(wajib untuk "Lainnya")' : '(opsional)';
+  $('#refund-parts').innerHTML = valid ? partsHtml(amt) : `<div class="rp-line">Maks. ${rp(refundable())}</div>`;
+  $('#refund-note-req').textContent = other ? '(wajib)' : '(opsional)';
   const ok = valid && acctOk && $('#refund-reason').value && (!other || $('#refund-note').value.trim());
   const owner = amt > REFUND_LIMIT; // batas hanya untuk uang bayar, deposit tidak dihitung
   $('#refund-owner-note').hidden = !owner;
   $('#refund-amount').setAttribute('aria-invalid', amt > refundable());
   $('#refund-next').disabled = !ok;
-  $('#refund-next').textContent = owner ? 'Lanjut: persetujuan pemilik' : 'Catat pengembalian';
+  $('#refund-next').textContent = owner ? 'Lanjut' : 'Catat';
 }
 $('#refund-amount').addEventListener('input', e => { const v = num(e.target.value); e.target.value = v ? f(v) : ''; refundCheck(); });
 ['#refund-reason', '#refund-note', '#ra-bank', '#ra-no', '#ra-name'].forEach(s => $(s).addEventListener('input', refundCheck));
@@ -339,25 +339,25 @@ $('#refund-next').addEventListener('click', () => {
   rStep('owner'); $('#refund-pin input').focus();
 });
 $('#refund-back').addEventListener('click', () => { resetRefundPin(); rStep('form'); });
-$('#refund-approve').addEventListener('click', () => recordRefund('Rina Kusuma (pemilik, PIN)'));
+$('#refund-approve').addEventListener('click', () => recordRefund('Rina Kusuma'));
 function recordRefund(approver) {
   const amt = refundAmt(), parts = refundParts(amt), full = fullVoid(amt), dep = depText(amt), html = partsHtml(amt);
   const reason = $('#refund-reason').value, note = $('#refund-note').value.trim();
   refundCount++; refunded += amt;
   refundTunai += parts.filter(p => p.method === 'tunai').reduce((s, p) => s + p.amount, 0);
   if (full) depReturned = paid.deposit;
-  $('#refund-done-text').textContent = `${full ? 'Void penuh' : 'Refund sebagian'} ${rp(amt)} · alasan: ${reason}` +
-    ` · ${approver ? 'disetujui ' + approver : 'dicatat kasir (≤ Rp 500.000)'} · 20.35`;
+  $('#refund-done-text').textContent = `${full ? 'Void penuh' : 'Refund sebagian'} ${rp(amt)}. ${reason}. ` +
+    `${approver ? 'Disetujui ' + approver : 'Oleh kasir'}, 20.35.`;
   $('#refund-done-parts').innerHTML = html;
   const st = $('#lunas-status'); st.className = 'chip chip-void'; st.textContent = full ? 'void' : 'refund sebagian';
   const banner = $('#refund-banner'); banner.hidden = false;
-  $('span', banner).textContent = `${full ? 'Void' : 'Refund'} ${rp(amt)} dicatat (${reason}).${dep ? ' ' + dep + '.' : ''} Tagihan asli tetap tersimpan dan terkunci.`;
+  $('span', banner).textContent = `${full ? 'Void' : 'Refund'} ${rp(amt)} dicatat.${dep ? ' ' + dep + '.' : ''}`;
   const tr = document.createElement('tr');
   tr.dataset.kind = full ? 'void' : 'refund';
   tr.innerHTML = `<td>14 Nov 2026 20.35</td><td>${full ? 'Void penuh' : 'Refund sebagian'}</td><td>TG-2026-11014-001</td><td>Sari Front Desk</td>` +
-    `<td class="r rp">${rp(amt)}</td><td>${esc(reason + (note ? ' — ' + note : ''))}<br><span class="small muted">${parts.map(p => esc(partText(p))).join('; ')}</span>` +
+    `<td class="r rp">${rp(amt)}</td><td>${esc(reason + (note ? ': ' + note : ''))}<br><span class="small muted">${parts.map(p => esc(partText(p))).join('; ')}</span>` +
     (dep ? `<br><span class="audit-dep">${dep}</span>` : '') + '</td>' +
-    `<td><span class="chip chip-draft">${approver ? 'disetujui pemilik (PIN)' : 'dicatat kasir (≤ Rp 500.000)'}</span></td>`;
+    `<td><span class="chip chip-draft">${approver ? 'PIN pemilik' : 'tanpa PIN'}</span></td>`;
   $('#audit-vr').prepend(tr);
   bind();
   rStep('done'); $('#refund-modal [data-rstep=done] button').focus();
@@ -424,7 +424,7 @@ function renderClose() {
   const counted = closeTotal(), diff = counted - (KAS_SISTEM - refundTunai);
   $('#close-total').textContent = $('#close-counted').textContent = rp(counted);
   $('#var-amt').textContent = rp(diff);
-  $('#var-label').textContent = diff === 0 ? 'Selisih · sesuai' : diff < 0 ? 'Selisih · kurang' : 'Selisih · lebih';
+  $('#var-label').textContent = diff === 0 ? 'Selisih: sesuai' : diff < 0 ? 'Selisih: kurang' : 'Selisih: lebih';
   $('#var-box').classList.toggle('short', diff !== 0);
   $('#var-reason-wrap').hidden = diff === 0;
 }
@@ -432,7 +432,7 @@ closeTotal = denomTable($('#denom-close'), 'close', CLOSE_COUNTS, renderClose);
 $('#close-shift').addEventListener('click', () => {
   const sys = KAS_SISTEM - refundTunai, counted = closeTotal(), diff = counted - sys;
   if (diff !== 0 && !$('#var-reason').value.trim()) {
-    $('#var-reason').focus(); return toast('Ada selisih — isi alasan dulu sebelum menutup shift.');
+    $('#var-reason').focus(); return toast('Isi alasan selisih dulu.');
   }
   $('#close-summary').innerHTML = [['Kas awal', rp(500000)], ['Tunai masuk', rp(1050000)], ['Refund tunai', rp(refundTunai)],
     ['Seharusnya di laci', rp(sys)], ['Dihitung', rp(counted)], ['Selisih', rp(diff)],
@@ -472,7 +472,7 @@ if (demo) {
   show('refund');
   if (demo === 'void-done' || demo === 'void-audit') {
     $('#refund-reason').value = 'Kesalahan input'; refundCheck();
-    recordRefund('Rina Kusuma (pemilik, PIN)'); // Rp 600.000 > batas kasir → jalur PIN pemilik
+    recordRefund('Rina Kusuma'); // Rp 600.000 > batas kasir → jalur PIN pemilik
     if (demo === 'void-audit') show('audit');
   }
 }
