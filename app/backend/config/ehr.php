@@ -6,4 +6,6 @@ return [
     'blind_index_key' => env('BLIND_INDEX_KEY'),
     // DEV ONLY: POST /dev/quick-login (no TOTP) exists only when APP_ENV=local AND this is true.
     'dev_quick_login' => (bool) env('DEV_QUICK_LOGIN', false),
+    // Online booking OTP: log (masked number only) | fake (log + last code in cache for tests/dev; never in production).
+    'booking' => ['otp_driver' => env('BOOKING_OTP_DRIVER', 'log')],
 ];

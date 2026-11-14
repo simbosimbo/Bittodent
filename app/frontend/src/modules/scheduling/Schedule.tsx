@@ -44,6 +44,7 @@ export default function Schedule({ me }: { me: Me }) {
   const [actionError, setActionError] = useState('')
   const canCreate = me.permissions.includes('appointment.create')
   const canMove = me.permissions.includes('appointment.transition')
+  const canConfirm = me.permissions.includes('appointment.confirm')
   const canChart = me.permissions.includes('note.read')
   const canVisit = me.permissions.includes('note.write') // opening from the card starts/reuses the visit
   const tz = data?.branch.timezone ?? 'Asia/Jakarta'
@@ -53,10 +54,10 @@ export default function Schedule({ me }: { me: Me }) {
     setDate(d.toISOString().slice(0, 10))
   }
 
-  async function checkIn(a: Appointment) {
+  async function move(a: Appointment, to: string) {
     setActionError('')
     try {
-      await transition(a.id, 'checked_in')
+      await transition(a.id, to)
       await reload()
     } catch (e) {
       setActionError(e instanceof ApiError && e.status === 422 ? 'Status janji tidak bisa diubah.' : errorText(e))
@@ -65,6 +66,9 @@ export default function Schedule({ me }: { me: Me }) {
 
   if (!me.active.branch_id) return <div className="card state-card">Belum ada cabang aktif.</div>
   const count = data?.chairs.reduce((n, c) => n + c.appointments.length, 0) ?? 0
+  const pending = (data?.chairs.flatMap((c) => c.appointments) ?? [])
+    .filter((a) => a.status === 'pending_confirmation' && a.source === 'online')
+    .sort((x, y) => x.starts_at.localeCompare(y.starts_at))
 
   return (
     <>
@@ -82,6 +86,25 @@ export default function Schedule({ me }: { me: Me }) {
         </div>
       </div>
       {actionError && <p className="form-error" role="alert">{actionError}</p>}
+      {canConfirm && pending.length > 0 && (
+        <div className="card confirm-card">
+          <h2>Perlu konfirmasi <span className="muted small">· {pending.length}</span></h2>
+          <ul className="confirm-list">
+            {pending.map((a) => (
+              <li key={a.id} className="confirm-row">
+                <span className="appt-time">{fmtTime(a.starts_at, tz)}–{fmtTime(a.ends_at, tz)}</span>
+                <span className="chip chip-online">Online</span>
+                <div className="grow">
+                  <strong>{a.patient?.name}</strong>
+                  <div className="muted small">{[a.dentist?.name, a.reason].filter(Boolean).join(' · ')}</div>
+                </div>
+                <button className="btn btn-primary" onClick={() => move(a, 'booked')} aria-label={`Konfirmasi ${a.patient?.name ?? ''}`}>Konfirmasi</button>
+                <button className="btn" onClick={() => move(a, 'rejected')} aria-label={`Tolak ${a.patient?.name ?? ''}`}>Tolak</button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       {error ? <div className="card state-card error">{error} <button className="btn" onClick={reload}>Coba lagi</button></div>
         : !data ? <div className="card state-card muted">Memuat jadwal…</div>
         : data.chairs.length === 0 ? <div className="card state-card muted">Cabang ini belum punya kursi aktif.</div> : (
@@ -105,15 +128,16 @@ export default function Schedule({ me }: { me: Me }) {
                       <div key={a.id} className={`appt appt-${a.status}`} style={{ top: (top / STEP) * ROW + 2, height: (height / STEP) * ROW - 4 }}>
                         <div className="appt-top">
                           <span className="appt-time">{fmtTime(a.starts_at, tz)}–{fmtTime(a.ends_at, tz)}</span>
-                          <StatusChip status={a.status} />
+                          {a.source === 'online' && <span className="chip chip-online">Online</span>}
+                          {a.status === 'pending_confirmation' ? <span className="sr-only">{STATUS.pending_confirmation}</span> : <StatusChip status={a.status} />}
                         </div>
                         <div className="appt-name">{a.patient?.name}</div>
                         <div className="appt-bottom">
                           <span className="appt-meta">{a.reason ?? a.dentist?.name}</span>
                           {canMove && a.status === 'booked' && date === todayWib() && (
-                            <button className="btn btn-xs" onClick={() => checkIn(a)}>Check-in</button>
+                            <button className="btn btn-xs" onClick={() => move(a, 'checked_in')}>Check-in</button>
                           )}
-                          {canChart && a.patient && !['cancelled', 'no_show'].includes(a.status) && (
+                          {canChart && a.patient && !['cancelled', 'no_show', 'rejected', 'pending_confirmation'].includes(a.status) && (
                             <a className="btn btn-xs" href={`#/rekam-medis/${a.patient.id}${canVisit ? `/janji/${a.id}` : ''}`}>Buka Rekam Medis</a>
                           )}
                         </div>

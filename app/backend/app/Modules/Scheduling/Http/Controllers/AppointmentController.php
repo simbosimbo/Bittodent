@@ -131,6 +131,9 @@ class AppointmentController extends Controller
             }
             AppointmentStatus::assertCanMove($a->status, $d['to']);
             $from = $a->status;
+            if (in_array('pending_confirmation', [$from, $d['to']], true) && ! Ctx::current()->can('appointment.confirm')) {
+                return Audit::denied('appointment.confirm'); // confirm/reject an online booking
+            }
             $stamp = AppointmentStatus::STAMPS[$d['to']] ?? null;
             $a->update(['status' => $d['to']] + ($stamp ? [$stamp => now()] : []));
             Audit::log('ubah_status', 'appointment', $a->id, ['from' => $from, 'to' => $d['to']]);
