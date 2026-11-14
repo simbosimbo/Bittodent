@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { errorText } from '../../shared/api/http'
 import { initials } from '../../shared/format'
 import { Icon, ICONS } from '../../shared/ui/Icon'
+import { useIsMobile } from '../../shared/useIsMobile'
 import { searchPatients, type PatientRow } from './api'
 import { PatientPage } from './Records'
 import './patients.css'
@@ -60,6 +61,7 @@ export function PatientList({ canCreate, canChart = false, initialQ = '' }: { ca
   const [q, setQ] = useState(initialQ)
   const [status, setStatus] = useState('')
   const { rows, next, error, loading, more } = usePatientSearch(q)
+  const mobile = useIsMobile()
   // Counts cover only the loaded results (no totals endpoint).
   const counts: Record<string, number> = {}
   for (const p of rows ?? []) if (p.status) counts[p.status] = (counts[p.status] ?? 0) + 1
@@ -86,7 +88,25 @@ export function PatientList({ canCreate, canChart = false, initialQ = '' }: { ca
         )}
         {error ? <p className="state-card error">{error}</p>
           : !rows || !shown ? <p className="state-card muted">Memuat…</p>
-          : rows.length === 0 ? <p className="state-card muted">{q ? `Tidak ada pasien yang cocok dengan “${q}”.` : 'Belum ada pasien.'}</p> : (
+          : rows.length === 0 ? <p className="state-card muted">{q ? `Tidak ada pasien yang cocok dengan “${q}”.` : 'Belum ada pasien.'}</p>
+          : mobile ? (
+            // Mobile: one card per patient instead of the wide table; same row/link rules.
+            <ul className={'pl-cards' + (loading ? ' is-loading' : '')} aria-label="Daftar pasien">
+              {shown.map((p) => (
+                <li key={p.id} onClick={() => (location.hash = '/pasien/' + p.id)}>
+                  <span className="avatar" aria-hidden="true">{initials(p.name) || '?'}</span>
+                  <div className="pl-card-body">
+                    <a href={'#/pasien/' + p.id} className="strong pl-name-text">{p.name}</a>
+                    <span className="muted small">{[age(p.dob), p.sex && (SEX[p.sex] ?? p.sex), PAYER[p.payer_type] ?? p.payer_type].filter(Boolean).join(' · ')}</span>
+                    {p.status && <span><span className={'chip ' + (p.status === 'aktif' ? 'chip-aktif' : 'chip-neutral')}>{STATUS[p.status] ?? p.status}</span></span>}
+                    {canChart && <a className="btn-link row-action" href={'#/rekam-medis/' + p.id}
+                      aria-label={'Rekam Medis ' + p.name} onClick={(e) => e.stopPropagation()}>Rekam Medis</a>}
+                  </div>
+                  <span className="pl-chevron" aria-hidden="true"><Icon d={ICONS.right} size={18} /></span>
+                </li>
+              ))}
+            </ul>
+          ) : (
             <table className={'table pl-table' + (loading ? ' is-loading' : '')}>
               <thead><tr><th className="pl-col-name">Pasien</th><th>No. RM</th><th>Umur</th><th>Kunjungan terakhir</th><th>Status</th><th><span className="sr-only">Aksi</span></th></tr></thead>
               <tbody>

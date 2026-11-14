@@ -95,7 +95,7 @@ export default function Home({ me }: { me: Me }) {
             <div className="muted">Tagihan harian belum tersedia</div>
           </section>
 
-          <section className="card span-12" aria-labelledby="home-board">
+          <section className="card span-12 home-board" aria-labelledby="home-board">
             <div className="card-head">
               <div>
                 <h2 id="home-board">Jadwal hari ini per dokter</h2>
@@ -147,7 +147,7 @@ export default function Home({ me }: { me: Me }) {
             )}
           </section>
 
-          <section className="card span-8" aria-labelledby="home-today">
+          <section className="card span-8 home-today" aria-labelledby="home-today">
             <div className="card-head">
               <div>
                 <h2 id="home-today">Janji hari ini</h2>
@@ -175,7 +175,7 @@ export default function Home({ me }: { me: Me }) {
             )}
           </section>
 
-          <section className="card span-4" aria-labelledby="home-queue">
+          <section className="card span-4 home-queue" aria-labelledby="home-queue">
             <div className="card-head">
               <h2 id="home-queue">Antrean live</h2>
               <span className="muted small">Diperbarui {nowLabel}</span>

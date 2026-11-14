@@ -3,6 +3,7 @@ import { ApiError, errorText } from '../../shared/api/http'
 import { setActivePatient } from '../../shared/activePatient'
 import { fmtDateTime } from '../../shared/format'
 import type { Me } from '../../shared/session'
+import { useIsMobile } from '../../shared/useIsMobile'
 import { PatientPage } from '../patients'
 import {
   approveCorrection, changeStatus, correctNote, discardFinding, getChart, saveBaseline, saveFinding, saveNote, signVisit, visitFromAppointment,
@@ -240,7 +241,8 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const [procCode, setProcCode] = useState('')
   const [baselineOpen, setBaselineOpen] = useState(false)
   const [view, setView] = useState<'2d' | '3d'>('2d') // not persisted: 2D every time
-  const [legendOpen, setLegendOpen] = useState(true)
+  const mobile = useIsMobile()
+  const [legendOpen, setLegendOpen] = useState(!mobile) // phone: chart first, legend on demand
   const [tab, setTab] = useState<(typeof INNER)[number][0]>('odo')
   // 3D needs the vertical space: legends collapse on 3D, reopen on 2D; manual toggle still works in both.
   const changeView = (v: '2d' | '3d') => { setView(v); setLegendOpen(v === '2d') }
@@ -321,7 +323,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
     <>
       <div className="tooth-panel-head">
         <h2>Gigi {pick.tooth}</h2>
-        <button type="button" className="btn btn-ghost tooth-close" aria-label="Tutup detail gigi" onClick={() => setPick(null)}>×</button>
+        <button type="button" className="btn btn-ghost tooth-close" aria-label="Tutup detail gigi" autoFocus={mobile} onClick={() => setPick(null)}>×</button>
       </div>
       <p className="muted small" role="status">Dipilih: Gigi {pick.tooth} · {surfaceName(pick.tooth, pick.surface)} ({surfaceLabel(pick.tooth, pick.surface)})</p>
       <div className="surf-pad" role="group" aria-label="Permukaan">
@@ -411,7 +413,8 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
                 <p className="muted small odo3d-note">Tampilan 3D hanya baca; overlay mengikuti data bagan dan legenda internal. Ketuk gigi/permukaan di 3D untuk memilih, atau pakai bagan 2D di bawah untuk input per permukaan.</p>
               </>
             )}
-            <div className="odo2d-wrap">
+            {/* Mobile: the chart keeps its size and scrolls sideways; opens centred on the midline (11|21). */}
+            <div className="odo2d-wrap" ref={(el) => { if (el && mobile && !el.dataset.centred) { el.dataset.centred = '1'; el.scrollLeft = (el.scrollWidth - el.clientWidth) / 2 } }}>
               <Odontogram marks={marks} baseline={chart.baseline?.teeth} dentition={dent} compact={view === '3d'} selected={pick ? `t${pick.tooth}-${pick.surface}` : null} onPick={onPick} />
             </div>
             {!editable && (visit ? <p className="muted small">Kunjungan ini sudah ditandatangani.</p> : (
@@ -419,7 +422,14 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
                 <a className="btn btn-primary" href={can('appointment.read') ? '#/jadwal' : '#/'}>Buka janji hari ini</a></p>
             ))}
           </section>
-          <aside className="card span-4 tooth-panel" aria-label="Detail gigi">{panel}</aside>
+          {!mobile ? <aside className="card span-4 tooth-panel" aria-label="Detail gigi">{panel}</aside> : pick && (
+            // Mobile: tooth detail is a bottom sheet. Backdrop tap / × / Esc close it and clear the pick (same as × on desktop).
+            <>
+              <div className="sheet-backdrop" onClick={() => setPick(null)} />
+              <aside className="card tooth-panel sheet tooth-sheet" role="dialog" aria-label={`Detail gigi ${pick.tooth}`}
+                onKeyDown={(e) => e.key === 'Escape' && setPick(null)}>{panel}</aside>
+            </>
+          )}
           {items.length > 0 && (
             <section className="card span-12" aria-labelledby="temuan-title">
               <h2 id="temuan-title">Temuan &amp; tindakan</h2>

@@ -337,3 +337,54 @@ label.check input { min-height: 0; }
 .card-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-3); }
 .card-head h2 { margin: 0; }
 .card-head p { margin: 2px 0 0; }
+
+/* Mobile (≤720px, same as useIsMobile): sidebar is not rendered; bottom nav + "Lainnya" sheet; 44px touch targets. */
+.bottom-nav {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+  background: var(--surface); border-top: 1px solid var(--border); padding: 4px 4px calc(4px + env(safe-area-inset-bottom));
+}
+.bottom-nav a, .bottom-nav button {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 56px; min-width: 44px; padding: 4px 2px;
+  border: 0; background: none; font: inherit; font-size: 11px; font-weight: 600; line-height: 1.2; text-align: center; color: var(--muted); cursor: pointer; border-radius: var(--radius-sm);
+}
+.bottom-nav svg { padding: 2px 12px; box-sizing: content-box; border-radius: var(--radius-pill); }
+.bottom-nav .on { color: var(--color-primary-700); }
+.bottom-nav .on svg { background: var(--color-primary-50); }
+.bottom-nav a:hover { text-decoration: none; }
+.bottom-nav a:focus-visible, .bottom-nav button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.sheet-backdrop { position: fixed; inset: 0; z-index: 30; background: rgba(16, 32, 40, 0.25); }
+.sheet {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 31; max-height: 70vh; overflow-y: auto;
+  background: var(--surface); border-radius: var(--radius-lg) var(--radius-lg) 0 0; box-shadow: var(--shadow-lg);
+  padding: var(--space-4) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom));
+}
+.more-sheet { display: grid; gap: var(--space-1); }
+.more-sheet a { display: flex; align-items: center; gap: var(--space-3); min-height: 48px; padding: 0 var(--space-3); border-radius: var(--radius-sm); color: var(--text); font-weight: 600; }
+.more-sheet a[aria-current] { background: var(--color-primary-50); color: var(--color-primary-700); }
+.shell-search-icon { display: grid; place-items: center; width: 44px; height: 44px; flex: none; border-radius: 50%; color: var(--text); background: var(--color-neutral-50); }
+
+@media (max-width: 720px) {
+  .shell-top { flex-wrap: nowrap; gap: var(--space-2); padding: var(--space-2) var(--space-3); min-height: 0; }
+  .shell-top .aps { flex: 1 1 auto; min-width: 0; }
+  .shell-top .aps-trigger { flex: 1; min-width: 0; }
+  .shell-top .aps-text small, .shell-top .aps-action { display: none; }
+  .shell-top-synthetic { font-size: 10px; padding: 2px 6px; }
+  .aps-text strong { white-space: normal; overflow-wrap: anywhere; } /* wrap, never clip, on a phone */
+  .aps-pop { position: fixed; left: var(--space-2); right: var(--space-2); width: auto; top: auto; }
+  .shell-main { padding: var(--space-3) var(--space-3) calc(80px + env(safe-area-inset-bottom)); }
+  html { scroll-padding-bottom: 80px; }
+  .btn, .btn-link.row-action, .btn-xs { min-height: 44px; }
+  .page-head { flex-wrap: wrap; align-items: flex-start; }
+  .page-head .toolbar { width: 100%; }
+  .page-head .toolbar .btn { flex: 1; }
+  /* KPI cards 2×2 (more specific than `.grid-12 > *`) */
+  .grid-12 > .span-3 { grid-column: span 6; }
+  .grid-12 { gap: var(--space-3); }
+  .card { padding: var(--space-4); }
+  /* Patient-level and inner tabs: one sideways-scrolling row, never a tall wrapped stack. */
+  .tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; }
+  .tabs a, .tabs button { flex: none; white-space: nowrap; }
+  .grid-2, .details { grid-template-columns: 1fr; }
+  .patient-head .avatar-lg { width: 40px; height: 40px; }
+  .crumbs { display: none; } /* bottom nav + tabs cover it; saves header height */
+}

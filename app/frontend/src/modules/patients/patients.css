@@ -24,3 +24,17 @@
 .chip-aktif { background: var(--color-success-bg); color: var(--color-success-fg); }
 .pl-table td.cell-action { white-space: nowrap; }
 .pl-chevron { display: inline-flex; vertical-align: middle; margin-left: var(--space-2); color: var(--muted); }
+
+/* Mobile (≤720px) list: one card per patient (Patients.tsx renders .pl-cards instead of the table). */
+.pl-cards { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+.pl-cards li { display: flex; align-items: flex-start; gap: var(--space-3); padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; }
+.pl-cards li:hover { background: var(--bg); }
+.pl-cards .avatar { flex: none; font-size: var(--font-size-xs); }
+.pl-card-body { flex: 1; min-width: 0; display: grid; gap: 2px; justify-items: start; }
+.pl-cards .pl-chevron { align-self: center; }
+@media (max-width: 720px) {
+  .pl-toolbar .btn-primary { width: 100%; margin-left: 0; }
+  .pl-search { max-width: none; }
+  .pl-filters { flex-wrap: nowrap; overflow-x: auto; }
+  .pl-filters button { flex: none; min-height: 44px; white-space: nowrap; }
+}

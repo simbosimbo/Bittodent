@@ -161,3 +161,27 @@ label.check { flex-direction: row; gap: 8px; align-items: flex-start; font-weigh
 .surf-top { grid-area: top; } .surf-left { grid-area: left; } .surf-center { grid-area: center; } .surf-right { grid-area: right; } .surf-bottom { grid-area: bottom; }
 .tooth-findings { margin: 0; }
 .tooth-panel .btn.cond { min-height: 40px; }
+
+/* Mobile (≤720px): sticky compact header (allergies stay on screen), odontogram scrolls sideways, tooth detail = bottom sheet. */
+@media (max-width: 720px) {
+  .patient-head:has(.patient-alerts) {
+    position: sticky; top: var(--shell-sticky-h, 0px); z-index: 4; margin: calc(-1 * var(--space-3)) calc(-1 * var(--space-3)) var(--space-3);
+    padding: var(--space-2) var(--space-3); background: var(--bg); border-bottom: 1px solid var(--border);
+  }
+  /* Header stays above the sheet backdrop so allergy chips are never dimmed while a tooth is open. */
+  body:has(.tooth-sheet) .patient-head:has(.patient-alerts) { z-index: 32; }
+  .patient-head:has(.patient-alerts) h1 { font-size: var(--font-size-lg); }
+  .patient-head:has(.patient-alerts) .avatar-lg, .patient-head .chart-actions { display: none; } /* Buat janji: Jadwal tab */
+  .card-head-tools { margin-left: 0; }
+  /* 2D keeps ~1:1 scale (44px teeth); one sideways scroller for both arches (renderer draws one SVG). */
+  .odo2d-wrap { overscroll-behavior-x: contain; }
+  .odo2d-wrap .odontogram { min-width: 820px; }
+  .odo2d-wrap .odontogram.is-compact { min-width: 640px; }
+  /* 3D: one sideways scroller per jaw. */
+  .odo-card .odo3d { overflow-x: visible; }
+  .odo-card .odo3d .chart { min-width: 0; align-items: stretch; zoom: 0.78; }
+  .odo3d .jaw-block { overflow-x: auto; align-items: flex-start; }
+  .odo3d .arch-grid { margin: 0 auto; }
+  .tooth-sheet { display: grid; gap: var(--space-3); max-height: 60vh; border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+  .tooth-sheet .btn.cond { min-height: 44px; }
+}
