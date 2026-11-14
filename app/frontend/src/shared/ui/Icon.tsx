@@ -13,5 +13,10 @@ export const ICONS = {
   right: 'M9 6l6 6-6 6',
   user: 'M20 21v-1a5 5 0 0 0-5-5H9a5 5 0 0 0-5 5v1M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8',
   card: 'M3 6h18v12H3zM3 10h18M7 15h4',
+  queue: 'M4 6h16M4 12h16M4 18h10',
+  receipt: 'M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6',
+  chart: 'M4 4v16h16M8 16v-4M12 16V8M16 16v-6',
+  plus: 'M12 5v14M5 12h14',
+  bell: 'M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5a2 2 0 0 0 4 0',
   more: 'M5 11.5h1v1H5zM11.5 11.5h1v1h-1zM18 11.5h1v1h-1z',
 }

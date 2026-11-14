@@ -2,13 +2,15 @@ import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { ApiError, errorText } from '../../shared/api/http'
 import { setActivePatient } from '../../shared/activePatient'
 import { fmtDateTime, initials } from '../../shared/format'
+import { Icon, ICONS } from '../../shared/ui/Icon'
+import { Menu } from '../../shared/ui/Menu'
 import { ALERTS_CHANGED, AlertRibbon } from './AlertRibbon'
 import { getFamily, getMedicalHistory, getPatient, saveMedicalHistory, type Family, type MedicalHistory, type PatientFull } from './api'
 import { age, dob, PAYER, SEX } from './Patients'
 
 const TABS = [['pasien', 'Profil'], ['rekam-medis', 'Rekam Medis'], ['keluarga', 'Keluarga'], ['riwayat-medis', 'Riwayat Medis']] as const
 
-/** Header + tabs shared by the patient screens; loading the patient makes it the active patient.
+/** Header (with the Profil / Rekam Medis / Keluarga / Riwayat Medis menu) shared by the patient screens; loading the patient makes it the active patient.
  *  `alerts`: allergy/premed chips in the header (one /alerts fetch); used on Rekam Medis. */
 export function PatientPage({ id, tab, canChart, actions, alerts, children }: { id: string; tab: string; canChart: boolean; actions?: ReactNode; alerts?: boolean; children: (p: PatientFull) => ReactNode }) {
   const [p, setP] = useState<PatientFull | null>(null)
@@ -29,13 +31,16 @@ export function PatientPage({ id, tab, canChart, actions, alerts, children }: { 
           <p className="muted small">{[`${dob(p.dob)}${age(p.dob) ? ` (${age(p.dob)})` : ''}`, p.sex && (SEX[p.sex] ?? p.sex), `Penjamin ${PAYER[p.payer_type] ?? p.payer_type}`, 'No. RM: belum ada'].filter(Boolean).join(' · ')}</p>
           {alerts && <AlertRibbon patientId={p.id} compactDefault label="Peringatan medis pasien" className="patient-alerts" />}
         </div>
-        {actions}
+        <div className="patient-head-actions">
+          {actions}
+          {/* Profil / Keluarga / Riwayat Medis live here (no outer tab bar, no sidebar items). */}
+          <Menu label="Menu pasien" className="icon-btn icon-btn-outline" trigger={<Icon d={ICONS.more} />}>
+            {(close) => TABS.filter(([k]) => k !== 'rekam-medis' || canChart).map(([k, label]) => (
+              <a key={k} href={`#/${k}/${p.id}`} aria-current={k === tab ? 'page' : undefined} onClick={close}>{label}</a>
+            ))}
+          </Menu>
+        </div>
       </div>
-      <nav className="tabs" aria-label="Data pasien">
-        {TABS.filter(([k]) => k !== 'rekam-medis' || canChart).map(([k, label]) => (
-          <a key={k} href={`#/${k}/${p.id}`} className={k === tab ? 'on' : undefined} aria-current={k === tab ? 'page' : undefined}>{label}</a>
-        ))}
-      </nav>
       {children(p)}
     </>
   )

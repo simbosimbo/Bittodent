@@ -20,15 +20,26 @@ const alerts = { version: 1, premedication_required: false, allergies: ['Penisil
 
 afterEach(() => { act(() => clearActivePatients()); vi.unstubAllGlobals(); delete window.Tooth3D })
 
-test('chart sits inside the patient tabs, formats dates, and links to today\'s appointments without an active visit', async () => {
+test('chart sits inside the patient page (no outer tab bar; Profil/Keluarga/Riwayat in the header menu), formats dates, and links to today\'s appointments without an active visit', async () => {
   vi.stubGlobal('fetch', vi.fn(async (url: string) => new Response(JSON.stringify(url.endsWith('/chart') ? chart : url.endsWith('/alerts') ? alerts : full), { status: 200 })))
   render(<ChartPage patientId="p1" me={me} />)
 
-  const tabs = await screen.findByRole('navigation', { name: 'Data pasien' })
-  expect(within(tabs).getByRole('link', { name: 'Rekam Medis' })).toHaveAttribute('aria-current', 'page')
-  expect(within(tabs).getByRole('link', { name: 'Profil' })).toHaveAttribute('href', '#/pasien/p1')
-  expect(within(tabs).getByRole('link', { name: 'Keluarga' })).toHaveAttribute('href', '#/keluarga/p1')
-  expect(within(tabs).getByRole('link', { name: 'Riwayat Medis' })).toHaveAttribute('href', '#/riwayat-medis/p1')
+  const menu = await screen.findByRole('button', { name: 'Menu pasien' })
+  expect(screen.queryByRole('navigation', { name: 'Data pasien' })).toBeNull()
+  expect(screen.queryByRole('link', { name: 'Keluarga' })).toBeNull()
+  fireEvent.click(menu)
+  expect(menu).toHaveAttribute('aria-expanded', 'true')
+  const pop = menu.parentElement!.querySelector('.menu-pop') as HTMLElement
+  expect(within(pop).getAllByRole('link').map((a) => [a.textContent, a.getAttribute('href')])).toEqual([
+    ['Profil', '#/pasien/p1'], ['Rekam Medis', '#/rekam-medis/p1'], ['Keluarga', '#/keluarga/p1'], ['Riwayat Medis', '#/riwayat-medis/p1']])
+  expect(within(pop).getByRole('link', { name: 'Rekam Medis' })).toHaveAttribute('aria-current', 'page')
+  expect(within(pop).getByRole('link', { name: 'Profil' })).not.toHaveAttribute('aria-current')
+  fireEvent.keyDown(pop, { key: 'Escape' })
+  expect(menu).toHaveAttribute('aria-expanded', 'false')
+  expect(menu).toHaveFocus()
+  fireEvent.click(menu)
+  fireEvent.mouseDown(document.body)
+  expect(screen.queryByRole('link', { name: 'Keluarga' })).toBeNull()
 
   expect(await screen.findByText('Buka janji hari ini')).toHaveAttribute('href', '#/jadwal')
   expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Budi Contoh')

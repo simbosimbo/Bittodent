@@ -56,7 +56,7 @@ export default function PatientForm() {
 
   return (
     <>
-      <div className="page-head"><div><a href="#/pasien" className="muted small">← Daftar pasien</a><h1>Pasien Baru</h1></div></div>
+      <div className="page-head"><div><a href="#/pasien" className="muted small">← Daftar pasien</a><h1 className="shell-dup-title">Pasien Baru</h1></div></div>
       <form className="card form" onSubmit={submit} noValidate>
         <h2>Identitas</h2>
         <div className="grid-2">

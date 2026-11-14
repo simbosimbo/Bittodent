@@ -1,27 +1,51 @@
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { Fragment, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { useActivePatient } from '../activePatient'
+import { initials } from '../format'
 import { ROLE_LABELS, type Me } from '../session'
 import { Icon, ICONS } from '../ui/Icon'
+import { Menu } from '../ui/Menu'
 import { useIsMobile } from '../useIsMobile'
 
-// Mobile bottom tabs, in order; every other nav item (and Keluar) goes in the "Lainnya" sheet.
+// Mobile bottom tabs, in order; every other nav item goes in the "Lainnya" sheet (with branch + Keluar).
 const TABS = ['/', '/jadwal', '/pasien', '/rekam-medis']
+export const SECTIONS = ['KLINIK', 'KLINIS', 'KEUANGAN'] as const
 
-// group 'pasien' = screens of the active patient (href points at that patient; without one they lead to the patient list).
-export type NavItem = { path: string; label: string; icon: string; group?: 'klinik' | 'pasien'; href?: string }
+// section = sidebar caption. group 'pasien' = screen of the active patient (href points at that patient; without one it leads to the patient list).
+export type NavItem = { path: string; label: string; icon: string; section: typeof SECTIONS[number]; group?: 'pasien'; href?: string }
 
 export const withActivePatientHref = <T extends NavItem>(nav: T[], patient: { id: string } | null): T[] =>
   nav.map((n) => n.group === 'pasien' ? { ...n, href: patient ? `${n.path}/${patient.id}` : '/pasien' } : n)
 
-// Shell A (design/prototype shells.css): sidebar (brand, clinic name + synthetic-data badge, branch, nav; icon rail <=1100px; bottom nav instead at <=720px), top bar with search + "Pasien aktif" pill,
-// medical-alert ribbon (slot, owned by the patients module) whenever a patient is active, white cards on tinted bg.
-// The pill itself is a slot too (patientPicker, from the patients module): shared/ imports no module.
-export function Shell({ me, nav, active, ribbon, patientPicker, onSwitchBranch, onLogout, children }: {
+// Prototype copy only, NOT real clinic addresses: /api/me has no address field. Unknown tenants get the branch name (never an invented street).
+const ADDRESSES: Record<string, string> = {
+  'Klinik Gigi Senyum Sehat': 'Jl. Tebet Raya No. 21, Jakarta Selatan',
+  'Klinik Gigi Ceria': 'Jl. Ir. H. Djuanda, Dago, Bandung',
+}
+export const clinicSubtitle = (me: Me) => ADDRESSES[me.active.tenant_name] ?? me.active.branch_name ?? ''
+
+// Top bar title: the nav label, except the patient area reads "Daftar Pasien" (and the new-patient form "Pasien Baru").
+export const pageTitle = (hash: string, active: NavItem | undefined) =>
+  hash === '/pasien/baru' ? 'Pasien Baru' : active?.path === '/pasien' ? 'Daftar Pasien' : active?.label ?? ''
+
+// One switcher for the avatar menu and the mobile "Lainnya" sheet: a select with 2+ branches, plain text with one.
+function Branch({ me, onSwitchBranch }: { me: Me; onSwitchBranch: (id: string) => void }) {
+  return me.branches.length < 2
+    ? <p className="menu-branch"><small>Cabang</small> <strong>{me.active.branch_name}</strong></p>
+    : <label className="menu-branch"><small>Cabang aktif</small>
+        <select value={me.active.branch_id ?? ''} onChange={(e) => onSwitchBranch(e.target.value)}>
+          {me.branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+        </select>
+      </label>
+}
+
+// Shell A: sidebar (brand, clinic block, KLINIK/KLINIS/KEUANGAN nav; icon rail <=1100px; bottom nav instead at <=720px),
+// top bar (page title, search, + quick actions, bell, user menu), medical-alert ribbon slot whenever a patient is active.
+export function Shell({ me, nav, active, title = '', ribbon, onSwitchBranch, onLogout, children }: {
   me: Me
   nav: NavItem[]
   active: NavItem | undefined
+  title?: string
   ribbon?: ReactNode
-  patientPicker?: ReactNode
   onSwitchBranch: (id: string) => void
   onLogout: () => void
   children: ReactNode
@@ -39,81 +63,92 @@ export function Shell({ me, nav, active, ribbon, patientPicker, onSwitchBranch, 
     ro.observe(el)
     return () => ro.disconnect()
   }, [])
+  const can = (p: string) => me.permissions.includes(p)
   const tabs = TABS.flatMap((p) => nav.filter((n) => n.path === p))
   const rest = nav.filter((n) => !TABS.includes(n.path))
+  const role = me.roles.map((r) => ROLE_LABELS[r] ?? r).join(', ')
   const search = (e: FormEvent) => {
     e.preventDefault()
     location.hash = '/pasien?q=' + encodeURIComponent(q.trim())
     setQ('')
   }
-  const group = (g: NavItem['group'], caption: string) => {
-    const items = nav.filter((n) => (n.group ?? 'klinik') === g)
-    return items.length > 0 && (
-      <>
-        <span className="shell-nav-caption shell-nav-group">{caption}</span>
-        {items.map((n) => (
-          <a key={n.path} href={'#' + (n.href ?? n.path)} title={n.label} className={n === active ? 'on' : undefined} aria-current={n === active ? 'page' : undefined}>
-            <Icon d={n.icon} /> <span className="shell-nav-label">{n.label}</span>
-          </a>
-        ))}
-      </>
-    )
-  }
+  const quick = (can('patient.create') || can('appointment.create')) && (
+    <Menu label="Aksi cepat" className="icon-btn icon-btn-primary" trigger={<Icon d={ICONS.plus} />}>
+      {(close) => <>
+        {can('patient.create') && <a href="#/pasien/baru" onClick={close}>Daftarkan pasien</a>}
+        {can('appointment.create') && <a href="#/jadwal" onClick={close}>Buat janji</a>}
+      </>}
+    </Menu>
+  )
+  const user = (
+    <Menu label={`Akun ${me.user.name}`} className="shell-user" trigger={<>
+      <span className="avatar" aria-hidden="true">{initials(me.user.name.replace(/^drg\.?\s*/i, ''))}</span>
+      {!mobile && <span className="shell-user-text"><strong>{me.user.name}</strong><small>{role}</small></span>}
+    </>}>
+      {(close) => <>
+        {mobile && <p className="menu-branch"><strong>{me.user.name}</strong> <small>{role}</small></p>}
+        <Branch me={me} onSwitchBranch={(id) => { close(); onSwitchBranch(id) }} />
+        <button type="button" onClick={() => { close(); onLogout() }}>Keluar</button>
+      </>}
+    </Menu>
+  )
+  const link = (n: NavItem, extra?: ReactNode) => (
+    <a key={n.path} href={'#' + (n.href ?? n.path)} title={mobile ? undefined : n.label} className={n === active ? 'on' : undefined} aria-current={n === active ? 'page' : undefined}
+      onClick={() => setMore(false)}>{extra}</a>
+  )
   return (
     <div className="app-shell">
       {!mobile && <aside className="shell-side">
-        <a className="shell-brand" href="#/"><span className="brand-mark">◡</span> <span>EHR Gigi</span></a>
+        <a className="shell-brand" href="#/"><span className="brand-mark"><Icon d={ICONS.tooth} /></span> <span>Bittodent</span></a>
         <div className="shell-clinic">
           <strong title={me.active.tenant_name}>{me.active.tenant_name}</strong>
-          <span className="badge-synthetic">DATA SINTETIS - PROTOTIPE</span>
+          {clinicSubtitle(me) && <span className="shell-clinic-sub">{clinicSubtitle(me)}</span>}
+          <span className="badge-synthetic">DATA SINTETIS</span>
         </div>
-        <label className="shell-branch">
-          <span className="shell-nav-caption">Cabang aktif</span>
-          <select value={me.active.branch_id ?? ''} onChange={(e) => onSwitchBranch(e.target.value)} disabled={me.branches.length < 2}>
-            {me.branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-          </select>
-        </label>
         <nav className="shell-nav" aria-label="Modul utama">
-          {group('klinik', 'Klinik')}
-          {group('pasien', 'Pasien aktif')}
+          {SECTIONS.map((s) => {
+            const items = nav.filter((n) => n.section === s)
+            return items.length > 0 && <Fragment key={s}>
+              <span className="shell-nav-caption shell-nav-group">{s}</span>
+              {items.map((n) => link(n, <><Icon d={n.icon} /> <span className="shell-nav-label">{n.label}</span></>))}
+            </Fragment>
+          })}
         </nav>
       </aside>}
       <div className="shell-col">
         {/* top bar + ribbon stay pinned while the page scrolls: alerts must never scroll out of view */}
         <div className="shell-sticky" ref={sticky}>
-        <header className="shell-top">
-          {mobile && me.permissions.includes('patient.read') && (
-            <a className="shell-search-icon" href="#/pasien" aria-label="Cari pasien"><Icon d={ICONS.search} /></a>
-          )}
-          {!mobile && me.permissions.includes('patient.read') && (
-            <form className="shell-search" role="search" onSubmit={search}>
-              <Icon d={ICONS.search} size={18} />
-              <input type="search" placeholder="Cari pasien (nama, NIK, no. HP)" aria-label="Pencarian cepat pasien" value={q} onChange={(e) => setQ(e.target.value)} />
-            </form>
-          )}
-          {patientPicker}
-          {/* the sidebar badge hides in the icon rail (<=1100px); this short chip keeps the prototype warning visible there */}
-          <span className="badge-synthetic shell-top-synthetic">DATA SINTETIS</span>
-          <div className="shell-user">
-            <span className="avatar" aria-hidden="true">{me.user.name.replace(/^drg\.?\s*/i, '').charAt(0)}</span>
-            <span className="shell-user-text">
-              <strong>{me.user.name}</strong>
-              <small>{me.roles.map((r) => ROLE_LABELS[r] ?? r).join(', ')}</small>
-            </span>
-          </div>
-          {!mobile && <button className="btn btn-ghost shell-logout" onClick={onLogout}>Keluar</button>}
-        </header>
+        {mobile ? (
+          <header className="shell-top">
+            <span className="brand-mark" aria-hidden="true"><Icon d={ICONS.tooth} /></span>
+            <span className="shell-top-clinic"><strong>{me.active.tenant_name}</strong><span className="badge-synthetic">DATA SINTETIS</span></span>
+            {quick}
+            {user}
+          </header>
+        ) : (
+          <header className="shell-top">
+            {/* visual title only: each page keeps its own (screen-reader) h1, so there is exactly one heading */}
+            {title && <p className="shell-title" aria-hidden="true">{active && <Icon d={active.icon} size={22} />}{title}</p>}
+            {can('patient.read') && (
+              <form className="shell-search" role="search" onSubmit={search}>
+                <Icon d={ICONS.search} size={18} />
+                <input type="search" placeholder="Cari pasien atau No. RM…" aria-label="Pencarian cepat pasien" value={q} onChange={(e) => setQ(e.target.value)} />
+              </form>
+            )}
+            {/* the sidebar badge hides in the icon rail (<=1100px); this short chip keeps the prototype warning visible there */}
+            <span className="badge-synthetic shell-top-synthetic">DATA SINTETIS</span>
+            {quick}
+            <button type="button" className="icon-btn" disabled aria-label="Notifikasi (segera hadir)"><Icon d={ICONS.bell} /></button>
+            {user}
+          </header>
+        )}
         {patient && ribbon}
         </div>
         <main className="shell-main" key={me.active.branch_id}>{children}</main>
       </div>
       {mobile && (
         <nav className="bottom-nav" aria-label="Navigasi utama">
-          {tabs.map((n) => (
-            <a key={n.path} href={'#' + (n.href ?? n.path)} className={n === active ? 'on' : undefined} aria-current={n === active ? 'page' : undefined}>
-              <Icon d={n.icon} /><span>{n.label}</span>
-            </a>
-          ))}
+          {tabs.map((n) => link(n, <><Icon d={n.icon} /><span>{n.label}</span></>))}
           <button type="button" className={active && rest.includes(active) ? 'on' : undefined} aria-expanded={more} aria-haspopup="dialog" onClick={() => setMore(!more)}>
             <Icon d={ICONS.more} /><span>Lainnya</span>
           </button>
@@ -123,11 +158,8 @@ export function Shell({ me, nav, active, ribbon, patientPicker, onSwitchBranch, 
         <>
           <div className="sheet-backdrop" onClick={() => setMore(false)} />
           <div className="sheet more-sheet" role="dialog" aria-label="Menu lainnya" onKeyDown={(e) => e.key === 'Escape' && setMore(false)}>
-            {rest.map((n) => (
-              <a key={n.path} href={'#' + (n.href ?? n.path)} aria-current={n === active ? 'page' : undefined} onClick={() => setMore(false)}>
-                <Icon d={n.icon} /> {n.label}
-              </a>
-            ))}
+            {rest.map((n) => link(n, <><Icon d={n.icon} /> {n.label}</>))}
+            <Branch me={me} onSwitchBranch={(id) => { setMore(false); onSwitchBranch(id) }} />
             <button type="button" className="btn" onClick={() => { setMore(false); onLogout() }}>Keluar</button>
             <button type="button" className="btn btn-ghost" autoFocus onClick={() => setMore(false)}>Tutup</button>
           </div>

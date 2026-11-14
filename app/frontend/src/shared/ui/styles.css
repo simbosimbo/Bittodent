@@ -106,8 +106,7 @@ input:focus, select:focus { outline: 2px solid var(--accent-50); border-color: v
 }
 .shell-clinic strong { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
 .shell-clinic .badge-synthetic { white-space: normal; } /* narrow sidebar: wrap rather than overflow */
-.shell-branch { margin: 0 var(--space-1) var(--space-3); gap: var(--space-1); }
-.shell-branch select { width: 100%; min-height: var(--shells-a-size-touch); }
+.shell-clinic-sub { margin-top: calc(-1 * var(--space-1)); font-size: var(--font-size-sm); color: var(--muted); line-height: 1.35; }
 .shell-nav-caption { font-size: var(--font-size-xs); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
 .shell-nav { display: flex; flex-direction: column; gap: var(--space-1); }
 .shell-nav a {
@@ -126,7 +125,38 @@ html { scroll-padding-top: 160px; } /* scrollIntoView lands below the pinned top
 /* Priority in the top bar: the active patient's full name never shrinks; search gives way.
    The clinic name lives in the sidebar (.shell-clinic) and ellipsizes there. */
 .shell-top-synthetic { display: none; flex: none; }
-.shell-logout { flex: none; padding-inline: var(--space-3); }
+.shell-title { display: flex; align-items: center; gap: var(--space-2); margin: 0; font-size: var(--shells-a-font-title); font-weight: 700; color: var(--text); white-space: nowrap; }
+.shell-title svg { color: var(--color-primary-700); flex: none; }
+/* Page h1 that repeats the top bar title: screen-reader only on desktop (the visible title is in the top bar), visible on mobile. */
+@media (min-width: 721px) { .shell-dup-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } }
+/* Round icon buttons (+ quick actions, bell, patient menu) and disclosure menus (shared/ui/Menu.tsx). */
+.icon-btn {
+  display: grid; place-items: center; width: var(--shells-a-size-touch); height: var(--shells-a-size-touch); flex: none; padding: 0;
+  border: 0; border-radius: 50%; background: none; color: var(--muted); cursor: pointer;
+}
+.icon-btn:hover:not(:disabled) { background: var(--color-neutral-50); color: var(--text); }
+.icon-btn:disabled { cursor: default; opacity: 0.6; }
+.icon-btn-primary, .icon-btn-primary:hover:not(:disabled) { background: var(--accent); color: #fff; }
+.icon-btn-primary:hover:not(:disabled) { background: var(--color-primary-800); }
+.icon-btn-outline { border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
+.icon-btn:focus-visible, .shell-user:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.menu { position: relative; flex: none; }
+.menu-pop {
+  position: absolute; top: calc(100% + var(--space-2)); z-index: 25; min-width: 220px; display: grid; gap: 2px; padding: var(--space-2);
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-lg);
+}
+.menu-right { right: 0; }
+.menu-left { left: 0; }
+.menu-pop > a, .menu-pop > button {
+  display: flex; align-items: center; min-height: var(--shells-a-size-touch); padding: 0 var(--space-3); border: 0; background: none;
+  border-radius: var(--radius-sm); font: inherit; font-weight: 600; color: var(--text); text-align: left; cursor: pointer; white-space: nowrap;
+}
+.menu-pop > a:hover, .menu-pop > button:hover { background: var(--color-primary-50); text-decoration: none; }
+.menu-pop > a[aria-current] { background: var(--color-primary-50); color: var(--color-primary-700); }
+.menu-branch { display: grid; gap: var(--space-1); margin: 0; padding: var(--space-2) var(--space-3); }
+.menu-branch small { color: var(--muted); font-size: var(--font-size-xs); }
+.menu-branch select { width: 100%; min-height: var(--shells-a-size-touch); }
+.more-sheet .menu-branch { padding-inline: var(--space-3); }
 .aps-trigger {
   display: flex; align-items: center; gap: var(--space-2); min-height: var(--shells-a-size-touch); padding: 0 var(--space-2) 0 var(--space-3);
   border-radius: var(--radius-pill); color: var(--text); font: inherit; text-align: left; cursor: pointer;
@@ -138,7 +168,12 @@ html { scroll-padding-top: 160px; } /* scrollIntoView lands below the pinned top
 .aps-text small { color: var(--muted); font-size: var(--font-size-xs); }
 .aps-text strong { white-space: nowrap; } /* never ellipsis: the full name must be readable (wrong-patient risk) */
 .aps-action { flex: none; font-size: var(--font-size-xs); font-weight: 600; color: var(--color-primary-700); background: var(--color-primary-100); border-radius: var(--radius-pill); padding: var(--space-1) var(--space-3); }
-.shell-user { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+.shell-user {
+  display: flex; align-items: center; gap: var(--space-2); min-width: 0; min-height: var(--shells-a-size-touch); padding: 0 var(--space-2) 0 0;
+  border: 0; border-radius: var(--radius-pill); background: none; font: inherit; color: var(--text); text-align: left; cursor: pointer;
+}
+.shell-user:hover { background: var(--color-neutral-50); }
+.shell-user-text strong { font-size: var(--font-size-sm); }
 .shell-user-text { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
 .shell-user-text > * { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .shell-user .avatar { flex: none; }
@@ -155,6 +190,7 @@ html { scroll-padding-top: 160px; } /* scrollIntoView lands below the pinned top
 .patient-head h1 { margin: 0; overflow-wrap: anywhere; }
 .patient-head p { margin: 0; }
 .avatar-lg { width: 48px; height: 48px; flex: none; }
+.patient-head-actions { display: flex; align-items: center; gap: var(--space-2); flex: none; }
 /* Header chips wrap (never scroll away): allergies stay visible. */
 .alert-ribbon.patient-alerts, .alert-ribbon.patient-alerts.is-compact { padding: 0; border: 0; background: none; flex-wrap: wrap; overflow: visible; }
 .toolbar { display: flex; gap: var(--space-2); align-items: center; }
@@ -217,7 +253,7 @@ html { scroll-padding-top: 160px; } /* scrollIntoView lands below the pinned top
   .shell-search { order: 5; max-width: none; }
   .alert-ribbon { padding: 8px 12px; }
   .shell-side { width: var(--shells-a-size-sidebar-compact); padding: 12px 8px; }
-  .shell-brand span:last-child, .shell-nav-label, .shell-branch, .shell-clinic, .shell-user-text { display: none; }
+  .shell-brand span:last-child, .shell-nav-label, .shell-clinic, .shell-user-text { display: none; }
   .shell-top-synthetic { display: inline-block; }
   .shell-nav a { justify-content: center; padding: 0; }
   .shell-top { flex-wrap: wrap; padding: 8px 12px; }
@@ -361,6 +397,9 @@ label.check input { min-height: 0; }
 .more-sheet { display: grid; gap: var(--space-1); }
 .more-sheet a { display: flex; align-items: center; gap: var(--space-3); min-height: 48px; padding: 0 var(--space-3); border-radius: var(--radius-sm); color: var(--text); font-weight: 600; }
 .more-sheet a[aria-current] { background: var(--color-primary-50); color: var(--color-primary-700); }
+.shell-top-clinic { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; line-height: 1.25; }
+.shell-top-clinic strong { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.shell-top-clinic .badge-synthetic { font-size: 10px; padding: 1px 8px; }
 .shell-search-icon { display: grid; place-items: center; width: 44px; height: 44px; flex: none; border-radius: 50%; color: var(--text); background: var(--color-neutral-50); }
 
 @media (max-width: 720px) {
