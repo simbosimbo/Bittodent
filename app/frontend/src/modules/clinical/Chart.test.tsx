@@ -4,6 +4,7 @@ import { clearActivePatients } from '../../shared/activePatient'
 import type { Me } from '../../shared/session'
 import ChartPage from './Chart'
 import { manifest, mockTooth3D } from './tooth3dMock'
+import css from './clinical.css?raw'
 
 // Synthetic data only.
 const me: Me = {
@@ -15,11 +16,12 @@ const me: Me = {
 const patient = { id: 'p1', name: 'Budi Contoh', dob: '1960-01-01', sex: 'laki_laki', payer_type: 'umum' }
 const full = { ...patient, nik: null, phone: null, address: null, payer_name: null, payer_member_no: null, payer_class: null }
 const chart = { patient, solo_practice: true, baseline: null, findings: [], drafts: [], visits: [] }
+const alerts = { version: 1, premedication_required: false, allergies: ['Penisilin'], has_urgent_note: false, full: true, problems: ['Kondisi Sintetis'], medications: [] }
 
 afterEach(() => { act(() => clearActivePatients()); vi.unstubAllGlobals(); delete window.Tooth3D })
 
 test('chart sits inside the patient tabs, formats dates, and links to today\'s appointments without an active visit', async () => {
-  vi.stubGlobal('fetch', vi.fn(async (url: string) => new Response(JSON.stringify(url.endsWith('/chart') ? chart : full), { status: 200 })))
+  vi.stubGlobal('fetch', vi.fn(async (url: string) => new Response(JSON.stringify(url.endsWith('/chart') ? chart : url.endsWith('/alerts') ? alerts : full), { status: 200 })))
   render(<ChartPage patientId="p1" me={me} />)
 
   const tabs = await screen.findByRole('navigation', { name: 'Data pasien' })
@@ -49,7 +51,7 @@ function renderChart(over: Record<string, unknown> = {}) {
   const c = { ...chart, findings, ...over }
   window.Tooth3D = mockTooth3D
   vi.stubGlobal('fetch', vi.fn(async (url: string) => new Response(JSON.stringify(
-    url.endsWith('manifest.json') ? manifest : url.endsWith('/chart') ? c : full), { status: 200 })))
+    url.endsWith('manifest.json') ? manifest : url.endsWith('/chart') ? c : url.endsWith('/alerts') ? alerts : full), { status: 200 })))
   return render(<ChartPage patientId="p1" me={me} />)
 }
 const radio = (group: string, name: string) => within(screen.getByRole('radiogroup', { name: group })).getByRole('radio', { name })
@@ -145,4 +147,77 @@ test('findings table: status, FDI tooth, surface P on upper and I on anterior, I
   expect(row(16)).toHaveTextContent('O (Oklusal)')
   expect(table).not.toHaveTextContent(/Biaya|Prioritas|Total/)
   expect(screen.getByRole('list', { name: 'Legenda status' })).toHaveTextContent('Sudah ada (tempat lain)')
+})
+
+// --- Layout: compact header, inner tabs, odontogram 8 + tooth panel 4 (synthetic data) ---
+const visit = { id: 'v1', appointment_id: null, branch_id: 'b1', started_at: '2026-01-05T03:00:00Z', status: 'berlangsung',
+  dentist: { id: 'u1', name: 'drg. Uji Sintetis' }, notes: [], draft_findings: [] }
+const pad = () => within(screen.getByRole('group', { name: 'Permukaan' }))
+const surfaces = () => pad().getAllByRole('button').map((b) => b.textContent)
+
+test('header: allergy chip always visible from one alerts fetch, no invented No. RM', async () => {
+  renderChart()
+  const head = await screen.findByRole('region', { name: 'Peringatan medis pasien' })
+  expect(await within(head).findByText('Alergi: Penisilin')).toBeVisible()
+  expect(within(head).queryByText(/Kondisi Sintetis/)).toBeNull() // minor chips behind Selengkapnya
+  expect(document.body).toHaveTextContent('No. RM: belum ada')
+  expect(document.body).not.toHaveTextContent(/BT-\d/)
+  expect(vi.mocked(fetch).mock.calls.filter(([u]) => String(u).endsWith('/alerts'))).toHaveLength(1)
+})
+
+test('odontogram region + tooth detail panel; surface keypad uses clinical labels and 44px targets', async () => {
+  const style = document.head.appendChild(document.createElement('style'))
+  style.textContent = css
+  renderChart()
+  await screen.findByRole('region', { name: 'Odontogram' })
+  const panel = screen.getByRole('complementary', { name: 'Detail gigi' })
+  expect(panel).toHaveTextContent('Pilih gigi untuk melihat detail')
+
+  fireEvent.click(document.getElementById('t16-O')!)
+  expect(within(panel).getByRole('heading', { name: 'Gigi 16' })).toBeInTheDocument()
+  expect(surfaces()).toEqual(['P', 'M', 'O', 'D', 'B']) // upper posterior: O, lingual shown as P
+  expect(pad().queryByRole('button', { name: 'I' })).toBeNull()
+  for (const b of pad().getAllByRole('button')) {
+    const cs = getComputedStyle(b)
+    expect(parseFloat(cs.minWidth)).toBeGreaterThanOrEqual(44)
+    expect(parseFloat(cs.minHeight)).toBeGreaterThanOrEqual(44)
+  }
+  expect(pad().getByRole('button', { name: 'O' })).toHaveAttribute('aria-pressed', 'true')
+  fireEvent.click(pad().getByRole('button', { name: 'M' }))
+  expect(document.getElementById('t16-M')).toHaveClass('is-sel')
+  expect(pad().getByRole('button', { name: 'M' })).toHaveAttribute('aria-pressed', 'true')
+  expect(within(panel).getByRole('status')).toHaveTextContent('Gigi 16 · Mesial (M)')
+  expect(within(panel).getByRole('list', { name: 'Temuan gigi 16' })).toHaveTextContent('Karies')
+  expect(within(panel).queryByRole('group', { name: 'Pilih kondisi' })).toBeNull() // no active visit: read-only
+
+  fireEvent.click(document.getElementById('t11-I')!)
+  expect(surfaces()).toContain('I')
+  expect(surfaces()).not.toContain('O')
+  fireEvent.click(document.getElementById('t36-O')!)
+  expect(surfaces()).toEqual(['L', 'M', 'O', 'D', 'B']) // lower: lingual stays L
+  expect(surfaces()).not.toContain('P')
+
+  fireEvent.click(within(panel).getByRole('button', { name: 'Tutup detail gigi' }))
+  expect(panel).toHaveTextContent('Pilih gigi untuk melihat detail')
+  style.remove()
+})
+
+test('active visit: panel offers conditions; inner tab Catatan Klinis shows SOAP, Odontogram brings the chart back', async () => {
+  renderChart({ visits: [visit] })
+  await screen.findByRole('region', { name: 'Odontogram' })
+  expect(screen.getByRole('tab', { name: 'Odontogram' })).toHaveAttribute('aria-selected', 'true')
+  expect(screen.queryByRole('heading', { name: 'Catatan SOAP' })).toBeNull()
+  fireEvent.click(document.getElementById('t26-L')!)
+  const picker = within(screen.getByRole('complementary', { name: 'Detail gigi' })).getByRole('group', { name: 'Pilih kondisi' })
+  expect(within(picker).getByRole('button', { name: 'Karies' })).toBeInTheDocument()
+  expect(within(picker).getByRole('button', { name: 'Mahkota' })).toBeInTheDocument()
+
+  fireEvent.click(screen.getByRole('tab', { name: 'Catatan Klinis' }))
+  expect(screen.getByRole('heading', { name: 'Catatan SOAP' })).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: 'Riwayat kunjungan' })).toBeInTheDocument()
+  expect(screen.queryByRole('region', { name: 'Odontogram' })).toBeNull()
+  fireEvent.click(screen.getByRole('tab', { name: 'Resep' }))
+  expect(document.body).toHaveTextContent('Belum tersedia')
+  fireEvent.click(screen.getByRole('tab', { name: 'Odontogram' }))
+  expect(screen.getByRole('region', { name: 'Odontogram' })).toBeInTheDocument()
 })

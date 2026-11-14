@@ -147,6 +147,16 @@ html { scroll-padding-top: 160px; } /* scrollIntoView lands below the pinned top
 .shell-main { flex: 1; min-width: 0; padding: var(--shells-a-space-page); }
 .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-4); margin-bottom: var(--shells-a-space-gap); }
 .page-head p { margin: 0; }
+/* Patient header (PatientPage): breadcrumb, avatar, name + meta, alert chips, actions. */
+.crumbs { display: flex; gap: var(--space-2); align-items: center; margin-bottom: var(--space-2); color: var(--muted); }
+.crumbs a { font-weight: 600; }
+.patient-head { display: flex; align-items: flex-start; gap: var(--space-3) var(--space-4); flex-wrap: wrap; margin-bottom: var(--space-3); }
+.patient-head-main { flex: 1 1 320px; min-width: 0; display: grid; gap: var(--space-1); }
+.patient-head h1 { margin: 0; overflow-wrap: anywhere; }
+.patient-head p { margin: 0; }
+.avatar-lg { width: 48px; height: 48px; flex: none; }
+/* Header chips wrap (never scroll away): allergies stay visible. */
+.alert-ribbon.patient-alerts, .alert-ribbon.patient-alerts.is-compact { padding: 0; border: 0; background: none; flex-wrap: wrap; overflow: visible; }
 .toolbar { display: flex; gap: var(--space-2); align-items: center; }
 /* Top bar search + active patient pill (clear button) */
 .shell-search {
