@@ -1,18 +1,23 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
-import { setActivePatient, useActivePatient } from '../activePatient'
+import { useActivePatient } from '../activePatient'
 import { ROLE_LABELS, type Me } from '../session'
 import { Icon, ICONS } from '../ui/Icon'
 
 // group 'pasien' = screens of the active patient (href points at that patient; without one they lead to the patient list).
 export type NavItem = { path: string; label: string; icon: string; group?: 'klinik' | 'pasien'; href?: string }
 
+export const withActivePatientHref = <T extends NavItem>(nav: T[], patient: { id: string } | null): T[] =>
+  nav.map((n) => n.group === 'pasien' ? { ...n, href: patient ? `${n.path}/${patient.id}` : '/pasien' } : n)
+
 // Shell A (design/prototype shells.css): sidebar (brand, branch, nav; icon rail <=1100px), top bar with search + "Pasien aktif" pill,
 // medical-alert ribbon (slot, owned by the patients module) whenever a patient is active, white cards on tinted bg.
-export function Shell({ me, nav, active, ribbon, onSwitchBranch, onLogout, children }: {
+// The pill itself is a slot too (patientPicker, from the patients module): shared/ imports no module.
+export function Shell({ me, nav, active, ribbon, patientPicker, onSwitchBranch, onLogout, children }: {
   me: Me
   nav: NavItem[]
   active: NavItem | undefined
   ribbon?: ReactNode
+  patientPicker?: ReactNode
   onSwitchBranch: (id: string) => void
   onLogout: () => void
   children: ReactNode
@@ -66,17 +71,7 @@ export function Shell({ me, nav, active, ribbon, onSwitchBranch, onLogout, child
               <input type="search" placeholder="Cari pasien (nama, NIK, no. HP)" aria-label="Pencarian cepat pasien" value={q} onChange={(e) => setQ(e.target.value)} />
             </form>
           )}
-          <div className="aps">
-          <a className={'aps-trigger' + (patient ? '' : ' is-empty')} href={patient ? '#/pasien/' + patient.id : '#/pasien'}>
-            <Icon d={ICONS.user} />
-            <span className="aps-text">
-              <small>Pasien aktif</small>
-              <strong>{patient ? patient.name : 'Belum dipilih'}</strong>
-            </span>
-            {!patient && <span className="aps-action">Pilih pasien</span>}
-          </a>
-          {patient && <button className="aps-clear" onClick={() => setActivePatient(null)} aria-label="Tutup pasien aktif" title="Tutup pasien aktif">×</button>}
-          </div>
+          {patientPicker}
           <span className="badge-synthetic">DATA SINTETIS - PROTOTIPE</span>
           <div className="shell-user">
             <span className="avatar" aria-hidden="true">{me.user.name.replace(/^drg\.?\s*/i, '').charAt(0)}</span>

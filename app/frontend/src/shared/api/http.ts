@@ -8,6 +8,9 @@ export class ApiError extends Error {
 
 const xsrf = () => decodeURIComponent(document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)?.[1] ?? '')
 
+// Session cookie (ehr-gigi-session) is HttpOnly, so the JS-visible XSRF-TOKEN is our only hint that a session may exist.
+export const hasCsrfCookie = () => xsrf() !== ''
+
 export const csrfCookie = () => fetch('/sanctum/csrf-cookie', { credentials: 'same-origin' })
 
 export async function api<T = any>(path: string, opts: { method?: string; body?: unknown } = {}): Promise<T> {

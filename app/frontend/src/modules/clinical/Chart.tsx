@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { ApiError, errorText } from '../../shared/api/http'
 import { setActivePatient } from '../../shared/activePatient'
+import { fmtDateTime } from '../../shared/format'
 import type { Me } from '../../shared/session'
+import { PAYER, PatientPage, SEX } from '../patients'
 import {
   approveCorrection, changeStatus, correctNote, discardFinding, getChart, saveBaseline, saveFinding, saveNote, signVisit, visitFromAppointment,
   type Baseline, type Chart, type ChartVisit, type Finding, type Note, type ProcStatus, type Soap, type Surface, type ToothPresence, type Version,
@@ -17,7 +19,7 @@ const toForm = (s: Soap): Form => ({ S: s.S, O: s.O, A: { codes: s.A.codes.join(
 const codes = (s: string) => s.split(/[\s,;]+/).map((c) => c.trim().toUpperCase()).filter(Boolean)
 const toSoap = (f: Form): Soap => ({ S: f.S, O: f.O, A: { codes: codes(f.A.codes), text: f.A.text }, P: { codes: codes(f.P.codes), text: f.P.text } })
 const TABS = [['S', 'Subjektif'], ['O', 'Objektif'], ['A', 'Asesmen (ICD-10)'], ['P', 'Rencana (ICD-9-CM)']] as const
-const fmt = (iso: string | null) => iso ? new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso)) : '—'
+const fmt = (iso: string | null) => iso ? fmtDateTime(iso) : '—'
 const FREE_EDIT_MS = 48 * 3600 * 1000
 
 function StatusBadge({ v }: { v: Version }) {
@@ -243,8 +245,10 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
     return m
   }, [chart, mine])
 
-  if (error) return <div className="card state-card error">{error} <a href="#/pasien">Kembali</a></div>
-  if (!chart) return <div className="card state-card muted">Memuat rekam medis…</div>
+  // Profile tabs stay visible on the chart (record lives inside the patient), so wrap every state in PatientPage.
+  const page = (actions: ReactNode, body: ReactNode) => <PatientPage id={patientId} tab="rekam-medis" canChart actions={actions}>{() => body}</PatientPage>
+  if (error) return page(null, <div className="card state-card error">{error} <a href="#/pasien">Kembali</a></div>)
+  if (!chart) return page(null, <div className="card state-card muted">Memuat rekam medis…</div>)
   const p = chart.patient
 
   async function run(fn: () => Promise<unknown>, ok = '') {
@@ -275,16 +279,12 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
     }
   }
 
-  return (
+  return page(
+    <div className="muted small chart-meta">
+      <div>{p.sex ? SEX[p.sex] ?? p.sex : '—'} · Penjamin {PAYER[p.payer_type] ?? p.payer_type}</div>
+      {visit && <div>Kunjungan aktif: {fmt(visit.started_at)}</div>}
+    </div>,
     <>
-      <div className="page-head">
-        <div>
-          <a href={`#/pasien/${p.id}`} className="muted small">← Data pasien</a>
-          <h1>Rekam Medis · {p.name}</h1>
-          <p className="muted small">Lahir {p.dob ?? '—'} · {p.sex === 'laki_laki' ? 'Laki-laki' : p.sex === 'perempuan' ? 'Perempuan' : '—'} · Penjamin {p.payer_type}</p>
-        </div>
-        {visit && <div className="muted small">Kunjungan aktif: {fmt(visit.started_at)}</div>}
-      </div>
       {msg && <p className="notice" role="status">{msg}</p>}
 
       <div className="card">
@@ -302,7 +302,10 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
         {baselineOpen && <BaselineEditor value={chart.baseline} onClose={() => setBaselineOpen(false)}
           onSave={(b) => run(async () => { await saveBaseline(p.id, { base_version: chart.baseline?.version ?? null, ...b }); setBaselineOpen(false) }, 'Keadaan awal tersimpan (versi baru).')} />}
         <Odontogram marks={marks} baseline={chart.baseline?.teeth} dentition={chart.baseline?.dentition} selected={pick ? `t${pick.tooth}-${pick.surface}` : null} onPick={editable ? (tooth, surface) => setPick({ tooth, surface }) : undefined} />
-        {!editable && <p className="muted small">{visit ? 'Kunjungan ini sudah ditandatangani.' : 'Tidak ada kunjungan aktif. Buka dari kartu janji untuk mengisi.'}</p>}
+        {!editable && (visit ? <p className="muted small">Kunjungan ini sudah ditandatangani.</p> : (
+          <p className="chart-cta small">Belum ada kunjungan aktif. Odontogram dan SOAP diisi dari janji pasien hari ini.{' '}
+            <a className="btn btn-primary" href={can('appointment.read') ? '#/jadwal' : '#/'}>Buka janji hari ini</a></p>
+        ))}
         {pick && editable && (
           <div className="picker-pop" role="group" aria-label="Pilih kondisi">
             <strong>Gigi {pick.tooth} · {surfaceName(pick.tooth, pick.surface)} ({surfaceLabel(pick.tooth, pick.surface)})</strong>

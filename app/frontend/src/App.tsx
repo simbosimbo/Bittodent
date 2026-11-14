@@ -1,12 +1,12 @@
 // Composition root: routes + shell. Imports modules only through their index.ts.
 import { useCallback, useEffect, useState } from 'react'
-import { ApiError } from './shared/api/http'
-import { setActivePatient, useActivePatient } from './shared/activePatient'
-import { Shell, type NavItem } from './shared/layout/Shell'
+import { ApiError, hasCsrfCookie } from './shared/api/http'
+import { clearActivePatients, useActivePatient } from './shared/activePatient'
+import { Shell, withActivePatientHref, type NavItem } from './shared/layout/Shell'
 import type { Me } from './shared/session'
 import { ICONS } from './shared/ui/Icon'
 import { getMe, Login, logout as apiLogout, switchBranch as apiSwitchBranch } from './modules/auth'
-import { AlertRibbon, FamilyPage, MedicalHistoryPage, PatientDetail, PatientForm, PatientList } from './modules/patients'
+import { ActivePatientPicker, AlertRibbon, FamilyPage, MedicalHistoryPage, PatientDetail, PatientForm, PatientList } from './modules/patients'
 import { Home, Schedule } from './modules/scheduling'
 import { ChartPage } from './modules/clinical'
 
@@ -20,7 +20,7 @@ const useHash = () => {
   return hash
 }
 
-const NAV: (NavItem & { perm: string | null })[] = [
+export const NAV: (NavItem & { perm: string | null })[] = [
   { path: '/', label: 'Beranda', perm: null, icon: ICONS.home },
   { path: '/pasien', label: 'Pasien', perm: 'patient.read', icon: ICONS.users },
   { path: '/jadwal', label: 'Jadwal', perm: 'appointment.read', icon: ICONS.calendar },
@@ -36,6 +36,8 @@ export default function App() {
   const patient = useActivePatient()
 
   const load = useCallback(async () => {
+    // No XSRF-TOKEN → never had a session here; skip /api/me so a fresh guest visit logs no 401.
+    if (!hasCsrfCookie()) { setMe(null); setState('guest'); return }
     try {
       setMe(await getMe())
       setState('ready')
@@ -48,7 +50,7 @@ export default function App() {
 
   useEffect(() => {
     load()
-    const out = () => { setMe(null); setActivePatient(null); setState('guest') }
+    const out = () => { setMe(null); clearActivePatients(); setState('guest') }
     addEventListener('ehr:unauthorized', out)
     return () => removeEventListener('ehr:unauthorized', out)
   }, [load])
@@ -56,7 +58,7 @@ export default function App() {
   async function logout() {
     await apiLogout().catch(() => null)
     setMe(null)
-    setActivePatient(null)
+    clearActivePatients()
     setState('guest')
     location.hash = '/'
   }
@@ -79,7 +81,7 @@ export default function App() {
     )
 
   const can = (p: string | null) => p === null || me.permissions.includes(p)
-  const nav = NAV.filter((n) => can(n.perm)).map((n) => n.group === 'pasien' ? { ...n, href: patient ? `${n.path}/${patient.id}` : '/pasien' } : n)
+  const nav = withActivePatientHref(NAV.filter((n) => can(n.perm)), patient)
   const active = nav.find((n) => n.path === '/' ? hash === '/' : hash === n.path || hash.startsWith(n.path + '/'))
   const sub = hash.match(/^\/(keluarga|riwayat-medis)\/([\w-]+)$/)
 
@@ -90,9 +92,10 @@ export default function App() {
   else if (sub?.[1] === 'riwayat-medis' && can('note.read')) page = <MedicalHistoryPage key={hash} id={sub[2]} canChart={can('note.read')} canEdit={can('note.write')} />
   else if (hash === '/pasien/baru' && can('patient.create')) page = <PatientForm />
   else if (hash.startsWith('/pasien/') && can('patient.read')) page = <PatientDetail key={hash} id={hash.slice(8)} canChart={can('note.read')} />
-  else if (hash === '/pasien' && can('patient.read')) page = <PatientList key={query} canCreate={can('patient.create')} initialQ={new URLSearchParams(query).get('q') ?? ''} />
+  else if (hash === '/pasien' && can('patient.read')) page = <PatientList key={query} canCreate={can('patient.create')} canChart={can('note.read')} initialQ={new URLSearchParams(query).get('q') ?? ''} />
   else if (hash === '/jadwal' && can('appointment.read')) page = <Schedule me={me} />
   else page = <Home me={me} />
 
-  return <Shell me={me} nav={nav} active={active} ribbon={patient && can('patient.read') && <AlertRibbon patientId={patient.id} />} onSwitchBranch={switchBranch} onLogout={logout}>{page}</Shell>
+  return <Shell me={me} nav={nav} active={active} ribbon={patient && can('patient.read') && <AlertRibbon patientId={patient.id} />}
+    patientPicker={can('patient.read') && <ActivePatientPicker />} onSwitchBranch={switchBranch} onLogout={logout}>{page}</Shell>
 }

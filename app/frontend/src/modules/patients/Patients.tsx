@@ -3,13 +3,19 @@ import { errorText } from '../../shared/api/http'
 import { searchPatients, type PatientRow } from './api'
 import { PatientPage } from './Records'
 
-const SEX: Record<string, string> = { laki_laki: 'Laki-laki', perempuan: 'Perempuan' }
-const PAYER: Record<string, string> = { umum: 'Umum', asuransi: 'Asuransi', bpjs: 'BPJS' }
-export const dob = (d: string | null) => d ? new Intl.DateTimeFormat('id-ID', { timeZone: 'UTC', day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(d + 'T00:00:00Z')) : '—'
-export const age = (d: string | null) => d ? Math.floor((Date.now() - new Date(d + 'T00:00:00Z').getTime()) / 31_557_600_000) + ' th' : ''
+export const SEX: Record<string, string> = { laki_laki: 'Laki-laki', perempuan: 'Perempuan' }
+export const PAYER: Record<string, string> = { umum: 'Umum', asuransi: 'Asuransi', bpjs: 'BPJS' }
+// Accepts date-only or ISO datetime; uses only the YYYY-MM-DD part (UTC) so the day never shifts. null when unparseable.
+const birthDate = (d: string | null) => {
+  const m = /^\d{4}-\d{2}-\d{2}/.exec(d ?? '')
+  const t = m ? new Date(m[0] + 'T00:00:00Z') : null
+  return t && !Number.isNaN(t.getTime()) ? t : null
+}
+export const dob = (d: string | null) => { const t = birthDate(d); return t ? new Intl.DateTimeFormat('id-ID', { timeZone: 'UTC', day: 'numeric', month: 'short', year: 'numeric' }).format(t) : '—' }
+export const age = (d: string | null) => { const t = birthDate(d); return t ? Math.floor((Date.now() - t.getTime()) / 31_557_600_000) + ' th' : '' }
 
 /** Debounced patient search against the API; stale responses are dropped. */
-function usePatientSearch(q: string, delay = 300) {
+export function usePatientSearch(q: string, delay = 300) {
   const [rows, setRows] = useState<PatientRow[] | null>(null)
   const [next, setNext] = useState<string | null>(null)
   const [error, setError] = useState('')
@@ -42,7 +48,7 @@ function usePatientSearch(q: string, delay = 300) {
   return { rows, next, error, loading, more }
 }
 
-export function PatientList({ canCreate, initialQ = '' }: { canCreate: boolean; initialQ?: string }) {
+export function PatientList({ canCreate, canChart = false, initialQ = '' }: { canCreate: boolean; canChart?: boolean; initialQ?: string }) {
   const [q, setQ] = useState(initialQ)
   const { rows, next, error, loading, more } = usePatientSearch(q)
   return (
@@ -57,7 +63,7 @@ export function PatientList({ canCreate, initialQ = '' }: { canCreate: boolean; 
           : rows === null ? <p className="state-card muted">Memuat…</p>
           : rows.length === 0 ? <p className="state-card muted">{q ? `Tidak ada pasien yang cocok dengan “${q}”.` : 'Belum ada pasien.'}</p> : (
             <table className={'table' + (loading ? ' is-loading' : '')}>
-              <thead><tr><th>Nama</th><th>Tanggal lahir</th><th>Jenis kelamin</th><th>Penjamin</th></tr></thead>
+              <thead><tr><th>Nama</th><th>Tanggal lahir</th><th>Jenis kelamin</th><th>Penjamin</th>{canChart && <th><span className="sr-only">Aksi</span></th>}</tr></thead>
               <tbody>
                 {rows.map((p) => (
                   <tr key={p.id} onClick={() => (location.hash = '/pasien/' + p.id)}>
@@ -65,6 +71,8 @@ export function PatientList({ canCreate, initialQ = '' }: { canCreate: boolean; 
                     <td>{dob(p.dob)} <span className="muted small">{age(p.dob)}</span></td>
                     <td>{p.sex ? SEX[p.sex] : '—'}</td>
                     <td><span className="chip chip-neutral">{PAYER[p.payer_type] ?? p.payer_type}</span></td>
+                    {canChart && <td className="cell-action"><a className="btn row-action" href={'#/rekam-medis/' + p.id}
+                      aria-label={'Rekam Medis ' + p.name} onClick={(e) => e.stopPropagation()}>Rekam Medis</a></td>}
                   </tr>
                 ))}
               </tbody>
