@@ -2,7 +2,9 @@
 
 namespace App\Modules\Patients\Http\Controllers;
 
+use App\Modules\Patients\Domain\CareStatus;
 use App\Modules\Patients\Http\Requests\StorePatientRequest;
+use App\Modules\Patients\Models\MedicalHistoryVersion;
 use App\Modules\Patients\Models\Patient;
 use App\Modules\Patients\Services\MrnGenerator;
 use App\Modules\Patients\Services\PatientSearch;
@@ -18,16 +20,35 @@ class PatientController extends Controller
 {
     public function index(Request $request)
     {
-        $request->validate(['q' => ['nullable', 'string', 'max:100'], 'cursor' => ['nullable', 'string']]);
-        // Keyset pagination on (created_at, id), newest first.
-        $page = PatientSearch::query($request->query('q'))
+        $d = $request->validate(['q' => ['nullable', 'string', 'max:100'], 'cursor' => ['nullable', 'string'],
+            'care_status' => ['nullable', 'in:'.implode(',', CareStatus::ALL)], 'dentist_id' => ['nullable', 'uuid']]);
+        // Keyset pagination on (created_at, id), newest first. Filters hit (tenant_id, care_status|last_dentist_id, created_at, id).
+        $page = PatientSearch::query($d['q'] ?? null)
+            ->when($d['care_status'] ?? null, fn ($q, $v) => $q->where('care_status', $v))
+            ->when($d['dentist_id'] ?? null, fn ($q, $v) => $q->where('last_dentist_id', $v))
             ->orderByDesc('created_at')->orderByDesc('id')
-            ->cursorPaginate(25, ['id', 'mrn', 'name', 'dob', 'sex', 'home_branch_id', 'payer_type', 'status', 'created_at']);
+            ->cursorPaginate(25, ['id', 'mrn', 'name', 'dob', 'sex', 'home_branch_id', 'payer_type', 'status', 'created_at',
+                'last_visit_at', 'last_dentist_id', 'last_dentist_name', 'care_status']);
+        $allergies = self::allergiesFor(collect($page->items())->pluck('id')->all());
 
         return response()->json([
-            'data' => $page->items(),
+            'data' => collect($page->items())->map(fn (Patient $p) => [...$p->toArray(), 'allergies' => $allergies[$p->id] ?? []]),
             'next_cursor' => $page->nextCursor()?->encode(),
         ]);
+    }
+
+    /**
+     * Allergies from the LATEST medical history version of each patient: one query per page (no N+1), decrypted in memory.
+     * Same minimum set every patient.read role already sees in /alerts. Health data: never logged.
+     *
+     * @return array<string, list<string>>
+     */
+    private static function allergiesFor(array $ids): array
+    {
+        return MedicalHistoryVersion::whereIn('patient_id', $ids)->orderByDesc('version')->get(['tenant_id', 'patient_id', 'version', 'content_enc'])
+            ->unique('patient_id')
+            ->mapWithKeys(fn ($v) => [$v->patient_id => array_values(json_decode(Crypto::decrypt($v->content_enc), true)['allergies'] ?? [])])
+            ->all();
     }
 
     public function store(StorePatientRequest $request, TenancyDirectory $tenancy)
@@ -74,7 +95,9 @@ class PatientController extends Controller
         Audit::log('baca', 'patient', $p->id);
 
         return response()->json([
-            ...$p->only(['id', 'mrn', 'name', 'sex', 'home_branch_id', 'payer_type', 'payer_name', 'payer_member_no', 'payer_class', 'status']),
+            ...$p->only(['id', 'mrn', 'name', 'sex', 'home_branch_id', 'payer_type', 'payer_name', 'payer_member_no', 'payer_class', 'status',
+                'last_dentist_name', 'care_status']),
+            'last_visit_at' => $p->last_visit_at?->toIso8601ZuluString(),
             'dob' => $p->dob?->format('Y-m-d'),
             'nik' => $nik,
             'phone' => Crypto::decrypt($p->phone_enc),

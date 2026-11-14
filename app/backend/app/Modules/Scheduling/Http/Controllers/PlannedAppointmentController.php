@@ -6,6 +6,7 @@ use App\Modules\Identity\Contracts\UserDirectory;
 use App\Modules\Patients\Contracts\PatientDirectory;
 use App\Modules\Scheduling\Models\Appointment;
 use App\Modules\Scheduling\Models\PlannedAppointment;
+use App\Modules\Scheduling\Services\PatientCareSync;
 use App\Modules\Tenancy\Contracts\TenancyDirectory;
 use App\Shared\Audit\Audit;
 use App\Shared\Crypto\Crypto;
@@ -20,7 +21,7 @@ use Illuminate\Support\Facades\DB;
 class PlannedAppointmentController extends Controller
 {
     /** POST /api/patients/{id}/planned-appointments {procedure, procedure_code?, est_minutes, priority?, note?, dentist_id?} */
-    public function store(Request $request, string $id, PatientDirectory $patients, TenancyDirectory $tenancy)
+    public function store(Request $request, string $id, PatientDirectory $patients, TenancyDirectory $tenancy, PatientCareSync $care)
     {
         $d = $request->validate([
             'procedure' => ['required', 'string', 'max:200'],
@@ -42,6 +43,7 @@ class PlannedAppointmentController extends Controller
             'est_minutes' => $d['est_minutes'], 'priority' => $d['priority'] ?? 'normal', 'status' => 'perlu_dijadwalkan', 'created_by' => $ctx->userId,
         ]);
         Audit::log('buat', 'planned_appointment', $p->id);
+        $care->push($id);
 
         return response()->json(self::out($p), 201);
     }
@@ -63,11 +65,11 @@ class PlannedAppointmentController extends Controller
     }
 
     /** POST /api/planned-appointments/{id}/schedule {chair_id, starts_at}: idempotent (already scheduled => 200 with the same appointment). */
-    public function schedule(Request $request, string $id, AppointmentController $appointments)
+    public function schedule(Request $request, string $id, AppointmentController $appointments, PatientCareSync $care)
     {
         $d = $request->validate(['chair_id' => ['required', 'uuid'], 'starts_at' => ['required', 'date']]);
 
-        return DB::transaction(function () use ($d, $id, $appointments) {
+        return DB::transaction(function () use ($d, $id, $appointments, $care) {
             $p = PlannedAppointment::lockForUpdate()->findOrFail($id); // lock order: plan row, then chair, then dentist
             if (! Ctx::current()->coversBranch($p->branch_id)) {
                 return Audit::denied('branch:'.$p->branch_id);
@@ -83,6 +85,7 @@ class PlannedAppointmentController extends Controller
             $a->fill(['patient_id' => $p->patient_id, 'status' => 'booked', 'reason' => 'Dari rencana kunjungan', 'created_by' => Ctx::current()->userId])->save();
             $p->update(['status' => 'dijadwalkan', 'appointment_id' => $a->id, 'scheduled_by' => Ctx::current()->userId]);
             Audit::log('jadwalkan_rencana', 'planned_appointment', $p->id, ['appointment_id' => $a->id]);
+            $care->push($p->patient_id);
 
             return response()->json(['planned' => self::out($p), 'appointment_id' => $a->id], 201);
         });

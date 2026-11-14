@@ -9,6 +9,7 @@ use App\Modules\Clinical\Http\Requests\FindingRequest;
 use App\Modules\Clinical\Models\ClinicalNote;
 use App\Modules\Clinical\Models\ToothFinding;
 use App\Modules\Clinical\Models\Visit;
+use App\Modules\Clinical\Services\PatientCareSync;
 use App\Shared\Audit\Audit;
 use App\Shared\Http\Controller;
 use App\Shared\Tenancy\Ctx;
@@ -63,12 +64,12 @@ class FindingController extends Controller
      * POST /api/findings/{id}/status {to, visit_id?}: status change on a FINAL item = new final row superseding it (append-only),
      * only along ProcedureStatus::TRANSITIONS. Dentist only (route perm note.sign). `selesai` raises ProcedureRecorded (Billing listens).
      */
-    public function changeStatus(Request $request, string $id)
+    public function changeStatus(Request $request, string $id, PatientCareSync $care)
     {
         $d = $request->validate(['to' => ['required', 'string', 'in:'.implode(',', ProcedureStatus::ALL)], 'visit_id' => ['nullable', 'uuid']]);
         $ctx = Ctx::current();
 
-        return DB::transaction(function () use ($d, $id, $ctx) {
+        return DB::transaction(function () use ($d, $id, $ctx, $care) {
             $f = ToothFinding::lockForUpdate()->where('state', 'final')->findOrFail($id);
             if (ToothFinding::where('supersedes_id', $id)->exists()) {
                 return response()->json(['error' => 'superseded', 'message' => 'Item ini sudah digantikan; muat ulang.'], 409);
@@ -87,6 +88,7 @@ class FindingController extends Controller
             if ($new->status === 'selesai') {
                 self::recorded($new);
             }
+            $care->push($new->patient_id);
 
             return response()->json(ChartController::finding($new), 201);
         });

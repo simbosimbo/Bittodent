@@ -143,6 +143,7 @@ Aturan keras: hanya user dengan `license_type = dokter_gigi` **dan** peran `dokt
 | `status` | enum `draf_pendaftaran`, `aktif`, `meninggal`, `diarsip` | draf dari formulir pasien belum jadi rekam medis (REG-2) |
 | `verified_by`, `verified_at` | | siapa yang mencocokkan KTP |
 | `last_visit_at` | timestamptz | dasar hitung retensi 25 tahun |
+| `last_dentist_id`, `last_dentist_name`, `care_status` (+ fakta `care_*`, `next_appointment_at`) | | turunan untuk daftar pasien, didorong Clinical/Scheduling lewat `PatientCareState`; `care_status` = `dalam_perawatan` / `perlu_kontrol` / `tidak_aktif` (aturan di `Patients\Domain\CareStatus`, DEVIATIONS #41) |
 
 **`patient_permission_event`** (izin pasien, hanya ditambah)
 | Kolom | Tipe | Aturan |

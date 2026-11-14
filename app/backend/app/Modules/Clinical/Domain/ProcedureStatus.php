@@ -17,6 +17,9 @@ final class ProcedureStatus
 
     public const ALL = ['kondisi_pantau', 'ada_di_klinik_ini', 'ada_di_tempat_lain', 'direncanakan', 'selesai', 'dirujuk'];
 
+    /** Still in course of treatment (patient list: "Dalam perawatan"). dirujuk = treated elsewhere, not counted. */
+    public const IN_COURSE = ['direncanakan'];
+
     public static function canMove(string $from, string $to): bool
     {
         return in_array($to, self::TRANSITIONS[$from] ?? [], true);
