@@ -1,0 +1,593 @@
+{
+  "label": "SYNTHETIC",
+  "disclaimer": "Generated grayscale images only. Not clinical radiographs. Not patient data.",
+  "tool_versions": {
+    "cjxl": "cjxl v0.11.2 [AVX2,SSE4,SSE2]",
+    "opj_compress": "[ERROR] Required parameters are missing",
+    "zstd": "*** Zstandard CLI (64-bit) v1.5.7, by Yann Collet ***",
+    "python": "3.13.5",
+    "numpy": "2.5.4",
+    "PIL": "13.0.0"
+  },
+  "images": {
+    "panoramic_2900x1400_16bit": {
+      "width": 2900,
+      "height": 1400,
+      "container_bits": 16,
+      "used_bits": 12,
+      "raw_bytes": 8120000,
+      "raw_sha256": "04a6bb72c090432c5c6c8bdc6bc4cdd07bfea65aeb18d7a47a24cdc4409e8b49",
+      "label": "SYNTHETIC - NOT A CLINICAL IMAGE - BITTODENT BENCH",
+      "preview_thumb": "/workspace/Bittodent-bench/tools/bench/out/panoramic_2900x1400_16bit.thumb.jpg",
+      "codecs": {
+        "png": {
+          "role": "lossless diagnostic candidate",
+          "bytes": 3351685,
+          "ratio_vs_raw": 2.423,
+          "encode": {
+            "runs": 5,
+            "warmup_discarded": 1,
+            "seconds_p50": 1.2399156909996236,
+            "seconds_min": 1.1961889559997871,
+            "seconds_max": 1.2772657599998638,
+            "seconds_all": [
+              1.2265720810000857,
+              1.1961889559997871,
+              1.2399156909996236,
+              1.2772657599998638,
+              1.2516142289996424
+            ]
+          },
+          "decode": {
+            "runs": 5,
+            "warmup_discarded": 1,
+            "seconds_p50": 0.08441895000032673,
+            "seconds_min": 0.08220110199999908,
+            "seconds_max": 0.09090212699993572,
+            "seconds_all": [
+              0.09090212699993572,
+              0.08441895000032673,
+              0.08366610599932756,
+              0.08938231299998733,
+              0.08220110199999908
+            ]
+          },
+          "roundtrip": "ok"
+        },
+        "jpegxl_lossless": {
+          "role": "lossless diagnostic candidate",
+          "bytes": 2396415,
+          "ratio_vs_raw": 3.388,
+          "encode": {
+            "runs": 5,
+            "warmup_discarded": 1,
+            "seconds_p50": 0.4588500069994552,
+            "seconds_min": 0.43177212400041753,
+            "seconds_max": 0.48845877700023266,
+            "seconds_all": [
+              0.4800562150003316,
+              0.44439278200025,
+              0.43177212400041753,
+              0.4588500069994552,
+              0.48845877700023266
+            ]
+          },
+          "decode": {
+            "runs": 5,
+            "warmup_discarded": 1,
+            "seconds_p50": 0.28110406500036333,
+            "seconds_min": 0.22514809600033914,
+            "seconds_max": 0.32341420500051754,
+            "seconds_all": [
+              0.28110406500036333,
+              0.31967527300002985,
+              0.32341420500051754,
+              0.25138113399953,
+              0.22514809600033914
+            ]
+          },
+          "roundtrip": "ok"
+        },
+        "jpeg2000_lossless": {
+          "role": "lossless diagnostic candidate",
+          "bytes": 2471260,
+          "ratio_vs_raw": 3.286,
+          "encode": {
+            "runs": 5,
+            "warmup_discarded": 1,
+            "seconds_p50": 0.7761808859995654,
+            "seconds_min": 0.6660556400001951,
+            "seconds_max": 0.9213172330000816,
+            "seconds_all": [
+              0.7596091320001506,
+              0.7761808859995654,
+              0.9213172330000816,
+              0.8495666529997834,
+              0.6660556400001951
+            ]
+          },
+          "decode": {
+            "runs": 5,
+            "warmup_discarded": 1,
+            "seconds_p50": 0.5720205219995478,
+            "seconds_min": 0.557246476999353,
+            "seconds_max": 0.5903751740006555,
+            "seconds_all": [
+              0.5720205219995478,
+              0.5807111399999485,
+              0.557246476999353,
+              0.5638818919996993,
+              0.5903751740006555
+            ]
+          },
+          "roundtrip": "ok"
+        },
+        "raw_zstd_3": {
+          "role": "lossless diagnostic candidate (raw pixels + zstd, not a viewing format)",
+          "bytes": 4493070,
+          "ratio_vs_raw": 1.807,
+          "encode": {
+            "runs": 5,
+            "warmup_discarded": 1,
+            "seconds_p50": 0.08041380499980733,
+            "seconds_min": 0.0769092170003205,
+            "seconds_max": 0.10571481299939478,
+            "seconds_all": [
+              0.08041380499980733,
+              0.07774138100012351,
+              0.0769092170003205,
+              0.10571481299939478,
+              0.08278884499941341
+            ]
+          },
+          "decode": {
+            "runs": 5,
+            "warmup_discarded": 1,
+            "seconds_p50": 0.01868511500015302,
+            "seconds_min": 0.01865628999985347,
+            "seconds_max": 0.022712707999744453,
+            "seconds_all": [
+              0.01935339100054989,
+              0.018667609000658558,
+              0.01868511500015302,
+              0.01865628999985347,
+              0.022712707999744453
+            ]
+          },
+          "roundtrip": "ok"
+        },
+        "raw_zstd_19": {
+          "role": "lossless diagnostic candidate (raw pixels + zstd, not a viewing format)",
+          "bytes": 3962609,
+          "ratio_vs_raw": 2.049,
+          "encode": {
+            "runs": 5,
+            "warmup_discarded": 1,
+            "seconds_p50": 3.567343460000302,
+            "seconds_min": 3.349775966999914,
+            "seconds_max": 3.668478621999384,
+            "seconds_all": [
+              3.349775966999914,
+              3.567343460000302,
+              3.668478621999384,
+              3.5570707950000724,
+              3.6099172249996627
+            ]
+          },
+          "decode": {
+            "runs": 5,
+            "warmup_discarded": 1,
+            "seconds_p50": 0.02281758200024342,
+            "seconds_min": 0.02094277800006239,
+            "seconds_max": 0.03369333199952962,
+            "seconds_all": [
+              0.03369333199952962,
+              0.02296989800015581,
+              0.021920015000432613,
+              0.02094277800006239,
+              0.02281758200024342
+            ]
+          },
+          "roundtrip": "ok"
+        },
+        "jpeg_q70_thumb_only": {
+          "role": "LOSSY thumbnail/preview ONLY \u2014 never a diagnostic original",
+          "bytes": 69181,
+          "ratio_vs_raw": 117.373,
+          "encode": {
+            "runs": 5,
+            "warmup_discarded": 1,
+            "seconds_p50": 0.017978507000407262,
+            "seconds_min": 0.017697704000056547,
+            "seconds_max": 0.019520273999660276,
+            "seconds_all": [
+              0.019520273999660276,
+              0.01856700999996974,
+              0.017978507000407262,
+              0.0178345160002209,
+              0.017697704000056547
+            ]
+          },
+          "decode": {
+            "runs": 5,
+            "warmup_discarded": 1,
+            "seconds_p50": 0.00411704100042698,
+            "seconds_min": 0.004034915000374895,
+            "seconds_max": 0.004229107000355725,
+            "seconds_all": [
+              0.004229107000355725,
+              0.00411704100042698,
+              0.004052025000419235,
+              0.004118589999961841,
+              0.004034915000374895
+            ]
+          },
+          "roundtrip": "lossy_by_design"
+        },
+        "jpegxl_distance1_thumb_only": {
+          "role": "LOSSY preview candidate ONLY \u2014 never a diagnostic original",
+          "bytes": 10179,
+          "ratio_vs_raw": 797.721,
+          "encode": {
+            "runs": 5,
+            "warmup_discarded": 1,
+            "seconds_p50": 0.6525812079999014,
+            "seconds_min": 0.6346188649995383,
+            "seconds_max": 0.7196130820002509,
+            "seconds_all": [
+              0.7196130820002509,
+              0.6392103319994931,
+              0.6346188649995383,
+              0.6558493940001426,
+              0.6525812079999014
+            ]
+          },
+          "decode": {
+            "runs": 5,
+            "warmup_discarded": 1,
+            "seconds_p50": 0.12851923299967893,
+            "seconds_min": 0.1262325570005487,
+            "seconds_max": 0.1317273340000611,
+            "seconds_all": [
+              0.12843358899954183,
+              0.1262325570005487,
+              0.12851923299967893,
+              0.12952494500041212,
+              0.1317273340000611
+            ]
+          },
+          "roundtrip": "lossy_by_design"
+        }
+      },
+      "envelope_aes256gcm": {
+        "order": "compress-then-encrypt",
+        "payload_codec": "jpegxl_lossless",
+        "payload_bytes": 2396415,
+        "envelope_bytes": 2396632,
+        "overhead_bytes": 217,
+        "encrypt": {
+          "runs": 5,
+          "warmup_discarded": 1,
+          "seconds_p50": 0.0026502309992793016,
+          "seconds_min": 0.0025601710003684275,
+          "seconds_max": 0.0027201089997106465,
+          "seconds_all": [
+            0.0027201089997106465,
+            0.002580600999863236,
+            0.0025601710003684275,
+            0.0026502309992793016,
+            0.0026506889998927363
+          ]
+        },
+        "decrypt": {
+          "runs": 5,
+          "warmup_discarded": 1,
+          "seconds_p50": 0.0022328389995891484,
+          "seconds_min": 0.0021322540005712654,
+          "seconds_max": 0.002331439999579743,
+          "seconds_all": [
+            0.002256690999274724,
+            0.0022328389995891484,
+            0.0021821039999849745,
+            0.002331439999579743,
+            0.0021322540005712654
+          ]
+        },
+        "encrypt_mib_s_p50": 862.3,
+        "decrypt_mib_s_p50": 1023.5,
+        "tamper_detected": true,
+        "sha256_payload": "76f560a19552044ab50b5b1282b46a87bd9115a0a68935a07178d3c2ddf49faf"
+      }
+    },
+    "periapical_1500x1000_16bit": {
+      "width": 1500,
+      "height": 1000,
+      "container_bits": 16,
+      "used_bits": 12,
+      "raw_bytes": 3000000,
+      "raw_sha256": "9601d0571ad15fdbb8bf89f5cd166304a6748c2347b5521e0ec384e4673c42cf",
+      "label": "SYNTHETIC - NOT A CLINICAL IMAGE - BITTODENT BENCH",
+      "preview_thumb": "/workspace/Bittodent-bench/tools/bench/out/periapical_1500x1000_16bit.thumb.jpg",
+      "codecs": {
+        "png": {
+          "role": "lossless diagnostic candidate",
+          "bytes": 1241871,
+          "ratio_vs_raw": 2.416,
+          "encode": {
+            "runs": 5,
+            "warmup_discarded": 1,
+            "seconds_p50": 0.47881233699990844,
+            "seconds_min": 0.46124337499986723,
+            "seconds_max": 0.5221615349992135,
+            "seconds_all": [
+              0.47881233699990844,
+              0.46124337499986723,
+              0.5079309109996757,
+              0.46776338600011513,
+              0.5221615349992135
+            ]
+          },
+          "decode": {
+            "runs": 5,
+            "warmup_discarded": 1,
+            "seconds_p50": 0.03554552599962335,
+            "seconds_min": 0.029176846999689587,
+            "seconds_max": 0.037373410999862244,
+            "seconds_all": [
+              0.03554552599962335,
+              0.03610413800015522,
+              0.037373410999862244,
+              0.029425576999528857,
+              0.029176846999689587
+            ]
+          },
+          "roundtrip": "ok"
+        },
+        "jpegxl_lossless": {
+          "role": "lossless diagnostic candidate",
+          "bytes": 873885,
+          "ratio_vs_raw": 3.433,
+          "encode": {
+            "runs": 5,
+            "warmup_discarded": 1,
+            "seconds_p50": 0.8396026740001616,
+            "seconds_min": 0.8270732310002131,
+            "seconds_max": 0.8741227150003397,
+            "seconds_all": [
+              0.8396026740001616,
+              0.8286020560008183,
+              0.8592526800002815,
+              0.8270732310002131,
+              0.8741227150003397
+            ]
+          },
+          "decode": {
+            "runs": 5,
+            "warmup_discarded": 1,
+            "seconds_p50": 0.08887454100022296,
+            "seconds_min": 0.08501449399955163,
+            "seconds_max": 0.10474825300025259,
+            "seconds_all": [
+              0.08873127800052316,
+              0.10474825300025259,
+              0.10006708099990647,
+              0.08887454100022296,
+              0.08501449399955163
+            ]
+          },
+          "roundtrip": "ok"
+        },
+        "jpeg2000_lossless": {
+          "role": "lossless diagnostic candidate",
+          "bytes": 921280,
+          "ratio_vs_raw": 3.256,
+          "encode": {
+            "runs": 5,
+            "warmup_discarded": 1,
+            "seconds_p50": 0.225151129000551,
+            "seconds_min": 0.22152742599973863,
+            "seconds_max": 0.27565052899990405,
+            "seconds_all": [
+              0.2326786120001998,
+              0.2234136140004921,
+              0.27565052899990405,
+              0.22152742599973863,
+              0.225151129000551
+            ]
+          },
+          "decode": {
+            "runs": 5,
+            "warmup_discarded": 1,
+            "seconds_p50": 0.21485437199953594,
+            "seconds_min": 0.20194273900051485,
+            "seconds_max": 0.21880547100045078,
+            "seconds_all": [
+              0.2150859989997116,
+              0.21880547100045078,
+              0.21485437199953594,
+              0.20194273900051485,
+              0.20347842299997865
+            ]
+          },
+          "roundtrip": "ok"
+        },
+        "raw_zstd_3": {
+          "role": "lossless diagnostic candidate (raw pixels + zstd, not a viewing format)",
+          "bytes": 1687380,
+          "ratio_vs_raw": 1.778,
+          "encode": {
+            "runs": 5,
+            "warmup_discarded": 1,
+            "seconds_p50": 0.030964859000050637,
+            "seconds_min": 0.029420924999612907,
+            "seconds_max": 0.03176793200054817,
+            "seconds_all": [
+              0.03176793200054817,
+              0.030964859000050637,
+              0.030150846999276837,
+              0.029420924999612907,
+              0.03168051899956481
+            ]
+          },
+          "decode": {
+            "runs": 5,
+            "warmup_discarded": 1,
+            "seconds_p50": 0.008449617000223952,
+            "seconds_min": 0.00791206499980035,
+            "seconds_max": 0.011798174000432482,
+            "seconds_all": [
+              0.008773233000283653,
+              0.008449617000223952,
+              0.008289041000352881,
+              0.011798174000432482,
+              0.00791206499980035
+            ]
+          },
+          "roundtrip": "ok"
+        },
+        "raw_zstd_19": {
+          "role": "lossless diagnostic candidate (raw pixels + zstd, not a viewing format)",
+          "bytes": 1513801,
+          "ratio_vs_raw": 1.982,
+          "encode": {
+            "runs": 5,
+            "warmup_discarded": 1,
+            "seconds_p50": 0.9280142739999064,
+            "seconds_min": 0.8746861139998146,
+            "seconds_max": 1.2120500829996672,
+            "seconds_all": [
+              0.8746861139998146,
+              1.2120500829996672,
+              0.9245997130001342,
+              0.9280142739999064,
+              0.9382709109995631
+            ]
+          },
+          "decode": {
+            "runs": 5,
+            "warmup_discarded": 1,
+            "seconds_p50": 0.010014436999881582,
+            "seconds_min": 0.009285066999837,
+            "seconds_max": 0.014099965000241355,
+            "seconds_all": [
+              0.010014436999881582,
+              0.009497314999862283,
+              0.009285066999837,
+              0.010198570999818912,
+              0.014099965000241355
+            ]
+          },
+          "roundtrip": "ok"
+        },
+        "jpeg_q70_thumb_only": {
+          "role": "LOSSY thumbnail/preview ONLY \u2014 never a diagnostic original",
+          "bytes": 36877,
+          "ratio_vs_raw": 81.352,
+          "encode": {
+            "runs": 5,
+            "warmup_discarded": 1,
+            "seconds_p50": 0.007513358000323933,
+            "seconds_min": 0.007253224999658414,
+            "seconds_max": 0.008827650000057474,
+            "seconds_all": [
+              0.007695054000578239,
+              0.008827650000057474,
+              0.007253224999658414,
+              0.007330780000302184,
+              0.007513358000323933
+            ]
+          },
+          "decode": {
+            "runs": 5,
+            "warmup_discarded": 1,
+            "seconds_p50": 0.002512461999685911,
+            "seconds_min": 0.002133892999154341,
+            "seconds_max": 0.002689409000595333,
+            "seconds_all": [
+              0.002641241999299382,
+              0.002512461999685911,
+              0.002689409000595333,
+              0.002133892999154341,
+              0.0021408149996204884
+            ]
+          },
+          "roundtrip": "lossy_by_design"
+        },
+        "jpegxl_distance1_thumb_only": {
+          "role": "LOSSY preview candidate ONLY \u2014 never a diagnostic original",
+          "bytes": 6336,
+          "ratio_vs_raw": 473.485,
+          "encode": {
+            "runs": 5,
+            "warmup_discarded": 1,
+            "seconds_p50": 0.26553900799990515,
+            "seconds_min": 0.25640453600044566,
+            "seconds_max": 0.2827764670000761,
+            "seconds_all": [
+              0.266181148999749,
+              0.25640453600044566,
+              0.2827764670000761,
+              0.26553900799990515,
+              0.2591556960005619
+            ]
+          },
+          "decode": {
+            "runs": 5,
+            "warmup_discarded": 1,
+            "seconds_p50": 0.06309158400017623,
+            "seconds_min": 0.060898513000211096,
+            "seconds_max": 0.07031804700000066,
+            "seconds_all": [
+              0.06149645000004966,
+              0.06309158400017623,
+              0.07031804700000066,
+              0.060898513000211096,
+              0.06821283399949607
+            ]
+          },
+          "roundtrip": "lossy_by_design"
+        }
+      },
+      "envelope_aes256gcm": {
+        "order": "compress-then-encrypt",
+        "payload_codec": "jpegxl_lossless",
+        "payload_bytes": 873885,
+        "envelope_bytes": 874038,
+        "overhead_bytes": 153,
+        "encrypt": {
+          "runs": 5,
+          "warmup_discarded": 1,
+          "seconds_p50": 0.0008151800002451637,
+          "seconds_min": 0.0008032599998841761,
+          "seconds_max": 0.0008423259996561683,
+          "seconds_all": [
+            0.0008099139995465521,
+            0.0008032599998841761,
+            0.0008423259996561683,
+            0.0008298469992951141,
+            0.0008151800002451637
+          ]
+        },
+        "decrypt": {
+          "runs": 5,
+          "warmup_discarded": 1,
+          "seconds_p50": 0.000807630000053905,
+          "seconds_min": 0.0007732310004939791,
+          "seconds_max": 0.000829274999887275,
+          "seconds_all": [
+            0.0008258670004579471,
+            0.0007786679998389445,
+            0.000807630000053905,
+            0.000829274999887275,
+            0.0007732310004939791
+          ]
+        },
+        "encrypt_mib_s_p50": 1022.4,
+        "decrypt_mib_s_p50": 1031.9,
+        "tamper_detected": true,
+        "sha256_payload": "e476c5f30483bac56aa65192bed668c46e19e7abb6811ad2aa360e64a84e946a"
+      }
+    }
+  },
+  "workdir": "/tmp/bittodent-img-j9jkdkfa"
+}

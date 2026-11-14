@@ -1,0 +1,6 @@
+*
+!.gitignore
+!*.json
+!*.md
+!hardware.txt
+!*.thumb.jpg
