@@ -186,3 +186,10 @@ label.check { flex-direction: row; gap: 8px; align-items: flex-start; font-weigh
   .tooth-sheet { display: grid; gap: var(--space-3); max-height: 60vh; border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
   .tooth-sheet .btn.cond { min-height: 44px; }
 }
+
+/* Rekam Medis findings: summary line, chosen condition, filter + save button. */
+.odo-summary { margin: 0 0 var(--space-2); font-size: var(--font-size-sm); color: var(--text); }
+.cond[aria-pressed='true'] { background: var(--color-primary-50); outline: 2px solid currentColor; outline-offset: -2px; }
+.temuan-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.temuan-head h2 { margin: 0; }
+.tooth-save { width: 100%; min-height: var(--shells-a-size-touch); }

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { ApiError, errorText } from '../../shared/api/http'
 import { setActivePatient } from '../../shared/activePatient'
-import { fmtDateTime, fmtTime } from '../../shared/format'
+import { fmtDateTime, fmtDay, fmtTime } from '../../shared/format'
 import type { Me } from '../../shared/session'
 import { useIsMobile } from '../../shared/useIsMobile'
 import { PatientPage } from '../patients'
@@ -23,10 +23,13 @@ const toSoap = (f: Form): Soap => ({ S: f.S, O: f.O, A: { codes: codes(f.A.codes
 const TABS = [['S', 'Subjektif'], ['O', 'Objektif'], ['A', 'Asesmen (ICD-10)'], ['P', 'Rencana (ICD-9-CM)']] as const
 const fmt = (iso: string | null) => iso ? fmtDateTime(iso) : '—'
 // Header chip for the in-progress visit; dentist from the visit only (omitted when unknown), "drg." not doubled.
+const drName = (n: string | null | undefined) => { const name = n?.trim(); return name ? (/^(drg|dr)\./i.test(name) ? name : 'drg. ' + name) : '' }
 export function visitStatusText(v: Pick<ChartVisit, 'started_at' | 'dentist'>) {
-  const name = v.dentist.name?.trim()
-  return ['Sedang dirawat', name && (/^(drg|dr)\./i.test(name) ? name : 'drg. ' + name), 'sejak ' + fmtTime(v.started_at)].filter(Boolean).join(' · ')
+  return ['Sedang dirawat', drName(v.dentist.name), 'sejak ' + fmtTime(v.started_at)].filter(Boolean).join(' · ')
 }
+/** "2 karies · 1 tambalan" over current rows, CONDITIONS order, zero counts skipped. */
+export const findingSummary = (items: { condition: string }[]) =>
+  CONDITIONS.map((c) => [items.filter((f) => f.condition === c.key).length, c.label.toLowerCase()] as const).filter(([n]) => n).map(([n, l]) => `${n} ${l}`).join(' · ')
 const FREE_EDIT_MS = 48 * 3600 * 1000
 const INNER = [['odo', 'Odontogram'], ['notes', 'Catatan Klinis'], ['plan', 'Rencana Perawatan'], ['rx', 'Resep'], ['bill', 'Billing']] as const
 // Surface keypad (sketch): lingual/palatal top, M left, O/I centre, D right, buccal/labial bottom. Labels come from surfaceLabel.
@@ -159,29 +162,30 @@ export function StatusChip({ status }: { status: string }) {
   return <span className={`chip st st-${status}`} data-status={statusOf(status)?.legend}>{statusOf(status)?.label ?? status}</span>
 }
 
-/** Findings table (Open Dental pattern, our data only). Dentists move a signed item along the allowed transitions (server appends a new row). */
-function Items({ items, canMove, onMove }: { items: Finding[]; canMove: boolean; onMove: (f: Finding, to: ProcStatus) => void }) {
-  if (!items.length) return null
+/** Findings table (Open Dental pattern, our data only). Newest first (drafts = today, then finalized_at desc), then tooth.
+ *  Dentist = the finding's visit dentist; drafts show "Draf" instead of a date. Dentists move a signed item along the allowed transitions. */
+function Items({ items, visits, canMove, onMove }: { items: Finding[]; visits: ChartVisit[]; canMove: boolean; onMove: (f: Finding, to: ProcStatus) => void }) {
+  const at = (f: Finding) => f.finalized_at ?? '\uffff' // drafts sort as newest
   return (
     <div className="findings-wrap">
-      <table className="table findings" aria-label="Temuan odontogram dan status">
-        <thead><tr><th scope="col">Status</th><th scope="col">Gigi</th><th scope="col">Permukaan</th><th scope="col">Kondisi</th><th scope="col">Kode ICD-9-CM</th><th scope="col">Ubah status</th></tr></thead>
+      <table className="table findings" aria-label="Temuan & tindakan">
+        <thead><tr><th scope="col">Tanggal</th><th scope="col">Gigi</th><th scope="col">Permukaan</th><th scope="col">Kondisi / tindakan</th><th scope="col">Dokter</th><th scope="col">Status</th></tr></thead>
         <tbody>
-          {[...items].sort((a, b) => a.tooth - b.tooth).map((f) => (
+          {[...items].sort((a, b) => at(b).localeCompare(at(a)) || a.tooth - b.tooth).map((f) => (
             <tr key={f.id}>
-              <td><StatusChip status={f.status} /> {f.state === 'draft' ? <span className="badge badge-draft">Draf</span> : <span className="muted small" aria-label="Terkunci">🔒</span>}</td>
+              <td>{f.finalized_at ? fmtDay(f.finalized_at) : <span className="muted">Draf</span>}</td>
               <td className="mono">{f.tooth}</td>
               <td>{f.surface ? `${surfaceLabel(f.tooth, f.surface)} (${surfaceName(f.tooth, f.surface)})` : 'Seluruh gigi'}</td>
-              <td>{conditionOf(f.condition)?.label ?? f.condition}</td>
-              <td className="mono">{f.procedure_code ?? '—'}</td>
-              <td>{f.state === 'final' && canMove && statusOf(f.status)?.next.map((to) => (
-                <button key={to} className="btn btn-xs" onClick={() => onMove(f, to)}>→ {statusOf(to)!.label}</button>
-              ))}</td>
+              <td>{conditionOf(f.condition)?.label ?? f.condition}{f.procedure_code && <> <span className="mono muted small">{f.procedure_code}</span></>}</td>
+              <td>{drName(visits.find((v) => v.id === f.visit_id)?.dentist.name) || '—'}</td>
+              <td><StatusChip status={f.status} /> {f.state === 'draft' ? <span className="badge badge-draft">Draf</span> : <span className="muted small" aria-label="Terkunci">🔒</span>}
+                {f.state === 'final' && canMove && statusOf(f.status)?.next.map((to) => (
+                  <button key={to} className="btn btn-xs" onClick={() => onMove(f, to)}>→ {statusOf(to)!.label}</button>
+                ))}</td>
             </tr>
           ))}
         </tbody>
       </table>
-      <p className="muted small">Biaya dan prioritas belum ada di data temuan.</p>
     </div>
   )
 }
@@ -245,6 +249,11 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const [status, setStatus] = useState<ProcStatus>('kondisi_pantau')
   const [procCode, setProcCode] = useState('')
   const [baselineOpen, setBaselineOpen] = useState(false)
+  // Chosen condition waits for "Simpan ke kunjungan hari ini"; bound to its tooth so switching teeth drops it.
+  const [pending, setPending] = useState<{ tooth: number; condition: string; whole: boolean } | null>(null)
+  const [saving, setSaving] = useState(false)
+  // Table filter starts on the picked tooth; "Semua gigi" is remembered for that tooth only; no pick = all.
+  const [allFor, setAllFor] = useState<number | null>(null)
   const [view, setView] = useState<'2d' | '3d'>('2d') // not persisted: 2D every time
   const mobile = useIsMobile()
   const [legendOpen, setLegendOpen] = useState(!mobile) // phone: chart first, legend on demand
@@ -304,8 +313,17 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
     }
   }
   const onPick = (tooth: number, surface: Surface) => setPick({ tooth, surface }) // selecting works anytime; picker only when editable
-  const choose = (condition: string, whole: boolean) => pick && visit && run(() => saveFinding(visit.id,
-    { tooth: pick.tooth, surface: whole ? null : pick.surface, condition, status, procedure_code: procCode.trim() || null }))
+  const chosen = pick && pending?.tooth === pick.tooth ? pending : null
+  const choose = (condition: string, whole: boolean) => pick && setPending({ tooth: pick.tooth, condition, whole })
+  async function saveChosen() {
+    if (!pick || !visit || !chosen) return
+    setSaving(true)
+    await run(async () => {
+      await saveFinding(visit.id, { tooth: pick.tooth, surface: chosen.whole ? null : pick.surface, condition: chosen.condition, status, procedure_code: procCode.trim() || null })
+      setPending(null)
+    }, 'Temuan tersimpan sebagai draf di kunjungan hari ini.')
+    setSaving(false)
+  }
   const myDraftAt = (whole: boolean) => pick && mine.find((d) => d.tooth === pick.tooth && d.surface === (whole ? null : pick.surface))
 
   async function sign(code: string) {
@@ -323,6 +341,11 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   }
 
   const items = [...chart.findings, ...mine]
+  const summary = findingSummary(items)
+  const only = pick && allFor !== pick.tooth ? pick.tooth : null
+  const shownItems = only ? items.filter((f) => f.tooth === only) : items
+  const saveWhy = !visit ? 'Belum ada kunjungan aktif. Buka janji hari ini dulu.' : !editable ? 'Hanya lihat: kunjungan ini sudah ditandatangani atau Anda tidak berhak menulis.'
+    : !chosen ? 'Pilih kondisi terlebih dahulu' : ''
   const center: Surface | null = pick && (isAnterior(pick.tooth) ? 'I' : 'O')
   const panel = !pick ? <p className="muted tooth-empty">Pilih gigi untuk melihat detail.</p> : (
     <>
@@ -356,16 +379,19 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
           </div>
           <div className="cond-row">
             <span className="muted small">Permukaan:</span>
-            {CONDITIONS.filter((c) => !c.whole).map((c) => <button key={c.key} className={`btn cond cond-${c.key}`} onClick={() => choose(c.key, false)}>{c.label}</button>)}
+            {CONDITIONS.filter((c) => !c.whole).map((c) => <button key={c.key} type="button" className={`btn cond cond-${c.key}`} aria-pressed={chosen?.condition === c.key} onClick={() => choose(c.key, false)}>{c.label}</button>)}
             {myDraftAt(false) && <button className="btn btn-xs btn-ghost" onClick={() => run(() => discardFinding(myDraftAt(false)!.id))}>Hapus draf permukaan</button>}
           </div>
           <div className="cond-row">
             <span className="muted small">Seluruh gigi:</span>
-            {CONDITIONS.filter((c) => c.whole).map((c) => <button key={c.key} className={`btn cond cond-${c.key}`} onClick={() => choose(c.key, true)}>{c.label}</button>)}
+            {CONDITIONS.filter((c) => c.whole).map((c) => <button key={c.key} type="button" className={`btn cond cond-${c.key}`} aria-pressed={chosen?.condition === c.key} onClick={() => choose(c.key, true)}>{c.label}</button>)}
             {myDraftAt(true) && <button className="btn btn-xs btn-ghost" onClick={() => run(() => discardFinding(myDraftAt(true)!.id))}>Hapus draf gigi</button>}
           </div>
         </div>
       ) : <p className="muted small">Hanya lihat: kondisi diisi dari kunjungan aktif yang belum ditandatangani.</p>}
+      <button type="button" className="btn btn-primary tooth-save" disabled={!!saveWhy || saving} title={saveWhy || undefined} aria-describedby={saveWhy ? 'save-why' : undefined}
+        onClick={saveChosen}>{saving ? 'Menyimpan…' : 'Simpan ke kunjungan hari ini'}</button>
+      {saveWhy && <p id="save-why" className="muted small">{saveWhy}</p>}
     </>
   )
 
@@ -394,6 +420,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
                 <Seg label="Tampilan" value={view} onChange={changeView} options={[['2d', '2D'], ['3d', '3D']]} />
               </div>
             </div>
+            <p className={summary ? 'odo-summary' : 'odo-summary muted'} role="note" aria-label="Ringkasan temuan">{summary || 'Belum ada temuan.'}</p>
             <button type="button" className="btn btn-xs odo-legend-toggle" aria-expanded={legendOpen} aria-controls="odo-legends" onClick={() => setLegendOpen(!legendOpen)}>
               {legendOpen ? 'Sembunyikan legenda' : 'Tampilkan legenda'}
             </button>
@@ -434,13 +461,18 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
                 onKeyDown={(e) => e.key === 'Escape' && setPick(null)}>{panel}</aside>
             </>
           )}
-          {items.length > 0 && (
-            <section className="card span-12" aria-labelledby="temuan-title">
+          <section className="card span-12" aria-labelledby="temuan-title">
+            <div className="temuan-head">
               <h2 id="temuan-title">Temuan &amp; tindakan</h2>
-              <Items items={items} canMove={can('note.sign')}
-                onMove={(f, to) => run(() => changeStatus(f.id, to, visit?.id), `Status gigi ${f.tooth} diubah (baris baru; versi lama tetap).`)} />
-            </section>
-          )}
+              <div className="seg" role="radiogroup" aria-label="Saring temuan">
+                <button type="button" role="radio" aria-checked={!only} className={!only ? 'is-on' : ''} onClick={() => setAllFor(pick?.tooth ?? null)}>Semua gigi</button>
+                {pick && <button type="button" role="radio" aria-checked={!!only} className={only ? 'is-on' : ''} onClick={() => setAllFor(null)}>Gigi {pick.tooth}</button>}
+              </div>
+            </div>
+            {shownItems.length ? <Items items={shownItems} visits={chart.visits} canMove={can('note.sign')}
+              onMove={(f, to) => run(() => changeStatus(f.id, to, visit?.id), `Status gigi ${f.tooth} diubah (baris baru; versi lama tetap).`)} />
+              : <p className="muted">{only ? 'Tidak ada temuan pada gigi ini.' : 'Belum ada temuan.'}</p>}
+          </section>
         </div>
       )}
       {tab === 'notes' && (
