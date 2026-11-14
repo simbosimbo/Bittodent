@@ -13,7 +13,7 @@ const me: Me = {
   active: { tenant_id: 't1', tenant_name: 'Klinik Sintetis', branch_id: 'b1', branch_name: 'Cabang Uji', timezone: 'Asia/Jakarta' },
   branches: [{ id: 'b1', name: 'Cabang Uji', timezone: 'Asia/Jakarta' }],
 }
-const patient = { id: 'p1', name: 'Budi Contoh', dob: '1960-01-01', sex: 'laki_laki', payer_type: 'umum' }
+const patient = { id: 'p1', mrn: 'BT-000007', name: 'Budi Contoh', dob: '1960-01-01', sex: 'laki_laki', payer_type: 'umum' }
 const full = { ...patient, nik: null, phone: null, address: null, payer_name: null, payer_member_no: null, payer_class: null }
 const chart = { patient, solo_practice: true, baseline: null, findings: [], drafts: [], visits: [] }
 const alerts = { version: 1, premedication_required: false, allergies: ['Penisilin'], has_urgent_note: false, full: true, problems: ['Kondisi Sintetis'], medications: [] }
@@ -166,13 +166,12 @@ const visit = { id: 'v1', appointment_id: null, branch_id: 'b1', started_at: '20
 const pad = () => within(screen.getByRole('group', { name: 'Permukaan' }))
 const surfaces = () => pad().getAllByRole('button').map((b) => b.textContent)
 
-test('header: allergy chip always visible from one alerts fetch, no invented No. RM', async () => {
+test('header: allergy chip always visible from one alerts fetch, No. RM from the API', async () => {
   renderChart()
   const head = await screen.findByRole('region', { name: 'Peringatan medis pasien' })
   expect(await within(head).findByText('Alergi: Penisilin')).toBeVisible()
   expect(within(head).queryByText(/Kondisi Sintetis/)).toBeNull() // minor chips behind Selengkapnya
-  expect(document.body).toHaveTextContent('No. RM: belum ada')
-  expect(document.body).not.toHaveTextContent(/BT-\d/)
+  expect(document.body).toHaveTextContent('No. RM: BT-000007')
   expect(vi.mocked(fetch).mock.calls.filter(([u]) => String(u).endsWith('/alerts'))).toHaveLength(1)
 })
 

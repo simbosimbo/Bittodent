@@ -18,7 +18,7 @@ final class PatientDirectoryService implements PatientDirectory
     {
         $p = Patient::findOrFail($patientId);
 
-        return [...Arr::only($p->toArray(), ['id', 'name', 'dob', 'sex', 'payer_type']), 'is_minor' => $p->isMinor()]; // toArray: dob as Y-m-d
+        return [...Arr::only($p->toArray(), ['id', 'mrn', 'name', 'dob', 'sex', 'payer_type']), 'is_minor' => $p->isMinor()]; // toArray: dob as Y-m-d
     }
 
     public function payerOf(string $patientId): string

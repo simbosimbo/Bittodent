@@ -4,6 +4,7 @@ namespace App\Modules\Patients\Http\Controllers;
 
 use App\Modules\Patients\Http\Requests\StorePatientRequest;
 use App\Modules\Patients\Models\Patient;
+use App\Modules\Patients\Services\MrnGenerator;
 use App\Modules\Patients\Services\PatientSearch;
 use App\Modules\Tenancy\Contracts\TenancyDirectory;
 use App\Shared\Audit\Audit;
@@ -21,7 +22,7 @@ class PatientController extends Controller
         // Keyset pagination on (created_at, id), newest first.
         $page = PatientSearch::query($request->query('q'))
             ->orderByDesc('created_at')->orderByDesc('id')
-            ->cursorPaginate(25, ['id', 'name', 'dob', 'sex', 'home_branch_id', 'payer_type', 'status', 'created_at']);
+            ->cursorPaginate(25, ['id', 'mrn', 'name', 'dob', 'sex', 'home_branch_id', 'payer_type', 'status', 'created_at']);
 
         return response()->json([
             'data' => $page->items(),
@@ -44,6 +45,7 @@ class PatientController extends Controller
 
         $patient = DB::transaction(function () use ($d, $branchId) {
             $p = (new Patient)->fillIdentity($d)->fill([
+                'mrn' => MrnGenerator::next(), // same transaction: rolled back with the patient
                 'dob' => $d['dob'] ?? null,
                 'sex' => $d['sex'] ?? null,
                 'home_branch_id' => $branchId,
@@ -59,7 +61,7 @@ class PatientController extends Controller
             return $p;
         });
 
-        return response()->json(['id' => $patient->id], 201);
+        return response()->json(['id' => $patient->id, 'mrn' => $patient->mrn], 201);
     }
 
     public function show(string $id)
@@ -72,7 +74,7 @@ class PatientController extends Controller
         Audit::log('baca', 'patient', $p->id);
 
         return response()->json([
-            ...$p->only(['id', 'name', 'sex', 'home_branch_id', 'payer_type', 'payer_name', 'payer_member_no', 'payer_class', 'status']),
+            ...$p->only(['id', 'mrn', 'name', 'sex', 'home_branch_id', 'payer_type', 'payer_name', 'payer_member_no', 'payer_class', 'status']),
             'dob' => $p->dob?->format('Y-m-d'),
             'nik' => $nik,
             'phone' => Crypto::decrypt($p->phone_enc),

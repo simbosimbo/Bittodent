@@ -3,9 +3,9 @@ import css from './patients.css?raw'
 import { afterEach, expect, test, vi } from 'vitest'
 import { PatientList } from './Patients'
 
-const rows = [{ id: 'p1', name: 'Sari Sintetis', dob: '1990-02-03', sex: 'perempuan', payer_type: 'umum', status: 'aktif' },
-  { id: 'p2', name: 'Budi Contoh', dob: '1985-07-01', sex: 'laki_laki', payer_type: 'asuransi', status: 'tidak_aktif' },
-  { id: 'p3', name: 'Nadia Anak Contoh Wijaya Utama', dob: null, sex: null, payer_type: 'umum', status: 'aktif' }]
+const rows = [{ id: 'p1', mrn: 'BT-000214', name: 'Sari Sintetis', dob: '1990-02-03', sex: 'perempuan', payer_type: 'umum', status: 'aktif' },
+  { id: 'p2', mrn: 'BT-000215', name: 'Budi Contoh', dob: '1985-07-01', sex: 'laki_laki', payer_type: 'asuransi', status: 'tidak_aktif' },
+  { id: 'p3', mrn: null, name: 'Nadia Anak Contoh Wijaya Utama', dob: null, sex: null, payer_type: 'umum', status: 'aktif' }]
 const list = (canChart?: boolean) => {
   vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ data: rows, next_cursor: null }), { status: 200 })))
   render(<PatientList canCreate={false} canChart={canChart} />)
@@ -28,7 +28,7 @@ test('no Rekam Medis link without canChart', async () => {
   expect(screen.queryByRole('link', { name: /^Rekam Medis/ })).toBeNull()
 })
 
-test('long names wrap (no ellipsis/nowrap rule), initials avatar, no fabricated No. RM', async () => {
+test('long names wrap (no ellipsis/nowrap rule), initials avatar, No. RM from the API (honest fallback when missing)', async () => {
   list()
   const name = await screen.findByRole('link', { name: 'Nadia Anak Contoh Wijaya Utama' })
   expect(name).toHaveClass('pl-name-text')
@@ -38,8 +38,9 @@ test('long names wrap (no ellipsis/nowrap rule), initials avatar, no fabricated 
   const row = name.closest('tr')!
   expect(within(row).getByText('NA')).toHaveClass('avatar')
   expect(within(screen.getByText('Sari Sintetis').closest('tr')!).getByText('SS')).toHaveClass('avatar')
-  expect(document.body.textContent).not.toMatch(/BT-\d/)
-  expect(within(row).getAllByText('Belum ada').length).toBeGreaterThan(0)
+  expect(within(screen.getByText('Sari Sintetis').closest('tr')!).getByText('BT-000214')).toBeInTheDocument()
+  expect(within(screen.getByText('Budi Contoh').closest('tr')!).getByText('BT-000215')).toBeInTheDocument()
+  expect(row.querySelectorAll('td')[1]).toHaveTextContent('Belum ada') // p3 has no mrn: no invented number
 })
 
 test('status badge and Semua / Aktif filter over loaded rows', async () => {
@@ -79,6 +80,7 @@ test('390px: cards instead of the table; Rekam Medis link works without opening 
   expect(within(cards).getAllByRole('listitem')).toHaveLength(3)
   const card = within(cards).getByText('Sari Sintetis').closest('li')!
   expect(card).toHaveTextContent('Perempuan')
+  expect(card).toHaveTextContent('BT-000214')
   expect(within(card).getByText('Aktif')).toHaveClass('chip-aktif')
   expect(within(card).getByRole('link', { name: 'Sari Sintetis' })).toHaveAttribute('href', '#/pasien/p1')
   const rm = within(card).getByRole('link', { name: 'Rekam Medis Sari Sintetis' })
