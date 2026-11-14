@@ -1,10 +1,8 @@
-# Prototipe Layanan Mandiri — Bittodent
+# Prototipe layanan mandiri Bittodent
 
-> **DATA SINTETIS — prototipe, bukan aplikasi produksi.** Semua nama, nomor (0800-000-000x), email (`@example.com`), kode QR, dan tagihan adalah karangan. QR bukan payload QRIS asli. Tidak ada OTP, pesan WhatsApp, atau pembayaran yang benar-benar dikirim. Kode OTP tidak disimpan dan tidak di-log.
+> **DATA SINTETIS.** Prototipe statis, bukan aplikasi produksi. Nama, nomor (0800-000-000x), QR, dan tagihan dikarang. Tidak ada OTP, WhatsApp, atau pembayaran yang dikirim.
 
-Prototipe statis (HTML + CSS + sedikit JS, tanpa build) untuk klinik kecil: **1 FO + 1 dokter**. Pasien melayani diri sendiri dari HP (tautan WhatsApp) dan kios tablet di klinik; FO hanya menangani pengecualian; dokter bisa memberi diskon dari rekam medis lewat mode kasir ringkas.
-
-Acuan visual & token: prototipe Kasir (`design/prototype/kasir/`, disalin, tidak diimpor).
+Klinik kecil, 1 FO + 1 dokter. Pasien melayani diri lewat HP dan kios. FO hanya menangani pengecualian. Dokter memberi diskon dari kasir ringkas. Token visual disalin dari `design/prototype/kasir/`.
 
 ## Cara membuka
 
@@ -14,58 +12,55 @@ python3 -m http.server 8000 --bind 127.0.0.1
 # buka http://127.0.0.1:8000/
 ```
 
-Atau buka `index.html` langsung di peramban. Font memakai Google Fonts (perlu internet; jika tidak ada, jatuh ke Inter/system-ui).
+Atau buka `index.html` langsung. Pengalih di atas (khusus peninjau): **Mode** (Pasien, Kiosk, FO, Dokter) dan **Layar**. Tautan langsung: `#tagihan` atau `?layar=tagihan`.
 
-## Pengalih (selalu tampil, khusus peninjau)
+## Layar
 
-- **Mode:** Pasien | Kiosk | FO | Dokter — mengganti kerangka (HP 390 / tablet kiosk 1024×768 / shell staf dengan sidebar).
-- **Layar:** daftar layar untuk mode aktif.
-- Tautan langsung: `index.html#tagihan` atau `index.html?layar=tagihan`. Setiap layar punya `id="screen-…"` dan `data-screen="…"`. Jika hash milik mode lain, mode ikut berganti.
-
-## Daftar layar
-
-| # | Layar | Hash | Mode | Dirancang untuk |
-|---|---|---|---|---|
-| 1 | Pilih layanan, tanggal, slot | `#booking` | Pasien, Kiosk | 390 (kiosk: 2 kolom) |
-| 2 | Isi / konfirmasi data (tanpa NIK) | `#data` | Pasien, Kiosk | 390 |
-| 3 | OTP WhatsApp 6 angka | `#otp` | Pasien, Kiosk | 390 |
-| 4 | Booking terkonfirmasi + QR | `#booking-ok` | Pasien, Kiosk | 390 |
-| 5 | Kios: ketuk untuk mulai → scan QR / kode | `#checkin` | Kiosk | 1024×768 |
-| 6 | Status antrean | `#antrean` | Pasien, Kiosk | 390 & 1024×768 |
-| 7 | Tagihan Budi (item + harga saja) | `#tagihan` | Pasien | 390 |
-| 8 | Bayar QRIS (QR contoh, hitung mundur) | `#bayar-qris` | Pasien | 390 |
-| 9 | Struk digital 80 mm | `#struk` | Pasien | 390 |
-| 10 | Janji kontrol (Rp 0) | `#kontrol` | Pasien | 390 |
-| 11 | Tautan kedaluwarsa | `#kedaluwarsa` | Pasien | 390 |
-| 12 | Tautan sudah dipakai | `#sudah-dipakai` | Pasien | 390 |
-| 13 | Panel pengecualian FO | `#fo` | FO | 1024×768 (juga 1440) |
-| 14 | RM ringkas + mode kasir ringkas | `#dokter` | Dokter | 1024×768 (juga 1440) |
-
-Bawaan per mode: Pasien → `#booking`, Kiosk → `#checkin`, FO → `#fo`, Dokter → `#dokter`.
+| # | Hash | Mode | Ukuran |
+|---|---|---|---|
+| 1 | `#booking` layanan, tanggal, slot | Pasien, Kiosk | 390 |
+| 2 | `#data` data diri, tanpa NIK | Pasien, Kiosk | 390 |
+| 3 | `#otp` OTP WhatsApp | Pasien, Kiosk | 390 |
+| 4 | `#booking-ok` terkonfirmasi + QR | Pasien, Kiosk | 390 |
+| 5 | `#checkin` kios check-in | Kiosk | 1024×768 |
+| 6 | `#antrean` status antrean | Pasien, Kiosk | 390, 1024×768 |
+| 7 | `#tagihan` tagihan Budi | Pasien | 390 |
+| 8 | `#bayar-qris` bayar QRIS | Pasien | 390 |
+| 9 | `#struk` struk 80 mm | Pasien | 390 |
+| 10 | `#kontrol` janji kontrol Rp 0 | Pasien | 390 |
+| 11 | `#kedaluwarsa` tautan kedaluwarsa | Pasien | 390 |
+| 12 | `#sudah-dipakai` tautan sudah dipakai | Pasien | 390 |
+| 13 | `#fo` pengecualian FO | FO | 1024×768, 1440 |
+| 14 | `#dokter` RM + kasir ringkas | Dokter | 1024×768, 1440 |
 
 ## Parameter demo
 
 | Parameter | Efek |
 |---|---|
-| `?mode=kiosk` (`pasien`/`fo`/`dokter`) | Mulai di mode tertentu |
+| `?mode=pasien\|kiosk\|fo\|dokter` | Mulai di mode itu |
 | `?layar=<hash>` | Sama dengan `#<hash>` |
 | `?demo=bayar` | Tagihan Budi |
-| `?demo=qris` | Layar bayar QRIS (menunggu) |
-| `?demo=qris-gagal` | Layar QRIS dalam keadaan kedaluwarsa + "Buat kode QRIS baru" |
-| `?demo=kedaluwarsa` | Tautan Joko Wijaya kedaluwarsa |
-| `?demo=dipakai` | Tautan Hendra Gunawan sudah lunas |
-| `?demo=kiosk` / `fo` / `dokter` | Layar utama mode itu |
+| `?demo=qris` | QRIS menunggu |
+| `?demo=qris-gagal` | QRIS kedaluwarsa + "Buat QR baru" |
+| `?demo=kedaluwarsa` | Tautan kedaluwarsa |
+| `?demo=dipakai` | Tautan sudah lunas |
+| `?demo=kiosk\|fo\|dokter` | Layar utama mode itu |
 
-## Aturan produk (ringkas)
+Demo: OTP 6 angka apa saja, kode check-in `SS-17-R4T`.
 
-- **Tanpa NIK** di tautan publik maupun kios. Identitas = nama + tanggal lahir + WhatsApp, diverifikasi **OTP WhatsApp sintetis** 6 angka (prototipe menerima angka apa saja; kode tidak disimpan/di-log).
-- **Tagihan di HP hanya item tindakan + harga.** Tanpa catatan klinis, diagnosis, temuan odontogram, atau nomor gigi. Hanya tindakan **bertanda tangan** yang ditagih; temuan tidak pernah ditagih.
-- **Bayar di HP = QRIS saja.** Tunai dan EDC hanya di FO sebagai pengecualian.
-- **Saldo deposit** dipotong otomatis (Budi: Rp 800.000 − Rp 200.000 = **Rp 600.000**; ada `console.assert`).
-- Semua pasien **Umum**, tanpa asuransi.
-- **FO** hanya melihat pengecualian: bayar tunai/EDC, belum bayar, QRIS gagal.
-- **Dokter** menyetujui diskon (Tanpa/5/10/15%) dari mode kasir ringkas **tanpa PIN kedua** — dokter adalah pemberi persetujuan; alasan dipilih dan tercatat di audit. Tanpa keypad tunai.
-- Pesan WhatsApp keluar tanpa isi klinis.
+## Aturan produk
+
+- Tanpa NIK di tautan publik dan kios. Identitas: nama, tanggal lahir, WhatsApp, lalu OTP.
+- Tagihan dan struk publik hanya item + harga. Tanpa catatan klinis, diagnosis, temuan, atau nomor gigi (FDI hanya di layar dokter).
+- Hanya tindakan bertanda tangan yang ditagih. Temuan tidak ditagih.
+- HP bayar QRIS saja. Tunai/EDC di FO.
+- Deposit dipotong otomatis: Rp 800.000 - Rp 200.000 = Rp 600.000 (`console.assert`).
+- Dokter memberi diskon 5/10/15% tanpa PIN kedua, alasan dicatat di audit (15% jadi Rp 480.000).
+- Pesan WhatsApp tanpa isi klinis.
+- Jam beku: Sabtu 14 Nov 2026, 20.30 WIB. Slot hari ini yang lewat disembunyikan; 14 Nov "Tidak ada slot", 15 Nov tutup. Kios dan antrean memakai simulasi hari H Selasa 17 Nov, 08.50.
+- 17 Nov 2026 = Selasa (brief menulis Senin, perlu dicek).
+- Kios menyingkat nama ("Ratna D."). Tautan kedaluwarsa tidak menyebut nama atau jumlah.
+- Pasien sintetis tambahan: Siti Marlina (FO). Nomor RM dan tagihan lain dikarang.
 
 ## Alur per peran
 
@@ -124,20 +119,3 @@ flowchart TD
   G -->|Pasien| H[Tagihan via WhatsApp<br/>item + harga saja]
   G -->|FO| I[Masuk panel Pengecualian]
 ```
-
-## Keputusan desain yang tidak ada di brief
-
-- **Hari dalam seminggu:** brief menulis 14 Nov = Sabtu dan 18 Nov = Rabu, sehingga 17 Nov 2026 = **Selasa** (bukan "Senin" seperti di brief). Prototipe memakai Selasa. Perlu dicek oleh pemilik cerita.
-- **Waktu hari H:** layar kiosk dan antrean Ratna diberi label "Selasa, 17 Nov 2026 (simulasi hari H) · 08.50", karena janji 09.00 tidak masuk akal pada 20.30. Layar staf dan tagihan Budi tetap Sabtu 14 Nov 20.30.
-- **Slot "hari ini" (14 Nov):** sesuai brief, hanya 15.30 dan 16.00 yang tersisa, meski jam beku 20.30. Ini untuk demo saja.
-- **Nomor gigi tidak tampil** di tagihan HP dan struk; tautan WA bisa diteruskan ke orang lain. Nomor gigi (FDI) hanya tampil di layar dokter.
-- **Kedaluwarsa tidak menyebut nama** (Joko) maupun jumlah; tautan lama bisa sudah diteruskan.
-- **Sudah dipakai:** "Lihat struk" membuka ringkasan pendek (lunas, Rp 150.000, tunai di FO, waktu), tanpa item.
-- **Kiosk** punya keadaan siaga "Ketuk untuk mulai", dan menyingkat nama ("Ratna D.") karena layarnya publik.
-- **Janji kontrol** dari struk tidak meminta OTP lagi (sesi tautan tagihan sudah terverifikasi). Kode booking kontrol `SS-18-B6D` dikarang.
-- **FO:** baris "Bayar tunai / EDC" berisi pasien sintetis tambahan **Siti Marlina** (Rp 150.000). KPI "pengecualian terbuka" dihitung dari baris yang belum lunas (awal 3). EDC meminta no. referensi (opsional).
-- **Alya (6 th):** tautan WA dikirim ke nomor orang tua (contoh 0800-000-0002).
-- **Diskon dokter tidak mengubah tagihan HP**; layar tagihan tetap memakai cerita Rp 600.000.
-- **RM ringkas** menampilkan satu temuan sintetis ("Temuan 46 — dicatat, tidak ditagih") untuk menunjukkan bahwa temuan tidak masuk tagihan. Tidak ada kode ICD.
-- **No. RM `RM-000123`** dan nomor tagihan lain (`…-002/003/005`) dikarang.
-- Warna peringatan memakai `#B54708` dari brief (Kasir memakai `#7A4A00`).

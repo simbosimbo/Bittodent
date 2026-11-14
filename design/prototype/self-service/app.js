@@ -1,4 +1,4 @@
-// Bittodent — prototipe Layanan Mandiri. Statis, DATA SINTETIS. Tidak ada data yang dikirim atau disimpan.
+// Bittodent: prototipe Layanan Mandiri. Statis, DATA SINTETIS. Tidak ada data yang dikirim atau disimpan.
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const rp = n => 'Rp ' + Math.round(n).toLocaleString('id-ID');
@@ -6,7 +6,7 @@ const rp = n => 'Rp ' + Math.round(n).toLocaleString('id-ID');
 // ---------- Data sintetis ----------
 const BUDI = { subtotal: 450000 + 350000, deposit: 200000 };
 const budiDue = (pct = 0) => BUDI.subtotal - Math.round(BUDI.subtotal * pct / 100) - BUDI.deposit;
-console.assert(budiDue() === 600000, 'Sisa bayar Budi harus Rp 600.000 (800.000 − 200.000)');
+console.assert(budiDue() === 600000, 'Sisa bayar Budi harus Rp 600.000 (800.000 - 200.000)');
 console.assert(rp(budiDue()) === 'Rp 600.000', 'Format rupiah harus "Rp 600.000"');
 
 const SERVICES = [
@@ -14,7 +14,7 @@ const SERVICES = [
   { id: 'scaling', name: 'Scaling', min: 40, price: 400000 },
   { id: 'komposit', name: 'Tambalan komposit', min: 30, price: 450000 },
   { id: 'ekstraksi', name: 'Ekstraksi', min: 30, price: 350000 },
-  { id: 'kontrol', name: 'Kontrol', min: 15, price: 0, note: 'gratis dalam 14 hari setelah tindakan' },
+  { id: 'kontrol', name: 'Kontrol', min: 15, price: 0, note: 'gratis 14 hari' },
 ];
 const SLOTS = ['09.00', '09.30', '10.00', '10.30', '11.00', '13.00', '13.30', '14.00', '14.30', '15.00', '15.30', '16.00'];
 const DATES = [
@@ -24,6 +24,12 @@ const DATES = [
   { d: 17, day: 'Sel', label: 'Selasa, 17 Nov 2026', taken: ['09.30', '10.00', '14.00'] },
   { d: 18, day: 'Rab', label: 'Rabu, 18 Nov 2026', taken: ['09.00', '11.00', '13.00'] },
 ];
+// Jam beku prototipe: Sabtu 14 Nov 2026, 20.30 WIB. Slot hari ini yang sudah lewat tidak ditampilkan.
+const NOW = { d: 14, t: '20.30' };
+const openSlots = day => SLOTS.filter(t => !(day.d === NOW.d && t <= NOW.t));
+const bookable = day => !day.closed && openSlots(day).some(t => !day.taken.includes(t));
+console.assert(!bookable(DATES[0]) && openSlots(DATES[0]).length === 0, 'Hari ini 20.30: semua slot sudah lewat');
+console.assert(openSlots(DATES[3]).length === SLOTS.length && bookable(DATES[3]), '17 Nov tidak terpengaruh jam beku');
 
 // ---------- Mode & layar ----------
 const MODES = {
@@ -33,10 +39,10 @@ const MODES = {
   dokter: ['dokter'],
 };
 const LABELS = {
-  booking: '1 · Pilih layanan & slot', data: '2 · Isi / konfirmasi data', otp: '3 · Kode OTP WhatsApp',
-  'booking-ok': '4 · Booking terkonfirmasi', checkin: '5 · Kiosk check-in', antrean: '6 · Status antrean',
-  tagihan: '7 · Tagihan (Budi)', 'bayar-qris': '8 · Bayar QRIS', struk: '9 · Struk digital', kontrol: '10 · Janji kontrol',
-  kedaluwarsa: '11 · Tautan kedaluwarsa', 'sudah-dipakai': '12 · Tautan sudah dipakai', fo: '13 · FO pengecualian', dokter: '14 · Dokter: RM + kasir ringkas',
+  booking: '1. Pilih layanan & slot', data: '2. Isi / konfirmasi data', otp: '3. Kode OTP WhatsApp',
+  'booking-ok': '4. Booking terkonfirmasi', checkin: '5. Kiosk check-in', antrean: '6. Status antrean',
+  tagihan: '7. Tagihan (Budi)', 'bayar-qris': '8. Bayar QRIS', struk: '9. Struk digital', kontrol: '10. Janji kontrol',
+  kedaluwarsa: '11. Tautan kedaluwarsa', 'sudah-dipakai': '12. Tautan sudah dipakai', fo: '13. FO pengecualian', dokter: '14. Dokter: RM + kasir ringkas',
 };
 let mode = 'pasien';
 const sel = $('#screen-select');
@@ -88,15 +94,19 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') $$('.backdro
 // ---------- Pemilih tanggal & slot (dipakai booking dan kontrol) ----------
 function slotPicker(datesEl, slotsEl, state, onChange) {
   function render() {
-    datesEl.innerHTML = DATES.map(x => `<button type="button" data-d="${x.d}" aria-pressed="${x.d === state.date}" ${x.closed ? 'disabled' : ''}
-      aria-label="${x.label}${x.closed ? ', tutup' : ''}"><small>${x.tag || x.day}</small>${x.d} Nov<small>${x.closed ? 'Tutup' : ''}</small></button>`).join('');
-    const day = DATES.find(x => x.d === state.date);
-    const group = (title, list) => `<p class="slot-group">${title}</p><div class="slots">${list.map(t => {
+    datesEl.innerHTML = DATES.map(x => {
+      const off = x.closed ? 'Tutup' : bookable(x) ? '' : 'Tidak ada slot';
+      return `<button type="button" data-d="${x.d}" aria-pressed="${x.d === state.date}" ${off ? 'disabled' : ''}
+      aria-label="${x.label}${off ? ', ' + off.toLowerCase() : ''}"><small>${x.tag || x.day}</small>${x.d} Nov<small>${off}</small></button>`;
+    }).join('');
+    const day = DATES.find(x => x.d === state.date), open = openSlots(day);
+    const group = (title, list) => !list.length ? '' : `<p class="slot-group">${title}</p><div class="slots">${list.map(t => {
       const taken = day.taken.includes(t);
       return `<button type="button" data-t="${t}" aria-pressed="${t === state.time}" ${taken ? 'disabled' : ''} aria-label="${t}${taken ? ', sudah terisi' : ''}">${t}</button>`;
     }).join('')}</div>`;
-    slotsEl.innerHTML = (day.tag ? '<p class="help" style="margin-top:8px">Hari ini tinggal slot sore.</p>' : '') +
-      group('Pagi', SLOTS.slice(0, 5)) + group('Siang–sore', SLOTS.slice(5));
+    slotsEl.innerHTML = open.length
+      ? group('Pagi', open.filter(t => t < '12.00')) + group('Siang', open.filter(t => t > '12.00'))
+      : '<p class="help" style="margin-top:8px">Tidak ada slot</p>';
     onChange();
   }
   datesEl.addEventListener('click', e => {
@@ -117,15 +127,15 @@ function slotPicker(datesEl, slotsEl, state, onChange) {
 const booking = { svc: 'scaling', date: 17, time: '09.00' };
 $('#services').innerHTML = SERVICES.map(s => `<button type="button" class="service" data-svc="${s.id}" aria-pressed="false">
   <span class="tick"><svg aria-hidden="true"><use href="#i-check"/></svg></span>
-  <span class="grow"><b>${s.name}</b><small>${s.min} mnt${s.note ? ' · ' + s.note : ''}</small></span>
+  <span class="grow"><b>${s.name}</b><small>${s.min} mnt${s.note ? ', ' + s.note : ''}</small></span>
   <span class="rp">${rp(s.price)}</span></button>`).join('');
 function syncBooking() {
   $$('#services .service').forEach(b => b.setAttribute('aria-pressed', b.dataset.svc === booking.svc));
   const s = SERVICES.find(x => x.id === booking.svc), d = DATES.find(x => x.d === booking.date);
   $('#to-data').disabled = !booking.time;
   $('#booking-summary').textContent = booking.time
-    ? `${s.name} · ${d.label} · ${booking.time} WIB · drg. Nadia Putri`
-    : 'Pilih jam yang tersedia.';
+    ? `${s.name}: ${d.label}, ${booking.time} WIB`
+    : 'Pilih jam.';
 }
 $('#services').addEventListener('click', e => {
   const b = e.target.closest('[data-svc]'); if (!b) return;
@@ -212,13 +222,13 @@ function setQrisFailed(f) {
   clearInterval(countdownTimer); if (!f) startCountdown();
 }
 $('#qris-ok').addEventListener('click', () => show('struk'));
-$('#qris-new').addEventListener('click', () => { setQrisFailed(false); toast('Kode QRIS baru dibuat (contoh).'); });
+$('#qris-new').addEventListener('click', () => { setQrisFailed(false); toast('QR baru dibuat (contoh).'); });
 
 // ---------- 10. Kontrol ----------
 const kontrol = { date: 18, time: '10.00' };
 slotPicker($('#k-dates'), $('#k-slots-wrap'), kontrol, () => {
   $('#k-confirm').disabled = !kontrol.time;
-  $('#k-summary').textContent = kontrol.time ? `${DATES.find(x => x.d === kontrol.date).label} · ${kontrol.time} WIB · Rp 0` : 'Pilih jam yang tersedia.';
+  $('#k-summary').textContent = kontrol.time ? `${DATES.find(x => x.d === kontrol.date).label}, ${kontrol.time} WIB` : 'Pilih jam.';
 });
 $('#k-confirm').addEventListener('click', () => {
   $('#k-ok-date').textContent = DATES.find(x => x.d === kontrol.date).label;
@@ -256,11 +266,11 @@ $('#screen-fo').addEventListener('click', e => {
   const p = e.target.closest('[data-pay]'), w = e.target.closest('[data-wa]');
   if (p) {
     payKey = p.dataset.pay; payMethod = 'tunai'; cashIn = FO[payKey].amt; $('#edc-ref').value = '';
-    $('#pay-who').textContent = `${FO[payKey].name} · ${FO[payKey].inv}`;
+    $('#pay-who').textContent = `${FO[payKey].name}, ${FO[payKey].inv}`;
     $('#pay-amt').textContent = rp(FO[payKey].amt);
     renderPay(); $('#pay-modal').hidden = false; $('#pay-modal .tile').focus();
   }
-  if (w) toast(`Pratinjau WA ke orang tua (0800-000-0002, contoh): "Tagihan Klinik Gigi Senyum Sehat ${rp(FO[w.dataset.wa].amt)} siap dibayar: [tautan]" — tanpa isi klinis. Prototipe: tidak dikirim.`);
+  if (w) toast(`Pratinjau WA ke 0800-000-0002 (contoh): "Tagihan Klinik Gigi Senyum Sehat ${rp(FO[w.dataset.wa].amt)}: [tautan]". Tidak dikirim.`);
 });
 $$('#pay-modal .tile').forEach(t => t.addEventListener('click', () => { payMethod = t.dataset.method; renderPay(); }));
 $('#cash-preset').addEventListener('click', e => { const b = e.target.closest('[data-v]'); if (b) { cashIn = +b.dataset.v; renderPay(); } });
@@ -269,10 +279,10 @@ $('#pay-confirm').addEventListener('click', () => {
   row.classList.add('done');
   row.querySelector('.amt .chip').className = 'chip chip-paid';
   row.querySelector('.amt .chip').textContent = 'lunas';
-  row.querySelector('.row-cta').innerHTML = `<span class="muted small">Lunas · ${payMethod === 'tunai' ? 'Tunai' : 'EDC'} · Sari</span>`;
+  row.querySelector('.row-cta').innerHTML = `<span class="muted small">Lunas ${payMethod === 'tunai' ? 'tunai' : 'EDC'}, Sari</span>`;
   $('#kpi-open').textContent = $$('#screen-fo .row:not(.done)').length;
   $('#pay-modal').hidden = true;
-  toast(`${FO[payKey].name}: lunas ${rp(FO[payKey].amt)} (${payMethod === 'tunai' ? 'tunai' : 'EDC'}). Struk dikirim ke WA pasien (prototipe).`);
+  toast(`${FO[payKey].name}: lunas ${rp(FO[payKey].amt)}, ${payMethod === 'tunai' ? 'tunai' : 'EDC'}.`);
 });
 
 // ---------- 14. Dokter: kasir ringkas ----------
@@ -287,9 +297,9 @@ $('#disc').addEventListener('click', e => {
   $('#disc-amt').textContent = '−' + rp(disc);
   $('#doc-due').textContent = rp(budiDue(discPct));
 });
-console.assert(budiDue(15) === 480000, 'Diskon 15%: 800.000 − 120.000 − 200.000 = 480.000');
-$('#send-bill').addEventListener('click', () => toast(`Tagihan ${rp(budiDue(discPct))} dikirim ke WA 0800-000-0000 (contoh) — hanya tindakan & harga. Prototipe: tidak dikirim.`));
-$('#to-fo').addEventListener('click', () => toast(`Tagihan ${rp(budiDue(discPct))} diserahkan ke FO (Sari). Muncul di panel Pengecualian.`));
+console.assert(budiDue(15) === 480000, 'Diskon 15%: 800.000 - 120.000 - 200.000 = 480.000');
+$('#send-bill').addEventListener('click', () => toast(`Tagihan ${rp(budiDue(discPct))} ke WA 0800-000-0000 (contoh). Tidak dikirim.`));
+$('#to-fo').addEventListener('click', () => toast(`Tagihan ${rp(budiDue(discPct))} diserahkan ke FO.`));
 
 // ---------- Rute awal ----------
 // ?layar=tagihan, #tagihan, ?mode=kiosk, ?demo=qris|qris-gagal|kedaluwarsa|dipakai|kiosk|fo|dokter

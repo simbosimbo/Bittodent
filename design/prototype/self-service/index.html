@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bittodent — Prototipe Layanan Mandiri (DATA SINTETIS)</title>
+<title>Bittodent, prototipe layanan mandiri (DATA SINTETIS)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -52,14 +52,14 @@
   </div>
   <label class="lbl" for="screen-select">Layar</label>
   <select id="screen-select"></select>
-  <span class="synth-banner">DATA SINTETIS — prototipe, bukan aplikasi produksi</span>
+  <span class="synth-banner">DATA SINTETIS</span>
 </div>
 
 <div class="app">
   <!-- Sidebar staf (FO / Dokter) -->
   <nav class="sidebar" aria-label="Navigasi staf">
     <div class="brand"><span class="brand-mark"><svg width="22" height="22" aria-hidden="true"><use href="#i-tooth"/></svg></span>Bittodent</div>
-    <div class="clinic"><b>Klinik Gigi Senyum Sehat</b><span>Jl. Tebet Raya No. 21, Jakarta Selatan</span><span class="pill-synth">DATA SINTETIS</span></div>
+    <div class="clinic"><b>Klinik Gigi Senyum Sehat</b><span>Jl. Tebet Raya No. 21, Jakarta Selatan</span></div>
     <div class="only-fo">
       <span class="nav-item" aria-current="page"><svg aria-hidden="true"><use href="#i-alert"/></svg>Pengecualian</span>
       <span class="nav-item"><svg aria-hidden="true"><use href="#i-user"/></svg>Antrean</span>
@@ -79,13 +79,12 @@
         <span class="brand-mark"><svg width="20" height="20" aria-hidden="true"><use href="#i-tooth"/></svg></span>
         <div><b>Klinik Gigi Senyum Sehat</b><small>Tebet, Jakarta Selatan</small></div>
       </div>
-      <div style="margin-top:6px"><span class="pill-synth">DATA SINTETIS — prototipe, bukan aplikasi produksi</span></div>
     </header>
 
     <!-- Kepala kiosk -->
     <header class="kiosk-top">
       <span class="brand-mark"><svg width="28" height="28" aria-hidden="true"><use href="#i-tooth"/></svg></span>
-      <div><b>Klinik Gigi Senyum Sehat</b><small>Kios check-in · <span class="pill-synth" style="background:#fff">DATA SINTETIS</span></small></div>
+      <div><b>Klinik Gigi Senyum Sehat</b><small>Kios check-in</small></div>
       <div class="clock"><b class="num">08.50</b><br>Selasa, 17 Nov 2026 <small>(simulasi hari H)</small></div>
     </header>
 
@@ -93,7 +92,7 @@
     <header class="topbar only-staff">
       <span class="title only-fo">Pengecualian pembayaran</span>
       <span class="title only-dokter">Rekam medis</span>
-      <span class="muted small">Sabtu, 14 Nov 2026 · 20.30 WIB</span>
+      <span class="muted small">Sabtu, 14 Nov 2026, 20.30 WIB</span>
       <div class="user-chip only-fo"><span class="avatar c">SF</span><div><b>Sari</b><small>Front Desk</small></div></div>
       <div class="user-chip only-dokter"><span class="avatar">NP</span><div><b>drg. Nadia Putri</b><small>Dokter gigi</small></div></div>
     </header>
@@ -105,22 +104,20 @@
   <div class="phone-col">
     <p class="step">LANGKAH 1 DARI 3</p>
     <h1 class="screen-title" id="h-booking">Buat janji temu</h1>
-    <p class="screen-sub doc-line"><span class="avatar" style="width:32px;height:32px;font-size:11px">NP</span>drg. Nadia Putri · dokter gigi umum</p>
+    <p class="screen-sub doc-line"><span class="avatar" style="width:32px;height:32px;font-size:11px">NP</span>drg. Nadia Putri</p>
     <div class="booking-grid" style="margin-top:16px">
       <div class="card">
         <h2 class="card-title" style="margin-bottom:10px">Pilih layanan</h2>
         <div class="services" id="services"></div>
-        <p class="help" style="margin-top:8px">Harga tetap untuk pasien umum. Tindakan tambahan diputuskan dokter saat pemeriksaan.</p>
       </div>
       <div class="card">
         <h2 class="card-title" style="margin-bottom:10px">Tanggal &amp; jam</h2>
         <div class="dates" id="dates" role="group" aria-label="Pilih tanggal"></div>
         <div id="slots-wrap"></div>
-        <div class="legend"><span>■ tersedia</span><span><s>09.30</s> sudah terisi</span></div>
       </div>
     </div>
     <div class="cta-bar">
-      <button type="button" class="btn btn-primary btn-block btn-xl" id="to-data">Lanjut isi data</button>
+      <button type="button" class="btn btn-primary btn-block btn-xl" id="to-data">Lanjut</button>
       <p class="help" id="booking-summary" aria-live="polite"></p>
     </div>
   </div>
@@ -131,21 +128,20 @@
   <div class="phone-col">
     <p class="step">LANGKAH 2 DARI 3</p>
     <h1 class="screen-title" id="h-data">Konfirmasi data Anda</h1>
-    <p class="screen-sub">Kami hanya meminta yang perlu untuk janji temu.</p>
-    <div class="banner banner-info" id="prefill-banner" style="margin-top:14px"><svg aria-hidden="true"><use href="#i-link"/></svg><span>Data terisi dari tautan WhatsApp Anda. Periksa, lalu kirim kode verifikasi. <button type="button" class="btn btn-ghost" id="not-me" style="min-height:44px;padding:0 4px;text-decoration:underline">Bukan saya / pasien baru</button></span></div>
+    <div class="banner banner-info" id="prefill-banner" style="margin-top:14px"><svg aria-hidden="true"><use href="#i-link"/></svg><span>Terisi dari WhatsApp Anda. <button type="button" class="btn btn-ghost" id="not-me" style="min-height:44px;padding:0 4px;text-decoration:underline">Bukan saya</button></span></div>
     <form class="card form-grid" id="data-form" style="margin-top:14px" novalidate>
       <div class="field"><label for="f-nama">Nama lengkap</label><input class="input" id="f-nama" autocomplete="name" required></div>
       <div class="field"><label for="f-lahir">Tanggal lahir</label><input class="input" id="f-lahir" type="date" required></div>
       <fieldset class="field" style="border:0;padding:0;margin:0"><legend class="lbl2" style="margin-bottom:6px">Jenis kelamin</legend>
         <div class="radio-row"><label><input type="radio" name="jk" value="P">Perempuan</label><label><input type="radio" name="jk" value="L">Laki-laki</label></div>
       </fieldset>
-      <div class="field"><label for="f-wa">Nomor WhatsApp</label><input class="input" id="f-wa" type="tel" inputmode="tel" autocomplete="tel" required><span class="help">Kode verifikasi dikirim ke nomor ini. Nomor contoh: 0800-000-000x.</span></div>
+      <div class="field"><label for="f-wa">Nomor WhatsApp</label><input class="input" id="f-wa" type="tel" inputmode="tel" autocomplete="tel" required></div>
       <div class="field"><label for="f-email">Email <span style="font-weight:500">(opsional)</span></label><input class="input" id="f-email" type="email" autocomplete="email" placeholder="nama@example.com"></div>
       <p class="err" id="data-err" role="alert" hidden>Lengkapi nama, tanggal lahir, jenis kelamin, dan nomor WhatsApp.</p>
-      <p class="note">Tidak perlu NIK untuk membuat janji. Data dipakai untuk janji temu dan pengingat yang Anda setujui.</p>
+      <p class="help">Tanpa NIK.</p>
     </form>
     <div class="cta-bar">
-      <button type="submit" form="data-form" class="btn btn-primary btn-block btn-xl"><svg aria-hidden="true"><use href="#i-wa"/></svg>Kirim kode verifikasi WhatsApp</button>
+      <button type="submit" form="data-form" class="btn btn-primary btn-block btn-xl"><svg aria-hidden="true"><use href="#i-wa"/></svg>Kirim kode</button>
     </div>
   </div>
 </section>
@@ -155,7 +151,7 @@
   <div class="phone-col">
     <p class="step">LANGKAH 3 DARI 3</p>
     <h1 class="screen-title" id="h-otp">Masukkan kode verifikasi</h1>
-    <p class="screen-sub">Kode 6 angka dikirim lewat WhatsApp ke <b class="num" id="otp-to">0800-000-0001</b> (nomor contoh).</p>
+    <p class="screen-sub">Dikirim ke WhatsApp <b class="num" id="otp-to">0800-000-0001</b> (contoh).</p>
     <div class="card" style="margin-top:16px">
       <div class="pin" id="otp" role="group" aria-label="Kode verifikasi 6 angka">
         <input inputmode="numeric" maxlength="1" autocomplete="one-time-code" aria-label="Angka 1">
@@ -165,9 +161,9 @@
         <input inputmode="numeric" maxlength="1" aria-label="Angka 5">
         <input inputmode="numeric" maxlength="1" aria-label="Angka 6">
       </div>
-      <p class="help center">Prototipe: menerima 6 angka apa saja, mis. 123456. Kode tidak disimpan.</p>
-      <p class="center" style="margin-top:12px"><button type="button" class="btn btn-ghost" data-toast="Prototipe: kode tidak dikirim. Kirim ulang aktif lagi dalam 60 detik.">Kirim ulang kode</button></p>
-      <p class="center"><button type="button" class="btn btn-ghost" data-go="data">Ganti nomor WhatsApp</button></p>
+      <p class="help center">Prototipe: 6 angka apa saja.</p>
+      <p class="center" style="margin-top:12px"><button type="button" class="btn btn-ghost" data-toast="Prototipe: kode tidak dikirim.">Kirim ulang</button></p>
+      <p class="center"><button type="button" class="btn btn-ghost" data-go="data">Ganti nomor</button></p>
     </div>
     <div class="cta-bar">
       <button type="button" class="btn btn-primary btn-block btn-xl" id="otp-verify" disabled>Verifikasi</button>
@@ -180,7 +176,7 @@
   <div class="phone-col">
     <div class="hero"><div class="check"><svg aria-hidden="true"><use href="#i-check"/></svg></div>
       <h1 class="screen-title" id="h-bok">Janji temu terkonfirmasi</h1>
-      <p class="screen-sub">Konfirmasi juga dikirim ke WhatsApp Anda.</p></div>
+      <p class="screen-sub">Dikirim juga ke WhatsApp.</p></div>
     <div class="card" style="margin-top:16px">
       <dl class="kv">
         <dt>Pasien</dt><dd id="bok-name">Ratna Dewi Anggraini</dd>
@@ -188,20 +184,20 @@
         <dt>Tanggal</dt><dd id="bok-date">Selasa, 17 Nov 2026</dd>
         <dt>Jam</dt><dd class="num" id="bok-time">09.00 WIB</dd>
         <dt>Dokter</dt><dd>drg. Nadia Putri</dd>
-        <dt>Perkiraan biaya</dt><dd class="rp" id="bok-price">Rp 400.000</dd>
+        <dt>Biaya</dt><dd class="rp" id="bok-price">Rp 400.000</dd>
       </dl>
     </div>
     <div class="card center" style="margin-top:12px">
       <p class="label-up">Kode booking</p>
       <p class="code-big" style="margin:4px 0 12px">SS-17-R4T</p>
       <svg class="qr lg" role="img" aria-label="Kode QR contoh untuk check-in di kios"><use href="#qr-art"/></svg>
-      <p class="qr-cap">Tunjukkan QR ini di kios klinik saat datang. QR contoh — prototipe.</p>
+      <p class="qr-cap">Tunjukkan di kios saat datang.</p>
     </div>
     <div class="actions" style="margin-top:12px">
       <button type="button" class="btn" data-toast="Prototipe: file kalender (.ics) tidak dibuat."><svg aria-hidden="true"><use href="#i-cal"/></svg>Tambah ke kalender</button>
-      <button type="button" class="btn" data-toast="Prototipe: pesan WhatsApp tidak dikirim."><svg aria-hidden="true"><use href="#i-wa"/></svg>Kirim ulang ke WhatsApp</button>
+      <button type="button" class="btn" data-toast="Prototipe: pesan WhatsApp tidak dikirim."><svg aria-hidden="true"><use href="#i-wa"/></svg>Kirim ke WhatsApp</button>
     </div>
-    <p class="help center" style="margin-top:12px">Ingin ubah jadwal? Balas pesan WhatsApp klinik atau hubungi 0800-000-0000 (contoh).</p>
+    <p class="help center" style="margin-top:12px">Ubah jadwal: balas WhatsApp klinik.</p>
     <p class="center hide-pasien" style="margin-top:12px"><button type="button" class="btn btn-primary btn-xl" data-go="checkin">Selesai</button></p>
   </div>
 </section>
@@ -211,27 +207,23 @@
   <button type="button" class="kiosk-idle" id="kiosk-idle">
     <span>
       <h1 id="h-checkin">Selamat datang di<br>Klinik Gigi Senyum Sehat</h1>
-      <p>Check-in janji temu atau daftar untuk hari ini.</p>
       <span class="tap"><svg width="30" height="30" aria-hidden="true"><use href="#i-qr"/></svg>Ketuk untuk mulai</span>
     </span>
   </button>
   <div id="kiosk-active" hidden>
-    <h2 class="screen-title">Scan QR booking atau masukkan kode</h2>
-    <p class="screen-sub">QR dan kode ada di pesan WhatsApp konfirmasi janji Anda.</p>
+    <h2 class="screen-title">Scan QR atau ketik kode</h2>
     <div class="checkin-grid" style="margin-top:16px">
       <div class="card">
         <div class="camera" aria-label="Pratinjau kamera (contoh)"><div class="frame"></div><p>Arahkan QR ke kamera</p></div>
-        <button type="button" class="btn btn-block" id="sim-scan" style="margin-top:12px"><svg aria-hidden="true"><use href="#i-qr"/></svg>Simulasikan scan QR</button>
+        <button type="button" class="btn btn-block" id="sim-scan" style="margin-top:12px"><svg aria-hidden="true"><use href="#i-qr"/></svg>Simulasi scan</button>
       </div>
       <div class="card stack">
         <div class="field"><label for="kode">Kode booking</label>
-          <input class="input code-input" id="kode" autocomplete="off" placeholder="SS-17-R4T" aria-describedby="kode-help kode-err"></div>
-        <p class="help" id="kode-help" style="font-size:14px">Contoh untuk prototipe: SS-17-R4T</p>
-        <p class="err" id="kode-err" role="alert" hidden>Kode tidak ditemukan. Cek pesan WhatsApp atau tanya petugas di meja depan.</p>
+          <input class="input code-input" id="kode" autocomplete="off" placeholder="SS-17-R4T" aria-describedby="kode-err"></div>
+        <p class="err" id="kode-err" role="alert" hidden>Kode tidak ditemukan. Tanya meja depan.</p>
         <button type="button" class="btn btn-primary btn-block btn-xl" id="do-checkin">Check-in</button>
         <hr style="border:0;border-top:1px solid var(--border);margin:20px 0 4px">
-        <p class="muted" style="font-size:16px">Belum punya janji?</p>
-        <button type="button" class="btn btn-block" id="kiosk-book"><svg aria-hidden="true"><use href="#i-cal"/></svg>Daftar janji hari ini</button>
+        <button type="button" class="btn btn-block" id="kiosk-book"><svg aria-hidden="true"><use href="#i-cal"/></svg>Daftar janji baru</button>
       </div>
     </div>
   </div>
@@ -239,8 +231,8 @@
 
 <!-- ======================= 6. ANTREAN ======================= -->
 <section class="screen" id="screen-antrean" data-screen="antrean" aria-labelledby="h-antrean" hidden>
-  <div class="hero hide-kiosk" style="margin-bottom:12px"><h1 class="screen-title" id="h-antrean">Anda sudah check-in</h1><p class="screen-sub">Selasa, 17 Nov 2026 (simulasi hari H)</p></div>
-  <div class="only-kiosk" style="margin-bottom:16px"><div class="banner banner-ok" style="font-size:20px"><svg aria-hidden="true" style="width:24px;height:24px"><use href="#i-check"/></svg>Check-in berhasil, Ratna D. Tunggu hingga nama Anda dipanggil.</div></div>
+  <div class="hero hide-kiosk" style="margin-bottom:12px"><h1 class="screen-title" id="h-antrean">Anda sudah check-in</h1><p class="screen-sub">Selasa, 17 Nov 2026 (simulasi)</p></div>
+  <div class="only-kiosk" style="margin-bottom:16px"><div class="banner banner-ok" style="font-size:20px"><svg aria-hidden="true" style="width:24px;height:24px"><use href="#i-check"/></svg>Check-in berhasil, Ratna D.</div></div>
   <div class="antrean-wrap">
     <div class="card center">
       <p class="label-up">Nomor antrean</p>
@@ -249,74 +241,69 @@
     </div>
     <div class="card stack">
       <div class="queue-facts">
-        <div><b>1</b><small>orang sedang dirawat</small></div>
-        <div><b>±20</b><small>menit menunggu</small></div>
-        <div><b>Ke-2</b><small>posisi Anda</small></div>
+        <div><b>1</b><small>dirawat</small></div>
+        <div><b>±20</b><small>menit</small></div>
+        <div><b>Ke-2</b><small>posisi</small></div>
       </div>
       <dl class="kv">
         <dt>Dokter</dt><dd>drg. Nadia Putri</dd>
         <dt>Layanan</dt><dd>Scaling</dd>
         <dt>Jam janji</dt><dd class="num">09.00 WIB</dd>
       </dl>
-      <p class="help"><svg width="14" height="14" aria-hidden="true" style="vertical-align:-2px"><use href="#i-clock"/></svg> Diperbarui 08.50 · halaman menyegarkan otomatis tiap 30 detik</p>
-      <p class="only-pasien help">Silakan tunggu di ruang tunggu. Petugas akan memanggil nama Anda.</p>
+      <p class="help"><svg width="14" height="14" aria-hidden="true" style="vertical-align:-2px"><use href="#i-clock"/></svg> Diperbarui 08.50</p>
+      <p class="only-pasien help">Tunggu nama Anda dipanggil.</p>
       <button type="button" class="btn btn-primary btn-block btn-xl only-kiosk" data-go="checkin">Selesai</button>
-      <p class="only-kiosk help center" style="font-size:14px">Layar kembali ke awal dalam 10 detik.</p>
     </div>
   </div>
 </section>
 
 <!-- ======================= 7. TAGIHAN ======================= -->
 <section class="screen" id="screen-tagihan" data-screen="tagihan" aria-labelledby="h-tagihan" hidden>
-  <p class="muted small">Tagihan TG-2026-11014-001 · Sabtu, 14 Nov 2026</p>
+  <p class="muted small">TG-2026-11014-001, 14 Nov 2026</p>
   <h1 class="screen-title" id="h-tagihan" style="margin-top:4px">Halo, Budi Santoso</h1>
-  <p class="screen-sub">Terima kasih sudah berkunjung. Berikut tagihan perawatan hari ini bersama drg. Nadia Putri.</p>
   <div class="card" style="margin-top:14px">
     <div class="card-head" style="margin-bottom:4px"><h2 class="card-title">Rincian</h2><span class="chip chip-wait">menunggu</span></div>
     <div class="sumline"><span>Tambalan komposit</span><span class="rp">Rp 450.000</span></div>
     <div class="sumline"><span>Ekstraksi</span><span class="rp">Rp 350.000</span></div>
     <div class="sumline"><b>Subtotal</b><b class="rp">Rp 800.000</b></div>
-    <div class="sumline"><span>Saldo deposit dipakai<span class="meta">Saldo Rp 200.000 → sisa saldo Rp 0</span></span><span class="rp neg">−Rp 200.000</span></div>
+    <div class="sumline"><span>Saldo deposit dipakai<span class="meta">Sisa saldo Rp 0</span></span><span class="rp neg">−Rp 200.000</span></div>
     <div class="sumline total"><span>Sisa bayar</span><span class="rp" id="due-budi">Rp 600.000</span></div>
   </div>
-  <p class="note" style="margin-top:12px">Catatan klinis tidak ditampilkan pada tautan pasien.</p>
-  <p class="help" style="margin-top:8px">Tautan ini berlaku 24 jam (sampai Minggu, 15 Nov 2026 20.10 WIB) dan hanya bisa dipakai sekali.</p>
+  <p class="help" style="margin-top:12px">Catatan klinis tidak ditampilkan.</p>
+  <p class="help" style="margin-top:4px">Berlaku sampai 15 Nov 2026, 20.10 WIB. Sekali pakai.</p>
   <div class="cta-bar">
-    <button type="button" class="btn btn-primary btn-block btn-xl" data-go="bayar-qris"><svg aria-hidden="true"><use href="#i-qr"/></svg>Bayar dengan QRIS <span class="rp">Rp 600.000</span></button>
-    <p class="help">Ingin bayar tunai atau kartu? Silakan ke meja depan klinik.</p>
+    <button type="button" class="btn btn-primary btn-block btn-xl" data-go="bayar-qris"><svg aria-hidden="true"><use href="#i-qr"/></svg>Bayar <span class="rp">Rp 600.000</span></button>
   </div>
 </section>
 
 <!-- ======================= 8. BAYAR QRIS ======================= -->
 <section class="screen" id="screen-bayar-qris" data-screen="bayar-qris" aria-labelledby="h-qris" hidden>
   <h1 class="screen-title" id="h-qris">Bayar dengan QRIS</h1>
-  <p class="screen-sub">Scan dengan aplikasi bank atau dompet digital apa saja.</p>
   <div class="card" style="margin-top:14px">
     <div class="qris-head"><span class="qris-logo">QRIS</span><span class="small muted">TG-2026-11014-001</span></div>
     <p class="center" style="font-weight:700">KLINIK GIGI SENYUM SEHAT</p>
-    <p class="center small muted">Jakarta Selatan · NMID contoh</p>
+    <p class="center small muted">NMID contoh</p>
     <p class="amount-big" style="margin:8px 0 12px">Rp 600.000</p>
     <svg class="qr lg" role="img" aria-label="QR contoh, bukan kode pembayaran asli"><use href="#qr-art"/></svg>
-    <p class="qr-cap">QR contoh — bukan QRIS asli, tidak bisa dibayar.</p>
+    <p class="qr-cap">QR contoh, tidak bisa dibayar.</p>
     <div id="qris-pending" style="margin-top:14px">
       <p class="waiting">Menunggu pembayaran</p>
       <p class="center small muted" style="margin-top:8px">Berlaku</p>
       <p class="countdown" id="countdown" aria-live="off">14:59</p>
     </div>
-    <div id="qris-failed" class="banner banner-warn" style="margin-top:14px" hidden><svg aria-hidden="true"><use href="#i-alert"/></svg><span><span class="chip chip-exp">kedaluwarsa</span><br>Kode QR sudah tidak berlaku. Buat kode baru, atau bayar di meja depan.</span></div>
+    <div id="qris-failed" class="banner banner-warn" style="margin-top:14px" hidden><svg aria-hidden="true"><use href="#i-alert"/></svg><span><span class="chip chip-exp">kedaluwarsa</span><br>QR sudah tidak berlaku.</span></div>
   </div>
   <div class="cta-bar">
-    <button type="button" class="btn btn-primary btn-block btn-xl" id="qris-ok">Pembayaran diterima (demo)</button>
-    <button type="button" class="btn btn-primary btn-block btn-xl" id="qris-new" hidden>Buat kode QRIS baru</button>
-    <button type="button" class="btn btn-ghost btn-block" data-toast="Silakan ke meja depan atau WhatsApp 0800-000-0000 (contoh). Petugas bisa menerima tunai/EDC.">Ada kendala? Hubungi FO</button>
+    <button type="button" class="btn btn-primary btn-block btn-xl" id="qris-ok">Tandai lunas (demo)</button>
+    <button type="button" class="btn btn-primary btn-block btn-xl" id="qris-new" hidden>Buat QR baru</button>
+    <button type="button" class="btn btn-ghost btn-block" data-toast="Ke meja depan atau WhatsApp 0800-000-0000 (contoh).">Hubungi FO</button>
   </div>
 </section>
 
 <!-- ======================= 9. STRUK ======================= -->
 <section class="screen" id="screen-struk" data-screen="struk" aria-labelledby="h-struk" hidden>
   <div class="hero"><div class="check"><svg aria-hidden="true"><use href="#i-check"/></svg></div>
-    <h1 class="screen-title" id="h-struk">Pembayaran berhasil</h1>
-    <p class="screen-sub">Struk digital Anda</p></div>
+    <h1 class="screen-title" id="h-struk">Pembayaran berhasil</h1></div>
   <div class="desk" style="margin-top:14px">
     <div class="paper" aria-label="Struk 80 mm">
       <div class="p-head"><b>Klinik Gigi Senyum Sehat</b>Jl. Tebet Raya No. 21, Jakarta Selatan<br><span class="small">DATA SINTETIS</span></div>
@@ -344,7 +331,7 @@
   </div>
   <div class="cta-bar">
     <button type="button" class="btn btn-primary btn-block btn-xl" data-go="kontrol"><svg aria-hidden="true"><use href="#i-cal"/></svg>Buat janji kontrol</button>
-    <p class="help">Kontrol gratis dalam 14 hari setelah tindakan.</p>
+    <p class="help">Gratis dalam 14 hari.</p>
   </div>
 </section>
 
@@ -352,9 +339,9 @@
 <section class="screen" id="screen-kontrol" data-screen="kontrol" aria-labelledby="h-kontrol" hidden>
   <div id="kontrol-form">
     <h1 class="screen-title" id="h-kontrol">Janji kontrol</h1>
-    <p class="screen-sub">Untuk Budi Santoso, bersama drg. Nadia Putri.</p>
+    <p class="screen-sub">Budi Santoso, drg. Nadia Putri</p>
     <div class="card" style="margin-top:14px">
-      <div class="service" aria-pressed="true" style="cursor:default"><span class="tick"><svg aria-hidden="true"><use href="#i-check"/></svg></span><span class="grow"><b>Kontrol</b><small>15 mnt · gratis dalam 14 hari setelah tindakan</small></span><span class="rp">Rp 0</span></div>
+      <div class="service" aria-pressed="true" style="cursor:default"><span class="tick"><svg aria-hidden="true"><use href="#i-check"/></svg></span><span class="grow"><b>Kontrol</b><small>15 mnt</small></span><span class="rp">Rp 0</span></div>
     </div>
     <div class="card" style="margin-top:12px">
       <h2 class="card-title" style="margin-bottom:10px">Tanggal &amp; jam</h2>
@@ -362,14 +349,14 @@
       <div id="k-slots-wrap"></div>
     </div>
     <div class="cta-bar">
-      <button type="button" class="btn btn-primary btn-block btn-xl" id="k-confirm">Konfirmasi janji kontrol</button>
+      <button type="button" class="btn btn-primary btn-block btn-xl" id="k-confirm">Konfirmasi</button>
       <p class="help" id="k-summary" aria-live="polite"></p>
     </div>
   </div>
   <div id="kontrol-ok" hidden>
     <div class="hero"><div class="check"><svg aria-hidden="true"><use href="#i-check"/></svg></div>
       <h1 class="screen-title">Janji kontrol terkonfirmasi</h1>
-      <p class="screen-sub">Pengingat dikirim lewat WhatsApp sehari sebelumnya.</p></div>
+      <p class="screen-sub">Pengingat via WhatsApp H-1.</p></div>
     <div class="card" style="margin-top:14px">
       <dl class="kv">
         <dt>Layanan</dt><dd>Kontrol (15 mnt)</dd>
@@ -393,10 +380,8 @@
     <div class="hero"><div class="check off"><svg aria-hidden="true"><use href="#i-clock"/></svg></div>
       <p><span class="chip chip-exp">kedaluwarsa</span></p>
       <h1 class="screen-title" id="h-exp" style="margin-top:10px">Tautan tidak berlaku</h1>
-      <p class="screen-sub" style="margin-top:8px">Tautan pembayaran ini sudah lewat 24 jam. Demi keamanan, rincian tagihan tidak ditampilkan lagi.</p></div>
-    <p style="margin-top:16px">Minta tautan baru ke klinik:</p>
-    <a class="btn btn-primary btn-block btn-xl" style="margin-top:10px" href="#kedaluwarsa" data-toast="Prototipe: WhatsApp tidak dibuka. Nomor contoh 0800-000-0000."><svg aria-hidden="true"><use href="#i-wa"/></svg>WhatsApp klinik 0800-000-0000</a>
-    <p class="help" style="margin-top:10px">Nomor contoh. Anda juga bisa membayar langsung di meja depan.</p>
+      <p class="screen-sub" style="margin-top:8px">Sudah lewat 24 jam.</p></div>
+    <a class="btn btn-primary btn-block btn-xl" style="margin-top:16px" href="#kedaluwarsa" data-toast="Prototipe: WhatsApp tidak dibuka. Nomor contoh 0800-000-0000."><svg aria-hidden="true"><use href="#i-wa"/></svg>Minta tautan baru</a>
   </div>
 </section>
 
@@ -406,7 +391,7 @@
     <div class="hero"><div class="check"><svg aria-hidden="true"><use href="#i-check"/></svg></div>
       <p><span class="chip chip-used">sudah dipakai</span></p>
       <h1 class="screen-title" id="h-used" style="margin-top:10px">Tagihan ini sudah lunas</h1>
-      <p class="screen-sub" style="margin-top:8px">Tautan sudah dipakai, jadi tidak bisa dibayar lagi. Anda tidak perlu melakukan apa-apa.</p></div>
+      <p class="screen-sub" style="margin-top:8px">Tautan sudah dipakai.</p></div>
     <button type="button" class="btn btn-block" style="margin-top:16px" id="used-toggle" aria-expanded="false" aria-controls="used-summary"><svg aria-hidden="true"><use href="#i-receipt"/></svg>Lihat struk</button>
     <div id="used-summary" hidden style="margin-top:12px;text-align:left">
       <dl class="kv" style="background:var(--canvas);padding:12px 14px;border-radius:12px">
@@ -416,61 +401,59 @@
         <dt>Waktu</dt><dd>14 Nov 2026 16.42</dd>
       </dl>
     </div>
-    <p class="help" style="margin-top:14px">Merasa belum membayar? Hubungi meja depan atau WhatsApp 0800-000-0000 (contoh).</p>
   </div>
 </section>
 
 <!-- ======================= 13. FO ======================= -->
 <section class="screen" id="screen-fo" data-screen="fo" aria-labelledby="h-fo" hidden>
-  <div class="page-head"><div><h1 id="h-fo">Pengecualian</h1><p>Sebagian besar pasien bayar sendiri lewat QRIS. Di sini hanya yang perlu bantuan.</p></div></div>
+  <h1 id="h-fo" class="sr-only">Pengecualian</h1>
   <div class="grid-12" style="margin-bottom:var(--gap)">
-    <div class="card kpi span-4"><p class="label-up">Pengecualian terbuka</p><p class="value" id="kpi-open">3</p><p class="hint">perlu tindakan FO</p></div>
-    <div class="card kpi span-4"><p class="label-up">Menunggu di kiosk</p><p class="value">0</p><p class="hint">semua check-in lancar</p></div>
-    <div class="card kpi span-4"><p class="label-up">Lunas lewat QRIS hari ini</p><p class="value">9</p><p class="hint">tanpa bantuan FO</p></div>
+    <div class="card kpi span-4"><p class="label-up">Pengecualian terbuka</p><p class="value" id="kpi-open">3</p></div>
+    <div class="card kpi span-4"><p class="label-up">Menunggu di kiosk</p><p class="value">0</p></div>
+    <div class="card kpi span-4"><p class="label-up">Lunas QRIS hari ini</p><p class="value">9</p></div>
   </div>
 
   <div class="card exc-group">
-    <div class="card-head"><div><h2 class="card-title">Bayar tunai / EDC di FO</h2><p class="card-sub">Pasien yang tidak bisa bayar QRIS.</p></div></div>
+    <div class="card-head"><h2 class="card-title">Tunai / EDC</h2></div>
     <div class="rows">
       <div class="row" data-row="siti">
         <span class="avatar b">SM</span>
-        <div class="grow"><div class="name">Siti Marlina</div><div class="meta">Datang langsung · TG-2026-11014-005 · minta bayar tunai</div></div>
+        <div class="grow"><div class="name">Siti Marlina</div><div class="meta">TG-2026-11014-005, minta tunai</div></div>
         <div class="amt"><b class="rp">Rp 150.000</b><span class="chip chip-wait">menunggu</span></div>
-        <div class="row-cta"><button type="button" class="btn btn-primary" data-pay="siti">Terima pembayaran</button></div>
+        <div class="row-cta"><button type="button" class="btn btn-primary" data-pay="siti">Terima</button></div>
       </div>
     </div>
   </div>
 
   <div class="card exc-group">
-    <div class="card-head"><div><h2 class="card-title">Pasien belum bayar</h2><p class="card-sub">Tagihan sudah dikirim, belum dibayar.</p></div></div>
+    <div class="card-head"><h2 class="card-title">Belum bayar</h2></div>
     <div class="rows">
       <div class="row" data-row="alya">
         <span class="avatar c">AR</span>
-        <div class="grow"><div class="name">Alya Rahmawati <span class="muted small">· 6 th</span></div><div class="meta">Orang tua bayar di FO · TG-2026-11014-003 · menunggu 25 menit</div></div>
+        <div class="grow"><div class="name">Alya Rahmawati <span class="muted small">6 th</span></div><div class="meta">TG-2026-11014-003, menunggu 25 mnt</div></div>
         <div class="amt"><b class="rp">Rp 300.000</b><span class="chip chip-wait">menunggu</span></div>
         <div class="row-cta">
-          <button type="button" class="btn btn-primary" data-pay="alya">Terima di FO</button>
-          <button type="button" class="btn" data-wa="alya">Kirim ulang tautan WA</button>
+          <button type="button" class="btn btn-primary" data-pay="alya">Terima</button>
+          <button type="button" class="btn" data-wa="alya">Kirim ulang</button>
         </div>
       </div>
     </div>
   </div>
 
   <div class="card exc-group">
-    <div class="card-head"><div><h2 class="card-title">Pembayaran QRIS gagal</h2><p class="card-sub">QR kedaluwarsa atau dibatalkan pasien.</p></div></div>
+    <div class="card-head"><h2 class="card-title">QRIS gagal</h2></div>
     <div class="rows">
       <div class="row" data-row="fajar">
         <span class="avatar">FP</span>
-        <div class="grow"><div class="name">Fajar Pratama</div><div class="meta">QRIS kedaluwarsa 19.55 · TG-2026-11014-002</div></div>
+        <div class="grow"><div class="name">Fajar Pratama</div><div class="meta">TG-2026-11014-002, kedaluwarsa 19.55</div></div>
         <div class="amt"><b class="rp">Rp 400.000</b><span class="chip chip-fail">gagal</span></div>
         <div class="row-cta">
-          <button type="button" class="btn" data-toast="Prototipe: QRIS baru tidak dibuat. Tautan baru akan dikirim ke WA pasien.">Kirim ulang QRIS</button>
-          <button type="button" class="btn btn-primary" data-pay="fajar">Ganti tunai/EDC</button>
+          <button type="button" class="btn" data-toast="Prototipe: QRIS baru tidak dikirim.">Kirim ulang</button>
+          <button type="button" class="btn btn-primary" data-pay="fajar">Terima</button>
         </div>
       </div>
     </div>
   </div>
-  <p class="help" style="margin-top:12px">Pesan WhatsApp hanya berisi nama klinik, jumlah, dan tautan — tanpa isi klinis.</p>
 </section>
 
 <!-- ======================= 14. DOKTER ======================= -->
@@ -480,7 +463,7 @@
       <span class="avatar b">BS</span>
       <div style="flex:1;min-width:200px">
         <h1 id="h-dokter" style="font-size:24px">Budi Santoso</h1>
-        <div class="facts"><span><b>36 th</b> · Laki-laki</span><span>RM <b>RM-000123</b></span><span>Penjamin <b>Umum</b></span><span>Saldo deposit <b class="rp">Rp 200.000</b></span></div>
+        <div class="facts"><span><b>36 th</b>, Laki-laki</span><span>RM <b>RM-000123</b></span><span>Penjamin <b>Umum</b></span><span>Saldo deposit <b class="rp">Rp 200.000</b></span></div>
       </div>
       <span class="chip chip-care">kunjungan hari ini</span>
     </div>
@@ -488,13 +471,12 @@
   <div class="grid-12">
     <div class="card span-6">
       <div class="card-head"><h2 class="card-title">Rekam medis ringkas</h2><span class="card-sub">14 Nov 2026</span></div>
-      <div class="proc"><div class="grow"><b>Tambalan komposit</b><span class="tooth">36-O</span><div class="meta">Ditandatangani drg. Nadia Putri · 19.40</div></div><span class="chip chip-paid">ditandatangani</span></div>
-      <div class="proc"><div class="grow"><b>Ekstraksi</b><span class="tooth">48</span><div class="meta">Ditandatangani drg. Nadia Putri · 20.05</div></div><span class="chip chip-paid">ditandatangani</span></div>
-      <div class="proc"><div class="grow"><span class="finding">Temuan 46 — dicatat, tidak ditagih</span><div class="meta" style="margin-top:4px">Temuan tidak pernah masuk tagihan.</div></div></div>
-      <p class="note" style="margin-top:8px">Hanya tindakan bertanda tangan yang masuk tagihan.</p>
+      <div class="proc"><div class="grow"><b>Tambalan komposit</b><span class="tooth">36-O</span><div class="meta">drg. Nadia Putri, 19.40</div></div><span class="chip chip-paid">ditandatangani</span></div>
+      <div class="proc"><div class="grow"><b>Ekstraksi</b><span class="tooth">48</span><div class="meta">drg. Nadia Putri, 20.05</div></div><span class="chip chip-paid">ditandatangani</span></div>
+      <div class="proc"><div class="grow"><span class="finding">Temuan 46: tidak ditagih</span></div></div>
     </div>
     <div class="card span-6">
-      <div class="card-head"><h2 class="card-title">Mode kasir ringkas</h2><span class="chip chip-wait">belum dikirim</span></div>
+      <div class="card-head"><h2 class="card-title">Kasir ringkas</h2><span class="chip chip-wait">belum dikirim</span></div>
       <div class="sumline"><span>Tambalan komposit <span class="tooth">36-O</span></span><span class="rp">Rp 450.000</span></div>
       <div class="sumline"><span>Ekstraksi <span class="tooth">48</span></span><span class="rp">Rp 350.000</span></div>
       <div class="sumline"><b>Subtotal</b><b class="rp">Rp 800.000</b></div>
@@ -507,17 +489,15 @@
           <button type="button" data-pct="15" aria-pressed="false">15%</button>
         </div>
         <div class="field" id="disc-reason-wrap" style="margin-top:10px" hidden>
-          <label for="disc-reason">Alasan diskon (tercatat di audit)</label>
+          <label for="disc-reason">Alasan (dicatat di audit)</label>
           <select class="input" id="disc-reason"><option>Pasien lama</option><option>Keringanan biaya</option><option>Kebijakan klinik</option></select>
-          <span class="help">Disetujui oleh drg. Nadia Putri — Anda pemberi persetujuan, tidak perlu PIN kedua.</span>
         </div>
       </div>
       <div class="sumline" id="disc-line" hidden><span>Diskon <span id="disc-pct"></span></span><span class="rp neg" id="disc-amt"></span></div>
       <div class="sumline"><span>Saldo deposit dipakai</span><span class="rp neg">−Rp 200.000</span></div>
-      <div class="sumline total"><span>Sisa bayar pasien</span><span class="rp" id="doc-due">Rp 600.000</span></div>
-      <p class="note" style="margin-top:10px">Tagihan pasien di tautan WA tidak menampilkan catatan klinis.</p>
-      <div class="actions" style="margin-top:14px">
-        <button type="button" class="btn btn-primary" id="send-bill"><svg aria-hidden="true"><use href="#i-wa"/></svg>Kirim tagihan ke pasien (WhatsApp)</button>
+      <div class="sumline total"><span>Sisa bayar</span><span class="rp" id="doc-due">Rp 600.000</span></div>
+      <div class="actions" style="margin-top:12px">
+        <button type="button" class="btn btn-primary" id="send-bill"><svg aria-hidden="true"><use href="#i-wa"/></svg>Kirim tagihan</button>
         <button type="button" class="btn" id="to-fo">Serahkan ke FO</button>
       </div>
     </div>
@@ -544,8 +524,7 @@
       <div class="change" id="change" style="margin-top:10px"><span>Kembalian</span><span class="rp"></span></div>
     </div>
     <div id="pay-edc" style="margin-top:14px" hidden>
-      <div class="field"><label for="edc-ref">No. referensi EDC</label><input class="input" id="edc-ref" inputmode="numeric" placeholder="6 angka dari struk mesin EDC"></div>
-      <p class="help" style="margin-top:6px">Konfirmasi setelah mesin EDC menyatakan disetujui.</p>
+      <div class="field"><label for="edc-ref">No. referensi EDC</label><input class="input" id="edc-ref" inputmode="numeric" placeholder="Dari struk EDC"></div>
     </div>
     <div class="actions">
       <button type="button" class="btn" data-close>Batal</button>

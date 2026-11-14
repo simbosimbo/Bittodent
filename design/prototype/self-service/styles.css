@@ -29,7 +29,6 @@ a { color: var(--primary); }
 .center { text-align: center; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .stack > * + * { margin-top: 16px; }
-.pill-synth { display: inline-block; background: var(--warn-bg); color: var(--warn-fg); border: 1px solid #E0A526; font-size: 11px; font-weight: 700; letter-spacing: .03em; padding: 2px 8px; border-radius: 999px; }
 
 /* ---------- Switcher peninjau ---------- */
 .switcher {
@@ -110,6 +109,15 @@ a { color: var(--primary); }
   .clinic { display: none; }
   .nav-item { font-size: 0; justify-content: center; padding: 0; gap: 0; }
   .nav-item svg { width: 22px; height: 22px; }
+  /* 1024×768: FO "QRIS gagal" dan tombol "Kirim tagihan" dokter terlihat tanpa scroll. Target sentuh tetap 44px. */
+  .m-fo, .m-dokter { --pad: 16px; --gap: 12px; }
+  .m-fo .kpi .value { font-size: 24px; margin-top: 2px; }
+  .m-fo .card-head, .m-dokter .card-head { margin-bottom: 6px; }
+  .m-fo .row { padding: 6px 0; min-height: 56px; }
+  .m-dokter .sumline, .m-dokter .proc { padding: 6px 0; }
+  .m-dokter .sumline.total { padding-top: 8px; }
+  .m-dokter .sumline.total .rp { font-size: 20px; }
+  .m-dokter .patient-strip .avatar { width: 44px; height: 44px; }
 }
 @media (max-width: 700px) {
   .m-fo .app, .m-dokter .app { grid-template-columns: 1fr; }
@@ -118,9 +126,6 @@ a { color: var(--primary); }
 }
 
 /* ---------- Umum ---------- */
-.page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: var(--gap); }
-.page-head h1 { font-size: 28px; font-weight: 700; line-height: 1.2; }
-.page-head p { color: var(--muted); margin-top: 4px; }
 .screen-title { font-size: 22px; font-weight: 700; line-height: 1.25; }
 .screen-sub { color: var(--muted); margin-top: 4px; }
 .step { font-size: 12px; font-weight: 700; color: var(--primary); letter-spacing: .03em; margin-bottom: 4px; }
@@ -136,7 +141,6 @@ a { color: var(--primary); }
 .card-sub { font-size: 12px; color: var(--muted); }
 .label-up { font-size: 12px; font-weight: 700; letter-spacing: .04em; color: var(--muted); text-transform: uppercase; }
 .kpi .value { font-size: 32px; font-weight: 700; color: var(--primary); line-height: 1.2; margin-top: 6px; font-variant-numeric: tabular-nums; }
-.kpi .hint { font-size: 12px; color: var(--muted); }
 
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
@@ -182,7 +186,6 @@ a { color: var(--primary); }
 .banner-info { background: var(--info-bg); color: var(--info-fg); }
 .banner-ok { background: var(--ok-bg); color: var(--ok-fg); }
 .banner-warn { background: var(--warn-bg); color: var(--warn-fg); }
-.note { background: var(--canvas); border: 1px dashed var(--line); border-radius: var(--r-ctl); padding: 10px 12px; font-size: 12px; color: var(--muted); }
 
 .sumline { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; }
 .sumline + .sumline { border-top: 1px solid var(--border); }
@@ -216,7 +219,6 @@ a { color: var(--primary); }
 .slots button[disabled] { background: var(--canvas); color: var(--muted); text-decoration: line-through; cursor: not-allowed; border-color: var(--border); }
 .slot-group { font-size: 12px; font-weight: 700; color: var(--muted); margin: 10px 0 6px; }
 .doc-line { display: flex; align-items: center; gap: 10px; }
-.legend { display: flex; gap: 14px; font-size: 12px; color: var(--muted); margin-top: 8px; flex-wrap: wrap; }
 .m-kiosk .booking-grid { display: grid; grid-template-columns: 1fr 1.15fr; gap: 20px; align-items: start; }
 .m-kiosk .booking-grid .services { grid-template-columns: 1fr; }
 
