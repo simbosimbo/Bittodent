@@ -11,6 +11,7 @@ export const ICONS = {
   heart: 'M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10',
   down: 'M6 9l6 6 6-6',
   right: 'M9 6l6 6-6 6',
+  left: 'M15 6l-6 6 6 6',
   user: 'M20 21v-1a5 5 0 0 0-5-5H9a5 5 0 0 0-5 5v1M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8',
   card: 'M3 6h18v12H3zM3 10h18M7 15h4',
   queue: 'M4 6h16M4 12h16M4 18h10',

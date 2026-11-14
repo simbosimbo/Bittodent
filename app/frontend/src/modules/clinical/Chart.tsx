@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent, type KeyboardEvent, type ReactNode } from 'react'
 import { ApiError, errorText } from '../../shared/api/http'
 import { setActivePatient } from '../../shared/activePatient'
 import { fmtDateTime, fmtDay, fmtTime } from '../../shared/format'
 import type { Me } from '../../shared/session'
 import { useIsMobile } from '../../shared/useIsMobile'
-import { PatientPage } from '../patients'
+import { AlertRibbon, ageTahun, PatientPage, SEX } from '../patients'
+import type { PatientFull } from '../patients'
 import {
   approveCorrection, changeStatus, correctNote, discardFinding, getChart, saveBaseline, saveFinding, saveNote, signVisit, visitFromAppointment,
   type Baseline, type Chart, type ChartVisit, type Finding, type Note, type ProcStatus, type Soap, type Surface, type ToothPresence, type Version,
@@ -24,8 +25,20 @@ const TABS = [['S', 'Subjektif'], ['O', 'Objektif'], ['A', 'Asesmen (ICD-10)'], 
 const fmt = (iso: string | null) => iso ? fmtDateTime(iso) : '—'
 // Header chip for the in-progress visit; dentist from the visit only (omitted when unknown), "drg." not doubled.
 const drName = (n: string | null | undefined) => { const name = n?.trim(); return name ? (/^(drg|dr)\./i.test(name) ? name : 'drg. ' + name) : '' }
-export function visitStatusText(v: Pick<ChartVisit, 'started_at' | 'dentist'>) {
-  return ['Sedang dirawat', drName(v.dentist.name), 'sejak ' + fmtTime(v.started_at)].filter(Boolean).join(' · ')
+export function visitStatusText(v: Pick<ChartVisit, 'started_at' | 'dentist'>, short = false) {
+  return [short ? 'Dirawat' : 'Sedang dirawat', drName(v.dentist.name), (short ? '' : 'sejak ') + fmtTime(v.started_at)].filter(Boolean).join(' · ')
+}
+// Modal focus trap: Tab / Shift+Tab wrap inside `el`.
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+function trapTab(e: KeyboardEvent<HTMLElement>) {
+  if (e.key !== 'Tab') return
+  const f = [...e.currentTarget.querySelectorAll<HTMLElement>(FOCUSABLE)]
+  if (!f.length) return
+  const [first, last] = [f[0], f[f.length - 1]]
+  if (e.shiftKey ? document.activeElement === first || !e.currentTarget.contains(document.activeElement) : document.activeElement === last) {
+    e.preventDefault()
+    ;(e.shiftKey ? last : first).focus()
+  }
 }
 /** "2 karies · 1 tambalan" over current rows, CONDITIONS order, zero counts skipped. */
 export const findingSummary = (items: { condition: string }[]) =>
@@ -297,7 +310,8 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   }, [chart, mine])
 
   // The record lives inside the patient: wrap every state in PatientPage (header + Profil/Keluarga/Riwayat menu).
-  const page = (actions: ReactNode, body: ReactNode, status?: ReactNode) => <PatientPage id={patientId} tab="rekam-medis" canChart alerts actions={actions} status={status}>{() => body}</PatientPage>
+  const page = (actions: ReactNode, body: ReactNode | ((pp: PatientFull) => ReactNode), status?: ReactNode) =>
+    <PatientPage id={patientId} tab="rekam-medis" canChart alerts actions={actions} status={status}>{(pp) => typeof body === 'function' ? body(pp) : body}</PatientPage>
   if (error) return page(null, <div className="card state-card error">{error} <a href="#/pasien">Kembali</a></div>)
   if (!chart) return page(null, <div className="card state-card muted">Memuat rekam medis…</div>)
   const p = chart.patient
@@ -399,7 +413,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
     <div className="chart-actions">
       {can('appointment.create') && <a className="btn btn-primary" href="#/jadwal">Buat janji</a>}
     </div>,
-    <>
+    (pp: PatientFull) => <>
       {msg && <p className="notice" role="status">{msg}</p>}
 
       <div role="tablist" aria-label="Bagian rekam medis" className="tabs chart-tabs">
@@ -457,8 +471,16 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
             // Mobile: tooth detail is a bottom sheet. Backdrop tap / × / Esc close it and clear the pick (same as × on desktop).
             <>
               <div className="sheet-backdrop" onClick={() => setPick(null)} />
-              <aside className="card tooth-panel sheet tooth-sheet" role="dialog" aria-label={`Detail gigi ${pick.tooth}`}
-                onKeyDown={(e) => e.key === 'Escape' && setPick(null)}>{panel}</aside>
+              <aside className="card tooth-panel sheet tooth-sheet" role="dialog" aria-modal="true" aria-label={`Detail gigi ${pick.tooth}`}
+                onKeyDown={(e) => { if (e.key === 'Escape') setPick(null); else trapTab(e) }}>
+                {/* Designer note: patient + allergies pinned at the top of the sheet while recording a finding. Header patient, no refetch. */}
+                <div className="sheet-strip">
+                  <p><strong>{pp.name}</strong> <span className="muted small">{[ageTahun(pp.dob), pp.sex && (SEX[pp.sex] ?? pp.sex)].filter(Boolean).map((x) => x + ' · ')}
+                    <span className="patient-mrn">No. RM <strong>{pp.mrn ?? 'belum ada'}</strong></span></span></p>
+                  <AlertRibbon patientId={pp.id} compactDefault label="Peringatan medis di detail gigi" only={['premedikasi', 'catatan_penting', 'alergi', 'kosong']} />
+                </div>
+                {panel}
+              </aside>
             </>
           )}
           <section className="card span-12" aria-labelledby="temuan-title">
@@ -512,6 +534,6 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
       {fixing && <CorrectionDialog note={fixing} solo={chart.solo_practice} onClose={() => setFixing(null)} onDone={async () => { setFixing(null); await load(); setMsg('Koreksi tersimpan.') }} />}
     </>,
     visit?.status === 'berlangsung' && !visit.notes.some((n) => n.versions.some((x) => x.signed_at))
-      ? <span className="visit-chip" role="note" aria-label="Status kunjungan">{visitStatusText(visit)}</span> : null,
+      ? <span className="visit-chip" role="note" aria-label="Status kunjungan">{visitStatusText(visit, mobile)}</span> : null,
   )
 }

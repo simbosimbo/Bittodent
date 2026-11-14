@@ -80,6 +80,9 @@ export function Shell({ me, nav, active, title = '', ribbon, onSwitchBranch, onL
       </>}
     </Menu>
   )
+  const bell = <button type="button" className="icon-btn" disabled aria-label="Notifikasi (segera hadir)"><Icon d={ICONS.bell} /></button>
+  // App re-renders on hashchange, so reading the hash here stays current.
+  const route = location.hash.slice(1).split('?')[0] || '/'
   const user = (
     <Menu label={`Akun ${me.user.name}`} className="shell-user" trigger={<>
       <span className="avatar" aria-hidden="true">{initials(me.user.name.replace(/^drg\.?\s*/i, ''))}</span>
@@ -119,12 +122,27 @@ export function Shell({ me, nav, active, title = '', ribbon, onSwitchBranch, onL
         {/* top bar + ribbon stay pinned while the page scrolls: alerts must never scroll out of view */}
         <div className="shell-sticky" ref={sticky}>
         {mobile ? (
-          <header className="shell-top">
-            <span className="brand-mark" aria-hidden="true"><Icon d={ICONS.tooth} /></span>
-            <span className="shell-top-clinic"><strong>{me.active.tenant_name}</strong><span className="badge-synthetic">DATA SINTETIS</span></span>
-            {quick}
-            {user}
-          </header>
+          // Mobile header per screen (sketch): Rekam Medis = back + title; patient list = "Pasien" (+ is a FAB there); else clinic + bell + avatar.
+          route.startsWith('/rekam-medis/') ? (
+            <header className="shell-top">
+              <a className="icon-btn" href="#/pasien" aria-label="Kembali ke daftar pasien"><Icon d={ICONS.left} /></a>
+              <strong className="shell-top-title">Rekam Medis</strong>
+              <span className="badge-synthetic shell-top-synthetic">DATA SINTETIS</span>
+            </header>
+          ) : route === '/pasien' ? (
+            <header className="shell-top">
+              <strong className="shell-top-title" aria-hidden="true">Pasien</strong>
+              <span className="badge-synthetic shell-top-synthetic">DATA SINTETIS</span>
+            </header>
+          ) : (
+            <header className="shell-top">
+              <span className="brand-mark" aria-hidden="true"><Icon d={ICONS.tooth} /></span>
+              <span className="shell-top-clinic"><strong>{me.active.tenant_name}</strong><span className="badge-synthetic">DATA SINTETIS</span></span>
+              {quick}
+              {bell}
+              {user}
+            </header>
+          )
         ) : (
           <header className="shell-top">
             {/* visual title only: each page keeps its own (screen-reader) h1, so there is exactly one heading */}
@@ -138,7 +156,7 @@ export function Shell({ me, nav, active, title = '', ribbon, onSwitchBranch, onL
             {/* the sidebar badge hides in the icon rail (<=1100px); this short chip keeps the prototype warning visible there */}
             <span className="badge-synthetic shell-top-synthetic">DATA SINTETIS</span>
             {quick}
-            <button type="button" className="icon-btn" disabled aria-label="Notifikasi (segera hadir)"><Icon d={ICONS.bell} /></button>
+            {bell}
             {user}
           </header>
         )}

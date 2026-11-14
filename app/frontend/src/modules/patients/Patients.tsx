@@ -80,12 +80,16 @@ export function PatientList({ canCreate, canChart = false, initialQ = '' }: { ca
   const filtered = !!(care || dentist)
   return (
     <>
-      <div className="page-head"><h1 className="shell-dup-title">Daftar Pasien</h1></div>
+      <div className="page-head pl-head">
+        <h1 className="shell-dup-title">{mobile ? 'Pasien' : 'Daftar Pasien'}</h1>
+        {/* Loaded rows only (the API has no total): "+" when more pages exist. */}
+        {mobile && rows && <span className="muted" aria-live="polite">{rows.length}{next ? '+' : ''} pasien</span>}
+      </div>
       <div className="card">
         <div className="pl-toolbar">
           <label className="pl-search">Cari pasien
             <span className="pl-search-box"><Icon d={ICONS.search} size={18} />
-              <input type="search" placeholder="Awalan nama, No. RM, atau NIK / no. HP lengkap" value={q} onChange={(e) => setQ(e.target.value)} /></span>
+              <input type="search" placeholder={mobile ? 'Cari nama atau No. RM' : 'Awalan nama, No. RM, atau NIK / no. HP lengkap'} value={q} onChange={(e) => setQ(e.target.value)} /></span>
           </label>
           <label className="pl-dentist">Dokter
             <select value={dentist} onChange={(e) => setDentist(e.target.value)}>
@@ -93,7 +97,9 @@ export function PatientList({ canCreate, canChart = false, initialQ = '' }: { ca
               {dentists.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
           </label>
-          {canCreate && <a className="btn btn-primary" href="#/pasien/baru">Pasien baru</a>}
+          {canCreate && (mobile
+            ? <a className="fab" href="#/pasien/baru" aria-label="Pasien baru"><Icon d={ICONS.plus} size={26} /></a>
+            : <a className="btn btn-primary" href="#/pasien/baru">Pasien baru</a>)}
         </div>
         <div className="pl-filters" role="group" aria-label="Saring status perawatan">
           {filters.map(([k, label]) => (
@@ -111,9 +117,11 @@ export function PatientList({ canCreate, canChart = false, initialQ = '' }: { ca
                   <span className="avatar" aria-hidden="true">{initials(p.name) || '?'}</span>
                   <div className="pl-card-body">
                     <a href={'#/pasien/' + p.id} className="strong pl-name-text">{p.name}</a>
-                    <span className="muted small">{[p.mrn, age(p.dob), p.sex && (SEX[p.sex] ?? p.sex), PAYER[p.payer_type] ?? p.payer_type].filter(Boolean).join(' · ')}</span>
-                    <span className="muted small">{p.last_visit_at ? `Terakhir ${day(p.last_visit_at)}${p.last_dentist_name ? ' · ' + p.last_dentist_name : ''}` : 'Belum ada kunjungan'}</span>
-                    {(p.care_status || p.allergies?.length) ? <span className="pl-chips"><Care s={p.care_status} /><Allergies a={p.allergies} /></span> : null}
+                    <span className="muted small"><span className="pl-mrn">{p.mrn ? <>No. RM <strong>{p.mrn}</strong></> : 'No. RM belum ada'}</span>
+                      {[age(p.dob), p.sex && (SEX[p.sex] ?? p.sex), PAYER[p.payer_type] ?? p.payer_type].filter(Boolean).map((x) => ' · ' + x)}</span>
+                    <Allergies a={p.allergies} />
+                    <Care s={p.care_status} />
+                    <span className="muted small">{p.last_visit_at ? `Terakhir: ${day(p.last_visit_at)}${p.last_dentist_name ? ' · ' + p.last_dentist_name : ''}` : 'Belum ada kunjungan'}</span>
                     {canChart && <a className="btn-link row-action" href={'#/rekam-medis/' + p.id}
                       aria-label={'Rekam Medis ' + p.name} onClick={(e) => e.stopPropagation()}>Rekam Medis</a>}
                   </div>

@@ -143,3 +143,23 @@ test('"Belum selesai" hides done appointments; "Semua" shows them', async () => 
   expect(within(today).queryByText('Batal Contoh')).toBeNull()
   expect(within(today).getByText('3 janji ditampilkan · urut berdasarkan jam')).toBeInTheDocument()
 })
+
+test('390px: greeting and KPIs open the page; Daftarkan pasien / Buat janji leave the top toolbar and sit after the KPI tiles', async () => {
+  vi.stubGlobal('matchMedia', (q: string) => ({ media: q, matches: true, addEventListener() {}, removeEventListener() {} }))
+  home(['patient.create', 'appointment.create'])
+  const kpi = await region('Pasien hari ini')
+  expect(screen.getByText(/^Selamat (pagi|siang|sore), drg\. Uji Sintetis$/)).toBeInTheDocument()
+  expect(screen.getByRole('heading', { level: 1, name: 'Beranda' })).toHaveClass('sr-only')
+  const head = document.querySelector('.home-head') as HTMLElement
+  expect(within(head).queryByRole('link', { name: 'Buat janji' })).toBeNull()
+  expect(within(head).queryByRole('link', { name: 'Daftarkan pasien' })).toBeNull()
+  const cta = screen.getByRole('link', { name: 'Buat janji' })
+  expect(kpi.compareDocumentPosition(cta) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  expect(screen.getByRole('link', { name: 'Daftarkan pasien' })).toHaveAttribute('href', '#/pasien/baru')
+})
+
+test('desktop: the CTAs stay in the header toolbar', async () => {
+  home(['patient.create', 'appointment.create'])
+  await region('Pasien hari ini')
+  expect(within(document.querySelector('.home-head') as HTMLElement).getByRole('link', { name: 'Buat janji' })).toHaveAttribute('href', '#/jadwal')
+})

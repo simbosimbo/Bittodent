@@ -24,7 +24,8 @@ const ICON: Record<Chip['type'], string> = { premedikasi: '⚠', catatan_penting
 // Collapsed (compact) hides only medications; premed, urgent note, allergies, conditions and empty states always show.
 const MINOR: Chip['type'][] = ['obat']
 
-export function AlertRibbon({ patientId, compactDefault = false, label = 'Peringatan medis pasien aktif', className = '' }: { patientId: string; compactDefault?: boolean; label?: string; className?: string }) {
+// `only`: restrict to these chip types (tooth-sheet strip shows the safety ones only).
+export function AlertRibbon({ patientId, compactDefault = false, label = 'Peringatan medis pasien aktif', className = '', only }: { patientId: string; compactDefault?: boolean; label?: string; className?: string; only?: Chip['type'][] }) {
   // User override resets when the route default changes (chart vs other pages).
   const [pickOpen, setPickOpen] = useState<{ base: boolean; v: boolean } | null>(null)
   const open = pickOpen?.base === compactDefault ? pickOpen.v : !compactDefault
@@ -40,7 +41,7 @@ export function AlertRibbon({ patientId, compactDefault = false, label = 'Pering
   }, [patientId])
 
   const s = state?.id === patientId ? state : null
-  const chips = s?.alerts ? alertChips(s.alerts) : []
+  const chips = s?.alerts ? alertChips(s.alerts).filter((c) => !only || only.includes(c.type)) : []
   const minor = chips.filter((c) => MINOR.includes(c.type)).length
   return (
     <div className={'alert-ribbon' + (open ? '' : ' is-compact') + (className ? ' ' + className : '')} role="region" aria-label={label}>
@@ -58,7 +59,7 @@ export function AlertRibbon({ patientId, compactDefault = false, label = 'Pering
           {open ? 'Ciutkan' : `Selengkapnya (+${minor} lainnya)`}
         </button>
       )}
-      {s?.alerts?.full && <a className="alert-link" href={'#/riwayat-medis/' + patientId}>Riwayat medis →</a>}
+      {s?.alerts?.full && !only && <a className="alert-link" href={'#/riwayat-medis/' + patientId}>Riwayat medis →</a>}
     </div>
   )
 }
