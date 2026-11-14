@@ -184,21 +184,6 @@ textarea.input { padding: 10px 12px; min-height: 96px; resize: vertical; }
 .toggle input:checked { background: var(--primary); }
 .toggle input:checked::after { left: 21px; }
 
-/* Pay panel — dipadatkan agar tombol Terima Pembayaran terlihat di 1440×900 */
-.paypanel { position: sticky; top: 128px; }
-.paypanel.card { padding: 18px; }
-.due { background: var(--primary-50); border-radius: var(--r-ctl); padding: 10px 14px; margin-bottom: 12px; }
-.due .label { font-size: 12px; font-weight: 700; color: var(--muted); }
-.due .rp { font-size: 26px; font-weight: 700; color: var(--primary); display: block; }
-.methods { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
-.method {
-  min-height: 48px; border: 1px solid #C9D1E6; border-radius: var(--r-ctl); background: var(--surface); cursor: pointer;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-weight: 700; font-size: 13px;
-}
-.method svg { width: 20px; height: 20px; }
-.method[aria-checked="true"] { border: 2px solid var(--primary); background: var(--primary-wash); color: var(--primary-hover); }
-.mpanel[hidden] { display: none; }
-.mpanel { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
 .change { display: flex; justify-content: space-between; align-items: center; background: var(--ok-bg); color: var(--ok-fg); border-radius: var(--r-ctl); padding: 8px 14px; font-weight: 700; min-height: 44px; }
 .change .rp { font-size: 20px; }
 .change.short { background: var(--danger-bg); color: var(--danger-fg); }
@@ -291,10 +276,128 @@ textarea.input { padding: 10px 12px; min-height: 96px; resize: vertical; }
 .screen.dimmed { filter: grayscale(.2); opacity: .55; pointer-events: none; }
 
 /* ---------- Responsive ---------- */
-@media (max-width: 1100px) {
-  .span-8, .span-4, .span-6 { grid-column: span 12; }
+/* ---------- v2 POS: antrean padat ---------- */
+.span-7 { grid-column: span 7; } .span-5 { grid-column: span 5; }
+.label-up { font-size: 12px; font-weight: 700; letter-spacing: .04em; color: var(--muted); text-transform: uppercase; }
+.sumline.tight { padding: 4px 0; }
+.btn-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.btn-pair .btn { padding: 0 10px; white-space: nowrap; }
+.btn-xl { min-height: 64px; font-size: 18px; border-radius: 16px; }
+.card-tight { padding: 16px 20px; }
+.compact { --gap: 16px; }
+.compact .page-head { margin-bottom: 16px; }
+.compact .page-head h1 { font-size: 24px; }
+.compact .card { padding: 16px 20px; }
+.compact .card-head { margin-bottom: 8px; }
+.compact .kpi .value { font-size: 28px; margin: 2px 0 0; }
+.compact .row { min-height: 56px; padding: 8px 0; gap: 12px; }
+.compact .row .avatar { width: 36px; height: 36px; font-size: 12px; }
+.compact .sumline.total { margin-top: 4px; padding-top: 8px; }
+.row.flush { border: 0; padding-top: 0; }
+.antrean-side { grid-row: span 2; }
+.antrean-grid { grid-template-rows: auto auto 1fr; } /* tinggi kolom samping masuk ke baris fleksibel, bukan melebarkan baris antrean */
+.readonly-banner { margin-bottom: 16px; align-items: center; }
+
+/* ---------- Tagihan: ringkasan bayar ---------- */
+.pay-summary { position: sticky; top: 76px; }
+.due-big { display: block; font-size: 40px; font-weight: 700; color: var(--primary); line-height: 1.1; margin: 4px 0 12px; }
+
+/* ---------- Bayar: mode charge ---------- */
+.charge-top { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+.charge-top h1 { font-size: 24px; font-weight: 700; line-height: 1.2; }
+.charge { display: grid; grid-template-columns: minmax(300px, 5fr) 7fr; gap: var(--gap); align-items: start; }
+.charge-due { display: block; font-size: 48px; font-weight: 700; color: var(--primary); line-height: 1.1; margin: 4px 0 6px; }
+.tiles { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+.tile {
+  display: flex; align-items: center; gap: 14px; min-height: 68px; padding: 10px 16px; text-align: left;
+  border: 1px solid #C9D1E6; border-radius: 16px; background: var(--surface); cursor: pointer;
+}
+.tile svg { width: 28px; height: 28px; flex: none; color: var(--primary); }
+.tile b { display: block; font-size: 16px; }
+.tile small { display: block; font-size: 12px; color: var(--muted); font-weight: 500; }
+.tile[aria-checked="true"] { border: 2px solid var(--primary); background: var(--primary-50); padding: 9px 15px; }
+.cash-display { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; align-items: stretch; }
+.cash-display output { display: block; font-size: 36px; font-weight: 700; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.cash-display .change { flex-direction: column; align-items: flex-start; justify-content: center; }
+.cash-display .change .rp { font-size: 28px; }
+.split-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.split-row output { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.split-name { display: flex; flex-direction: column; gap: 4px; }
+.split-name small { color: var(--muted); font-size: 12px; }
+.split-name select { width: auto; }
+[data-mpanel="split"] { margin-bottom: 12px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.chips button { min-height: 48px; padding: 0 14px; border-radius: 999px; border: 1px solid #C9D1E6; background: var(--surface); cursor: pointer; font-weight: 700; font-variant-numeric: tabular-nums; }
+.chips button.pas { background: var(--primary-wash); border-color: var(--primary); color: var(--primary-hover); }
+.chips button:active { background: var(--primary-wash); }
+.keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+.keypad button { min-height: 64px; font-size: 24px; font-weight: 700; border-radius: 14px; border: 1px solid var(--border); background: var(--canvas); cursor: pointer; font-variant-numeric: tabular-nums; }
+.keypad button:hover { background: var(--primary-50); }
+.keypad button:active { background: var(--primary-wash); }
+.charge-cta { position: sticky; bottom: 12px; }
+.charge-cta[disabled] { opacity: 1; background: #DDE3EE; border-color: #DDE3EE; color: var(--muted); } /* buram-transparan menembus keypad saat menempel */
+.charge-main [data-mpanel] { margin-bottom: 12px; }
+.charge-main [data-mpanel] .field + .field { margin-top: 12px; }
+
+/* ---------- Lunas ---------- */
+.success-wrap { max-width: 760px; margin: 0 auto; }
+.success-wrap > * + * { margin-top: var(--gap); }
+.success-card { text-align: center; padding: 32px 24px; }
+.success-card h1, .success-title { font-size: 28px; font-weight: 700; }
+.check-big { width: 80px; height: 80px; border-radius: 50%; background: var(--ok-bg); color: var(--ok-fg); display: grid; place-items: center; margin: 0 auto 12px; }
+.success-amt { font-size: 44px; font-weight: 700; color: var(--primary); margin: 4px 0 8px; display: block; }
+.actions.center { justify-content: center; }
+.receipt-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 24px 0 12px; }
+.receipt-actions .btn { min-height: 72px; flex-direction: column; gap: 6px; font-size: 15px; border-radius: 16px; }
+.receipt-actions .btn svg { width: 24px; height: 24px; }
+.success-card .kv { text-align: left; }
+
+/* ---------- Hitung pecahan ---------- */
+.denoms { display: flex; flex-direction: column; }
+.denom { display: grid; grid-template-columns: 1fr auto 120px; align-items: center; gap: 12px; padding: 6px 0; border-top: 1px solid var(--border); }
+.denom:first-child { border-top: 0; }
+.d-label b { font-size: 16px; }
+.d-label small { color: var(--muted); font-size: 12px; margin-left: 6px; }
+.stepper { display: flex; align-items: center; gap: 6px; }
+.stepper button { width: 44px; height: 44px; border-radius: 12px; border: 1px solid #C9D1E6; background: var(--surface); font-size: 20px; font-weight: 700; cursor: pointer; }
+.stepper input { width: 64px; height: 44px; text-align: center; font-weight: 700; font-size: 16px; border: 1px solid #C9D1E6; border-radius: 12px; }
+.d-sub { text-align: right; font-weight: 700; }
+.count-total { display: flex; justify-content: space-between; font-size: 20px; font-weight: 700; padding-top: 12px; margin-top: 6px; border-top: 2px solid var(--border); }
+.count-total .rp { color: var(--primary); }
+
+/* Opsi radio di modal refund */
+.opts { border: 0; padding: 0; margin: 12px 0 0; }
+.opts legend { font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 4px; }
+.opt { display: flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer; }
+.opt input { width: 20px; height: 20px; margin: 0; accent-color: var(--primary); }
+#refund-modal .modal { max-width: 500px; }
+.kv dd { font-variant-numeric: tabular-nums; }
+
+/* ---------- Tablet: 901–1199px → sidebar jadi rel ikon ---------- */
+@media (min-width: 901px) and (max-width: 1199px) {
+  .app { grid-template-columns: 72px 1fr; }
+  .sidebar { padding: 16px 12px; }
+  .brand { font-size: 0; justify-content: center; gap: 0; }
+  .clinic, .nav-group { display: none; }
+  .nav-item { font-size: 0; justify-content: center; padding: 0; gap: 0; }
+  .nav-item svg { width: 22px; height: 22px; }
+  .kpi .value { font-size: 26px; }
+  .compact .kpi .value { font-size: 24px; }
+  .charge-due { font-size: 40px; }
+  .keypad button { min-height: 56px; }
+  .chips button { min-height: 44px; padding: 0 12px; flex: none; }
+  .chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
+  .cash-display output { font-size: 30px; }
+  .charge-main { padding: 16px; }
+  .tile { min-height: 64px; }
+}
+@media (max-width: 900px) {
+  .span-8, .span-4, .span-6, .span-7, .span-5 { grid-column: span 12; }
   .span-3 { grid-column: span 6; }
-  .paypanel { position: static; }
+  .antrean-side { grid-row: auto; }
+  .antrean-grid { grid-template-rows: none; }
+  .pay-summary { position: static; }
+  .charge { grid-template-columns: 1fr; }
 }
 @media (max-width: 900px) {
   .app { grid-template-columns: 1fr; }
@@ -306,7 +409,6 @@ textarea.input { padding: 10px 12px; min-height: 96px; resize: vertical; }
   .user-chip { margin-left: auto; }
   .synth-banner { margin-left: 0; }
   .policy { grid-template-columns: 1fr; }
-  .paypanel { top: 0; }
 }
 @media (max-width: 600px) {
   .page-head h1 { font-size: 24px; }
@@ -336,6 +438,27 @@ textarea.input { padding: 10px 12px; min-height: 96px; resize: vertical; }
   .paybar .rp { font-size: 20px; font-weight: 700; color: var(--primary); display: block; }
   .paybar .btn { flex: none; }
   .paper.a5 { width: 100%; padding: 20px; }
+  /* Charge: keypad dominan, metode jadi deretan geser, CTA menempel di bawah */
+  .has-cta { padding-bottom: 92px; }
+  .charge-side { padding: 16px; }
+  .charge-due { font-size: 36px; }
+  .tiles { flex-direction: row; overflow-x: auto; margin: 12px -4px 0; padding: 0 4px 4px; }
+  .tile { flex: 0 0 auto; flex-direction: column; justify-content: center; gap: 4px; min-width: 96px; min-height: 64px; padding: 8px 12px; text-align: center; }
+  .tile[aria-checked="true"] { padding: 7px 11px; }
+  .tile small { display: none; }
+  .tile svg { width: 24px; height: 24px; }
+  .cash-display output { font-size: 28px; }
+  .chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
+  .chips button { flex: none; }
+  .charge-top { gap: 8px; }
+  .cash-display .change .rp { font-size: 22px; }
+  .charge-cta { position: fixed; left: 16px; right: 16px; bottom: calc(12px + env(safe-area-inset-bottom)); width: auto; z-index: 30; box-shadow: 0 0 0 12px var(--canvas); } /* jalur kanvas menutup isi yang lewat di bawahnya */
+  .receipt-actions { grid-template-columns: 1fr; }
+  .receipt-actions .btn { min-height: 56px; flex-direction: row; }
+  .success-amt { font-size: 36px; }
+  .denom { grid-template-columns: 1fr auto; row-gap: 0; }
+  .denom .d-sub { grid-column: 1; grid-row: 2; text-align: left; font-size: 12px; color: var(--muted); }
+  .denom .stepper { grid-row: 1 / span 2; grid-column: 2; }
 }
 @media (max-width: 900px) { .topbar { position: static; } }
 @media (max-width: 600px) {
@@ -353,3 +476,24 @@ textarea.input { padding: 10px 12px; min-height: 96px; resize: vertical; }
   .patient-strip .facts { gap: 2px 12px; }
 }
 .bar i { flex: none; height: calc(var(--h) * 1.4px); } /* --h = persen dari hari tertinggi */
+
+/* Mode charge di ponsel: hemat tinggi chrome prototipe agar keypad terlihat */
+@media (max-width: 600px) {
+  body:has(#screen-bayar:not([hidden])) .topbar { display: none; }
+  body:has(#screen-bayar:not([hidden])) .synth-banner { display: none; }
+  body:has(#screen-bayar:not([hidden])) .switcher {
+    padding: 6px 12px;
+    gap: 8px 10px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    align-items: center;
+  }
+  body:has(#screen-bayar:not([hidden])) .switcher .seg { flex-wrap: nowrap; flex: none; }
+  body:has(#screen-bayar:not([hidden])) .switcher #screen-select { min-width: 160px; }
+  body:has(#screen-bayar:not([hidden])) .content { padding-top: 12px; }
+  body:has(#screen-bayar:not([hidden])) .charge-top { margin-bottom: 8px; }
+  body:has(#screen-bayar:not([hidden])) .charge-due { font-size: 32px; margin: 0 0 4px; }
+  body:has(#screen-bayar:not([hidden])) .charge-side { padding: 12px; }
+  body:has(#screen-bayar:not([hidden])) .tiles { margin-top: 8px; }
+  body:has(#screen-bayar:not([hidden])) .cash-display output { font-size: 24px; }
+}
