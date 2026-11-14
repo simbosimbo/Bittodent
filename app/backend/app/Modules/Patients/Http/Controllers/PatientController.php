@@ -21,7 +21,7 @@ class PatientController extends Controller
         // Keyset pagination on (created_at, id), newest first.
         $page = PatientSearch::query($request->query('q'))
             ->orderByDesc('created_at')->orderByDesc('id')
-            ->cursorPaginate(25, ['id', 'name', 'dob', 'sex', 'home_branch_id', 'payer_type', 'created_at']);
+            ->cursorPaginate(25, ['id', 'name', 'dob', 'sex', 'home_branch_id', 'payer_type', 'status', 'created_at']);
 
         return response()->json([
             'data' => $page->items(),

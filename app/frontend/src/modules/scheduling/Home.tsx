@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react'
-import { fmtDate, fmtTime, todayWib, TZ } from '../../shared/format'
+import { fmtDate, fmtTime, initials, todayWib, TZ } from '../../shared/format'
 import type { Me } from '../../shared/session'
 import { Icon, ICONS } from '../../shared/ui/Icon'
 import type { Appointment } from './api'
@@ -9,7 +9,6 @@ type Row = Appointment & { chair: string }
 const LEGEND = [['done', 'Selesai'], ['in_treatment', 'Merawat'], ['checked_in', 'Check-in'], ['booked', 'Terjadwal']]
 const AXIS_START = 8 * 60, AXIS_MIN_END = 15 * 60, AXIS_MAX_END = 20 * 60
 // "drg. Clara Wijaya, Sp.KGA" -> "CW": skip titles (words with a dot).
-const initials = (name: string) => name.split(/[\s,]+/).filter((w) => w && !w.includes('.')).slice(0, 2).map((w) => w[0]).join('').toUpperCase()
 
 function useNow() {
   const [now, setNow] = useState(() => new Date())
