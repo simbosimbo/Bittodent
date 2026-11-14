@@ -5,6 +5,8 @@ namespace Database\Seeders;
 use App\Modules\Billing\Models\Invoice;
 use App\Modules\Billing\Models\InvoiceAdjustment;
 use App\Modules\Billing\Models\InvoiceLine;
+use App\Modules\Billing\Models\Payment;
+use App\Modules\Billing\Services\PaymentService;
 use App\Modules\Clinical\Models\ClinicalNote;
 use App\Modules\Clinical\Models\ClinicalNoteVersion;
 use App\Modules\Clinical\Models\ConsentRecord;
@@ -79,6 +81,10 @@ class DatabaseSeeder extends Seeder
             $this->clinicalDemo($b1, $users['dokter@senyum.test'], $patients[0]);
             $this->c3Demo($b1, $users['dokter@senyum.test'], $patients, 1);
             $this->careDemo($b1, $users['dokter@senyum.test'], $patients);
+            // Kemang today: 300000 + 150000 = Rp450.000 from 2 payments. Excluded: 100000 yesterday (Kemang), 200000 today (Rawamangun).
+            $this->paymentDemo($b1, $users['dokter@senyum.test'], $patients[0], 3, 300000, [['tunai', 300000, 0]]);
+            $this->paymentDemo($b1, $users['dokter@senyum.test'], $patients[0], 4, 350000, [['transfer', 100000, 1], ['qris', 150000, 0]]);
+            $this->paymentDemo($b2, $users['dokter@senyum.test'], $patients[0], 6, 200000, [['kartu', 200000, 0]]);
         }, $users['pemilik@senyum.test']->id);
 
         Ctx::runAs($b->id, function () use ($users) {
@@ -90,6 +96,7 @@ class DatabaseSeeder extends Seeder
             $this->appointments([$b1], $users['dokter@ceria.test'], $patients);
             $this->c3Demo($b1, $users['dokter@ceria.test'], $patients, 2);
             $this->careDemo($b1, $users['dokter@ceria.test'], $patients);
+            $this->paymentDemo($b1, $users['dokter@ceria.test'], $patients[1], 12, 175000, [['tunai', 175000, 0]]); // other tenant, today
         }, $users['dokter@ceria.test']->id);
     }
 
@@ -292,6 +299,28 @@ class DatabaseSeeder extends Seeder
         foreach (Patient::pluck('id') as $id) {
             app(ClinicalCareSync::class)->push($id);
             app(SchedulingCareSync::class)->push($id);
+        }
+    }
+
+    /**
+     * Extra paid invoice (synthetic): a signed visit $daysAgo days ago (older than the patient's last visit, so care facts do not
+     * change) with one billed procedure. $payments = [[method, amount_rp, paidDaysAgo]]: today's go through PaymentService
+     * (real rules: balance, `lunas`, audit); backdated ones are inserted directly (the service always stamps now()).
+     */
+    private function paymentDemo(Branch $branch, User $dentist, Patient $patient, int $daysAgo, int $price, array $payments): void
+    {
+        $visit = Visit::create(['patient_id' => $patient->id, 'branch_id' => $branch->id, 'dentist_id' => $dentist->id,
+            'started_at' => now()->subDays($daysAgo), 'ended_at' => now()->subDays($daysAgo)->addHour(), 'status' => 'selesai']);
+        $done = ToothFinding::create(['patient_id' => $patient->id, 'visit_id' => $visit->id, 'tooth' => 37, 'surface' => 'O', 'condition' => 'tambalan',
+            'status' => 'selesai', 'procedure_code' => '23.2', 'state' => 'final', 'created_by' => $dentist->id, 'finalized_by' => $dentist->id, 'finalized_at' => $visit->started_at]);
+        $invoice = Invoice::create(['visit_id' => $visit->id, 'patient_id' => $patient->id, 'payer_patient_id' => $patient->id,
+            'branch_id' => $branch->id, 'created_by' => $dentist->id]);
+        InvoiceLine::create(['invoice_id' => $invoice->id, 'finding_id' => $done->id, 'procedure_code' => '23.2', 'variant' => 'standar', 'tooth' => 37, 'price_rp' => $price]);
+        foreach ($payments as [$method, $amount, $paidDaysAgo]) {
+            $paidDaysAgo === 0
+                ? app(PaymentService::class)->record($invoice->id, $amount, $method)
+                : Payment::create(['invoice_id' => $invoice->id, 'branch_id' => $branch->id, 'amount_rp' => $amount, 'method' => $method,
+                    'paid_at' => now()->subDays($paidDaysAgo), 'created_by' => Ctx::current()->userId]);
         }
     }
 
