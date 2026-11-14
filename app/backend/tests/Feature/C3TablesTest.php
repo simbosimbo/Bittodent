@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Modules\Billing\Models\Invoice;
 use App\Modules\Billing\Models\InvoiceAdjustment;
 use App\Modules\Billing\Models\InvoiceLine;
+use App\Modules\Billing\Models\Payment;
 use App\Modules\Clinical\Models\ConsentRecord;
 use App\Modules\Clinical\Models\ToothBaseline;
 use App\Modules\Patients\Models\Guardian;
@@ -23,9 +24,10 @@ use Tests\TestCase;
 class C3TablesTest extends TestCase
 {
     public const MODELS = [ToothBaseline::class, ConsentRecord::class, Household::class, Guardian::class, MedicalHistoryVersion::class,
-        PlannedAppointment::class, ReminderLog::class, Tariff::class, Invoice::class, InvoiceLine::class, InvoiceAdjustment::class];
+        PlannedAppointment::class, ReminderLog::class, Tariff::class, Invoice::class, InvoiceLine::class, InvoiceAdjustment::class,
+        Payment::class];
 
-    public const APPEND_ONLY = ['tooth_baseline', 'consent_record', 'medical_history_version', 'reminder_log', 'invoice_line', 'invoice_adjustment'];
+    public const APPEND_ONLY = ['tooth_baseline', 'consent_record', 'medical_history_version', 'reminder_log', 'invoice_line', 'invoice_adjustment', 'payment'];
 
     public static function models(): array
     {

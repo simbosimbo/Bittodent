@@ -18,9 +18,13 @@ const schedule = {
     appt('a5', 'done', 'Dina Selesai', '12:00'),
   ] }],
 }
+const revenue = { date: '2026-11-14', branch_id: 'b1', amount_rp: 450000, payment_count: 2 }
 const home = (perms: string[]) => {
-  vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify(schedule), { status: 200 })))
+  const fetch = vi.fn(async (url: string) =>
+    new Response(JSON.stringify(url.startsWith('/api/billing/daily-revenue') ? revenue : schedule), { status: 200 }))
+  vi.stubGlobal('fetch', fetch)
   render(<Home me={me(perms)} />)
+  return fetch
 }
 const region = (name: string) => screen.findByRole('region', { name })
 const hrefs = (el: HTMLElement) => within(el).queryAllByRole('link', { name: /^Buka Rekam Medis/ }).map((a) => a.getAttribute('href'))
@@ -62,8 +66,8 @@ const atWib = (hhmm: string) => {
   vi.setSystemTime(new Date(`2026-11-14T${hhmm}:00+07:00`))
 }
 
-test('four KPI cards derive their numbers from the schedule; revenue is never invented', async () => {
-  home([])
+test('four KPI cards derive their numbers from the schedule; revenue is hidden without billing.read', async () => {
+  const fetch = home([])
   const kpi = async (name: string) => within(await region(name))
   expect((await kpi('Pasien hari ini')).getByText('3')).toBeInTheDocument()
   expect((await kpi('Pasien hari ini')).getByText('3 dengan janji')).toBeInTheDocument()
@@ -73,8 +77,18 @@ test('four KPI cards derive their numbers from the schedule; revenue is never in
   expect((await kpi('Antrean')).getByText('0 sedang dirawat · 1 menunggu')).toBeInTheDocument()
   const revenue = await kpi('Pendapatan hari ini')
   expect(revenue.getByText('—')).toBeInTheDocument()
-  expect(revenue.getByText('Tagihan harian belum tersedia')).toBeInTheDocument()
+  expect(revenue.getByText('Tidak ditampilkan untuk peran ini')).toBeInTheDocument()
   expect(revenue.queryByText(/Rp/)).toBeNull()
+  expect(fetch.mock.calls.some(([url]) => String(url).includes('/api/billing'))).toBe(false)
+})
+
+test('with billing.read the revenue card shows payments collected today from the API', async () => {
+  const fetch = home(['billing.read'])
+  const card = within(await region('Pendapatan hari ini'))
+  expect(await card.findByText(/^Rp\s?450\.000$/)).toBeInTheDocument()
+  expect(card.getByText('Dari 2 transaksi lunas')).toBeInTheDocument()
+  expect(card.queryByText(/,00/)).toBeNull()
+  expect(fetch).toHaveBeenCalledWith('/api/billing/daily-revenue', expect.anything())
 })
 
 test('greeting uses the WIB time of day and the user name; Sekarang line shows inside the axis', async () => {

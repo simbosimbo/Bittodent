@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 import { fmtDate, fmtTime, initials, todayWib, TZ } from '../../shared/format'
 import type { Me } from '../../shared/session'
+import { RevenueCard } from '../billing'
 import { Icon, ICONS } from '../../shared/ui/Icon'
 import type { Appointment } from './api'
 import { minutesOfDay, StatusChip, useSchedule } from './Schedule'
@@ -88,12 +89,7 @@ export default function Home({ me }: { me: Me }) {
               <div className="muted">{k.note}</div>
             </section>
           ))}
-          <section className="card stat span-3" aria-label="Pendapatan hari ini">
-            <div className="stat-head"><span className="stat-label">Pendapatan hari ini</span><span className="stat-icon"><Icon d={ICONS.card} /></span></div>
-            {/* No daily-revenue API yet: never show a made-up amount. */}
-            <div className="stat-value"><span aria-hidden="true">—</span><span className="sr-only">Belum tersedia</span></div>
-            <div className="muted">Tagihan harian belum tersedia</div>
-          </section>
+          <RevenueCard canRead={can('billing.read')} branchId={me.active.branch_id} />
 
           <section className="card span-12 home-board" aria-labelledby="home-board">
             <div className="card-head">
