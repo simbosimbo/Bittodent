@@ -10,3 +10,5 @@ export const fmtDateTime = (iso: string, tz = TZ) =>
   new Intl.DateTimeFormat('id-ID', { timeZone: tz, day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(iso))
 // First letters of the first two words, skipping titles like "drg." ("Sari Sintetis" -> "SS").
 export const initials = (name: string) => name.split(/[\s,]+/).filter((w) => w && !w.includes('.')).slice(0, 2).map((w) => w[0]).join('').toUpperCase()
+export const fmtDay = (iso: string, tz = TZ) =>
+  new Intl.DateTimeFormat('id-ID', { timeZone: tz, day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(iso))

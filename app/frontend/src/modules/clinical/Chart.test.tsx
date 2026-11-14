@@ -146,19 +146,113 @@ test('Dentisi: child DOB defaults to Campuran; Sulung / Tetap filter 2D and 3D; 
   expect(teeth2d()).not.toContain(51)
 })
 
-test('findings table: status, FDI tooth, surface P on upper and I on anterior, ICD-9-CM code; no fee columns', async () => {
+test('findings table: Tanggal/Gigi/Permukaan/Kondisi/Dokter/Status, P on upper, I on anterior, ICD-9-CM code; no fee columns', async () => {
   renderChart()
-  const table = await screen.findByRole('table', { name: 'Temuan odontogram dan status' })
-  expect(within(table).getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['Status', 'Gigi', 'Permukaan', 'Kondisi', 'Kode ICD-9-CM', 'Ubah status'])
+  const table = await screen.findByRole('table', { name: 'Temuan & tindakan' })
+  expect(within(table).getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['Tanggal', 'Gigi', 'Permukaan', 'Kondisi / tindakan', 'Dokter', 'Status'])
   const row = (t: number) => within(table).getAllByRole('row').find((r) => r.querySelectorAll('td')[1]?.textContent === String(t))!
   expect(row(26)).toHaveTextContent('P (Palatal)')
-  expect(row(26)).toHaveTextContent('23.2')
+  expect(row(26)).toHaveTextContent('Tambalan 23.2')
   expect(row(26)).toHaveTextContent('Direncanakan')
+  expect(row(26).querySelectorAll('td')[0]).toHaveTextContent('5 Jan 2026') // finalized_at in Asia/Jakarta
+  expect(row(26).querySelectorAll('td')[4]).toHaveTextContent(/^—$/) // visit v0 not in chart.visits: no invented name
   expect(row(11)).toHaveTextContent('I (Insisal)')
   expect(row(11)).not.toHaveTextContent('O (Oklusal)')
   expect(row(16)).toHaveTextContent('O (Oklusal)')
   expect(table).not.toHaveTextContent(/Biaya|Prioritas|Total/)
   expect(screen.getByRole('list', { name: 'Legenda status' })).toHaveTextContent('Sudah ada (tempat lain)')
+})
+
+test('findings table: dentist from the finding\'s visit, drafts show "Draf" and sort first, then newest date, then tooth', async () => {
+  const old = { ...finding('f4', 36, null, 'mahkota', 'selesai'), visit_id: 'v1', finalized_at: '2025-03-01T03:00:00Z' }
+  const draft = { ...finding('d1', 47, 'O', 'karies', 'kondisi_pantau'), visit_id: 'v1', state: 'draft', finalized_at: null }
+  renderChart({ visits: [{ ...visit, dentist: { id: 'u2', name: 'Nadia Putri' } }], findings: [...findings, old], drafts: [draft] })
+  const table = await screen.findByRole('table', { name: 'Temuan & tindakan' })
+  const rows = within(table).getAllByRole('row').slice(1)
+  expect(rows.map((r) => r.querySelectorAll('td')[1].textContent)).toEqual(['47', '11', '16', '26', '36'])
+  expect(rows[0].querySelectorAll('td')[0]).toHaveTextContent(/^Draf$/)
+  expect(rows[0].querySelectorAll('td')[4]).toHaveTextContent(/^drg\. Nadia Putri$/)
+  expect(rows[4]).toHaveTextContent('1 Mar 2025')
+  expect(rows[4]).toHaveTextContent('Seluruh gigi')
+  expect(rows[4].querySelectorAll('td')[4]).toHaveTextContent('drg. Nadia Putri')
+})
+
+test('summary line counts current findings + my drafts in legend order; empty chart says "Belum ada temuan."', async () => {
+  const draft = { ...finding('d1', 47, null, 'sisa_akar', 'kondisi_pantau'), visit_id: 'v1', state: 'draft', finalized_at: null }
+  const { unmount } = renderChart({ visits: [visit], drafts: [draft] })
+  expect(await screen.findByRole('note', { name: 'Ringkasan temuan' })).toHaveTextContent(/^2 karies · 1 tambalan · 1 sisa akar \/ akar tertinggal$/)
+  unmount()
+  renderChart({ findings: [] })
+  expect(await screen.findByRole('note', { name: 'Ringkasan temuan' })).toHaveTextContent(/^Belum ada temuan\.$/)
+  const sec = screen.getByRole('region', { name: 'Temuan & tindakan' })
+  expect(sec).toHaveTextContent('Belum ada temuan.')
+  expect(within(sec).queryByRole('table')).toBeNull()
+  expect(within(sec).getAllByRole('radio').map((b) => b.textContent)).toEqual(['Semua gigi'])
+})
+
+test('filter: picked tooth starts on "Gigi N"; Semua gigi shows all again; empty tooth says so; no extra fetch', async () => {
+  renderChart()
+  const table = await screen.findByRole('table', { name: 'Temuan & tindakan' })
+  const teeth = () => within(screen.getByRole('region', { name: 'Temuan & tindakan' })).queryAllByRole('row').slice(1).map((r) => r.querySelectorAll('td')[1].textContent)
+  const filter = () => within(screen.getByRole('radiogroup', { name: 'Saring temuan' }))
+  expect(teeth()).toHaveLength(3)
+  expect(table).toBeInTheDocument()
+  const calls = vi.mocked(fetch).mock.calls.length
+  fireEvent.click(document.getElementById('t16-O')!)
+  expect(filter().getByRole('radio', { name: 'Gigi 16' })).toHaveAttribute('aria-checked', 'true')
+  expect(teeth()).toEqual(['16'])
+  fireEvent.click(filter().getByRole('radio', { name: 'Semua gigi' }))
+  expect(filter().getByRole('radio', { name: 'Semua gigi' })).toHaveAttribute('aria-checked', 'true')
+  expect(teeth()).toHaveLength(3)
+  fireEvent.click(filter().getByRole('radio', { name: 'Gigi 16' }))
+  expect(teeth()).toEqual(['16'])
+  fireEvent.click(document.getElementById('t36-O')!)
+  expect(screen.getByRole('region', { name: 'Temuan & tindakan' })).toHaveTextContent('Tidak ada temuan pada gigi ini.')
+  fireEvent.click(screen.getByRole('button', { name: 'Tutup detail gigi' }))
+  expect(filter().getAllByRole('radio').map((b) => b.textContent)).toEqual(['Semua gigi'])
+  expect(teeth()).toHaveLength(3)
+  expect(vi.mocked(fetch).mock.calls.length).toBe(calls)
+})
+
+test('Simpan ke kunjungan hari ini: condition is only chosen (aria-pressed) until the button POSTs it; disabled without a condition', async () => {
+  renderChart({ visits: [visit] })
+  await screen.findByRole('region', { name: 'Odontogram' })
+  fireEvent.click(document.getElementById('t26-L')!)
+  const panel = within(screen.getByRole('complementary', { name: 'Detail gigi' }))
+  const save = panel.getByRole('button', { name: 'Simpan ke kunjungan hari ini' })
+  expect(save).toBeDisabled()
+  expect(save).toHaveAccessibleDescription('Pilih kondisi terlebih dahulu')
+  const posts = () => vi.mocked(fetch).mock.calls.filter(([u]) => String(u).endsWith('/findings'))
+  fireEvent.click(panel.getByRole('button', { name: 'Karies' }))
+  fireEvent.click(panel.getByRole('button', { name: 'Tambalan' }))
+  expect(panel.getByRole('button', { name: 'Tambalan' })).toHaveAttribute('aria-pressed', 'true')
+  expect(panel.getByRole('button', { name: 'Karies' })).toHaveAttribute('aria-pressed', 'false')
+  expect(posts()).toHaveLength(0)
+  fireEvent.change(panel.getByRole('textbox', { name: /ICD-9-CM/ }), { target: { value: ' 23.2 ' } })
+  expect(save).toBeEnabled()
+  fireEvent.click(save)
+  expect(save).toBeDisabled() // in flight
+  await waitFor(() => expect(posts()).toHaveLength(1))
+  const [url, init] = posts()[0]
+  expect(url).toBe('/api/visits/v1/findings')
+  expect(init).toMatchObject({ method: 'POST' })
+  expect(JSON.parse(init!.body as string)).toEqual({ tooth: 26, surface: 'L', condition: 'tambalan', status: 'kondisi_pantau', procedure_code: '23.2' })
+  expect(await screen.findByText('Temuan tersimpan sebagai draf di kunjungan hari ini.')).toBeInTheDocument()
+  expect(panel.getByRole('heading', { name: 'Gigi 26' })).toBeInTheDocument() // tooth stays picked
+  expect(panel.getByRole('button', { name: 'Tambalan' })).toHaveAttribute('aria-pressed', 'false')
+  expect(save).toBeDisabled()
+})
+
+test('Simpan ke kunjungan hari ini: disabled with an honest reason and no POST when there is no active visit', async () => {
+  renderChart()
+  await screen.findByRole('region', { name: 'Odontogram' })
+  fireEvent.click(document.getElementById('t16-O')!)
+  const save = within(screen.getByRole('complementary', { name: 'Detail gigi' })).getByRole('button', { name: 'Simpan ke kunjungan hari ini' })
+  expect(save).toBeDisabled()
+  expect(save).toHaveAccessibleDescription(/Belum ada kunjungan aktif\. Buka janji hari ini/)
+  fireEvent.click(save)
+  expect(screen.getByText('Buka janji hari ini')).toHaveAttribute('href', '#/jadwal')
+  expect(vi.mocked(fetch).mock.calls.some(([, i]) => (i as RequestInit | undefined)?.method === 'POST')).toBe(false)
 })
 
 // --- Layout: compact header, inner tabs, odontogram 8 + tooth panel 4 (synthetic data) ---
@@ -308,6 +402,7 @@ test('390px: selecting a tooth opens a bottom sheet named for the tooth; keypad 
     expect(parseFloat(getComputedStyle(b).minHeight)).toBeGreaterThanOrEqual(44)
   }
   expect(within(sheet).getByRole('group', { name: 'Pilih kondisi' })).toBeInTheDocument() // same editable rule as desktop
+  expect(within(sheet).getByRole('button', { name: 'Simpan ke kunjungan hari ini' })).toBeDisabled() // no condition chosen yet
   expect(within(sheet).getByRole('button', { name: 'Tutup detail gigi' })).toHaveFocus()
 
   fireEvent.click(document.querySelector('.sheet-backdrop')!)
