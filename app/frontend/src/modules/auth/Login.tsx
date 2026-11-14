@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { ApiError } from '../../shared/api/http'
+import { Icon, ICONS } from '../../shared/ui/Icon'
 import { devQuickLogin, devStatus, login, twoFactorChallenge, type DevAccount } from './api'
 
 // Dev picker labels for the seeded synthetic accounts (email local part -> role in the UI).
@@ -72,8 +73,8 @@ export default function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
   return (
     <div className="login-page">
       <div className="login-card">
-        <div className="brand brand-lg"><span className="brand-mark">◡</span> EHR Gigi</div>
-        <span className="badge-synthetic">DATA SINTETIS - PROTOTIPE</span>
+        <div className="brand brand-lg"><span className="brand-mark" aria-hidden="true"><Icon d={ICONS.tooth} /></span> Bittodent</div>
+        <span className="badge-synthetic">DATA SINTETIS</span>
         {step === 'password' ? (
           <form onSubmit={submitPassword} noValidate>
             <h1>Masuk</h1>
