@@ -99,6 +99,12 @@ input:focus, select:focus { outline: 2px solid var(--accent-50); border-color: v
 }
 .shell-brand { display: flex; align-items: center; gap: var(--space-2); font-weight: 700; font-size: var(--font-size-lg); color: var(--text); min-height: var(--shells-a-size-touch); padding: var(--space-1) var(--space-2); margin-bottom: var(--space-2); }
 .shell-brand:hover { text-decoration: none; }
+.shell-clinic {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); min-width: 0;
+  margin: 0 var(--space-1) var(--space-3); padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface);
+}
+.shell-clinic strong { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+.shell-clinic .badge-synthetic { white-space: normal; } /* narrow sidebar: wrap rather than overflow */
 .shell-branch { margin: 0 var(--space-1) var(--space-3); gap: var(--space-1); }
 .shell-branch select { width: 100%; min-height: var(--shells-a-size-touch); }
 .shell-nav-caption { font-size: var(--font-size-xs); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
@@ -113,13 +119,13 @@ input:focus, select:focus { outline: 2px solid var(--accent-50); border-color: v
 .shell-sticky { position: sticky; top: 0; z-index: 5; }
 html { scroll-padding-top: 160px; } /* scrollIntoView lands below the pinned top bar + ribbon */
 .shell-top {
-  display: flex; align-items: center; gap: var(--space-3); min-height: var(--shells-a-size-topbar);
+  display: flex; align-items: center; gap: var(--space-4); min-height: var(--shells-a-size-topbar);
   padding: var(--space-2) var(--shells-a-space-page); background: var(--surface); border-bottom: 1px solid var(--border);
 }
-/* Priority in the top bar: the active patient's full name. The clinic title and search shrink first. */
-.shell-title { display: flex; flex-direction: column; line-height: 1.25; flex: 0 1 200px; min-width: 64px; }
-.shell-title > * { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.shell-title small { font-size: var(--font-size-xs); }
+/* Priority in the top bar: the active patient's full name never shrinks; search gives way.
+   The clinic name lives in the sidebar (.shell-clinic) and ellipsizes there. */
+.shell-top-synthetic { display: none; flex: none; }
+.shell-logout { flex: none; padding-inline: var(--space-3); }
 .aps-trigger {
   display: flex; align-items: center; gap: var(--space-2); min-height: var(--shells-a-size-touch); padding: 0 var(--space-2) 0 var(--space-3);
   border-radius: var(--radius-pill); color: var(--text); font: inherit; text-align: left; cursor: pointer;
@@ -194,7 +200,8 @@ html { scroll-padding-top: 160px; } /* scrollIntoView lands below the pinned top
   .shell-search { order: 5; max-width: none; }
   .alert-ribbon { padding: 8px 12px; }
   .shell-side { width: var(--shells-a-size-sidebar-compact); padding: 12px 8px; }
-  .shell-brand span:last-child, .shell-nav-label, .shell-branch, .shell-user-text { display: none; }
+  .shell-brand span:last-child, .shell-nav-label, .shell-branch, .shell-clinic, .shell-user-text { display: none; }
+  .shell-top-synthetic { display: inline-block; }
   .shell-nav a { justify-content: center; padding: 0; }
   .shell-top { flex-wrap: wrap; padding: 8px 12px; }
   .shell-main { padding: 12px; }
