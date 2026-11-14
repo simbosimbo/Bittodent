@@ -1,3 +1,12 @@
 /* C3: "Perlu dijadwalkan" list */
 .planned { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
 .planned-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: center; padding: 8px 0; border-top: 1px solid var(--border); }
+
+/* Online booking: source badge + confirm/reject on pending requests */
+.chip-online { background: var(--accent-50); color: var(--accent-600); }
+.chip-pending_confirmation { background: var(--warn-50); color: var(--warn); }
+.chip-rejected { background: var(--danger-50); color: var(--danger); }
+.appt-pending_confirmation { border-style: dashed; border-color: var(--warn); }
+.appt-rejected { background: #f6f6f6; border-color: #c9c9c9; opacity: 0.75; }
+.appt-actions { display: inline-flex; gap: 4px; }
+.appt-actions .btn-xs { min-height: 24px; }

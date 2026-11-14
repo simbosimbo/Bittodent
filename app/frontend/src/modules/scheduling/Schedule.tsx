@@ -44,6 +44,7 @@ export default function Schedule({ me }: { me: Me }) {
   const [actionError, setActionError] = useState('')
   const canCreate = me.permissions.includes('appointment.create')
   const canMove = me.permissions.includes('appointment.transition')
+  const canConfirm = me.permissions.includes('appointment.confirm')
   const canChart = me.permissions.includes('note.read')
   const canVisit = me.permissions.includes('note.write') // opening from the card starts/reuses the visit
   const tz = data?.branch.timezone ?? 'Asia/Jakarta'
@@ -53,10 +54,10 @@ export default function Schedule({ me }: { me: Me }) {
     setDate(d.toISOString().slice(0, 10))
   }
 
-  async function checkIn(a: Appointment) {
+  async function move(a: Appointment, to: string) {
     setActionError('')
     try {
-      await transition(a.id, 'checked_in')
+      await transition(a.id, to)
       await reload()
     } catch (e) {
       setActionError(e instanceof ApiError && e.status === 422 ? 'Status janji tidak bisa diubah.' : errorText(e))
@@ -105,15 +106,21 @@ export default function Schedule({ me }: { me: Me }) {
                       <div key={a.id} className={`appt appt-${a.status}`} style={{ top: (top / STEP) * ROW + 2, height: (height / STEP) * ROW - 4 }}>
                         <div className="appt-top">
                           <span className="appt-time">{fmtTime(a.starts_at, tz)}–{fmtTime(a.ends_at, tz)}</span>
-                          <StatusChip status={a.status} />
+                          {canConfirm && a.status === 'pending_confirmation' ? (
+                            <span className="appt-actions">
+                              <span className="sr-only">{STATUS.pending_confirmation}</span>
+                              <button className="btn btn-xs btn-primary" onClick={() => move(a, 'booked')}>Konfirmasi</button>
+                              <button className="btn btn-xs" onClick={() => move(a, 'rejected')}>Tolak</button>
+                            </span>
+                          ) : <StatusChip status={a.status} />}
                         </div>
-                        <div className="appt-name">{a.patient?.name}</div>
+                        <div className="appt-name">{a.source === 'online' && <span className="chip chip-online">Online</span>} {a.patient?.name}</div>
                         <div className="appt-bottom">
                           <span className="appt-meta">{a.reason ?? a.dentist?.name}</span>
                           {canMove && a.status === 'booked' && date === todayWib() && (
-                            <button className="btn btn-xs" onClick={() => checkIn(a)}>Check-in</button>
+                            <button className="btn btn-xs" onClick={() => move(a, 'checked_in')}>Check-in</button>
                           )}
-                          {canChart && a.patient && !['cancelled', 'no_show'].includes(a.status) && (
+                          {canChart && a.patient && !['cancelled', 'no_show', 'rejected', 'pending_confirmation'].includes(a.status) && (
                             <a className="btn btn-xs" href={`#/rekam-medis/${a.patient.id}${canVisit ? `/janji/${a.id}` : ''}`}>Buka Rekam Medis</a>
                           )}
                         </div>

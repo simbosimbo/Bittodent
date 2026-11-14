@@ -9,6 +9,7 @@ import { getMe, Login, logout as apiLogout, switchBranch as apiSwitchBranch } fr
 import { AlertRibbon, FamilyPage, MedicalHistoryPage, PatientDetail, PatientForm, PatientList } from './modules/patients'
 import { Home, Schedule } from './modules/scheduling'
 import { ChartPage } from './modules/clinical'
+import { BookingPage, ManagePage } from './modules/booking'
 
 const useHash = () => {
   const [hash, setHash] = useState(location.hash.slice(1) || '/')
@@ -29,7 +30,15 @@ const NAV: (NavItem & { perm: string | null })[] = [
   { path: '/riwayat-medis', label: 'Riwayat Medis', perm: 'note.read', icon: ICONS.heart, group: 'pasien' },
 ]
 
+// Public patient pages (no login): #/book/{slug} and #/book/{slug}/manage/{token}.
 export default function App() {
+  const hash = useHash().split('?')[0]
+  const book = hash.match(/^\/book\/([\w-]+)(?:\/manage\/([\w-]+))?$/)
+  if (book) return book[2] ? <ManagePage key={hash} slug={book[1]} token={book[2]} /> : <BookingPage key={book[1]} slug={book[1]} />
+  return <StaffApp />
+}
+
+function StaffApp() {
   const [me, setMe] = useState<Me | null>(null)
   const [state, setState] = useState<'loading' | 'guest' | 'ready' | 'no2fa' | 'error'>('loading')
   const [hash, query = ''] = useHash().split('?')

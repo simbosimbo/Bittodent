@@ -6,7 +6,7 @@ export default function Home({ me }: { me: Me }) {
   const date = todayWib()
   const { data, error, loading } = useSchedule(me.active.branch_id, date)
   const all = data?.chairs.flatMap((c) => c.appointments.map((a) => ({ ...a, chair: c.label }))) ?? []
-  const active = all.filter((a) => a.status !== 'cancelled' && a.status !== 'no_show')
+  const active = all.filter((a) => !['cancelled', 'no_show', 'rejected'].includes(a.status))
   const queue = all.filter((a) => a.status === 'checked_in').sort((a, b) => a.starts_at.localeCompare(b.starts_at))
 
   return (
