@@ -61,3 +61,14 @@ test('dev quick-login picker: hidden when /api/dev/status is 404, logs in withou
   expect(calls).toEqual(['GET /api/dev/status', 'GET /sanctum/csrf-cookie', 'POST /dev/quick-login {"user_email":"depan@senyum.test"}'])
   vi.unstubAllGlobals()
 })
+
+test('brand: Bittodent with DATA SINTETIS badge, no EHR Gigi or PROTOTIPE', async () => {
+  vi.stubGlobal('fetch', vi.fn(async () => json({ message: 'Not Found' }, 404)))
+  const { container } = render(<Login onLoggedIn={vi.fn()} />)
+  await vi.waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/dev/status', expect.anything()))
+  expect(container.querySelector('.brand')).toHaveTextContent('Bittodent')
+  expect(container.querySelector('.brand-mark svg')).toBeInTheDocument()
+  expect(container.querySelector('.badge-synthetic')).toHaveTextContent(/^DATA SINTETIS$/)
+  expect(container).not.toHaveTextContent('EHR Gigi')
+  expect(container).not.toHaveTextContent('PROTOTIPE')
+})
