@@ -20,7 +20,13 @@ export function alertChips(a: Alerts): Chip[] {
 
 const ICON: Record<Chip['type'], string> = { premedikasi: '⚠', catatan_penting: '❗', alergi: '⚠', penyakit: '♥', obat: '℞', kosong: '' }
 
-export function AlertRibbon({ patientId }: { patientId: string }) {
+// Collapsed (compact) hides only conditions/medications; premed, urgent note, allergies and empty states always show.
+const MINOR: Chip['type'][] = ['penyakit', 'obat']
+
+export function AlertRibbon({ patientId, compactDefault = false }: { patientId: string; compactDefault?: boolean }) {
+  // User override resets when the route default changes (chart vs other pages).
+  const [pickOpen, setPickOpen] = useState<{ base: boolean; v: boolean } | null>(null)
+  const open = pickOpen?.base === compactDefault ? pickOpen.v : !compactDefault
   const [state, setState] = useState<{ id: string; alerts: Alerts | null; error: string } | null>(null)
   useEffect(() => {
     let live = true
@@ -33,15 +39,22 @@ export function AlertRibbon({ patientId }: { patientId: string }) {
   }, [patientId])
 
   const s = state?.id === patientId ? state : null
+  const chips = s?.alerts ? alertChips(s.alerts) : []
+  const minor = chips.filter((c) => MINOR.includes(c.type)).length
   return (
-    <div className="alert-ribbon" role="region" aria-label="Peringatan medis pasien aktif">
+    <div className={'alert-ribbon' + (open ? '' : ' is-compact')} role="region" aria-label="Peringatan medis pasien aktif">
       {s?.error ? <span className="alert-chip alert-catatan_penting" role="alert">{s.error}</span>
         : !s?.alerts ? <span className="muted small">Memuat peringatan medis…</span>
-        : alertChips(s.alerts).map((c, i) => (
+        : chips.filter((c) => open || !MINOR.includes(c.type)).map((c, i) => (
           <span key={i} className={'alert-chip alert-' + c.type} data-type={c.type}>
             {ICON[c.type] && <span aria-hidden="true">{ICON[c.type]}</span>}{c.text}
           </span>
         ))}
+      {minor > 0 && (
+        <button type="button" className="alert-toggle" aria-expanded={open} onClick={() => setPickOpen({ base: compactDefault, v: !open })}>
+          {open ? 'Ciutkan' : `Selengkapnya (+${minor} lainnya)`}
+        </button>
+      )}
       {s?.alerts?.full && <a className="alert-link" href={'#/riwayat-medis/' + patientId}>Riwayat medis →</a>}
     </div>
   )

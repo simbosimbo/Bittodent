@@ -237,6 +237,9 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const [procCode, setProcCode] = useState('')
   const [baselineOpen, setBaselineOpen] = useState(false)
   const [view, setView] = useState<'2d' | '3d'>('2d') // not persisted: 2D every time
+  const [legendOpen, setLegendOpen] = useState(true)
+  // 3D needs the vertical space: legends collapse on 3D, reopen on 2D; manual toggle still works in both.
+  const changeView = (v: '2d' | '3d') => { setView(v); setLegendOpen(v === '2d') }
   // View-only dentition override, dropped when the default (baseline or DOB) changes; the baseline editor is what persists.
   const defDent = chart ? `${chart.patient.id}:${chart.baseline?.dentition ?? dentitionFromDob(chart.patient.dob)}` : ''
   const [dentPick, setDentPick] = useState<{ base: string; v: Baseline['dentition'] } | null>(null)
@@ -323,13 +326,18 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
           {mine.some((d) => d.source === 'ai_draft') && <span className="badge badge-ai">{AI_BADGE}</span>}
           <div className="card-head-tools">
             <Seg label="Dentisi" value={dent ?? 'tetap'} onChange={(v) => setDentPick({ base: defDent, v })} options={[['tetap', 'Tetap'], ['sulung', 'Sulung'], ['campuran', 'Campuran']]} />
-            <Seg label="Tampilan" value={view} onChange={setView} options={[['2d', '2D'], ['3d', '3D']]} />
+            <Seg label="Tampilan" value={view} onChange={changeView} options={[['2d', '2D'], ['3d', '3D']]} />
           </div>
         </div>
-        <div className="odo-legends">
-          <StatusLegend />
-          <Legend />
-        </div>
+        <button type="button" className="btn btn-xs odo-legend-toggle" aria-expanded={legendOpen} aria-controls="odo-legends" onClick={() => setLegendOpen(!legendOpen)}>
+          {legendOpen ? 'Sembunyikan legenda' : 'Tampilkan legenda'}
+        </button>
+        {legendOpen && (
+          <div className="odo-legends" id="odo-legends">
+            <StatusLegend />
+            <Legend />
+          </div>
+        )}
         {can('note.write') && (
           <div className="baseline-row">
             <span className="muted small">Keadaan awal: {chart.baseline ? `${chart.baseline.dentition} · versi ${chart.baseline.version}` : 'belum diisi (isi di kunjungan pertama)'}</span>
@@ -341,7 +349,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
         {view === '3d' && (
           <>
             <Odontogram3D marks={marks} baseline={chart.baseline?.teeth} dentition={dent} selected={pick} onPick={onPick} />
-            <p className="muted small">Tampilan 3D hanya baca; overlay mengikuti data bagan dan legenda internal. Ketuk gigi/permukaan di 3D untuk memilih, atau pakai bagan 2D di bawah untuk input per permukaan.</p>
+            <p className="muted small odo3d-note">Tampilan 3D hanya baca; overlay mengikuti data bagan dan legenda internal. Ketuk gigi/permukaan di 3D untuk memilih, atau pakai bagan 2D di bawah untuk input per permukaan.</p>
           </>
         )}
         <div className="odo2d-wrap">

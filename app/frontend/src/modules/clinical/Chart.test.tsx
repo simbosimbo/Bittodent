@@ -72,6 +72,23 @@ test('Tampilan: default 2D without 3D mount; 3D mounts and 2D unmounts it again'
   expect(document.querySelector('.odo3d')).toBeNull()
 })
 
+test('Legenda: open in 2D, collapsed on 3D, reopens on 2D, toggles manually', async () => {
+  renderChart()
+  await screen.findByRole('radiogroup', { name: 'Tampilan' })
+  const legends = () => screen.queryByRole('list', { name: 'Legenda status' })
+  expect(legends()).not.toBeNull()
+  await show3d()
+  expect(legends()).toBeNull()
+  expect(screen.queryByRole('list', { name: 'Legenda internal (bukan formulir resmi)' })).toBeNull()
+  const btn = screen.getByRole('button', { name: 'Tampilkan legenda' })
+  expect(btn).toHaveAttribute('aria-expanded', 'false')
+  fireEvent.click(btn)
+  expect(legends()).not.toBeNull()
+  expect(screen.getByRole('button', { name: 'Sembunyikan legenda' })).toHaveAttribute('aria-expanded', 'true')
+  fireEvent.click(radio('Tampilan', '2D'))
+  expect(legends()).not.toBeNull()
+})
+
 test('3D shows findings as overlays and 2D/3D selection stays in sync', async () => {
   renderChart()
   await screen.findByRole('radiogroup', { name: 'Tampilan' })
