@@ -52,7 +52,7 @@ class SearchTest extends TestCase
             $seen = [...$seen, ...collect($page->json('data'))->pluck('id')->all()];
             $cursor = $page->json('next_cursor');
         } while ($cursor);
-        $this->assertCount(41, $seen);
-        $this->assertCount(41, array_unique($seen));
+        $this->assertCount(42, $seen); // 40 + minor (C3) + online booking patient
+        $this->assertCount(42, array_unique($seen));
     }
 }

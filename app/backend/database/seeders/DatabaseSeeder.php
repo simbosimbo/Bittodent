@@ -22,7 +22,9 @@ use App\Modules\Prescriptions\Models\PrescriptionVoid;
 use App\Modules\Recall\Models\ReminderLog;
 use App\Modules\Scheduling\Models\Appointment;
 use App\Modules\Scheduling\Models\Chair;
+use App\Modules\Scheduling\Models\ClinicService;
 use App\Modules\Scheduling\Models\PlannedAppointment;
+use App\Modules\Scheduling\Models\PracticeHour;
 use App\Modules\Tariffs\Domain\DifficultyTemplate;
 use App\Modules\Tariffs\Models\Tariff;
 use App\Modules\Tenancy\Models\Branch;
@@ -56,12 +58,14 @@ class DatabaseSeeder extends Seeder
             'kasir@senyum.test' => ['Kasir Senyum (dummy)', 'lainnya'],
             'dokter@ceria.test' => ['drg. Citra Contoh', 'dokter_gigi'],
             'kasir@ceria.test' => ['Kasir Ceria (dummy)', 'lainnya'],
+            'dokter.bunga@senyum.test' => ['drg. Bunga Contoh', 'dokter_gigi'],
+            'dokter.raka@senyum.test' => ['drg. Raka Contoh', 'dokter_gigi'],
         ] as $email => [$name, $license]) {
             $users[$email] = self::user($email, $name, $license);
         }
 
-        $a = Tenant::create(['name' => 'Klinik Gigi Senyum Sehat', 'is_demo' => true]);
-        $b = Tenant::create(['name' => 'Klinik Gigi Ceria', 'is_demo' => true]);
+        $a = Tenant::create(['name' => 'Klinik Gigi Senyum Sehat', 'is_demo' => true, 'slug' => 'senyum', 'online_booking_enabled' => true]);
+        $b = Tenant::create(['name' => 'Klinik Gigi Ceria', 'is_demo' => true, 'slug' => 'ceria', 'online_booking_enabled' => true]);
 
         Ctx::runAs($a->id, function () use ($users) {
             $b1 = $this->branch('Senyum Sehat Kemang (Jakarta)', ['Kursi 1', 'Kursi 2', 'Kursi 3']);
@@ -75,6 +79,7 @@ class DatabaseSeeder extends Seeder
             $this->appointments([$b1, $b2], $users['dokter@senyum.test'], $patients);
             $this->clinicalDemo($b1, $users['dokter@senyum.test'], $patients[0]);
             $this->c3Demo($b1, $users['dokter@senyum.test'], $patients, 1);
+            $this->bookingDemo($users, $b1, $b2);
         }, $users['pemilik@senyum.test']->id);
 
         Ctx::runAs($b->id, function () use ($users) {
@@ -85,6 +90,11 @@ class DatabaseSeeder extends Seeder
             $patients = $this->patients(40, 2, [$b1->id]);
             $this->appointments([$b1], $users['dokter@ceria.test'], $patients);
             $this->c3Demo($b1, $users['dokter@ceria.test'], $patients, 2);
+            foreach ([1, 2, 3, 4, 5] as $day) {
+                PracticeHour::create(['dentist_id' => $users['dokter@ceria.test']->id, 'branch_id' => $b1->id, 'weekday' => $day, 'start_time' => '10:00', 'end_time' => '16:00']);
+            }
+            ClinicService::create(['name' => 'Konsultasi', 'duration_minutes' => 30, 'online' => true]);
+            ClinicService::create(['name' => 'Scaling', 'duration_minutes' => 60, 'online' => true]);
         }, $users['dokter@ceria.test']->id);
     }
 
@@ -266,6 +276,40 @@ class DatabaseSeeder extends Seeder
         $sign($rx1, ['dose' => '500 mg', 'route' => 'oral', 'frequency' => '3x sehari', 'duration_days' => 3]);
         PrescriptionVoid::create(['prescription_id' => $rx1->id, 'reason_enc' => Crypto::encrypt('Salah durasi (contoh)'), 'voided_by' => $dentist->id]);
         $sign($rx("R-$seed-0002", $rx1->id), ['dose' => '500 mg', 'route' => 'oral', 'frequency' => '3x sehari', 'duration_days' => 5]);
+    }
+
+    /**
+     * Online booking (slug `senyum`): 3 dentists with weekly hours, 4 services (one not bookable online) and one pending online
+     * request tomorrow 18:00 with a fixed DEV-ONLY manage token (`demo-kelola-senyum`) so the manage page can be opened directly.
+     */
+    private function bookingDemo(array $users, Branch $kemang, Branch $rawamangun): void
+    {
+        $this->member($users['dokter.bunga@senyum.test'], 'dentist', $kemang->id);
+        $this->member($users['dokter.raka@senyum.test'], 'dentist', $rawamangun->id);
+        $hours = [
+            ['dokter@senyum.test', $kemang, [1, 2, 3, 4, 5, 6], '09:00', '17:00'],
+            ['dokter.bunga@senyum.test', $kemang, [1, 2, 3, 4, 5, 6, 7], '13:00', '20:00'],
+            ['dokter.raka@senyum.test', $rawamangun, [2, 4, 6], '09:00', '15:00'],
+        ];
+        foreach ($hours as [$email, $branch, $days, $from, $to]) {
+            foreach ($days as $day) {
+                PracticeHour::create(['dentist_id' => $users[$email]->id, 'branch_id' => $branch->id, 'weekday' => $day, 'start_time' => $from, 'end_time' => $to]);
+            }
+        }
+        $svc = ClinicService::create(['name' => 'Konsultasi', 'duration_minutes' => 30, 'online' => true]);
+        ClinicService::create(['name' => 'Scaling', 'duration_minutes' => 45, 'online' => true]);
+        ClinicService::create(['name' => 'Tambal gigi', 'duration_minutes' => 60, 'online' => true]);
+        ClinicService::create(['name' => 'Cabut gigi', 'duration_minutes' => 45, 'online' => false]);
+
+        $p = (new Patient)->fillIdentity(['name' => 'Maya Daring Contoh', 'phone' => '089901000099'])
+            ->fill(['home_branch_id' => $kemang->id, 'source' => 'online']);
+        $p->save();
+        $start = CarbonImmutable::now('Asia/Jakarta')->addDay()->setTime(18, 0);
+        Appointment::create(['branch_id' => $kemang->id, 'chair_id' => Chair::where('branch_id', $kemang->id)->orderBy('label')->value('id'),
+            'dentist_id' => $users['dokter.bunga@senyum.test']->id, 'patient_id' => $p->id, 'starts_at' => $start->utc(), 'ends_at' => $start->addMinutes(30)->utc(),
+            'status' => 'pending_confirmation', 'source' => 'online', 'service_id' => $svc->id, 'reason' => $svc->name,
+            'complaint_enc' => Crypto::encrypt('Gigi ngilu (contoh sintetis)'), 'booking_code' => 'BK-DEMO01',
+            'manage_token_hash' => hash('sha256', 'demo-kelola-senyum'), 'manage_expires_at' => $start->utc()]);
     }
 
     public static function version(ClinicalNote $note, int $n, ?ClinicalNoteVersion $supersedes, array $soap, User $signer, ?string $reason = null, $at = null): ClinicalNoteVersion
