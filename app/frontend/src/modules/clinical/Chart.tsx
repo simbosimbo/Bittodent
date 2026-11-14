@@ -8,8 +8,9 @@ import {
   approveCorrection, changeStatus, correctNote, discardFinding, getChart, saveBaseline, saveFinding, saveNote, signVisit, visitFromAppointment,
   type Baseline, type Chart, type ChartVisit, type Finding, type Note, type ProcStatus, type Soap, type Surface, type ToothPresence, type Version,
 } from './api'
-import { AI_BADGE, CONDITIONS, findingText, PRESENCE, STATUSES, statusOf, surfaceLabel, surfaceName } from './legend'
-import { Legend, Odontogram, type Mark } from './Odontogram'
+import { AI_BADGE, CONDITIONS, conditionOf, findingText, PRESENCE, STATUSES, statusOf, surfaceLabel, surfaceName } from './legend'
+import { Legend, Odontogram, StatusLegend, type Mark } from './Odontogram'
+import { dentitionFromDob, Odontogram3D } from './Odontogram3D'
 import { SignDialog } from './SignDialog'
 import './clinical.css'
 
@@ -149,22 +150,44 @@ export function StatusChip({ status }: { status: string }) {
   return <span className={`chip st st-${status}`} data-status={statusOf(status)?.legend}>{statusOf(status)?.label ?? status}</span>
 }
 
-/** Odontogram items with status chips. Dentists move a signed item along the allowed transitions (server appends a new row). */
+/** Findings table (Open Dental pattern, our data only). Dentists move a signed item along the allowed transitions (server appends a new row). */
 function Items({ items, canMove, onMove }: { items: Finding[]; canMove: boolean; onMove: (f: Finding, to: ProcStatus) => void }) {
   if (!items.length) return null
   return (
-    <ul className="items" aria-label="Item odontogram dan status">
-      {[...items].sort((a, b) => a.tooth - b.tooth).map((f) => (
-        <li key={f.id}>
-          <span>{findingText(f)}</span> <StatusChip status={f.status} />
-          {f.procedure_code && <span className="mono small">ICD-9-CM {f.procedure_code}</span>}
-          {f.state === 'draft' ? <span className="badge badge-draft">Draf</span> : <span className="muted small">🔒</span>}
-          {f.state === 'final' && canMove && statusOf(f.status)?.next.map((to) => (
-            <button key={to} className="btn btn-xs" onClick={() => onMove(f, to)}>→ {statusOf(to)!.label}</button>
+    <div className="findings-wrap">
+      <table className="table findings" aria-label="Temuan odontogram dan status">
+        <thead><tr><th scope="col">Status</th><th scope="col">Gigi</th><th scope="col">Permukaan</th><th scope="col">Kondisi</th><th scope="col">Kode ICD-9-CM</th><th scope="col">Ubah status</th></tr></thead>
+        <tbody>
+          {[...items].sort((a, b) => a.tooth - b.tooth).map((f) => (
+            <tr key={f.id}>
+              <td><StatusChip status={f.status} /> {f.state === 'draft' ? <span className="badge badge-draft">Draf</span> : <span className="muted small" aria-label="Terkunci">🔒</span>}</td>
+              <td className="mono">{f.tooth}</td>
+              <td>{f.surface ? `${surfaceLabel(f.tooth, f.surface)} (${surfaceName(f.tooth, f.surface)})` : 'Seluruh gigi'}</td>
+              <td>{conditionOf(f.condition)?.label ?? f.condition}</td>
+              <td className="mono">{f.procedure_code ?? '—'}</td>
+              <td>{f.state === 'final' && canMove && statusOf(f.status)?.next.map((to) => (
+                <button key={to} className="btn btn-xs" onClick={() => onMove(f, to)}>→ {statusOf(to)!.label}</button>
+              ))}</td>
+            </tr>
           ))}
-        </li>
-      ))}
-    </ul>
+        </tbody>
+      </table>
+      <p className="muted small">Biaya dan prioritas belum ada di data temuan.</p>
+    </div>
+  )
+}
+
+/** Segmented control (radiogroup); 44px targets. */
+function Seg<T extends string>({ label, value, options, onChange }: { label: string; value: T; options: [T, string][]; onChange: (v: T) => void }) {
+  return (
+    <div className="seg-field">
+      <span className="seg-label" id={`seg-${label}`}>{label}</span>
+      <div className="seg" role="radiogroup" aria-labelledby={`seg-${label}`}>
+        {options.map(([k, text]) => (
+          <button key={k} type="button" role="radio" aria-checked={value === k} className={value === k ? 'is-on' : ''} onClick={() => onChange(k)}>{text}</button>
+        ))}
+      </div>
+    </div>
   )
 }
 
@@ -213,6 +236,11 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const [status, setStatus] = useState<ProcStatus>('kondisi_pantau')
   const [procCode, setProcCode] = useState('')
   const [baselineOpen, setBaselineOpen] = useState(false)
+  const [view, setView] = useState<'2d' | '3d'>('2d') // not persisted: 2D every time
+  // View-only dentition override, dropped when the default (baseline or DOB) changes; the baseline editor is what persists.
+  const defDent = chart ? `${chart.patient.id}:${chart.baseline?.dentition ?? dentitionFromDob(chart.patient.dob)}` : ''
+  const [dentPick, setDentPick] = useState<{ base: string; v: Baseline['dentition'] } | null>(null)
+  const dent = dentPick?.base === defDent ? dentPick.v : defDent.split(':')[1] as Baseline['dentition'] | undefined
   const can = (p: string) => me.permissions.includes(p)
 
   const load = useCallback(async () => {
@@ -261,6 +289,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
       setMsg(e instanceof ApiError && [409, 422].includes(e.status) ? e.data?.message ?? 'Data tidak valid.' : errorText(e))
     }
   }
+  const onPick = (tooth: number, surface: Surface) => setPick({ tooth, surface }) // selecting works anytime; picker only when editable
   const choose = (condition: string, whole: boolean) => pick && visit && run(() => saveFinding(visit.id,
     { tooth: pick.tooth, surface: whole ? null : pick.surface, condition, status, procedure_code: procCode.trim() || null }))
   const myDraftAt = (whole: boolean) => pick && mine.find((d) => d.tooth === pick.tooth && d.surface === (whole ? null : pick.surface))
@@ -292,6 +321,10 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
           <h2>Odontogram</h2>
           {mine.length > 0 && <span className="badge badge-draft">Draf: {mine.length} temuan</span>}
           {mine.some((d) => d.source === 'ai_draft') && <span className="badge badge-ai">{AI_BADGE}</span>}
+          <div className="card-head-tools">
+            <Seg label="Dentisi" value={dent ?? 'tetap'} onChange={(v) => setDentPick({ base: defDent, v })} options={[['tetap', 'Tetap'], ['sulung', 'Sulung'], ['campuran', 'Campuran']]} />
+            <Seg label="Tampilan" value={view} onChange={setView} options={[['2d', '2D'], ['3d', '3D']]} />
+          </div>
         </div>
         {can('note.write') && (
           <div className="baseline-row">
@@ -301,11 +334,20 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
         )}
         {baselineOpen && <BaselineEditor value={chart.baseline} onClose={() => setBaselineOpen(false)}
           onSave={(b) => run(async () => { await saveBaseline(p.id, { base_version: chart.baseline?.version ?? null, ...b }); setBaselineOpen(false) }, 'Keadaan awal tersimpan (versi baru).')} />}
-        <Odontogram marks={marks} baseline={chart.baseline?.teeth} dentition={chart.baseline?.dentition} selected={pick ? `t${pick.tooth}-${pick.surface}` : null} onPick={editable ? (tooth, surface) => setPick({ tooth, surface }) : undefined} />
+        {view === '3d' && (
+          <>
+            <Odontogram3D marks={marks} baseline={chart.baseline?.teeth} dentition={dent} selected={pick} onPick={onPick} />
+            <p className="muted small">Tampilan 3D hanya baca; overlay mengikuti data bagan dan legenda internal. Ketuk gigi/permukaan di 3D untuk memilih, atau pakai bagan 2D di bawah untuk input per permukaan.</p>
+          </>
+        )}
+        <div className="odo2d-wrap">
+          <Odontogram marks={marks} baseline={chart.baseline?.teeth} dentition={dent} compact={view === '3d'} selected={pick ? `t${pick.tooth}-${pick.surface}` : null} onPick={onPick} />
+        </div>
         {!editable && (visit ? <p className="muted small">Kunjungan ini sudah ditandatangani.</p> : (
           <p className="chart-cta small">Belum ada kunjungan aktif. Odontogram dan SOAP diisi dari janji pasien hari ini.{' '}
             <a className="btn btn-primary" href={can('appointment.read') ? '#/jadwal' : '#/'}>Buka janji hari ini</a></p>
         ))}
+        {pick && !editable && <p className="muted small" role="status">Dipilih: Gigi {pick.tooth} · {surfaceName(pick.tooth, pick.surface)} ({surfaceLabel(pick.tooth, pick.surface)})</p>}
         {pick && editable && (
           <div className="picker-pop" role="group" aria-label="Pilih kondisi">
             <strong>Gigi {pick.tooth} · {surfaceName(pick.tooth, pick.surface)} ({surfaceLabel(pick.tooth, pick.surface)})</strong>
@@ -331,6 +373,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
         <Items items={[...chart.findings, ...mine]} canMove={can('note.sign')}
           onMove={(f, to) => run(() => changeStatus(f.id, to, visit?.id), `Status gigi ${f.tooth} diubah (baris baru; versi lama tetap).`)} />
         <Legend />
+        <StatusLegend />
       </div>
 
       {visit && (

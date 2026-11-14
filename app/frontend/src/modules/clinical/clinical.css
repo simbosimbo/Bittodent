@@ -105,3 +105,20 @@ label.check { flex-direction: row; gap: 8px; align-items: flex-start; font-weigh
 .odo3d .t3-sel { position: absolute; inset: 0; display: none; background: var(--color-primary-500); opacity: .55; mix-blend-mode: multiply;
   -webkit-mask: var(--mask) calc(var(--i) * 100% / 6) 0 / 700% 100% no-repeat; mask: var(--mask) calc(var(--i) * 100% / 6) 0 / 700% 100% no-repeat; }
 .odo3d .t3-sel.is-sel { display: block; }
+
+/* Rekam Medis: Tampilan 2D/3D + Dentisi segmented controls (own CSS; Zendenta-style track, white selected segment). */
+.card-head-tools { margin-left: auto; display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); align-items: center; }
+.seg-field { display: flex; align-items: center; gap: var(--space-2); }
+.seg-label { font-size: var(--font-size-xs); font-weight: 600; color: var(--muted); }
+.seg { display: inline-flex; gap: 2px; padding: 3px; background: var(--color-neutral-50); border: 1px solid var(--color-neutral-200); border-radius: var(--radius-md); }
+.seg button { font: inherit; border: 0; background: transparent; min-height: var(--shells-a-size-touch); min-width: var(--shells-a-size-touch); padding: 0 var(--space-3);
+  border-radius: var(--radius-sm); cursor: pointer; color: var(--color-neutral-700); font-weight: var(--font-weight-medium); }
+.seg button.is-on { background: var(--surface); color: var(--color-primary-800); box-shadow: var(--shadow-sm); }
+.seg button:focus-visible { outline: 2px solid var(--accent-600); outline-offset: 1px; }
+.odo2d-wrap { overflow-x: auto; max-width: 100%; }
+.odontogram.is-compact { max-width: 760px; max-height: 300px; min-width: 640px; }
+.findings-wrap { overflow-x: auto; margin: var(--space-3) 0; }
+.findings-wrap > p { margin: var(--space-1) 0 0; }
+.table.findings tbody tr { cursor: auto; }
+.table.findings td { padding: var(--space-2) 12px; vertical-align: middle; }
+.table.findings td .btn + .btn { margin-left: 4px; }
