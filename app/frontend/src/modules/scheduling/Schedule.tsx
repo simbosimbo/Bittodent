@@ -10,7 +10,7 @@ const START = 8 * 60, END = 20 * 60, STEP = 30, ROW = 52
 const SLOTS = Array.from({ length: (END - START) / STEP }, (_, i) => START + i * STEP)
 const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
 
-function minutesOfDay(iso: string, tz: string) {
+export function minutesOfDay(iso: string, tz: string) {
   const p = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(iso))
   return Number(p.find((x) => x.type === 'hour')!.value) * 60 + Number(p.find((x) => x.type === 'minute')!.value)
 }
