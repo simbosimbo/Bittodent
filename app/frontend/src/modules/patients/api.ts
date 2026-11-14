@@ -1,6 +1,6 @@
 import { api } from '../../shared/api/http'
 
-export type PatientRow = { id: string; name: string; dob: string | null; sex: string | null; payer_type: string; status?: string }
+export type PatientRow = { id: string; mrn: string | null; name: string; dob: string | null; sex: string | null; payer_type: string; status?: string }
 export type PatientFull = PatientRow & { nik: string | null; phone: string | null; address: string | null; payer_name: string | null; payer_member_no: string | null; payer_class: string | null }
 type Page = { data: PatientRow[]; next_cursor: string | null }
 

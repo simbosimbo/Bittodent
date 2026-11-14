@@ -130,7 +130,7 @@ Aturan keras: hanya user dengan `license_type = dokter_gigi` **dan** peran `dokt
 **`patient`**
 | Kolom | Tipe | Aturan |
 |---|---|---|
-| `mrn` | text | no. RM, unik `(tenant_id, mrn)`, dibuat berurutan per tenant |
+| `mrn` | text | no. RM, unik `(tenant_id, mrn)`, dibuat berurutan per tenant. Format (usulan): `BT-` + 6 angka, mulai `BT-000001` per tenant, tanpa kode cabang; penghitung `patient_mrn_seq` dikunci per tenant (MVP MySQL: `MrnGenerator`) |
 | `full_name` | text | wajib. Tidak dienkripsi supaya bisa dicari sebagian (D-020, **diterima Jerome** sebagai pengecualian terdokumentasi) |
 | `name_search` | text | huruf kecil, tanpa tanda baca, dari `full_name` (dibuat otomatis) |
 | `nik_enc` 🔒 | bytea | NIK terenkripsi. Wajib untuk pasien beridentitas (REG-1) |

@@ -54,7 +54,7 @@ export function usePatientSearch(q: string, delay = 300) {
 
 // Labels for patient.status (MySQL default 'aktif'; postgres target adds meninggal/diarsip). Unknown values show raw.
 const STATUS: Record<string, string> = { aktif: 'Aktif', tidak_aktif: 'Tidak aktif', meninggal: 'Meninggal', diarsip: 'Diarsip' }
-// No mrn / last-visit data in the list API yet: say so instead of inventing values.
+// Value not in the API (last visit; mrn on old draft rows): say so instead of inventing values.
 const Missing = () => <><span aria-hidden="true">—</span><span className="sr-only">Belum ada</span></>
 
 export function PatientList({ canCreate, canChart = false, initialQ = '' }: { canCreate: boolean; canChart?: boolean; initialQ?: string }) {
@@ -75,7 +75,7 @@ export function PatientList({ canCreate, canChart = false, initialQ = '' }: { ca
         <div className="pl-toolbar">
           <label className="pl-search">Cari pasien
             <span className="pl-search-box"><Icon d={ICONS.search} size={18} />
-              <input type="search" placeholder="Awalan nama, atau NIK / no. HP lengkap" value={q} onChange={(e) => setQ(e.target.value)} /></span>
+              <input type="search" placeholder="Awalan nama, No. RM, atau NIK / no. HP lengkap" value={q} onChange={(e) => setQ(e.target.value)} /></span>
           </label>
           {canCreate && <a className="btn btn-primary" href="#/pasien/baru">Pasien baru</a>}
         </div>
@@ -97,7 +97,7 @@ export function PatientList({ canCreate, canChart = false, initialQ = '' }: { ca
                   <span className="avatar" aria-hidden="true">{initials(p.name) || '?'}</span>
                   <div className="pl-card-body">
                     <a href={'#/pasien/' + p.id} className="strong pl-name-text">{p.name}</a>
-                    <span className="muted small">{[age(p.dob), p.sex && (SEX[p.sex] ?? p.sex), PAYER[p.payer_type] ?? p.payer_type].filter(Boolean).join(' · ')}</span>
+                    <span className="muted small">{[p.mrn, age(p.dob), p.sex && (SEX[p.sex] ?? p.sex), PAYER[p.payer_type] ?? p.payer_type].filter(Boolean).join(' · ')}</span>
                     {p.status && <span><span className={'chip ' + (p.status === 'aktif' ? 'chip-aktif' : 'chip-neutral')}>{STATUS[p.status] ?? p.status}</span></span>}
                     {canChart && <a className="btn-link row-action" href={'#/rekam-medis/' + p.id}
                       aria-label={'Rekam Medis ' + p.name} onClick={(e) => e.stopPropagation()}>Rekam Medis</a>}
@@ -117,7 +117,7 @@ export function PatientList({ canCreate, canChart = false, initialQ = '' }: { ca
                       <span><a href={'#/pasien/' + p.id} className="strong pl-name-text">{p.name}</a>
                         <span className="muted small pl-payer">{PAYER[p.payer_type] ?? p.payer_type}</span></span>
                     </div></td>
-                    <td className="muted"><Missing /></td>
+                    <td className={p.mrn ? undefined : 'muted'}>{p.mrn ?? <Missing />}</td>
                     <td title={p.dob ? 'Lahir ' + dob(p.dob) : undefined}>{age(p.dob) || <Missing />}</td>
                     <td className="muted"><Missing /></td>
                     <td>{p.status ? <span className={'chip ' + (p.status === 'aktif' ? 'chip-aktif' : 'chip-neutral')}>{STATUS[p.status] ?? p.status}</span> : <Missing />}</td>

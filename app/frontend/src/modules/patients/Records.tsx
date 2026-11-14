@@ -27,8 +27,7 @@ export function PatientPage({ id, tab, canChart, actions, alerts, children }: { 
         <span className="avatar avatar-lg" aria-hidden="true">{initials(p.name)}</span>
         <div className="patient-head-main">
           <h1>{p.name}</h1>
-          {/* No MRN field yet: never invent one. */}
-          <p className="muted small">{[`${dob(p.dob)}${age(p.dob) ? ` (${age(p.dob)})` : ''}`, p.sex && (SEX[p.sex] ?? p.sex), `Penjamin ${PAYER[p.payer_type] ?? p.payer_type}`, 'No. RM: belum ada'].filter(Boolean).join(' · ')}</p>
+          <p className="muted small">{[`${dob(p.dob)}${age(p.dob) ? ` (${age(p.dob)})` : ''}`, p.sex && (SEX[p.sex] ?? p.sex), `Penjamin ${PAYER[p.payer_type] ?? p.payer_type}`, `No. RM: ${p.mrn ?? 'belum ada'}`].filter(Boolean).join(' · ')}</p>
           {alerts && <AlertRibbon patientId={p.id} compactDefault label="Peringatan medis pasien" className="patient-alerts" />}
         </div>
         <div className="patient-head-actions">

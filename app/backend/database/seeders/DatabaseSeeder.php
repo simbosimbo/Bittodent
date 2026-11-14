@@ -16,6 +16,7 @@ use App\Modules\Patients\Models\Guardian;
 use App\Modules\Patients\Models\Household;
 use App\Modules\Patients\Models\MedicalHistoryVersion;
 use App\Modules\Patients\Models\Patient;
+use App\Modules\Patients\Services\MrnGenerator;
 use App\Modules\Prescriptions\Models\Prescription;
 use App\Modules\Prescriptions\Models\PrescriptionItem;
 use App\Modules\Prescriptions\Models\PrescriptionVoid;
@@ -129,6 +130,7 @@ class DatabaseSeeder extends Seeder
                 'phone' => sprintf('0899%02d%06d', $seed, $i + 1),
                 'address' => 'Jl. Contoh No. '.($i + 1).', Kota Fiktif',
             ])->fill([
+                'mrn' => MrnGenerator::next(),
                 'dob' => CarbonImmutable::create(1960 + ($i * 7) % 55, 1 + $i % 12, 1 + $i % 28)->format('Y-m-d'),
                 'sex' => $i % 2 ? 'laki_laki' : 'perempuan',
                 'home_branch_id' => $branchIds[$i % count($branchIds)],
@@ -224,7 +226,7 @@ class DatabaseSeeder extends Seeder
 
         $home = Household::create(['name' => 'Keluarga '.explode(' ', $p0->name)[1].' (contoh)']);
         $minor = (new Patient)->fillIdentity(['name' => 'Nadia Anak Contoh', 'nik' => sprintf('99%02d%012d', $seed, 900), 'phone' => null])
-            ->fill(['dob' => now()->subYears(9)->format('Y-m-d'), 'sex' => 'perempuan', 'home_branch_id' => $branch->id, 'household_id' => $home->id,
+            ->fill(['mrn' => MrnGenerator::next(), 'dob' => now()->subYears(9)->format('Y-m-d'), 'sex' => 'perempuan', 'home_branch_id' => $branch->id, 'household_id' => $home->id,
                 'guarantor_id' => $p0->id, 'created_by' => Ctx::current()->userId]);
         $minor->save();
         $p0->update(['household_id' => $home->id]);
