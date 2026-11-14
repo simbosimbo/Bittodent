@@ -128,3 +128,36 @@ label.check { flex-direction: row; gap: 8px; align-items: flex-start; font-weigh
 .table.findings tbody tr { cursor: auto; }
 .table.findings td { padding: var(--space-2) 12px; vertical-align: middle; }
 .table.findings td .btn + .btn { margin-left: 4px; }
+
+/* Rekam Medis layout: inner tabs, odontogram (8) + tooth panel (4), findings full width. */
+.chart-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); }
+.chart-tabs button { display: inline-flex; align-items: center; min-height: var(--shells-a-size-touch); padding: 0 16px; margin-bottom: -1px; border: 0; border-bottom: 2px solid transparent;
+  background: none; font: inherit; font-weight: 600; color: var(--muted); cursor: pointer; }
+.chart-tabs button:hover { color: var(--text); }
+.chart-tabs button.on { color: var(--color-primary-700); border-bottom-color: var(--color-primary-700); }
+.chart-tabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.chart-grid { align-items: start; }
+/* At ≤1365px (incl. 1280×800 with the full sidebar) a 4-col panel would squeeze the 3D chart: stack chart, then panel. */
+@media (max-width: 1365px) { .chart-grid > .span-8, .chart-grid > .span-4 { grid-column: span 12; } }
+/* 3D scaled with CSS zoom (layout + hit-testing scale together, so picks still land on the tooth). */
+.odo-card .odo3d { padding: var(--space-1) 0; }
+.odo-card .odo3d .chart { zoom: 0.78; }
+@media (max-width: 1365px) { .odo-card .odo3d .chart { zoom: 0.62; } }
+.odo-card .odo3d .jaw-block + .jaw-block { margin-top: var(--space-2); }
+
+.tooth-panel { display: grid; gap: var(--space-3); align-content: start; }
+.tooth-panel h2 { margin: 0; }
+.tooth-panel p { margin: 0; }
+.tooth-panel .picker-pop { margin: 0; }
+.tooth-empty { padding: var(--space-6) 0; text-align: center; }
+.tooth-panel-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.tooth-close { min-width: var(--shells-a-size-touch); min-height: var(--shells-a-size-touch); font-size: 20px; line-height: 1; }
+.surf-pad { display: grid; grid-template-columns: repeat(3, 44px); grid-template-areas: '. top .' 'left center right' '. bottom .'; gap: 6px; justify-content: start; }
+.surf { min-width: 44px; min-height: 44px; border: 1px solid var(--color-neutral-200); border-radius: var(--radius-sm); background: var(--surface);
+  font: 700 var(--font-size-base) var(--font-family-mono); color: var(--text); cursor: pointer; }
+.surf:hover { border-color: var(--color-primary-700); }
+.surf[aria-pressed='true'] { background: var(--color-primary-700); border-color: var(--color-primary-700); color: #fff; }
+.surf:focus-visible { outline: 2px solid var(--accent-600); outline-offset: 2px; }
+.surf-top { grid-area: top; } .surf-left { grid-area: left; } .surf-center { grid-area: center; } .surf-right { grid-area: right; } .surf-bottom { grid-area: bottom; }
+.tooth-findings { margin: 0; }
+.tooth-panel .btn.cond { min-height: 40px; }

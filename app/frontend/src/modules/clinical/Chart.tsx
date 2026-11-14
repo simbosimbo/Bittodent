@@ -3,12 +3,12 @@ import { ApiError, errorText } from '../../shared/api/http'
 import { setActivePatient } from '../../shared/activePatient'
 import { fmtDateTime } from '../../shared/format'
 import type { Me } from '../../shared/session'
-import { PAYER, PatientPage, SEX } from '../patients'
+import { PatientPage } from '../patients'
 import {
   approveCorrection, changeStatus, correctNote, discardFinding, getChart, saveBaseline, saveFinding, saveNote, signVisit, visitFromAppointment,
   type Baseline, type Chart, type ChartVisit, type Finding, type Note, type ProcStatus, type Soap, type Surface, type ToothPresence, type Version,
 } from './api'
-import { AI_BADGE, CONDITIONS, conditionOf, findingText, PRESENCE, STATUSES, statusOf, surfaceLabel, surfaceName } from './legend'
+import { AI_BADGE, CONDITIONS, conditionOf, findingText, isAnterior, PRESENCE, STATUSES, statusOf, surfaceLabel, surfaceName } from './legend'
 import { Legend, Odontogram, StatusLegend, type Mark } from './Odontogram'
 import { dentitionFromDob, Odontogram3D } from './Odontogram3D'
 import { SignDialog } from './SignDialog'
@@ -22,6 +22,9 @@ const toSoap = (f: Form): Soap => ({ S: f.S, O: f.O, A: { codes: codes(f.A.codes
 const TABS = [['S', 'Subjektif'], ['O', 'Objektif'], ['A', 'Asesmen (ICD-10)'], ['P', 'Rencana (ICD-9-CM)']] as const
 const fmt = (iso: string | null) => iso ? fmtDateTime(iso) : '—'
 const FREE_EDIT_MS = 48 * 3600 * 1000
+const INNER = [['odo', 'Odontogram'], ['notes', 'Catatan Klinis'], ['plan', 'Rencana Perawatan'], ['rx', 'Resep'], ['bill', 'Billing']] as const
+// Surface keypad (sketch): lingual/palatal top, M left, O/I centre, D right, buccal/labial bottom. Labels come from surfaceLabel.
+const PAD: [Surface, string][] = [['L', 'top'], ['M', 'left'], ['O', 'center'], ['D', 'right'], ['B', 'bottom']]
 
 function StatusBadge({ v }: { v: Version }) {
   return (
@@ -238,6 +241,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const [baselineOpen, setBaselineOpen] = useState(false)
   const [view, setView] = useState<'2d' | '3d'>('2d') // not persisted: 2D every time
   const [legendOpen, setLegendOpen] = useState(true)
+  const [tab, setTab] = useState<(typeof INNER)[number][0]>('odo')
   // 3D needs the vertical space: legends collapse on 3D, reopen on 2D; manual toggle still works in both.
   const changeView = (v: '2d' | '3d') => { setView(v); setLegendOpen(v === '2d') }
   // View-only dentition override, dropped when the default (baseline or DOB) changes; the baseline editor is what persists.
@@ -277,7 +281,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   }, [chart, mine])
 
   // Profile tabs stay visible on the chart (record lives inside the patient), so wrap every state in PatientPage.
-  const page = (actions: ReactNode, body: ReactNode) => <PatientPage id={patientId} tab="rekam-medis" canChart actions={actions}>{() => body}</PatientPage>
+  const page = (actions: ReactNode, body: ReactNode) => <PatientPage id={patientId} tab="rekam-medis" canChart alerts actions={actions}>{() => body}</PatientPage>
   if (error) return page(null, <div className="card state-card error">{error} <a href="#/pasien">Kembali</a></div>)
   if (!chart) return page(null, <div className="card state-card muted">Memuat rekam medis…</div>)
   const p = chart.patient
@@ -311,102 +315,147 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
     }
   }
 
+  const items = [...chart.findings, ...mine]
+  const center: Surface | null = pick && (isAnterior(pick.tooth) ? 'I' : 'O')
+  const panel = !pick ? <p className="muted tooth-empty">Pilih gigi untuk melihat detail.</p> : (
+    <>
+      <div className="tooth-panel-head">
+        <h2>Gigi {pick.tooth}</h2>
+        <button type="button" className="btn btn-ghost tooth-close" aria-label="Tutup detail gigi" onClick={() => setPick(null)}>×</button>
+      </div>
+      <p className="muted small" role="status">Dipilih: Gigi {pick.tooth} · {surfaceName(pick.tooth, pick.surface)} ({surfaceLabel(pick.tooth, pick.surface)})</p>
+      <div className="surf-pad" role="group" aria-label="Permukaan">
+        {PAD.map(([s, pos]) => {
+          const sv = s === 'O' ? center! : s
+          return <button key={pos} type="button" className={`surf surf-${pos}`} aria-pressed={pick.surface === sv} title={surfaceName(pick.tooth, sv)}
+            onClick={() => setPick({ tooth: pick.tooth, surface: sv })}>{surfaceLabel(pick.tooth, sv)}</button>
+        })}
+      </div>
+      {items.some((f) => f.tooth === pick.tooth) ? (
+        <ul className="items tooth-findings" aria-label={`Temuan gigi ${pick.tooth}`}>
+          {items.filter((f) => f.tooth === pick.tooth).map((f) => (
+            <li key={f.id}><StatusChip status={f.status} /> {f.surface ? surfaceLabel(f.tooth, f.surface) : 'Seluruh gigi'} · {conditionOf(f.condition)?.label ?? f.condition}
+              {f.state === 'draft' && <span className="badge badge-draft">Draf</span>}</li>
+          ))}
+        </ul>
+      ) : <p className="muted small">Belum ada temuan di gigi ini.</p>}
+      {editable ? (
+        <div className="picker-pop" role="group" aria-label="Pilih kondisi">
+          <div className="cond-row">
+            <label className="small">Status <select value={status} onChange={(e) => setStatus(e.target.value as ProcStatus)}>
+              {STATUSES.map((x) => <option key={x.key} value={x.key}>{x.label}</option>)}
+            </select></label>
+            <label className="small">Kode tindakan ICD-9-CM (opsional) <input className="mono" size={6} value={procCode} placeholder="23.2" onChange={(e) => setProcCode(e.target.value)} /></label>
+          </div>
+          <div className="cond-row">
+            <span className="muted small">Permukaan:</span>
+            {CONDITIONS.filter((c) => !c.whole).map((c) => <button key={c.key} className={`btn cond cond-${c.key}`} onClick={() => choose(c.key, false)}>{c.label}</button>)}
+            {myDraftAt(false) && <button className="btn btn-xs btn-ghost" onClick={() => run(() => discardFinding(myDraftAt(false)!.id))}>Hapus draf permukaan</button>}
+          </div>
+          <div className="cond-row">
+            <span className="muted small">Seluruh gigi:</span>
+            {CONDITIONS.filter((c) => c.whole).map((c) => <button key={c.key} className={`btn cond cond-${c.key}`} onClick={() => choose(c.key, true)}>{c.label}</button>)}
+            {myDraftAt(true) && <button className="btn btn-xs btn-ghost" onClick={() => run(() => discardFinding(myDraftAt(true)!.id))}>Hapus draf gigi</button>}
+          </div>
+        </div>
+      ) : <p className="muted small">Hanya lihat: kondisi diisi dari kunjungan aktif yang belum ditandatangani.</p>}
+    </>
+  )
+
   return page(
-    <div className="muted small chart-meta">
-      <div>{p.sex ? SEX[p.sex] ?? p.sex : '—'} · Penjamin {PAYER[p.payer_type] ?? p.payer_type}</div>
-      {visit && <div>Kunjungan aktif: {fmt(visit.started_at)}</div>}
+    <div className="chart-actions">
+      {visit && <span className="muted small">Kunjungan aktif: {fmt(visit.started_at)}</span>}
+      {can('appointment.create') && <a className="btn btn-primary" href="#/jadwal">Buat janji</a>}
     </div>,
     <>
       {msg && <p className="notice" role="status">{msg}</p>}
 
-      <div className="card">
-        <div className="card-head">
-          <h2>Odontogram</h2>
-          {mine.length > 0 && <span className="badge badge-draft">Draf: {mine.length} temuan</span>}
-          {mine.some((d) => d.source === 'ai_draft') && <span className="badge badge-ai">{AI_BADGE}</span>}
-          <div className="card-head-tools">
-            <Seg label="Dentisi" value={dent ?? 'tetap'} onChange={(v) => setDentPick({ base: defDent, v })} options={[['tetap', 'Tetap'], ['sulung', 'Sulung'], ['campuran', 'Campuran']]} />
-            <Seg label="Tampilan" value={view} onChange={changeView} options={[['2d', '2D'], ['3d', '3D']]} />
-          </div>
-        </div>
-        <button type="button" className="btn btn-xs odo-legend-toggle" aria-expanded={legendOpen} aria-controls="odo-legends" onClick={() => setLegendOpen(!legendOpen)}>
-          {legendOpen ? 'Sembunyikan legenda' : 'Tampilkan legenda'}
-        </button>
-        {legendOpen && (
-          <div className="odo-legends" id="odo-legends">
-            <StatusLegend />
-            <Legend />
-          </div>
-        )}
-        {can('note.write') && (
-          <div className="baseline-row">
-            <span className="muted small">Keadaan awal: {chart.baseline ? `${chart.baseline.dentition} · versi ${chart.baseline.version}` : 'belum diisi (isi di kunjungan pertama)'}</span>
-            <button className="btn btn-xs" aria-pressed={baselineOpen} onClick={() => setBaselineOpen(!baselineOpen)}>{baselineOpen ? 'Tutup keadaan awal' : 'Isi / ubah keadaan awal'}</button>
-          </div>
-        )}
-        {baselineOpen && <BaselineEditor value={chart.baseline} onClose={() => setBaselineOpen(false)}
-          onSave={(b) => run(async () => { await saveBaseline(p.id, { base_version: chart.baseline?.version ?? null, ...b }); setBaselineOpen(false) }, 'Keadaan awal tersimpan (versi baru).')} />}
-        {view === '3d' && (
-          <>
-            <Odontogram3D marks={marks} baseline={chart.baseline?.teeth} dentition={dent} selected={pick} onPick={onPick} />
-            <p className="muted small odo3d-note">Tampilan 3D hanya baca; overlay mengikuti data bagan dan legenda internal. Ketuk gigi/permukaan di 3D untuk memilih, atau pakai bagan 2D di bawah untuk input per permukaan.</p>
-          </>
-        )}
-        <div className="odo2d-wrap">
-          <Odontogram marks={marks} baseline={chart.baseline?.teeth} dentition={dent} compact={view === '3d'} selected={pick ? `t${pick.tooth}-${pick.surface}` : null} onPick={onPick} />
-        </div>
-        {!editable && (visit ? <p className="muted small">Kunjungan ini sudah ditandatangani.</p> : (
-          <p className="chart-cta small">Belum ada kunjungan aktif. Odontogram dan SOAP diisi dari janji pasien hari ini.{' '}
-            <a className="btn btn-primary" href={can('appointment.read') ? '#/jadwal' : '#/'}>Buka janji hari ini</a></p>
+      <div role="tablist" aria-label="Bagian rekam medis" className="tabs chart-tabs">
+        {INNER.map(([k, label]) => (
+          <button key={k} type="button" role="tab" id={`ct-${k}`} aria-selected={tab === k} aria-controls="chart-tabpanel" className={tab === k ? 'on' : undefined} onClick={() => setTab(k)}>{label}</button>
         ))}
-        {pick && !editable && <p className="muted small" role="status">Dipilih: Gigi {pick.tooth} · {surfaceName(pick.tooth, pick.surface)} ({surfaceLabel(pick.tooth, pick.surface)})</p>}
-        {pick && editable && (
-          <div className="picker-pop" role="group" aria-label="Pilih kondisi">
-            <strong>Gigi {pick.tooth} · {surfaceName(pick.tooth, pick.surface)} ({surfaceLabel(pick.tooth, pick.surface)})</strong>
-            <div className="cond-row">
-              <label className="small">Status <select value={status} onChange={(e) => setStatus(e.target.value as ProcStatus)}>
-                {STATUSES.map((x) => <option key={x.key} value={x.key}>{x.label}</option>)}
-              </select></label>
-              <label className="small">Kode tindakan ICD-9-CM (opsional) <input className="mono" size={6} value={procCode} placeholder="23.2" onChange={(e) => setProcCode(e.target.value)} /></label>
-            </div>
-            <div className="cond-row">
-              <span className="muted small">Permukaan:</span>
-              {CONDITIONS.filter((c) => !c.whole).map((c) => <button key={c.key} className={`btn btn-xs cond cond-${c.key}`} onClick={() => choose(c.key, false)}>{c.label}</button>)}
-              {myDraftAt(false) && <button className="btn btn-xs btn-ghost" onClick={() => run(() => discardFinding(myDraftAt(false)!.id))}>Hapus draf permukaan</button>}
-            </div>
-            <div className="cond-row">
-              <span className="muted small">Seluruh gigi:</span>
-              {CONDITIONS.filter((c) => c.whole).map((c) => <button key={c.key} className={`btn btn-xs cond cond-${c.key}`} onClick={() => choose(c.key, true)}>{c.label}</button>)}
-              {myDraftAt(true) && <button className="btn btn-xs btn-ghost" onClick={() => run(() => discardFinding(myDraftAt(true)!.id))}>Hapus draf gigi</button>}
-            </div>
-            <button className="btn btn-xs btn-link" onClick={() => setPick(null)}>Tutup</button>
-          </div>
-        )}
-        <Items items={[...chart.findings, ...mine]} canMove={can('note.sign')}
-          onMove={(f, to) => run(() => changeStatus(f.id, to, visit?.id), `Status gigi ${f.tooth} diubah (baris baru; versi lama tetap).`)} />
       </div>
-
-      {visit && (
-        <div className="card">
-          <div className="card-head">
-            <h2>Catatan SOAP</h2>
-            {draft ? <StatusBadge v={draft} /> : note ? <span className="badge badge-signed">🔒 Ditandatangani</span> : <span className="badge badge-old">Belum ada</span>}
-          </div>
-          <SoapFields form={form} readOnly={!editable} onChange={(f) => { setForm(f); setDirty(true) }} />
-          {editable && (
-            <div className="dialog-actions">
-              <button className="btn" disabled={!dirty} onClick={() => run(() => saveNote(visit.id, { revision: draft?.revision ?? null, soap: toSoap(form) }), 'Draf tersimpan.')}>Simpan draf</button>
-              {can('note.sign') && note?.author_id === me.user.id && draft && (
-                <button className="btn btn-primary" disabled={dirty} title={dirty ? 'Simpan draf dulu' : undefined} onClick={() => setSigning({ busy: false, error: '' })}>Tanda Tangani</button>
-              )}
+      <div role="tabpanel" id="chart-tabpanel" aria-labelledby={`ct-${tab}`}>
+      {tab === 'odo' && (
+        <div className="grid-12 chart-grid">
+          <section className="card span-8 odo-card" aria-label="Odontogram">
+            <div className="card-head">
+              <h2>Odontogram</h2>
+              {mine.length > 0 && <span className="badge badge-draft">Draf: {mine.length} temuan</span>}
+              {mine.some((d) => d.source === 'ai_draft') && <span className="badge badge-ai">{AI_BADGE}</span>}
+              <div className="card-head-tools">
+                <Seg label="Dentisi" value={dent ?? 'tetap'} onChange={(v) => setDentPick({ base: defDent, v })} options={[['tetap', 'Tetap'], ['sulung', 'Sulung'], ['campuran', 'Campuran']]} />
+                <Seg label="Tampilan" value={view} onChange={changeView} options={[['2d', '2D'], ['3d', '3D']]} />
+              </div>
             </div>
+            <button type="button" className="btn btn-xs odo-legend-toggle" aria-expanded={legendOpen} aria-controls="odo-legends" onClick={() => setLegendOpen(!legendOpen)}>
+              {legendOpen ? 'Sembunyikan legenda' : 'Tampilkan legenda'}
+            </button>
+            {legendOpen && (
+              <div className="odo-legends" id="odo-legends">
+                <StatusLegend />
+                <Legend />
+              </div>
+            )}
+            {can('note.write') && (
+              <div className="baseline-row">
+                <span className="muted small">Keadaan awal: {chart.baseline ? `${chart.baseline.dentition} · versi ${chart.baseline.version}` : 'belum diisi (isi di kunjungan pertama)'}</span>
+                <button className="btn btn-xs" aria-pressed={baselineOpen} onClick={() => setBaselineOpen(!baselineOpen)}>{baselineOpen ? 'Tutup keadaan awal' : 'Isi / ubah keadaan awal'}</button>
+              </div>
+            )}
+            {baselineOpen && <BaselineEditor value={chart.baseline} onClose={() => setBaselineOpen(false)}
+              onSave={(b) => run(async () => { await saveBaseline(p.id, { base_version: chart.baseline?.version ?? null, ...b }); setBaselineOpen(false) }, 'Keadaan awal tersimpan (versi baru).')} />}
+            {view === '3d' && (
+              <>
+                <Odontogram3D marks={marks} baseline={chart.baseline?.teeth} dentition={dent} selected={pick} onPick={onPick} />
+                <p className="muted small odo3d-note">Tampilan 3D hanya baca; overlay mengikuti data bagan dan legenda internal. Ketuk gigi/permukaan di 3D untuk memilih, atau pakai bagan 2D di bawah untuk input per permukaan.</p>
+              </>
+            )}
+            <div className="odo2d-wrap">
+              <Odontogram marks={marks} baseline={chart.baseline?.teeth} dentition={dent} compact={view === '3d'} selected={pick ? `t${pick.tooth}-${pick.surface}` : null} onPick={onPick} />
+            </div>
+            {!editable && (visit ? <p className="muted small">Kunjungan ini sudah ditandatangani.</p> : (
+              <p className="chart-cta small">Belum ada kunjungan aktif. Odontogram dan SOAP diisi dari janji pasien hari ini.{' '}
+                <a className="btn btn-primary" href={can('appointment.read') ? '#/jadwal' : '#/'}>Buka janji hari ini</a></p>
+            ))}
+          </section>
+          <aside className="card span-4 tooth-panel" aria-label="Detail gigi">{panel}</aside>
+          {items.length > 0 && (
+            <section className="card span-12" aria-labelledby="temuan-title">
+              <h2 id="temuan-title">Temuan &amp; tindakan</h2>
+              <Items items={items} canMove={can('note.sign')}
+                onMove={(f, to) => run(() => changeStatus(f.id, to, visit?.id), `Status gigi ${f.tooth} diubah (baris baru; versi lama tetap).`)} />
+            </section>
           )}
         </div>
       )}
+      {tab === 'notes' && (
+        <div className="stack">
+          {visit && (
+            <div className="card">
+              <div className="card-head">
+                <h2>Catatan SOAP</h2>
+                {draft ? <StatusBadge v={draft} /> : note ? <span className="badge badge-signed">🔒 Ditandatangani</span> : <span className="badge badge-old">Belum ada</span>}
+              </div>
+              <SoapFields form={form} readOnly={!editable} onChange={(f) => { setForm(f); setDirty(true) }} />
+              {editable && (
+                <div className="dialog-actions">
+                  <button className="btn" disabled={!dirty} onClick={() => run(() => saveNote(visit.id, { revision: draft?.revision ?? null, soap: toSoap(form) }), 'Draf tersimpan.')}>Simpan draf</button>
+                  {can('note.sign') && note?.author_id === me.user.id && draft && (
+                    <button className="btn btn-primary" disabled={dirty} title={dirty ? 'Simpan draf dulu' : undefined} onClick={() => setSigning({ busy: false, error: '' })}>Tanda Tangani</button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
-      <div className="card">
-        <h2>Riwayat kunjungan</h2>
-        <History visits={chart.visits} me={me} onFix={setFixing} onApprove={(id) => run(() => approveCorrection(id), 'Koreksi disetujui.')} />
+          <div className="card">
+            <h2>Riwayat kunjungan</h2>
+            <History visits={chart.visits} me={me} onFix={setFixing} onApprove={(id) => run(() => approveCorrection(id), 'Koreksi disetujui.')} />
+          </div>
+        </div>
+      )}
+      {(tab === 'plan' || tab === 'rx' || tab === 'bill') && <div className="card state-card muted">Belum tersedia.</div>}
       </div>
 
       {signing && visit && draft && (

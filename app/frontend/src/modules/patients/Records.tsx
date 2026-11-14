@@ -1,15 +1,16 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { ApiError, errorText } from '../../shared/api/http'
 import { setActivePatient } from '../../shared/activePatient'
-import { fmtDateTime } from '../../shared/format'
-import { ALERTS_CHANGED } from './AlertRibbon'
+import { fmtDateTime, initials } from '../../shared/format'
+import { ALERTS_CHANGED, AlertRibbon } from './AlertRibbon'
 import { getFamily, getMedicalHistory, getPatient, saveMedicalHistory, type Family, type MedicalHistory, type PatientFull } from './api'
-import { age, dob } from './Patients'
+import { age, dob, PAYER, SEX } from './Patients'
 
 const TABS = [['pasien', 'Profil'], ['rekam-medis', 'Rekam Medis'], ['keluarga', 'Keluarga'], ['riwayat-medis', 'Riwayat Medis']] as const
 
-/** Header + tabs shared by the patient screens; loading the patient makes it the active patient. */
-export function PatientPage({ id, tab, canChart, actions, children }: { id: string; tab: string; canChart: boolean; actions?: ReactNode; children: (p: PatientFull) => ReactNode }) {
+/** Header + tabs shared by the patient screens; loading the patient makes it the active patient.
+ *  `alerts`: allergy/premed chips in the header (one /alerts fetch); used on Rekam Medis. */
+export function PatientPage({ id, tab, canChart, actions, alerts, children }: { id: string; tab: string; canChart: boolean; actions?: ReactNode; alerts?: boolean; children: (p: PatientFull) => ReactNode }) {
   const [p, setP] = useState<PatientFull | null>(null)
   const [error, setError] = useState('')
   useEffect(() => {
@@ -19,9 +20,15 @@ export function PatientPage({ id, tab, canChart, actions, children }: { id: stri
   if (!p) return <div className="card state-card muted">Memuat…</div>
   return (
     <>
-      <div className="page-head">
-        <div><a href="#/pasien" className="muted small">← Daftar pasien</a><h1>{p.name}</h1>
-          <p className="muted">{dob(p.dob)} {age(p.dob)}</p></div>
+      <nav className="crumbs small" aria-label="Breadcrumb"><a href="#/pasien">Daftar Pasien</a> <span aria-hidden="true">›</span> <span aria-current="page">{p.name}</span></nav>
+      <div className="patient-head">
+        <span className="avatar avatar-lg" aria-hidden="true">{initials(p.name)}</span>
+        <div className="patient-head-main">
+          <h1>{p.name}</h1>
+          {/* No MRN field yet: never invent one. */}
+          <p className="muted small">{[`${dob(p.dob)}${age(p.dob) ? ` (${age(p.dob)})` : ''}`, p.sex && (SEX[p.sex] ?? p.sex), `Penjamin ${PAYER[p.payer_type] ?? p.payer_type}`, 'No. RM: belum ada'].filter(Boolean).join(' · ')}</p>
+          {alerts && <AlertRibbon patientId={p.id} compactDefault label="Peringatan medis pasien" className="patient-alerts" />}
+        </div>
         {actions}
       </div>
       <nav className="tabs" aria-label="Data pasien">
