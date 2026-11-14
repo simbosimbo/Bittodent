@@ -2,6 +2,7 @@
 
 use App\Modules\Identity\Models\User;
 use App\Modules\Recall\Services\ReminderService;
+use App\Modules\Scheduling\Services\FakeOtpSender;
 use App\Modules\Tenancy\Models\Tenant;
 use App\Shared\Tenancy\Ctx;
 use Carbon\CarbonImmutable;
@@ -51,3 +52,16 @@ Artisan::command('recall:send-reminders', function () {
         $this->line("$tenantId: $n");
     }
 })->purpose('Kirim pengingat janji yang jatuh tempo (kanal no-op; tercatat di reminder_log)');
+
+// Dev helper: last booking OTP sent to a number by the `fake` driver (BOOKING_OTP_DRIVER=fake). Never in production.
+Artisan::command('booking:otp {phone}', function (string $phone) {
+    if (app()->isProduction() || config('ehr.booking.otp_driver') !== 'fake') {
+        $this->error('booking:otp hanya untuk BOOKING_OTP_DRIVER=fake di luar production.');
+
+        return 1;
+    }
+    $code = FakeOtpSender::lastCode($phone);
+    $code === null ? $this->error('Belum ada kode (atau sudah lewat 5 menit).') : $this->line($code);
+
+    return $code === null ? 1 : 0;
+})->purpose('Cetak kode OTP booking terakhir (driver fake, data sintetis)');

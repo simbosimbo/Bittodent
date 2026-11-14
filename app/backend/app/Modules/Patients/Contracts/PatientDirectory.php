@@ -17,4 +17,10 @@ interface PatientDirectory
 
     /** @param list<string> $ids  @return list<array{tenant_id: string, id: string, name: string}> */
     public function namesByIds(array $ids): array;
+
+    /**
+     * Online booking: the patient with this phone (blind index) AND this name in the current tenant, else a new minimal patient
+     * (source=online). Phone alone is not enough: families share one WhatsApp number. Returns the patient id.
+     */
+    public function findOrCreateForBooking(string $name, string $phone, string $branchId): string;
 }

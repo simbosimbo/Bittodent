@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Identity\Http\Middleware\EnsureTwoFactor;
+use App\Modules\Tenancy\Http\Middleware\PublicTenantContext;
 use App\Modules\Tenancy\Http\Middleware\TenantContext;
 use App\Shared\Http\Middleware\NoStore;
 use App\Shared\Http\Middleware\RequirePermission;
@@ -22,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             '2fa' => EnsureTwoFactor::class,
             'tenant' => TenantContext::class,
+            'tenant.public' => PublicTenantContext::class,
             'perm' => RequirePermission::class,
         ]);
     })
