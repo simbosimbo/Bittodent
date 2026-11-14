@@ -5,8 +5,14 @@ import { PatientPage } from './Records'
 
 const SEX: Record<string, string> = { laki_laki: 'Laki-laki', perempuan: 'Perempuan' }
 const PAYER: Record<string, string> = { umum: 'Umum', asuransi: 'Asuransi', bpjs: 'BPJS' }
-export const dob = (d: string | null) => d ? new Intl.DateTimeFormat('id-ID', { timeZone: 'UTC', day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(d + 'T00:00:00Z')) : '—'
-export const age = (d: string | null) => d ? Math.floor((Date.now() - new Date(d + 'T00:00:00Z').getTime()) / 31_557_600_000) + ' th' : ''
+// Accepts date-only or ISO datetime; uses only the YYYY-MM-DD part (UTC) so the day never shifts. null when unparseable.
+const birthDate = (d: string | null) => {
+  const m = /^\d{4}-\d{2}-\d{2}/.exec(d ?? '')
+  const t = m ? new Date(m[0] + 'T00:00:00Z') : null
+  return t && !Number.isNaN(t.getTime()) ? t : null
+}
+export const dob = (d: string | null) => { const t = birthDate(d); return t ? new Intl.DateTimeFormat('id-ID', { timeZone: 'UTC', day: 'numeric', month: 'short', year: 'numeric' }).format(t) : '—' }
+export const age = (d: string | null) => { const t = birthDate(d); return t ? Math.floor((Date.now() - t.getTime()) / 31_557_600_000) + ' th' : '' }
 
 /** Debounced patient search against the API; stale responses are dropped. */
 function usePatientSearch(q: string, delay = 300) {
