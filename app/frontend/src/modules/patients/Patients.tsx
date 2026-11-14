@@ -17,6 +17,8 @@ const birthDate = (d: string | null) => {
 }
 export const dob = (d: string | null) => { const t = birthDate(d); return t ? new Intl.DateTimeFormat('id-ID', { timeZone: 'UTC', day: 'numeric', month: 'short', year: 'numeric' }).format(t) : '—' }
 export const age = (d: string | null) => { const t = birthDate(d); return t ? Math.floor((Date.now() - t.getTime()) / 31_557_600_000) + ' th' : '' }
+// Same year formula as age(), long unit for the patient header ("42 tahun"); '' when the DOB is missing/unparseable.
+export const ageTahun = (d: string | null) => { const t = birthDate(d); return t ? Math.floor((Date.now() - t.getTime()) / 31_557_600_000) + ' tahun' : '' }
 
 /** Debounced patient search against the API; stale responses are dropped. */
 export function usePatientSearch(q: string, delay = 300, filter: ListFilter = {}) {

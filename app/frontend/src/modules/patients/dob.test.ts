@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { age, dob } from './Patients'
+import { age, ageTahun, dob } from './Patients'
 
 const fmt = (s: string) => new Intl.DateTimeFormat('id-ID', { timeZone: 'UTC', day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(s + 'T00:00:00Z'))
 
@@ -24,4 +24,10 @@ test.each([null, '', 'garbage', '2017-13-45', 'Nov 14 2017'])('unparseable %j re
   expect(() => dob(v)).not.toThrow()
   expect(dob(v)).toBe('—')
   expect(age(v)).toBe('')
+})
+
+test('ageTahun: same years as age(), unit "tahun"; empty when DOB missing/unparseable', () => {
+  expect(ageTahun('2017-11-14')).toBe(age('2017-11-14').replace(' th', ' tahun'))
+  expect(ageTahun('2017-11-14T00:00:00Z')).toMatch(/^\d+ tahun$/)
+  for (const v of [null, '', 'garbage', '2017-13-45']) expect(ageTahun(v)).toBe('')
 })

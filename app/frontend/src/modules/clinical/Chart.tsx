@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { ApiError, errorText } from '../../shared/api/http'
 import { setActivePatient } from '../../shared/activePatient'
-import { fmtDateTime } from '../../shared/format'
+import { fmtDateTime, fmtTime } from '../../shared/format'
 import type { Me } from '../../shared/session'
 import { useIsMobile } from '../../shared/useIsMobile'
 import { PatientPage } from '../patients'
@@ -9,7 +9,7 @@ import {
   approveCorrection, changeStatus, correctNote, discardFinding, getChart, saveBaseline, saveFinding, saveNote, signVisit, visitFromAppointment,
   type Baseline, type Chart, type ChartVisit, type Finding, type Note, type ProcStatus, type Soap, type Surface, type ToothPresence, type Version,
 } from './api'
-import { AI_BADGE, CONDITIONS, conditionOf, findingText, isAnterior, PRESENCE, STATUSES, statusOf, surfaceLabel, surfaceName } from './legend'
+import { AI_BADGE, CONDITIONS, conditionOf, findingText, isAnterior, PRESENCE, STATUSES, statusOf, surfaceLabel, surfaceName, toothAnatomicalName } from './legend'
 import { Legend, Odontogram, StatusLegend, type Mark } from './Odontogram'
 import { dentitionFromDob, Odontogram3D } from './Odontogram3D'
 import { SignDialog } from './SignDialog'
@@ -22,6 +22,11 @@ const codes = (s: string) => s.split(/[\s,;]+/).map((c) => c.trim().toUpperCase(
 const toSoap = (f: Form): Soap => ({ S: f.S, O: f.O, A: { codes: codes(f.A.codes), text: f.A.text }, P: { codes: codes(f.P.codes), text: f.P.text } })
 const TABS = [['S', 'Subjektif'], ['O', 'Objektif'], ['A', 'Asesmen (ICD-10)'], ['P', 'Rencana (ICD-9-CM)']] as const
 const fmt = (iso: string | null) => iso ? fmtDateTime(iso) : '—'
+// Header chip for the in-progress visit; dentist from the visit only (omitted when unknown), "drg." not doubled.
+export function visitStatusText(v: Pick<ChartVisit, 'started_at' | 'dentist'>) {
+  const name = v.dentist.name?.trim()
+  return ['Sedang dirawat', name && (/^(drg|dr)\./i.test(name) ? name : 'drg. ' + name), 'sejak ' + fmtTime(v.started_at)].filter(Boolean).join(' · ')
+}
 const FREE_EDIT_MS = 48 * 3600 * 1000
 const INNER = [['odo', 'Odontogram'], ['notes', 'Catatan Klinis'], ['plan', 'Rencana Perawatan'], ['rx', 'Resep'], ['bill', 'Billing']] as const
 // Surface keypad (sketch): lingual/palatal top, M left, O/I centre, D right, buccal/labial bottom. Labels come from surfaceLabel.
@@ -283,7 +288,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   }, [chart, mine])
 
   // The record lives inside the patient: wrap every state in PatientPage (header + Profil/Keluarga/Riwayat menu).
-  const page = (actions: ReactNode, body: ReactNode) => <PatientPage id={patientId} tab="rekam-medis" canChart alerts actions={actions}>{() => body}</PatientPage>
+  const page = (actions: ReactNode, body: ReactNode, status?: ReactNode) => <PatientPage id={patientId} tab="rekam-medis" canChart alerts actions={actions} status={status}>{() => body}</PatientPage>
   if (error) return page(null, <div className="card state-card error">{error} <a href="#/pasien">Kembali</a></div>)
   if (!chart) return page(null, <div className="card state-card muted">Memuat rekam medis…</div>)
   const p = chart.patient
@@ -322,7 +327,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const panel = !pick ? <p className="muted tooth-empty">Pilih gigi untuk melihat detail.</p> : (
     <>
       <div className="tooth-panel-head">
-        <h2>Gigi {pick.tooth}</h2>
+        <div><h2>Gigi {pick.tooth}</h2><p className="tooth-name">{toothAnatomicalName(pick.tooth)}</p></div>
         <button type="button" className="btn btn-ghost tooth-close" aria-label="Tutup detail gigi" autoFocus={mobile} onClick={() => setPick(null)}>×</button>
       </div>
       <p className="muted small" role="status">Dipilih: Gigi {pick.tooth} · {surfaceName(pick.tooth, pick.surface)} ({surfaceLabel(pick.tooth, pick.surface)})</p>
@@ -366,7 +371,6 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
 
   return page(
     <div className="chart-actions">
-      {visit && <span className="muted small">Kunjungan aktif: {fmt(visit.started_at)}</span>}
       {can('appointment.create') && <a className="btn btn-primary" href="#/jadwal">Buat janji</a>}
     </div>,
     <>
@@ -474,6 +478,8 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
             ...visit.draft_findings.map((f) => findingText(f) + (f.created_by !== me.user.id ? ' (draf pengguna lain)' : ''))]} />
       )}
       {fixing && <CorrectionDialog note={fixing} solo={chart.solo_practice} onClose={() => setFixing(null)} onDone={async () => { setFixing(null); await load(); setMsg('Koreksi tersimpan.') }} />}
-    </>
+    </>,
+    visit?.status === 'berlangsung' && !visit.notes.some((n) => n.versions.some((x) => x.signed_at))
+      ? <span className="visit-chip" role="note" aria-label="Status kunjungan">{visitStatusText(visit)}</span> : null,
   )
 }
