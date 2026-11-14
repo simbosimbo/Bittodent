@@ -3,12 +3,15 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "predev": "node scripts/sync-3d.mjs",
     "dev": "vite --host 127.0.0.1 --port 5173 --strictPort",
+    "prebuild": "node scripts/sync-3d.mjs",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "screenshots": "node scripts/screenshots.mjs",
     "tokens": "node scripts/gen-tokens.mjs",
+    "sync-3d": "node scripts/sync-3d.mjs",
     "dev:all": "bash ../dev.sh"
   },
   "dependencies": {
