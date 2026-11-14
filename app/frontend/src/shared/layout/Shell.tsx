@@ -99,7 +99,7 @@ export function Shell({ me, nav, active, title = '', ribbon, onSwitchBranch, onL
   return (
     <div className="app-shell">
       {!mobile && <aside className="shell-side">
-        <a className="shell-brand" href="#/"><span className="brand-mark"><Icon d={ICONS.tooth} /></span> <span>Bittodent</span></a>
+        <a className="shell-brand" href="#/" aria-label="Bittodent"><span className="brand-mark"><Icon d={ICONS.tooth} /></span> <span>Bittodent</span></a>
         <div className="shell-clinic">
           <strong title={me.active.tenant_name}>{me.active.tenant_name}</strong>
           {clinicSubtitle(me) && <span className="shell-clinic-sub">{clinicSubtitle(me)}</span>}
