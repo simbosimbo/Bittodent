@@ -412,6 +412,15 @@ label.check input { min-height: 0; }
 .shell-top-clinic { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; line-height: 1.25; }
 .shell-top-clinic strong { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .shell-top-clinic .badge-synthetic { font-size: 10px; padding: 1px 8px; }
+.shell-top-title { flex: 1; min-width: 0; font-size: var(--font-size-lg); font-weight: 700; color: var(--text); }
+.shell-top > a.icon-btn { color: var(--text); }
+/* Mobile FAB (Pasien baru): above the bottom nav, 56px. */
+.fab {
+  position: fixed; right: var(--space-4); bottom: calc(72px + env(safe-area-inset-bottom)); z-index: 19; display: grid; place-items: center;
+  width: 56px; height: 56px; border-radius: 16px; background: var(--accent); color: #fff; box-shadow: var(--shadow-lg);
+}
+.fab:hover { background: var(--color-primary-800); text-decoration: none; }
+.fab:focus-visible { outline: 3px solid var(--color-primary-200); outline-offset: 2px; }
 .shell-search-icon { display: grid; place-items: center; width: 44px; height: 44px; flex: none; border-radius: 50%; color: var(--text); background: var(--color-neutral-50); }
 
 @media (max-width: 720px) {

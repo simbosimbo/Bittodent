@@ -3,6 +3,7 @@ import { fmtDate, fmtTime, initials, todayWib, TZ } from '../../shared/format'
 import type { Me } from '../../shared/session'
 import { RevenueCard } from '../billing'
 import { Icon, ICONS } from '../../shared/ui/Icon'
+import { useIsMobile } from '../../shared/useIsMobile'
 import type { Appointment } from './api'
 import { minutesOfDay, StatusChip, useSchedule } from './Schedule'
 
@@ -26,6 +27,14 @@ export default function Home({ me }: { me: Me }) {
   const { data, error, loading } = useSchedule(me.active.branch_id, date)
   const [filter, setFilter] = useState<'open' | 'all'>('open')
   const can = (p: string) => me.permissions.includes(p)
+  const mobile = useIsMobile()
+  // Phone: CTAs leave the first fold (greeting + KPIs); they sit after the KPI tiles and in the header + menu.
+  const toolbar = (can('patient.create') || can('appointment.create')) && (
+    <div className="toolbar home-actions">
+      {can('patient.create') && <a className="btn" href="#/pasien/baru">Daftarkan pasien</a>}
+      {can('appointment.create') && <a className="btn btn-primary" href="#/jadwal">Buat janji</a>}
+    </div>
+  )
   const canChart = can('note.read')
   const canVisit = can('note.write') // same rule as Schedule: a writer lands on the chart with an active visit
   const tz = data?.branch.timezone ?? TZ
@@ -75,10 +84,7 @@ export default function Home({ me }: { me: Me }) {
           <p className="home-greet">{greeting}, {me.user.name}</p>
           <p className="muted">{fmtDate(date)} · {nowLabel} WIB</p>
         </div>
-        <div className="toolbar">
-          {can('patient.create') && <a className="btn" href="#/pasien/baru">Daftarkan pasien</a>}
-          {can('appointment.create') && <a className="btn btn-primary" href="#/jadwal">Buat janji</a>}
-        </div>
+        {!mobile && toolbar}
       </div>
       {error ? <div className="card state-card error">{error}</div> : loading && !data ? <div className="card state-card muted">Memuat…</div> : (
         <div className="grid-12">
@@ -90,6 +96,7 @@ export default function Home({ me }: { me: Me }) {
             </section>
           ))}
           <RevenueCard canRead={can('billing.read')} branchId={me.active.branch_id} />
+          {mobile && toolbar && <div className="span-12 home-actions-row">{toolbar}</div>}
 
           <section className="card span-12 home-board" aria-labelledby="home-board">
             <div className="card-head">

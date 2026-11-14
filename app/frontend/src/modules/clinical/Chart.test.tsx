@@ -410,7 +410,7 @@ test('1280px: odontogram (8) and tooth panel (4) sit side by side; 1320px (full 
 test('390px: selecting a tooth opens a bottom sheet named for the tooth; keypad labels + 44px; backdrop closes and clears the pick', async () => {
   vi.stubGlobal('matchMedia', (q: string) => ({ media: q, matches: true, addEventListener() {}, removeEventListener() {} }))
   const style = document.head.appendChild(document.createElement('style'))
-  style.textContent = css
+  style.textContent = cssAt(baseCss + css, 390)
   renderChart({ visits: [visit] })
   await screen.findByRole('region', { name: 'Odontogram' })
   expect(screen.queryByRole('complementary', { name: 'Detail gigi' })).toBeNull()
@@ -419,6 +419,7 @@ test('390px: selecting a tooth opens a bottom sheet named for the tooth; keypad 
   fireEvent.click(document.getElementById('t16-O')!)
   const sheet = screen.getByRole('dialog', { name: 'Detail gigi 16' })
   expect(sheet).toHaveClass('tooth-sheet')
+  expect(sheet).toHaveAttribute('aria-modal', 'true')
   expect(sheet).toHaveTextContent('Molar pertama kanan atas')
   expect(surfaces()).toEqual(['P', 'M', 'O', 'D', 'B'])
   for (const b of pad().getAllByRole('button')) {
@@ -428,6 +429,29 @@ test('390px: selecting a tooth opens a bottom sheet named for the tooth; keypad 
   expect(within(sheet).getByRole('group', { name: 'Pilih kondisi' })).toBeInTheDocument() // same editable rule as desktop
   expect(within(sheet).getByRole('button', { name: 'Simpan ke kunjungan hari ini' })).toBeDisabled() // no condition chosen yet
   expect(within(sheet).getByRole('button', { name: 'Tutup detail gigi' })).toHaveFocus()
+  // Designer note: patient strip (name, No. RM, allergies) pinned at the top of the sheet, from the header patient (no refetch).
+  const strip = sheet.querySelector('.sheet-strip') as HTMLElement
+  expect(strip).toBe(sheet.firstElementChild)
+  expect(strip).toHaveTextContent('Budi Contoh')
+  expect(strip).toHaveTextContent('No. RM BT-000007')
+  expect(await within(strip).findByText('Alergi: Penisilin')).toBeInTheDocument()
+  expect(strip).not.toHaveTextContent('Kondisi Sintetis') // safety chips only
+  expect(getComputedStyle(strip).position).toBe('sticky')
+  expect(vi.mocked(fetch).mock.calls.filter(([u]) => /\/patients\/p1$/.test(String(u)))).toHaveLength(1)
+  const sheetButtons = within(sheet).getAllByRole('button').filter((b) => b.closest('.cond-row') || b.classList.contains('tooth-save'))
+  expect(sheetButtons.length).toBeGreaterThan(5)
+  for (const b of sheetButtons) expect(parseFloat(getComputedStyle(b).minHeight)).toBeGreaterThanOrEqual(44)
+  // Focus trap: Tab from the last control wraps to the first; Shift+Tab from the first wraps to the last.
+  const focusables = [...sheet.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled])')]
+  const last = focusables[focusables.length - 1]
+  last.focus()
+  fireEvent.keyDown(last, { key: 'Tab' })
+  expect(focusables[0]).toHaveFocus()
+  fireEvent.keyDown(focusables[0], { key: 'Tab', shiftKey: true })
+  expect(last).toHaveFocus()
+  focusables[1].focus()
+  fireEvent.keyDown(focusables[1], { key: 'Tab' }) // middle: browser default, no wrap
+  expect(focusables[1]).toHaveFocus()
 
   fireEvent.click(document.querySelector('.sheet-backdrop')!)
   expect(screen.queryByRole('dialog')).toBeNull()

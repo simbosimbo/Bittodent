@@ -171,6 +171,40 @@ test('390px: no sidebar; header has clinic + DATA SINTETIS; bottom nav 4 tabs + 
   expect(logout).toHaveBeenCalled()
 })
 
+test('390px Beranda: clinic + DATA SINTETIS + bell + avatar; no search', () => {
+  viewport(390)
+  location.hash = '/'
+  shell(me, null, '/')
+  const top = document.querySelector('header.shell-top') as HTMLElement
+  expect(top).toHaveTextContent('Klinik Gigi Senyum Sehat')
+  expect(within(top).getByText('DATA SINTETIS')).toBeInTheDocument()
+  expect(within(top).getByRole('button', { name: 'Notifikasi (segera hadir)' })).toBeDisabled()
+  expect(within(top).getByRole('button', { name: /^Akun/ })).toBeInTheDocument()
+  expect(within(top).queryByRole('search')).toBeNull()
+})
+
+test('390px Rekam Medis: back + "Rekam Medis" header instead of the clinic; Pasien list: "Pasien" header; bottom nav unchanged', () => {
+  viewport(390)
+  location.hash = '/rekam-medis/p1'
+  const { unmount } = shell(me, { id: 'p1' }, '/rekam-medis')
+  let top = document.querySelector('header.shell-top') as HTMLElement
+  expect(within(top).getByRole('link', { name: 'Kembali ke daftar pasien' })).toHaveAttribute('href', '#/pasien')
+  expect(top.querySelector('.shell-top-title')).toHaveTextContent('Rekam Medis')
+  expect(top).not.toHaveTextContent('Klinik Gigi Senyum Sehat')
+  expect(within(top).getByText('DATA SINTETIS')).toBeInTheDocument()
+  const bottom = screen.getByRole('navigation', { name: 'Navigasi utama' })
+  expect(within(bottom).getAllByRole('link').map((a) => a.textContent)).toEqual(['Beranda', 'Jadwal', 'Pasien', 'Rekam Medis'])
+  expect(within(bottom).getByRole('link', { name: 'Rekam Medis' })).toHaveAttribute('aria-current', 'page')
+  unmount()
+
+  location.hash = '/pasien?q=budi'
+  shell(me, null, '/pasien')
+  top = document.querySelector('header.shell-top') as HTMLElement
+  expect(top.querySelector('.shell-top-title')).toHaveTextContent('Pasien')
+  expect(top).not.toHaveTextContent('Klinik Gigi Senyum Sehat')
+  expect(within(top).queryByRole('button', { name: 'Aksi cepat' })).toBeNull() // + is the list's FAB here
+})
+
 test('390px without an active patient: Rekam Medis tab leads to the patient list', () => {
   viewport(390)
   shell(dentist)
