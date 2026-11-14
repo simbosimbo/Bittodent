@@ -217,7 +217,7 @@ function PlannedList({ sched, date, canCreate, onScheduled }: { sched: Sched; da
         {items?.map((p) => (
           <li key={p.id} className="planned-row">
             <div>
-              <strong>{p.patient_name}</strong> {p.priority === 'segera' && <span className="chip chip-cancelled">Segera</span>}
+              <strong>{p.patient_name}</strong> {p.priority === 'segera' && <span className="chip chip-urgent">Segera</span>}
               <div className="small">{p.procedure} · {p.est_minutes} menit · {p.dentist_name}</div>
               {p.note && <div className="muted small">Catatan: {p.note}</div>}
             </div>

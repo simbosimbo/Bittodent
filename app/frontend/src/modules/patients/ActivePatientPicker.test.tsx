@@ -61,7 +61,7 @@ test('recents stay in memory only and are cleared on logout', () => {
   expect(within(dialog()!).getByText('Belum ada pasien yang dibuka.')).toBeInTheDocument()
 })
 
-test('active patient name is never clipped by ellipsis; the clinic title shrinks instead', () => {
+test('active patient name is never clipped by ellipsis; the clinic name lives in the sidebar and ellipsizes there', () => {
   const style = document.createElement('style')
   style.textContent = css
   document.head.append(style)
@@ -71,6 +71,10 @@ test('active patient name is never clipped by ellipsis; the clinic title shrinks
   expect(getComputedStyle(name).textOverflow).not.toBe('ellipsis')
   expect(getComputedStyle(name).overflow).not.toBe('hidden')
   expect(getComputedStyle(name).whiteSpace).toBe('nowrap')
-  expect(getComputedStyle(name.closest('.aps')!).flexShrink).toBe('0') // the pill never shrinks; title + search give way
-  expect(getComputedStyle(screen.getByText(me.active.tenant_name)).textOverflow).toBe('ellipsis')
+  expect(getComputedStyle(name.closest('.aps')!).flexShrink).toBe('0') // the pill never shrinks; search gives way
+  const clinic = screen.getByText(me.active.tenant_name)
+  expect(clinic.closest('header.shell-top')).toBeNull()
+  expect(clinic.closest('.shell-side .shell-clinic')).not.toBeNull()
+  expect(getComputedStyle(clinic).textOverflow).toBe('ellipsis')
+  expect(getComputedStyle(clinic).overflow).toBe('hidden')
 })

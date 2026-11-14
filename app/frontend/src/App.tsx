@@ -96,6 +96,6 @@ export default function App() {
   else if (hash === '/jadwal' && can('appointment.read')) page = <Schedule me={me} />
   else page = <Home me={me} />
 
-  return <Shell me={me} nav={nav} active={active} ribbon={patient && can('patient.read') && <AlertRibbon patientId={patient.id} />}
+  return <Shell me={me} nav={nav} active={active} ribbon={patient && can('patient.read') && <AlertRibbon patientId={patient.id} compactDefault={/^\/rekam-medis\//.test(hash)} />}
     patientPicker={can('patient.read') && <ActivePatientPicker />} onSwitchBranch={switchBranch} onLogout={logout}>{page}</Shell>
 }

@@ -9,7 +9,7 @@ export type NavItem = { path: string; label: string; icon: string; group?: 'klin
 export const withActivePatientHref = <T extends NavItem>(nav: T[], patient: { id: string } | null): T[] =>
   nav.map((n) => n.group === 'pasien' ? { ...n, href: patient ? `${n.path}/${patient.id}` : '/pasien' } : n)
 
-// Shell A (design/prototype shells.css): sidebar (brand, branch, nav; icon rail <=1100px), top bar with search + "Pasien aktif" pill,
+// Shell A (design/prototype shells.css): sidebar (brand, clinic name + synthetic-data badge, branch, nav; icon rail <=1100px), top bar with search + "Pasien aktif" pill,
 // medical-alert ribbon (slot, owned by the patients module) whenever a patient is active, white cards on tinted bg.
 // The pill itself is a slot too (patientPicker, from the patients module): shared/ imports no module.
 export function Shell({ me, nav, active, ribbon, patientPicker, onSwitchBranch, onLogout, children }: {
@@ -46,6 +46,10 @@ export function Shell({ me, nav, active, ribbon, patientPicker, onSwitchBranch, 
     <div className="app-shell">
       <aside className="shell-side">
         <a className="shell-brand" href="#/"><span className="brand-mark">◡</span> <span>EHR Gigi</span></a>
+        <div className="shell-clinic">
+          <strong title={me.active.tenant_name}>{me.active.tenant_name}</strong>
+          <span className="badge-synthetic">DATA SINTETIS - PROTOTIPE</span>
+        </div>
         <label className="shell-branch">
           <span className="shell-nav-caption">Cabang aktif</span>
           <select value={me.active.branch_id ?? ''} onChange={(e) => onSwitchBranch(e.target.value)} disabled={me.branches.length < 2}>
@@ -61,10 +65,6 @@ export function Shell({ me, nav, active, ribbon, patientPicker, onSwitchBranch, 
         {/* top bar + ribbon stay pinned while the page scrolls: alerts must never scroll out of view */}
         <div className="shell-sticky">
         <header className="shell-top">
-          <div className="shell-title">
-            <strong>{me.active.tenant_name}</strong>
-            <small className="muted">{me.active.branch_name}</small>
-          </div>
           {me.permissions.includes('patient.read') && (
             <form className="shell-search" role="search" onSubmit={search}>
               <Icon d={ICONS.search} size={18} />
@@ -72,7 +72,8 @@ export function Shell({ me, nav, active, ribbon, patientPicker, onSwitchBranch, 
             </form>
           )}
           {patientPicker}
-          <span className="badge-synthetic">DATA SINTETIS - PROTOTIPE</span>
+          {/* the sidebar badge hides in the icon rail (<=1100px); this short chip keeps the prototype warning visible there */}
+          <span className="badge-synthetic shell-top-synthetic">DATA SINTETIS</span>
           <div className="shell-user">
             <span className="avatar" aria-hidden="true">{me.user.name.replace(/^drg\.?\s*/i, '').charAt(0)}</span>
             <span className="shell-user-text">
@@ -80,7 +81,7 @@ export function Shell({ me, nav, active, ribbon, patientPicker, onSwitchBranch, 
               <small>{me.roles.map((r) => ROLE_LABELS[r] ?? r).join(', ')}</small>
             </span>
           </div>
-          <button className="btn btn-ghost" onClick={onLogout}>Keluar</button>
+          <button className="btn btn-ghost shell-logout" onClick={onLogout}>Keluar</button>
         </header>
         {patient && ribbon}
         </div>
