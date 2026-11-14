@@ -70,7 +70,7 @@ export function PatientList({ canCreate, canChart = false, initialQ = '' }: { ca
   const filters: [string, string, number][] = [['', 'Semua', rows?.length ?? 0], ...Object.entries(counts).map(([k, n]): [string, string, number] => [k, STATUS[k] ?? k, n])]
   return (
     <>
-      <div className="page-head"><h1>Daftar Pasien</h1></div>
+      <div className="page-head"><h1 className="shell-dup-title">Daftar Pasien</h1></div>
       <div className="card">
         <div className="pl-toolbar">
           <label className="pl-search">Cari pasien

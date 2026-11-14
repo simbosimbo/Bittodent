@@ -2,11 +2,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ApiError, hasCsrfCookie } from './shared/api/http'
 import { clearActivePatients, useActivePatient } from './shared/activePatient'
-import { Shell, withActivePatientHref, type NavItem } from './shared/layout/Shell'
+import { pageTitle, Shell, withActivePatientHref, type NavItem } from './shared/layout/Shell'
 import type { Me } from './shared/session'
+import { ComingSoon } from './shared/ui/ComingSoon'
 import { ICONS } from './shared/ui/Icon'
 import { getMe, Login, logout as apiLogout, switchBranch as apiSwitchBranch } from './modules/auth'
-import { ActivePatientPicker, AlertRibbon, FamilyPage, MedicalHistoryPage, PatientDetail, PatientForm, PatientList } from './modules/patients'
+import { AlertRibbon, FamilyPage, MedicalHistoryPage, PatientDetail, PatientForm, PatientList } from './modules/patients'
 import { Home, Schedule } from './modules/scheduling'
 import { ChartPage } from './modules/clinical'
 
@@ -20,13 +21,18 @@ const useHash = () => {
   return hash
 }
 
+// Permissions: existing names only. Resep reuses note.read (no prescription permission yet);
+// Kasir + Laporan use billing.read (no report permission), so dentists/assistants do not see them; owner/front_desk/kasir do.
+// Keluarga and Riwayat Medis are not in the nav: they live in the patient header menu (PatientPage).
 export const NAV: (NavItem & { perm: string | null })[] = [
-  { path: '/', label: 'Beranda', perm: null, icon: ICONS.home },
-  { path: '/pasien', label: 'Pasien', perm: 'patient.read', icon: ICONS.users },
-  { path: '/jadwal', label: 'Jadwal', perm: 'appointment.read', icon: ICONS.calendar },
-  { path: '/rekam-medis', label: 'Rekam Medis', perm: 'note.read', icon: ICONS.tooth, group: 'pasien' },
-  { path: '/keluarga', label: 'Keluarga', perm: 'patient.read', icon: ICONS.users, group: 'pasien' },
-  { path: '/riwayat-medis', label: 'Riwayat Medis', perm: 'note.read', icon: ICONS.heart, group: 'pasien' },
+  { path: '/', label: 'Beranda', perm: null, icon: ICONS.home, section: 'KLINIK' },
+  { path: '/jadwal', label: 'Jadwal', perm: 'appointment.read', icon: ICONS.calendar, section: 'KLINIK' },
+  { path: '/antrean', label: 'Antrean', perm: 'appointment.read', icon: ICONS.queue, section: 'KLINIK' },
+  { path: '/pasien', label: 'Pasien', perm: 'patient.read', icon: ICONS.users, section: 'KLINIK' },
+  { path: '/rekam-medis', label: 'Rekam Medis', perm: 'note.read', icon: ICONS.tooth, section: 'KLINIS', group: 'pasien' },
+  { path: '/resep', label: 'Resep', perm: 'note.read', icon: ICONS.receipt, section: 'KLINIS' },
+  { path: '/kasir', label: 'Kasir', perm: 'billing.read', icon: ICONS.card, section: 'KEUANGAN' },
+  { path: '/laporan', label: 'Laporan', perm: 'billing.read', icon: ICONS.chart, section: 'KEUANGAN' },
 ]
 
 export default function App() {
@@ -82,7 +88,10 @@ export default function App() {
 
   const can = (p: string | null) => p === null || me.permissions.includes(p)
   const nav = withActivePatientHref(NAV.filter((n) => can(n.perm)), patient)
-  const active = nav.find((n) => n.path === '/' ? hash === '/' : hash === n.path || hash.startsWith(n.path + '/'))
+  // Keluarga / Riwayat Medis are patient screens without a nav item: they count as Pasien.
+  const navHash = hash.replace(/^\/(keluarga|riwayat-medis)\//, '/pasien/')
+  const active = nav.find((n) => n.path === '/' ? hash === '/' : navHash === n.path || navHash.startsWith(n.path + '/'))
+  const soon = nav.find((n) => ['/antrean', '/resep', '/kasir', '/laporan'].includes(n.path) && hash === n.path)
   const sub = hash.match(/^\/(keluarga|riwayat-medis)\/([\w-]+)$/)
 
   let page
@@ -94,8 +103,9 @@ export default function App() {
   else if (hash.startsWith('/pasien/') && can('patient.read')) page = <PatientDetail key={hash} id={hash.slice(8)} canChart={can('note.read')} />
   else if (hash === '/pasien' && can('patient.read')) page = <PatientList key={query} canCreate={can('patient.create')} canChart={can('note.read')} initialQ={new URLSearchParams(query).get('q') ?? ''} />
   else if (hash === '/jadwal' && can('appointment.read')) page = <Schedule me={me} />
+  else if (soon) page = <ComingSoon title={soon.label} />
   else page = <Home me={me} />
 
-  return <Shell me={me} nav={nav} active={active} ribbon={patient && can('patient.read') && !/^\/rekam-medis\//.test(hash) && <AlertRibbon patientId={patient.id} />}
-    patientPicker={can('patient.read') && <ActivePatientPicker />} onSwitchBranch={switchBranch} onLogout={logout}>{page}</Shell>
+  return <Shell me={me} nav={nav} active={active} title={pageTitle(hash, active)} ribbon={patient && can('patient.read') && !/^\/rekam-medis\//.test(hash) && <AlertRibbon patientId={patient.id} />}
+    onSwitchBranch={switchBranch} onLogout={logout}>{page}</Shell>
 }

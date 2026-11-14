@@ -70,7 +70,7 @@ export default function Home({ me }: { me: Me }) {
     <>
       <div className="page-head home-head">
         <div>
-          <h1>Beranda</h1>
+          <h1 className="sr-only">Beranda</h1>
           <p className="home-greet">{greeting}, {me.user.name}</p>
           <p className="muted">{fmtDate(date)} · {nowLabel} WIB</p>
         </div>

@@ -15,7 +15,8 @@ const nadia = { id: 'p1', name: 'Nadia Anak Contoh' }
 const budi = { id: 'p2', name: 'Budi Santoso' }
 const stubSearch = (data: object[]) =>
   vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ data, next_cursor: null }), { status: 200 })))
-const shell = () => render(<Shell me={me} nav={[]} active={undefined} patientPicker={<ActivePatientPicker />} onSwitchBranch={() => {}} onLogout={() => {}}><p>isi</p></Shell>)
+// The picker is no longer mounted in the chrome (sketch top bar has none); tested standalone next to a Shell.
+const shell = () => render(<><ActivePatientPicker /><Shell me={me} nav={[]} active={undefined} onSwitchBranch={() => {}} onLogout={() => {}}><p>isi</p></Shell></>)
 const pill = () => screen.getByRole('button', { name: /Pasien aktif/ })
 const dialog = () => screen.queryByRole('dialog', { name: 'Pilih pasien aktif' })
 

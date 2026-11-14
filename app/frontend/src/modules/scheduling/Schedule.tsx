@@ -70,7 +70,7 @@ export default function Schedule({ me }: { me: Me }) {
     <>
       <div className="page-head">
         <div>
-          <h1>Jadwal</h1>
+          <h1 className="shell-dup-title">Jadwal</h1>
           <p className="muted">{fmtDate(date)} · {me.active.branch_name} · {count} janji</p>
         </div>
         <div className="toolbar">

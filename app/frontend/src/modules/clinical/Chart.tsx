@@ -282,7 +282,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
     return m
   }, [chart, mine])
 
-  // Profile tabs stay visible on the chart (record lives inside the patient), so wrap every state in PatientPage.
+  // The record lives inside the patient: wrap every state in PatientPage (header + Profil/Keluarga/Riwayat menu).
   const page = (actions: ReactNode, body: ReactNode) => <PatientPage id={patientId} tab="rekam-medis" canChart alerts actions={actions}>{() => body}</PatientPage>
   if (error) return page(null, <div className="card state-card error">{error} <a href="#/pasien">Kembali</a></div>)
   if (!chart) return page(null, <div className="card state-card muted">Memuat rekam medis…</div>)
