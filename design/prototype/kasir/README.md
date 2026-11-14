@@ -15,6 +15,12 @@ Bisa juga membuka `index.html` langsung. Font Plus Jakarta Sans dimuat dari Goog
 ## Pengalih (bilah kuning di atas)
 - **Peran**: Kasir/FO → Antrean · Dokter → Pendapatan Saya · Pemilik → Keuangan. Daftar **Layar**, sorotan sidebar, dan chip pengguna ikut berubah.
 - Tautan langsung: `index.html#bayar` atau `index.html?layar=4` (nomor urut di daftar).
+- Demo refund (langsung ke keadaannya, tanpa klik alur bayar):
+  - `index.html?demo=refund-tunai` — dibayar Tunai Rp 600.000; form refund penuh, kembali dari laci, tanpa field rekening.
+  - `index.html?demo=refund-qris` — dibayar QRIS Rp 600.000; field rekening transfer tampil terisi.
+  - `index.html?demo=refund-split` — Tunai Rp 200.000 + QRIS Rp 400.000; rincian proporsional + field rekening.
+  - `index.html?demo=void-done` — void penuh tunai sudah dicatat (lewat PIN pemilik); tampil baris pengembalian deposit.
+  - `index.html?demo=void-audit` — Audit (Pemilik) dengan baris void hari ini + "Deposit Rp 200.000 kembali ke saldo pasien".
 - Setiap layar punya `id="screen-…"` untuk Playwright (mis. `#screen-bayar`, `#screen-tutup-shift`).
 
 | # | Layar | Hash | Peran |
@@ -53,7 +59,11 @@ Antrean → **Bayar** (Budi) → Tagihan → **Bayar Rp 600.000** → mode charg
 - **Diskon bawaan 0% ("Tanpa")**. Kasir maks. 10% atau Rp 100.000 (mana yang lebih kecil, untuk Budi Rp 80.000). 15% membuka modal PIN dokter/admin; prototipe menerima 6 angka apa saja (mis. 123456), PIN tidak disimpan.
 - **Saldo deposit** lintas kunjungan bisa dipakai untuk tagihan atau sisa tagihan.
 - **Sisa tagihan bukan cicilan formal**: Dewi Lestari, mahkota 21, total Rp 2.500.000, sudah dibayar Rp 2.000.000, sisa Rp 500.000, jatuh tempo 21 Nov 2026. Bisa dilunasi kapan saja, termasuk dari deposit.
-- **Void/refund** selalu wajib alasan (pilihan + catatan; catatan wajib untuk "Lainnya"). Kasir boleh sampai **Rp 500.000**; di atasnya ada langkah **PIN pemilik** (6 angka apa saja di prototipe). Pengembalian lewat tunai dari laci, saldo deposit, atau transfer. Refund tunai mengurangi kas sistem di Laporan dan Tutup Shift. Total refund dibatasi sebesar jumlah yang dibayar.
+- **Void/refund** selalu wajib alasan (pilihan + catatan; catatan wajib untuk "Lainnya"). Jumlah bawaan penuh; preset Penuh / Rp 100.000 / Rp 350.000. Total refund dibatasi sebesar jumlah yang dibayar.
+  - **Metode pengembalian mengikuti pembayaran asli** — kasir tidak bisa memilih bebas. Bagian **Tunai** dikembalikan dari laci dan mengurangi kas sistem (Laporan, Tutup Shift). Bagian **QRIS/EDC/Transfer** dikembalikan lewat **transfer**; field rekening tujuan wajib diisi (contoh sintetis: BCA · 1234567890 · Budi Santoso) dan hanya tampil bila ada bagian non-tunai.
+  - **Split dibagi proporsional** sesuai porsi tiap metode (rupiah bulat, sisa pembulatan ke bagian terakhir). Contoh Tunai 200.000 + QRIS 400.000: refund penuh = Tunai 200.000 + QRIS 400.000; refund 300.000 = Tunai 100.000 + QRIS 200.000.
+  - **Void penuh** (pembayaran kembali seluruhnya, termasuk refund sebagian terakhir yang melengkapinya) **otomatis mengembalikan deposit yang dipakai**: "Deposit Rp 200.000 kembali ke saldo pasien" tampil di form, ringkasan PIN, layar "Pengembalian dicatat", banner Lunas, dan baris baru di **Audit**; sisa saldo deposit kembali Rp 200.000. Refund sebagian tidak mengembalikan deposit.
+  - Kasir boleh sampai **Rp 500.000**; di atasnya ada langkah **PIN pemilik** (6 angka apa saja di prototipe, tidak disimpan). Batas dihitung dari uang bayar saja, **tanpa** deposit — void penuh Budi Rp 600.000 tetap perlu PIN.
 - **QRIS/EDC/Transfer tidak masuk laci.**
 - Komisi dokter 40% dari tarif tindakan bertanda tangan **sebelum** diskon.
 - **Pemilik di Laporan Kasir hanya melihat**: ada banner "Hanya lihat", tanpa tombol Tutup Shift dan tanpa field yang bisa diubah.
@@ -82,5 +92,5 @@ Klinik Gigi Senyum Sehat, Jl. Tebet Raya No. 21, Jakarta Selatan. Kasir Sari Fro
 
 ## Catatan
 - Bilah sisi mengikuti peran. Beranda/Jadwal/Pasien tampil tetapi nonaktif — prototipe ini hanya Kasir.
-- `app.js` punya `console.assert` kecil: Budi diskon 0 dan sisa Rp 600.000; contoh pecahan buka = Rp 500.000 dan tutup = kas sistem.
+- `app.js` punya `console.assert` kecil: Budi diskon 0 dan sisa Rp 600.000; contoh pecahan buka = Rp 500.000 dan tutup = kas sistem; refund 300.000 dari Tunai 200.000 + QRIS 400.000 terbagi 100.000 + 200.000.
 - Waktu layar dibekukan di Sabtu, 14 November 2026, sekitar pukul 20.30 WIB.

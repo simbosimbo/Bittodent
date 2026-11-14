@@ -396,7 +396,7 @@
         <div class="sumline"><span>Diskon <span data-b="disc-label">(tanpa)</span></span><span class="rp" data-b="disc-amt">Rp 0</span></div>
         <div class="sumline"><span>Saldo deposit dipakai</span><span class="rp neg" data-b="saldo-amt">−Rp 200.000</span></div>
         <div class="sumline total"><span>Dibayar · <span data-b="method">Tunai</span></span><span class="rp" data-b="paid">Rp 600.000</span></div>
-        <p class="help">Temuan 26-O karies dan 46 hilang tidak ditagihkan. Sisa saldo deposit pasien: Rp 0.</p>
+        <p class="help">Temuan 26-O karies dan 46 hilang tidak ditagihkan. Sisa saldo deposit pasien: <span data-b="saldo-sisa">Rp 0</span>.</p>
       </div>
     </div>
   </div>
@@ -767,7 +767,7 @@
       <div class="table-wrap">
         <table>
           <thead><tr><th>Waktu</th><th>Jenis</th><th>No. tagihan</th><th>Oleh</th><th class="r">Jumlah</th><th>Alasan</th><th>Status</th></tr></thead>
-          <tbody>
+          <tbody id="audit-vr">
             <tr data-kind="refund"><td>13 Nov 2026 15.20</td><td>Refund ke saldo</td><td>TG-2026-11013-004</td><td>Sari Front Desk</td><td class="r rp">Rp 150.000</td><td>Tindakan dibatalkan — uang muka dikembalikan sebagai saldo deposit.</td><td><span class="chip chip-draft">dicatat kasir (≤ Rp 500.000)</span></td></tr>
             <tr data-kind="void"><td>12 Nov 2026 16.40</td><td>Void penuh</td><td>TG-2026-11012-005</td><td>Sari Front Desk</td><td class="r rp">Rp 350.000</td><td>Kesalahan input — tagihan dibuat untuk pasien yang salah; diganti TG-2026-11012-006.</td><td><span class="chip chip-draft">dicatat kasir (≤ Rp 500.000)</span></td></tr>
             <tr data-kind="refund"><td>10 Nov 2026 11.05</td><td>Refund sebagian</td><td>TG-2026-11010-003</td><td>Sari Front Desk</td><td class="r rp">Rp 100.000</td><td>Kesalahan input — kelebihan bayar tunai; selisih dikembalikan ke pasien di tempat.</td><td><span class="chip chip-draft">dicatat kasir (≤ Rp 500.000)</span></td></tr>
@@ -902,7 +902,7 @@
         <label for="refund-amount">Jumlah dikembalikan</label>
         <input class="input rp" id="refund-amount" inputmode="numeric" aria-describedby="refund-amount-help">
         <div class="preset"><button type="button" data-ramt="full">Penuh</button><button type="button" data-ramt="100000">Rp 100.000</button><button type="button" data-ramt="350000">Rp 350.000</button></div>
-        <p class="help" id="refund-amount-help">Maks. sisa yang belum dikembalikan (awal <span data-b="paid">Rp 600.000</span>). Kasir boleh sampai Rp 500.000 dengan alasan; di atasnya perlu PIN pemilik. Void penuh juga mengembalikan saldo deposit Rp 200.000 ke saldo pasien.</p>
+        <p class="help" id="refund-amount-help">Maks. sisa yang belum dikembalikan (awal <span data-b="paid">Rp 600.000</span>). Kasir boleh sampai Rp 500.000 dengan alasan; di atasnya perlu PIN pemilik (deposit tidak dihitung). Metode pengembalian mengikuti pembayaran asli. Void penuh otomatis mengembalikan deposit yang dipakai ke saldo pasien.</p>
       </div>
       <div class="field" style="margin-top:12px">
         <label for="refund-reason">Alasan (wajib)</label>
@@ -918,11 +918,18 @@
         <label for="refund-note">Catatan <span id="refund-note-req">(opsional)</span></label>
         <textarea class="input" id="refund-note" placeholder="Contoh: harga ekstraksi salah pilih"></textarea>
       </div>
-      <fieldset class="opts">
-        <legend>Dikembalikan lewat</legend>
-        <label class="opt"><input type="radio" name="refund-method" id="refund-m-tunai" value="tunai" checked> Tunai dari laci</label>
-        <label class="opt"><input type="radio" name="refund-method" id="refund-m-saldo" value="saldo"> Saldo deposit pasien</label>
-        <label class="opt"><input type="radio" name="refund-method" id="refund-m-transfer" value="transfer"> Transfer ke rekening pasien</label>
+      <div class="field" style="margin-top:12px">
+        <span class="lbl2" id="refund-parts-label">Dikembalikan sesuai metode bayar asli</span>
+        <div class="refund-parts" id="refund-parts" aria-labelledby="refund-parts-label" aria-live="polite"></div>
+      </div>
+      <fieldset class="opts" id="refund-account" hidden>
+        <legend>Rekening tujuan transfer (wajib untuk bagian QRIS/EDC/Transfer)</legend>
+        <div class="acct-grid">
+          <div class="field"><label for="ra-bank">Bank</label><input class="input" id="ra-bank" value="BCA" required></div>
+          <div class="field"><label for="ra-no">No. rekening</label><input class="input" id="ra-no" inputmode="numeric" value="1234567890" required></div>
+          <div class="field"><label for="ra-name">Atas nama</label><input class="input" id="ra-name" value="Budi Santoso" required></div>
+        </div>
+        <p class="help">Contoh rekening sintetis. Bagian non-tunai tidak dikembalikan dari laci.</p>
       </fieldset>
       <div class="banner banner-warn" id="refund-owner-note" hidden>Di atas Rp 500.000 — langkah berikut: persetujuan pemilik (PIN).</div>
       <div class="actions">
@@ -955,6 +962,7 @@
 
     <div data-rstep="done" hidden>
       <div class="success-hero"><span class="check"><svg width="28" height="28" aria-hidden="true"><use href="#i-check"/></svg></span><div><h2>Pengembalian dicatat</h2><p class="muted" id="refund-done-text"></p></div></div>
+      <div class="refund-parts" id="refund-done-parts"></div>
       <p class="help" style="margin-top:12px">Tagihan asli tetap tersimpan dan terkunci; tidak ada data yang dihapus. Tercatat di Audit.</p>
       <div class="actions"><button class="btn btn-primary" data-close>Selesai</button></div>
     </div>

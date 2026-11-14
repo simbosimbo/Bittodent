@@ -138,8 +138,9 @@ const KASIR_LIMIT = Math.min(SUBTOTAL * 0.10, 100000); // 10% atau Rp 100.000, m
 const REFUND_LIMIT = 500000;                          // di atas ini perlu PIN pemilik
 const KAS_SISTEM = 500000 + 450000 + 600000;          // kas awal + tunai Hendra + tunai Budi
 let disc = { kind: 0, amount: 0 }, prevDisc = disc, approved = false, discPending = false;
-let paid = { method: 'Tunai', amount: 600000, lines: [['Uang diterima', 600000], ['Kembalian', 0]] };
-let refundTunai = 0, refundCount = 0, refunded = 0;
+// parts = bagian per metode (dasar refund); lines = baris struk; deposit = saldo yang dipakai (di luar amount).
+let paid = { method: 'Tunai', amount: 600000, deposit: SALDO, parts: [{ method: 'tunai', amount: 600000 }], lines: [['Uang diterima', 600000], ['Kembalian', 0]] };
+let refundTunai = 0, refundCount = 0, refunded = 0, depReturned = 0;
 const refundable = () => paid.amount - refunded;
 
 const saldoUsed = () => ($('#use-saldo').checked ? Math.min(SALDO, SUBTOTAL - disc.amount) : 0);
@@ -158,6 +159,7 @@ function bind() {
     'refund-tunai': rp(refundTunai),
     'refund-count': refundCount,
     'kas-sistem': rp(KAS_SISTEM - refundTunai),
+    'saldo-sisa': rp(SALDO - saldoUsed() + depReturned),
   };
   $$('[data-b]').forEach(el => { if (el.dataset.b in B) el.textContent = B[el.dataset.b]; });
   const money = [['Subtotal', f(SUBTOTAL)],
@@ -167,7 +169,7 @@ function bind() {
     `<div class="p-row p-big"><span>Dibayar</span><span>Rp ${f(paid.amount)}</span></div>` +
     `<div class="p-row"><span>Metode</span><span>${paid.method}</span></div>` +
     paid.lines.map(([k, v]) => `<div class="p-row"><span>${k}</span><span>${typeof v === 'number' ? f(v) : v}</span></div>`).join('') +
-    `<div class="p-row"><span>Sisa saldo deposit</span><span>${f(SALDO - saldoUsed())}</span></div>`;
+    `<div class="p-row"><span>Sisa saldo deposit</span><span>${f(SALDO - saldoUsed() + depReturned)}</span></div>`;
   renderCharge(); renderClose();
 }
 function setDisc(d) {
@@ -262,62 +264,101 @@ document.addEventListener('keydown', e => {
 $('#split-b-method').addEventListener('change', renderCharge);
 $('#charge-cta').addEventListener('click', () => {
   const d = due();
-  if (method === 'tunai') paid = { method: 'Tunai', amount: d, lines: [['Uang diterima', num(cashStr)], ['Kembalian', num(cashStr) - d]] };
+  if (method === 'tunai') setPaid([{ method: 'tunai', amount: d }], [['Uang diterima', num(cashStr)], ['Kembalian', num(cashStr) - d]]);
   else if (method === 'split') {
     const a = num(splitStr), m2 = $('#split-b-method').value;
-    paid = { method: `Tunai + ${m2}`, amount: d, lines: [['Tunai', a], [m2, d - a]] };
-  } else paid = { method: METHOD_NAME[method], amount: d, lines: [['Ref.', '(contoh)']] };
-  refunded = 0;
-  bind();
+    setPaid([{ method: 'tunai', amount: a }, { method: m2.toLowerCase(), amount: d - a }], [['Tunai', a], [m2, d - a]]);
+  } else setPaid([{ method, amount: d }], [['Ref.', '(contoh)']]);
   show('lunas');
 });
+// Pembayaran baru = status refund mulai dari nol.
+function setPaid(parts, lines) {
+  paid = { method: parts.map(p => METHOD_NAME[p.method]).join(' + '), amount: parts.reduce((s, p) => s + p.amount, 0), deposit: saldoUsed(), parts, lines };
+  refunded = refundTunai = refundCount = depReturned = 0;
+  const st = $('#lunas-status'); st.className = 'chip chip-paid'; st.textContent = 'lunas';
+  $('#refund-banner').hidden = true;
+  bind();
+}
 
 /* ---------- Void / Refund ---------- */
 const resetRefundPin = wirePin($('#refund-pin'), $('#refund-approve'));
 const rStep = s => $$('#refund-modal [data-rstep]').forEach(p => (p.hidden = p.dataset.rstep !== s));
 const refundAmt = () => num($('#refund-amount').value);
-const refundMethod = () => $('input[name=refund-method]:checked').value;
-const R_METHOD = { tunai: 'tunai dari laci', saldo: 'ke saldo deposit pasien (non-tunai)', transfer: 'transfer ke rekening pasien (non-tunai)' };
+const esc = v => String(v).replace(/[&<>"]/g, c => '&#' + c.charCodeAt(0) + ';');
+// Bagi `total` (kumulatif) proporsional ke tiap bagian; sisa pembulatan ke bagian terakhir.
+function alloc(parts, total) {
+  const sum = parts.reduce((s, p) => s + p.amount, 0);
+  let left = total;
+  return parts.map((p, i) => { const v = i === parts.length - 1 ? left : Math.floor(total * p.amount / sum); left -= v; return v; });
+}
+// Selisih alokasi kumulatif → refund sebagian berulang tidak pernah melebihi bagian aslinya.
+function refundParts(amt, parts = paid.parts, before = refunded) {
+  const a = alloc(parts, before + amt), b = alloc(parts, before);
+  return parts.map((p, i) => ({ method: p.method, amount: a[i] - b[i] })).filter(p => p.amount > 0);
+}
+console.assert(refundParts(300000, [{ method: 'tunai', amount: 200000 }, { method: 'qris', amount: 400000 }], 0)
+  .map(p => p.amount).join() === '100000,200000', 'refund 300.000 dari 200k+400k → 100k+200k');
+const needsAcct = parts => parts.some(p => p.method !== 'tunai');
+const acct = () => `${$('#ra-name').value.trim()} · ${$('#ra-bank').value.trim()} ${$('#ra-no').value.trim()}`;
+const partText = p => p.method === 'tunai'
+  ? `Tunai ${rp(p.amount)} dikembalikan dari laci kas — kas shift berkurang`
+  : `${METHOD_NAME[p.method]} ${rp(p.amount)} dikembalikan lewat transfer ke rekening ${acct()}`;
+const fullVoid = amt => amt > 0 && amt === refundable();
+const depText = amt => (fullVoid(amt) && paid.deposit ? `Deposit ${rp(paid.deposit)} kembali ke saldo pasien` : '');
+const partsHtml = amt => refundParts(amt).map(p => `<div class="rp-line">${esc(partText(p))}</div>`).join('') +
+  (depText(amt) ? `<div class="rp-line rp-dep">${depText(amt)}</div>` : '');
 function resetRefund() {
   rStep('form');
   $('#refund-amount').value = refundable() ? f(refundable()) : '';
   $('#refund-reason').value = ''; $('#refund-note').value = '';
-  $('#refund-m-tunai').checked = true;
   resetRefundPin(); refundCheck();
 }
 function refundCheck() {
-  const amt = refundAmt(), other = $('#refund-reason').value === 'Lainnya';
+  const amt = refundAmt(), other = $('#refund-reason').value === 'Lainnya', valid = amt > 0 && amt <= refundable();
+  const acctOn = valid && needsAcct(refundParts(amt));
+  $('#refund-account').hidden = !acctOn;
+  const acctOk = !acctOn || ['#ra-bank', '#ra-no', '#ra-name'].every(s => $(s).value.trim());
+  $('#refund-parts').innerHTML = valid ? partsHtml(amt) : '<div class="rp-line">Isi jumlah 1 s.d. sisa yang belum dikembalikan.</div>';
   $('#refund-note-req').textContent = other ? '(wajib untuk "Lainnya")' : '(opsional)';
-  const ok = amt > 0 && amt <= refundable() && $('#refund-reason').value && (!other || $('#refund-note').value.trim());
-  const owner = amt > REFUND_LIMIT;
+  const ok = valid && acctOk && $('#refund-reason').value && (!other || $('#refund-note').value.trim());
+  const owner = amt > REFUND_LIMIT; // batas hanya untuk uang bayar, deposit tidak dihitung
   $('#refund-owner-note').hidden = !owner;
   $('#refund-amount').setAttribute('aria-invalid', amt > refundable());
   $('#refund-next').disabled = !ok;
   $('#refund-next').textContent = owner ? 'Lanjut: persetujuan pemilik' : 'Catat pengembalian';
 }
 $('#refund-amount').addEventListener('input', e => { const v = num(e.target.value); e.target.value = v ? f(v) : ''; refundCheck(); });
-['#refund-reason', '#refund-note'].forEach(s => $(s).addEventListener('input', refundCheck));
-$$('input[name=refund-method]').forEach(r => r.addEventListener('change', refundCheck));
+['#refund-reason', '#refund-note', '#ra-bank', '#ra-no', '#ra-name'].forEach(s => $(s).addEventListener('input', refundCheck));
 $$('[data-ramt]').forEach(b => b.addEventListener('click', () => {
   $('#refund-amount').value = f(b.dataset.ramt === 'full' ? refundable() : Number(b.dataset.ramt)); refundCheck();
 }));
 $('#refund-next').addEventListener('click', () => {
   if (refundAmt() <= REFUND_LIMIT) return recordRefund(null);
-  $('#refund-summary').innerHTML = `<dt>Jumlah</dt><dd>${rp(refundAmt())}</dd><dt>Alasan</dt><dd>${$('#refund-reason').value}</dd><dt>Lewat</dt><dd>${R_METHOD[refundMethod()]}</dd>`;
+  $('#refund-summary').innerHTML = `<dt>Jumlah</dt><dd>${rp(refundAmt())}</dd><dt>Alasan</dt><dd>${esc($('#refund-reason').value)}</dd>` +
+    `<dt>Dikembalikan</dt><dd><div class="refund-parts">${partsHtml(refundAmt())}</div></dd>`;
   rStep('owner'); $('#refund-pin input').focus();
 });
 $('#refund-back').addEventListener('click', () => { resetRefundPin(); rStep('form'); });
 $('#refund-approve').addEventListener('click', () => recordRefund('Rina Kusuma (pemilik, PIN)'));
 function recordRefund(approver) {
-  const amt = refundAmt(), m = refundMethod(), full = amt === paid.amount;
+  const amt = refundAmt(), parts = refundParts(amt), full = fullVoid(amt), dep = depText(amt), html = partsHtml(amt);
+  const reason = $('#refund-reason').value, note = $('#refund-note').value.trim();
   refundCount++; refunded += amt;
-  if (m === 'tunai') refundTunai += amt;
-  $('#refund-done-text').textContent = `${full ? 'Void penuh' : 'Refund sebagian'} ${rp(amt)} · ${R_METHOD[m]}` +
-    (m === 'tunai' ? ' — uang keluar dari laci, kas sistem ikut berkurang' : ' — tidak mengubah isi laci') +
-    ` · alasan: ${$('#refund-reason').value} · ${approver ? 'disetujui ' + approver : 'dicatat kasir (≤ Rp 500.000)'} · 20.35`;
+  refundTunai += parts.filter(p => p.method === 'tunai').reduce((s, p) => s + p.amount, 0);
+  if (full) depReturned = paid.deposit;
+  $('#refund-done-text').textContent = `${full ? 'Void penuh' : 'Refund sebagian'} ${rp(amt)} · alasan: ${reason}` +
+    ` · ${approver ? 'disetujui ' + approver : 'dicatat kasir (≤ Rp 500.000)'} · 20.35`;
+  $('#refund-done-parts').innerHTML = html;
   const st = $('#lunas-status'); st.className = 'chip chip-void'; st.textContent = full ? 'void' : 'refund sebagian';
   const banner = $('#refund-banner'); banner.hidden = false;
-  $('span', banner).textContent = `${full ? 'Void' : 'Refund'} ${rp(amt)} dicatat (${$('#refund-reason').value}). Tagihan asli tetap tersimpan dan terkunci.`;
+  $('span', banner).textContent = `${full ? 'Void' : 'Refund'} ${rp(amt)} dicatat (${reason}).${dep ? ' ' + dep + '.' : ''} Tagihan asli tetap tersimpan dan terkunci.`;
+  const tr = document.createElement('tr');
+  tr.dataset.kind = full ? 'void' : 'refund';
+  tr.innerHTML = `<td>14 Nov 2026 20.35</td><td>${full ? 'Void penuh' : 'Refund sebagian'}</td><td>TG-2026-11014-001</td><td>Sari Front Desk</td>` +
+    `<td class="r rp">${rp(amt)}</td><td>${esc(reason + (note ? ' — ' + note : ''))}<br><span class="small muted">${parts.map(p => esc(partText(p))).join('; ')}</span>` +
+    (dep ? `<br><span class="audit-dep">${dep}</span>` : '') + '</td>' +
+    `<td><span class="chip chip-draft">${approver ? 'disetujui pemilik (PIN)' : 'dicatat kasir (≤ Rp 500.000)'}</span></td>`;
+  $('#audit-vr').prepend(tr);
   bind();
   rStep('done'); $('#refund-modal [data-rstep=done] button').focus();
 }
@@ -417,5 +458,22 @@ $$('[data-filter]').forEach(b => b.addEventListener('click', () => {
 /* ---------- Mulai ---------- */
 bind();
 console.assert(due() === 600000 && disc.amount === 0, 'Budi: diskon 0, sisa dibayar Rp 600.000');
-show(new URLSearchParams(location.search).get('layar') || location.hash.slice(1) || 'antrean');
+const params = new URLSearchParams(location.search);
+show(params.get('layar') || location.hash.slice(1) || 'antrean');
+// ?demo=… : pasang `paid` lalu buka keadaan yang diminta (untuk tangkapan layar / reviewer).
+const DEMO_PAID = {
+  tunai: [[{ method: 'tunai', amount: 600000 }], [['Uang diterima', 600000], ['Kembalian', 0]]],
+  qris: [[{ method: 'qris', amount: 600000 }], [['Ref.', '(contoh)']]],
+  split: [[{ method: 'tunai', amount: 200000 }, { method: 'qris', amount: 400000 }], [['Tunai', 200000], ['QRIS', 400000]]],
+};
+const demo = params.get('demo');
+if (demo) {
+  setPaid(...DEMO_PAID[{ 'refund-qris': 'qris', 'refund-split': 'split' }[demo] || 'tunai']);
+  show('refund');
+  if (demo === 'void-done' || demo === 'void-audit') {
+    $('#refund-reason').value = 'Kesalahan input'; refundCheck();
+    recordRefund('Rina Kusuma (pemilik, PIN)'); // Rp 600.000 > batas kasir → jalur PIN pemilik
+    if (demo === 'void-audit') show('audit');
+  }
+}
 window.addEventListener('hashchange', () => show(location.hash.slice(1)));

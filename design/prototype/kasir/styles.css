@@ -497,3 +497,22 @@ textarea.input { padding: 10px 12px; min-height: 96px; resize: vertical; }
   body:has(#screen-bayar:not([hidden])) .tiles { margin-top: 8px; }
   body:has(#screen-bayar:not([hidden])) .cash-display output { font-size: 24px; }
 }
+
+/* Refund: rincian per metode asli + rekening tujuan */
+.refund-parts { display: grid; gap: 6px; }
+.refund-parts .rp-line { background: var(--canvas); border-radius: var(--r-ctl); padding: 8px 12px; font-size: 13px; font-weight: 600; text-align: left; }
+.refund-parts .rp-dep, .audit-dep { background: var(--ok-bg); color: var(--ok-fg); font-weight: 700; }
+.audit-dep { display: inline-block; margin-top: 4px; padding: 2px 8px; border-radius: 6px; }
+.acct-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+
+/* Refund form can be taller than the viewport (rekening + rincian). Keep actions visible. */
+#refund-modal .modal { display: flex; flex-direction: column; }
+#refund-modal [data-rstep] { overflow-y: auto; min-height: 0; }
+#refund-modal [data-rstep] .actions {
+  position: sticky; bottom: 0;
+  background: var(--surface);
+  margin-top: 12px; padding-top: 12px;
+  z-index: 1;
+}
+#refund-modal textarea.input { min-height: 72px; }
+#refund-modal .banner { margin-bottom: 0; }
