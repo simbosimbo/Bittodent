@@ -342,10 +342,10 @@ Setiap keputusan ditulis dengan pola ini (mirip *ADR* = Architecture Decision Re
 ### D-045: Kapasitas desain 5.000–10.000 pasien per tenant
 - Tanggal: 2026-11-14
 - Status: **Usulan** (permintaan Yohanes: tiap member/klinik 5.000–10.000 pasien)
-- Konteks: D-024 merencanakan bukti kinerja dengan 300 tenant dan 1 juta pasien (~3.333 pasien/tenant, 5 tahun). Yohanes menetapkan plafon per tenant yang lebih tinggi. File rontgen/foto, bukan baris SOAP, yang diperkirakan mendominasi kapasitas (lihat `docs/architecture/ARCHITECTURE.md` bagian 4; semua angka di sana bertanda estimasi).
+- Konteks: D-024 merencanakan bukti kinerja dengan 300 tenant dan 1 juta pasien (~3.333 pasien/tenant, 5 tahun). Yohanes menetapkan plafon per tenant yang lebih tinggi. Awalnya file rontgen diperkirakan mendominasi kapasitas; setelah jawaban Yohanes 14 Nov 2026 (~100 rontgen/klinik/tahun, A5), **baris audit yang lebih menonjol** (lihat `docs/architecture/ARCHITECTURE.md` bagian 4; angka file A5 = angka pemilik, lainnya estimasi).
 - Keputusan: plafon desain satu tenant = **10.000 pasien terdaftar**; skenario tipikal = **5.000**. Perencanaan indeks, partisi, pencarian, backup, dan biaya objek memakai kedua angka itu. Bukti D-024 tetap (300 tenant, 1 juta pasien), **ditambah** uji wajib pada **satu tenant 10.000 pasien** sintetis (query panas Q4–Q7, Q13 di `database.md` 7.2) sebelum klaim kinerja. Jumlah tenant platform (50 vs 300) adalah asumsi perencanaan, bukan komitmen penjualan.
 - Alasan: menghindari sistem yang “lulus uji” hanya di 3.333 pasien lalu pecah di klinik besar; tetap satu model data (D-007).
-- Akibat: seed/benchmark lebih berat; keputusan cloud produksi (D-010) harus memperhitungkan TiB objek (estimasi di ARCHITECTURE.md 4.3).
+- Akibat: seed/benchmark lebih berat; keputusan cloud produksi (D-010) merencanakan DB/audit lebih dari objek rontgen (A5 ≈ 0,9 TiB file untuk 300 tenant / 10 tahun).
 
 ### D-046: Jendela operasional 10 tahun, retensi hukum tetap ≥25 tahun sejak kunjungan terakhir
 - Tanggal: 2026-11-14
@@ -353,24 +353,24 @@ Setiap keputusan ditulis dengan pola ini (mirip *ADR* = Architecture Decision Re
 - Konteks: D-005, `CLAUDE.md`, dan `docs/compliance.md` mengutip Permenkes 24/2022 Pasal 39: RME disimpan paling singkat 25 tahun sejak kunjungan terakhir, tanpa hapus otomatis. Sumber pasal sudah dirujuk di compliance.md (PDF JDIH). PP 28/2024 belum dibaca (perlu dicek). Dokumen proyek tidak menyebutkan retensi lebih lama khusus anak/minors. Yohanes menyebut angka 10 tahun. Menafsirkan itu sebagai masa hapus akan bertentangan dengan teks yang sudah dikutip, tanpa dasar baru.
 - Keputusan:
   1. D-005 **tidak diubah**. Kewajiban retensi yang kami ikuti tetap ≥25 tahun sejak kunjungan terakhir, sampai konsultan hukum dan pembacaan PP 28/2024 memutuskan lain.
-  2. “10 tahun” dipakai sebagai **jendela panas operasional**: kunjungan, catatan, odontogram, dan file 10 tahun terakhir dilayani dari penyimpanan primer (query cepat). Data lebih lama pindah ke arsip dingin di Indonesia, tetap terenkripsi, tetap dapat dibuka (lebih lambat), tetap tidak dihapus (D-047).
+  2. “10 tahun” dipakai sebagai **jendela panas operasional** (harapan akses cepat). Retensi hukum tidak berhenti di tahun ke-10. Memindahkan file lebih tua ke arsip dingin (D-047) **tidak wajib** setelah A5 dikunci (~2,9 GiB rontgen/tenant/10 tahun); boleh tetap di kelas panas selama masa retensi.
   3. **Tidak ada pemusnahan otomatis** rekam medis, odontogram final, atau jejak audit. Pengecualian yang sudah diputuskan tetap berlaku: audio dikte dihapus setelah catatan ditandatangani (D-038).
   4. **Legal hold** (sengketa, audit, permintaan resmi) menunda pemindahan ke dingin dan menunda segala pemusnahan yang suatu saat mungkin diizinkan setelah masa retensi.
   5. Permintaan hapus dari subjek data (hak UU PDP yang pasal pastinya **belum dikutip** di compliance.md — perlu dicek) vs kewajiban Pasal 39: sampai ada nasihat hukum, sistem **menolak tercatat** menghapus isi rekam medis.
-- Alasan: urutan prioritas menempatkan regulasi di atas kenyamanan biaya, tetapi biaya file 25 tahun penuh di kelas panas tidak perlu jika arsip dingin memenuhi ketersediaan (Pasal 29–30: kerahasiaan, integritas, ketersediaan — sudah dikutip di compliance.md).
-- Akibat: dua angka di dokumen kapasitas; butuh job arsip dan tes “buka arsip”; Q-22 ke Yohanes.
+- Alasan: urutan prioritas menempatkan regulasi di atas kenyamanan biaya. Setelah A5 (100 rontgen/klinik/tahun), menyimpan file di kelas panas selama 25 tahun tetap wajar (~7,3 GiB/tenant).
+- Akibat: dua angka di dokumen kapasitas (jendela 10 tahun vs retensi 25 tahun); job arsip file tidak diprioritaskan; Q-22 ke Yohanes masih terbuka.
 
-### D-047: Arsip berlapis untuk file; baris klinis tetap di basis data primer sampai diukur
-- Tanggal: 2026-11-14
-- Status: **Usulan** (kelanjutan D-022, D-018, D-046)
-- Konteks: Estimasi di `docs/architecture/ARCHITECTURE.md` bagian 4 (asumsi A5) menunjukkan file (rontgen/foto) jauh lebih besar daripada baris database per tenant. D-018 sudah menolak rantai sidik per baris audit karena memaksa antrean tulis.
+### D-047: Arsip berlapis untuk file bersifat opsional; baris klinis tetap di basis data primer sampai diukur
+- Tanggal: 2026-11-14 · Diperbarui 2026-11-14 setelah jawaban Yohanes soal volume rontgen
+- Status: **Usulan** (kelanjutan D-022, D-018, D-046; siklus dingin **opsional**)
+- Konteks: Estimasi awal A5 (proporsi kunjungan) membuat file tampak jauh lebih besar daripada DB. Yohanes (14 Nov 2026) menyatakan rontgen tidak banyak: **paling sekitar 100 per klinik per tahun**. A5 diperbarui: 100 × 3 MiB ≈ 300 MiB/tahun, ~2,9 GiB/tenant/10 tahun, ~7,3 GiB/tenant/25 tahun operasi. Foto/file lain boleh menambah, tetapi pada orde ini file tidak merajai biaya. D-018 tetap menolak rantai sidik per baris audit.
 - Keputusan:
-  1. Objek file (D-022) memakai kebijakan siklus hidup: 10 tahun di kelas panas, lalu kelas dingin di wilayah Indonesia, kunci tetap di KMS, metadata `file_object` tetap di DB primer. “Buka arsip” adalah alur resmi (lebih lambat, diaudit).
+  1. Objek file (D-022) **boleh tetap di kelas panas** sepanjang masa retensi. Kebijakan siklus hidup (10 tahun panas, lalu dingin di Indonesia, “buka arsip” diaudit) **opsional** — hanya dibangun jika volume nyata jauh di atas A5 (unit A13 ditunda). Metadata `file_object` tetap di DB primer; kunci tetap di KMS.
   2. Tabel `clinical_note_version`, `tooth_finding`, dan sejenisnya **tetap di DB primer** pada horison ini; evakuasi baris hanya jika uji D-045 membuktikan perlu.
-  3. `audit_event` dipartisi per bulan di PostgreSQL (D-018); partisi lama tetap ada (retensi), query layar hanya menyentuh partisi dekat. Checkpoint SHA-256 harian per tenant tetap menjadi bukti keutuhan (bukan hash chain per event).
+  3. `audit_event` dipartisi per bulan di PostgreSQL (D-018); partisi lama tetap ada (retensi), query layar hanya menyentuh partisi dekat. Checkpoint SHA-256 harian per tenant tetap menjadi bukti keutuhan (bukan hash chain per event). Ini tetap diprioritaskan, karena audit lebih besar daripada file pada plafon 10.000 pasien.
   4. Tabel `legal_hold` dan kolom/penanda `retention_until` (dihitung dari kunjungan terakhir, default 25 tahun, dapat diubah hanya setelah nasihat hukum) ditambahkan sebagai data, tanpa job hapus klinis.
-- Alasan: menyembunyikan kebijakan biaya di satu modul arsip, bukan menyebar flag hapus ke modul klinis; selaras “tidak ada DELETE” (D-023).
-- Akibat: unit kerja A1, A2, A4, A13 di ARCHITECTURE.md; A5 (asumsi ukuran file) perlu diukur atau dikonfirmasi Yohanes.
+- Alasan: jangan membangun arsip dingin hanya karena kebiasaan “data lama harus dipindah”, bila biayanya kecil dan menambah jalur buka rekam; tetap tidak ada DELETE klinis (D-023).
+- Akibat: unit A13 opsional; A2 (checkpoint audit) lebih dahulu. Bagian rontgen Q-23 ditutup (lihat di bawah).
 
 ## Pertanyaan terbuka (perlu jawaban Jerome)
 - ~~Q-1 Target klinik~~ → **ditutup**: semua ukuran (D-007).
@@ -395,4 +395,4 @@ Setiap keputusan ditulis dengan pola ini (mirip *ADR* = Architecture Decision Re
 - ~~Q-20~~ Ditutup 14 Nov 2026: dokter boleh melihat laporan bagi hasil miliknya sendiri, hanya baca, tanpa aturan atau angka dokter lain (D-039).
 - ~~Q-21~~ Ditutup 14 Nov 2026: pemilik (meski bukan dokter) boleh membuka catatan klinis, hanya baca, tanpa tanda tangan atau ubahan; setiap buka tercatat dan dijelaskan di pemberitahuan privasi (D-040).
 - Q-22 Jendela 10 tahun vs retensi 25 tahun: setuju D-046 (10 tahun = panas operasional; retensi hukum tetap Pasal 39)? Atau ada sumber lain yang perlu kami baca?
-- Q-23 Perkiraan jumlah tenant tahun 1 dan tahun 3, serta kira-kira berapa foto/rontgen per kunjungan (mengunci asumsi A5 di ARCHITECTURE.md)? Siapa yang memasang legal hold? Retensi pasien anak: perlu dicek hukum.
+- Q-23 Perkiraan jumlah tenant tahun 1 dan tahun 3? Siapa yang memasang legal hold? Retensi pasien anak: perlu dicek hukum. ~~Bagian rontgen/foto~~ → **ditutup 14 Nov 2026** (Yohanes): ~100 rontgen per klinik per tahun; A5 di ARCHITECTURE.md diperbarui (3 MiB/file; foto/file lain boleh menambah).

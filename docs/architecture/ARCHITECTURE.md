@@ -114,12 +114,12 @@ Permintaan Yohanes “disimpan 10 tahun” **tidak ditafsirkan sebagai memendekk
 
 | | A. Semua panas 25 tahun | B. Panas 10 tahun + dingin sampai retensi hukum |
 |---|---|---|
-| Inti | Semua versi, audit, file di DB/objek primer | 10 tahun terakhir di primer + SSD; yang lebih lama di kelas dingin di Indonesia, tetap terenkripsi, tetap bisa dibuka |
-| Kuat | Operasi sederhana, satu jalur buka rekam | Biaya file (rontgen) terkendali; selaras angka “10 tahun” tanpa merusak Pasal 39 |
-| Lemah | Biaya objek tumbuh linier 25 tahun × banyak tenant | Perlu kebijakan arsip, tes “buka arsip”, dan hold |
-| Bendera desain | Memuat kompleksitas biaya ke operasional diam-diam | Satu pemilik kebijakan (retensi/arsip), bukan flag hapus tersebar di modul |
+| Inti | Semua versi, audit, file di DB/objek primer | 10 tahun terakhir di primer; yang lebih lama *boleh* ke kelas dingin di Indonesia, tetap terenkripsi, tetap bisa dibuka |
+| Kuat | Operasi sederhana, satu jalur buka rekam; **setelah A5 diperbarui, biaya file 25 tahun tetap kecil** | Selaras angka “10 tahun” tanpa merusak Pasal 39; cadangan jika volume file naik |
+| Lemah | — (biaya objek bukan pembatas pada A5 saat ini) | Perlu kebijakan arsip, tes “buka arsip”, dan hold — kerja ekstra yang **belum wajib** |
+| Bendera desain | — | Jangan sebar flag hapus ke modul klinis (tetap berlaku meski dingin opsional) |
 
-**Dipilih B (D-046, D-047).** Metadata (`patient`, indeks, `file_object`) tetap di DB primer. Isi file tua pindah kelas penyimpanan. Baris `clinical_note_version` / `tooth_finding` **tetap di DB primer dulu** — estimasi volume baris masih muat; yang mahal adalah file. Evakuasi baris klinis ke arsip hanya jika pengukuran D-024 (diperluas D-045) membuktikan perlu.
+**Pilihan setelah A5 (14 Nov 2026).** Untuk **file**, kandidat A (semua panas 25 tahun) sekarang memadai: ~7,3 GiB rontgen per tenant setelah 25 tahun operasi (bagian 4). Siklus dingin D-047 menjadi **opsional**, ditunda sampai volume nyata jauh lebih besar (foto tambahan, multi-cabang, atau A5 berubah). Untuk **kebijakan retensi**, D-046 tetap: tidak menghapus rekam medis di tahun ke-10; retensi hukum ≥25 tahun sejak kunjungan terakhir. Baris `clinical_note_version` / `tooth_finding` tetap di DB primer; evakuasi baris hanya jika uji D-045 membuktikan perlu. Yang perlu diutamakan di kapasitas sekarang: **pertumbuhan audit** (partisi, D-018), bukan lifecycle objek.
 
 Rantai sidik **per baris** audit tetap ditolak (D-018: memaksa penulisan antre per tenant). Keutuhan = hak `INSERT`/`SELECT` saja + trigger + **checkpoint SHA-256 harian per tenant** (sidik gabungan baris hari itu), salinan checkpoint ikut backup ke lokasi kedua. Itu yang dipakai, bukan hash chain per event.
 
@@ -135,14 +135,14 @@ Rantai sidik **per baris** audit tetap ditolak (D-018: memaksa penulisan antre p
 | A2 | Kunjungan per pasien terdaftar per tahun | **1,2** (stres: 2,0) | Selaras D-024: 6 juta janji / 1 juta pasien / 5 tahun = 1,2 |
 | A3 | Versi SOAP per kunjungan | 1,3 | 1 final + ~0,3 koreksi; estimasi |
 | A4 | Temuan odontogram baru/ubah per kunjungan | 8 | Estimasi; D-021 per gigi/permukaan |
-| A5 | Lampiran | 30% kunjungan × 1,5 file × **3 MiB** terenkripsi | Estimasi; **sering jadi pembatas biaya** — perlu angka klinik nyata |
+| A5 | Lampiran (rontgen) | **~100 rontgen per klinik per tahun**, × **3 MiB** terenkripsi per file | **Angka pemilik (Yohanes), 14 Nov 2026.** Bukan fungsi jumlah pasien. Ditafsir per tenant sampai ada angka per cabang. Foto intraoral/file lain *boleh menambah*; jika 2×, file 10 tahun tetap ~5,9 GiB/tenant. |
 | A6 | Baris audit terkait kunjungan | 30 | Kasar D-024: 200 juta audit / 6 juta janji ≈ 33 |
 | A7 | Audit di luar kunjungan | 5 baris/pasien/tahun | Cari, buka kartu, login; estimasi |
 | A8 | Batas atas pertumbuhan | Plafon penuh sepanjang 10 tahun (bukan pertumbuhan linier) | Konservatif, overestimate ±2× vs pertumbuhan linier |
 | A9 | Tenant platform (perencanaan, bukan komitmen) | 50 awal / 300 (D-024) | D-024 |
 | A10 | Ukuran baris + indeks (~1,5×) | visit ~0,4 KiB; versi catatan ~2 KiB; temuan ~0,3 KiB; audit ~0,5 KiB | Estimasi kasar |
 
-Rumus 10 tahun operasional, satu tenant: `kunjungan = pasien × A2 × 10`.
+Rumus 10 tahun operasional, satu tenant: `kunjungan = pasien × A2 × 10`. File rontgen: `100 × 10 × 3 MiB` (sama untuk 5.000 maupun 10.000 pasien).
 
 ### 4.2 Satu tenant, 10 tahun operasional (A2 = 1,2)
 
@@ -152,27 +152,27 @@ Rumus 10 tahun operasional, satu tenant: `kunjungan = pasien × A2 × 10`.
 | Versi catatan | 78.000 | 156.000 |
 | Temuan odontogram | 480.000 | 960.000 |
 | Baris audit | ~2,1 juta | ~4,1 juta |
-| File (jumlah / ukuran) | 27.000 / **~81 GiB** | 54.000 / **~162 GiB** |
+| File rontgen (jumlah / ukuran) | 1.000 / **~2,9 GiB** | 1.000 / **~2,9 GiB** |
 | Perkiraan DB (baris + indeks, tanpa file) | ~2,1 GiB | ~4,2 GiB |
 
-Kesimpulan: **file merajai kapasitas**; DB per tenant masih kecil di angka ini. Optimasi pertama = lifecycle objek (D-047), bukan pecah tabel klinis.
+Kesimpulan (setelah A5 pemilik): **file tidak lagi merajai kapasitas.** Di plafon 10.000 pasien, DB (~4,2 GiB, sebagian besar audit) lebih besar daripada rontgen (~2,9 GiB). Keduanya kecil untuk satu tenant. Optimasi pertama = partisi dan retensi **audit** (D-018), bukan lifecycle objek. Siklus dingin file (D-047) **opsional**. Foto/file lain yang menambah volume belum dihitung di tabel ini.
 
 ### 4.3 Platform, 10 tahun (estimasi)
 
 | Skenario | Pasien total | Kunjungan | Audit (baris) | File |
 |---|---:|---:|---:|---:|
-| 50 tenant × 5.000 | 0,25 juta | 3 juta | ~0,10 miliar | **~4 TiB** |
-| 300 tenant × ~3.333 (skala D-024, 10 th) | 1 juta | 12 juta | ~0,40 miliar | **~16 TiB** |
-| 300 tenant × 10.000 (stres plafon) | 3 juta | 36 juta | ~1,2 miliar | **~49 TiB** |
+| 50 tenant × 5.000 | 0,25 juta | 3 juta | ~0,10 miliar | **~147 GiB** |
+| 300 tenant × ~3.333 (skala D-024, 10 th) | 1 juta | 12 juta | ~0,40 miliar | **~879 GiB** |
+| 300 tenant × 10.000 (stres plafon) | 3 juta | 36 juta | ~1,2 miliar | **~879 GiB** |
+
+Kolom file sama untuk kedua skenario 300 tenant karena A5 dihitung per klinik/tahun, bukan per pasien.
 
 D-024 merencanakan bukti 5 tahun (1 juta pasien, 200 juta audit). D-045: uji itu **tetap**, plus uji **satu tenant 10.000 pasien** (bukan meratakan 3.333).
 
 ### 4.4 Horison retensi 25 tahun
 
-- Klinik beroperasi 10 tahun lalu berhenti: volume data hampir berhenti tumbuh; **tetap disimpan ≥25 tahun sejak kunjungan terakhir** (biaya dingin, bukan hapus).
-- Klinik beroperasi terus 25 tahun di plafon 10.000: kunjungan/file ≈ 2,5× tabel 4.2 (~405 GiB file / tenant pada A5). Tetap di Indonesia, tetap terenkripsi.
-
-Kalau A5 ternyata 5 MiB/file atau 1 file/kunjungan, kalikan file secara linier. Itu alasan A5 harus diukur cepat.
+- Klinik beroperasi 10 tahun lalu berhenti: volume data hampir berhenti tumbuh; **tetap disimpan ≥25 tahun sejak kunjungan terakhir** (bukan hapus). File rontgen tetap ~2,9 GiB/tenant.
+- Klinik beroperasi terus 25 tahun di plafon 10.000: kunjungan/DB ≈ 2,5× tabel 4.2 (~10 GiB DB/tenant); file rontgen = 100 × 25 × 3 MiB ≈ **~7,3 GiB/tenant**. Tetap di Indonesia, tetap terenkripsi. Menyimpan semua file di kelas panas selama 25 tahun tetap wajar pada angka ini.
 
 ---
 
@@ -226,7 +226,7 @@ Rencana:
 1. `tenant_id` selalu kolom pertama indeks; pagination keyset, bukan `OFFSET`.
 2. Setelah gerbang PG: partisi `audit_event` per bulan (D-018); query 3 bulan terakhir tidak memindai 25 tahun.
 3. Bukti D-024 + D-045: seed sintetis, `EXPLAIN (ANALYZE, BUFFERS)` dengan RLS, termasuk **tenant 10.000 pasien**. Jangan klaim cepat sebelum itu.
-4. Jumlah tenant 300 pada plafon 10.000 adalah skenario stres (bagian 4.3); kapasitas platform file (TiB) harus masuk keputusan cloud produksi (D-010 masih terbuka untuk produksi).
+4. Jumlah tenant 300 pada plafon 10.000 adalah skenario stres (bagian 4.3). File rontgen platform pada A5 ≈ 0,9 TiB / 10 tahun — bukan pembatas utama keputusan cloud (D-010); pertumbuhan **audit** lebih perlu dihitung.
 5. Read replica di Indonesia boleh untuk laporan, bukan untuk tulisan klinis.
 6. Pencarian: nama (plaintext + fungsi tenant-bound); NIK/HP hanya cocok persis via bidx. Jangan dekripsi massal untuk mencari.
 
@@ -286,7 +286,7 @@ Setiap unit = satu PR, tes otomatis, tanpa data pasien asli. Jangan gabung ke `m
 | A10 | `search_patient` + uji 10.000 pasien sintetis (Q4, Q5, Q6, Q7) | `EXPLAIN` memenuhi target atau target direvisi tertulis |
 | A11 | KMS + DEK per tenant + rotasi | Tes buka data lama setelah rotasi; kunci tidak di `.env` produksi |
 | A12 | pgBackRest + uji pulih bulanan (setelah Q-6) | Catatan RPO/RTO terukur |
-| A13 | Lifecycle file: pindah kelas dingin setelah 10 tahun + “buka arsip” | Tes file tahun ke-11 masih bisa dibuka, lebih lambat |
+| A13 | *(Opsional, ditunda.)* Lifecycle file: pindah kelas dingin setelah 10 tahun + “buka arsip” — hanya jika volume nyata jauh di atas A5 | Tes file tahun ke-11 masih bisa dibuka, lebih lambat |
 | A14 | Ringkasan AI: ikuti unit S0–S7 di PR #1, jangan diduplikasi di sini | PR #1 |
 
 Jangan menukar urutan A9 sebelum data asli. A1–A8 boleh di MySQL palsu asal mudah pindah (tanpa SQL MySQL di kode aplikasi).
@@ -295,7 +295,7 @@ Jangan menukar urutan A9 sebelum data asli. A1–A8 boleh di MySQL palsu asal mu
 
 ## 11. Keputusan sintesis
 
-Dua bentuk yang dibanding: (A) semua data panas 25 tahun, vs (B) jendela panas 10 tahun + dingin sampai retensi hukum. B dipilih karena menyembunyikan kebijakan biaya file di satu tempat (retensi/arsip) tanpa merusak Pasal 39 atau D-005, dan tanpa menyebarkan “hapus saja” ke modul klinis. Isolasi tenant, append-only klinis, outbox, dan checkpoint audit **tidak dirancang ulang** — sudah ada di D-016–D-019; dokumen ini hanya menambahkan kapasitas dan retensi.
+Dua bentuk yang dibanding: (A) semua data panas 25 tahun, vs (B) jendela panas 10 tahun + dingin sampai retensi hukum. Setelah A5 dikunci pemilik (100 rontgen/klinik/tahun), biaya file kecil jadi **A memadai untuk objek**; B/D-047 (siklus dingin) **opsional**. D-046 tetap: jangan hapus rekam medis sebelum retensi hukum (Pasal 39 / D-005). Isolasi tenant, append-only klinis, outbox, dan checkpoint audit **tidak dirancang ulang** — sudah ada di D-016–D-019. Prioritas kapasitas bergeser ke partisi audit, bukan arsip file.
 
 ---
 
@@ -304,8 +304,8 @@ Dua bentuk yang dibanding: (A) semua data panas 25 tahun, vs (B) jendela panas 1
 1. **Q-22 / D-046:** Setuju “10 tahun” = jendela panas, retensi hukum tetap ≥25 tahun sejak kunjungan terakhir, sampai PP 28/2024 + konsultan hukum berkata lain?
 2. Apakah ada sumber lain (misalnya kebiasaan klinik, atau aturan yang kami belum baca) yang membuatnya yakin angka 10 tahun — supaya kami tidak salah menafsir Pasal 39?
 3. **Q-6** masih terbuka: RPO/RTO yang diinginkan? (Usulan sementara: 15 menit / 4 jam.)
-4. Perkiraan jumlah klinik (tenant) tahun 1 dan tahun 3? 50 vs 300 mengubah rencana file (TiB).
-5. Perkiraan rontgen/foto per kunjungan di klinik target (mengunci A5)?
+4. Perkiraan jumlah klinik (tenant) tahun 1 dan tahun 3? (Bagian rontgen Q-23 sudah dijawab: ~100/klinik/tahun.)
+5. *(Ditutup 14 Nov 2026.)* Rontgen ~100 per klinik per tahun (Yohanes); A5 diperbarui.
 6. Siapa yang boleh memasang dan mencabut **legal hold**?
 7. Aturan retensi untuk pasien anak (minors): perlu dicek hukum; kami belum punya dasar di dokumen.
 8. Q-5 (TTE) dan Q-7 (asuransi swasta) tetap terbuka di `decisions.md`.
