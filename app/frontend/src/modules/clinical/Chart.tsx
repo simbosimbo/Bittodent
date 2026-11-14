@@ -326,6 +326,10 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
             <Seg label="Tampilan" value={view} onChange={setView} options={[['2d', '2D'], ['3d', '3D']]} />
           </div>
         </div>
+        <div className="odo-legends">
+          <StatusLegend />
+          <Legend />
+        </div>
         {can('note.write') && (
           <div className="baseline-row">
             <span className="muted small">Keadaan awal: {chart.baseline ? `${chart.baseline.dentition} · versi ${chart.baseline.version}` : 'belum diisi (isi di kunjungan pertama)'}</span>
@@ -372,8 +376,6 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
         )}
         <Items items={[...chart.findings, ...mine]} canMove={can('note.sign')}
           onMove={(f, to) => run(() => changeStatus(f.id, to, visit?.id), `Status gigi ${f.tooth} diubah (baris baru; versi lama tetap).`)} />
-        <Legend />
-        <StatusLegend />
       </div>
 
       {visit && (

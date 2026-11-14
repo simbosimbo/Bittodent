@@ -186,6 +186,8 @@ function buildChart(T: T3, M: Manifest, map: Record<number, Record3>, dent: Base
   }
   const cell = (t: number, view: View) => {
     const c = surfaces(t, view)
+    // Keep lock / draft mark in the top corner so they do not sit on the crown.
+    c.querySelectorAll('.lock, .draft-mark').forEach((el) => el.setAttribute('transform', 'translate(2 2)'))
     if (view === 'buccal') {
       // One keyboard stop per tooth (Enter = center surface); surfaces are pointer-first.
       c.tabIndex = 0
@@ -194,47 +196,78 @@ function buildChart(T: T3, M: Manifest, map: Record<number, Record3>, dent: Base
     } else c.setAttribute('aria-hidden', 'true')
     return c
   }
-  const row = (left: number[], right: number[], view: View, arch: 'upper' | 'lower') => {
-    const r = div(`row ${view} ${arch}`)
-    left.forEach((t) => r.appendChild(cell(t, view)))
-    r.appendChild(div('mid'))
-    right.forEach((t) => r.appendChild(cell(t, view)))
-    const v = M.models[T.info(left[0]).model]?.buccal
-    if (view === 'buccal' && v?.cejY != null) {
-      const cej = v.cejY * v.h * K
-      const g = div('gum')
-      g.style.top = `${arch === 'upper' ? cej - 18 : cej + 2}px`
-      r.prepend(g)
-    }
-    return r
+  // Shared column grid: each FDI pair (e.g. 18 above 48) uses one column width = max crown width.
+  // Numbers sit in the same columns as the renders (not a separate flex row).
+  const crownW = (t: number) => (M.models[T.info(t).model]?.crownWidthPx ?? 40) * T.info(t).scale * K
+  const place = (grid: HTMLElement, el: HTMLElement, column: number, row: number, align: string) => {
+    el.style.gridColumn = String(column)
+    el.style.gridRow = String(row)
+    el.style.alignSelf = align
+    el.style.justifySelf = 'center'
+    grid.appendChild(el)
   }
-  const nums = (left: number[], right: number[]) => {
-    const n = div('nums')
-    const add = (t: number) => {
-      const I = T.info(t)
-      const s = document.createElement('span')
-      s.textContent = String(t)
-      s.style.width = `${(M.models[I.model]?.crownWidthPx ?? 40) * I.scale * K}px`
-      n.appendChild(s)
-    }
-    left.forEach(add)
-    n.appendChild(div('mid'))
-    right.forEach(add)
-    return n
+  const num = (t: number) => {
+    const s = document.createElement('span')
+    s.className = 'num'
+    s.dataset.tooth = String(t)
+    s.textContent = String(t)
+    return s
   }
-  const block = (title: string, U: number[], L: number[]) => {
-    const h = U.length / 2
-    const [u1, u2, l1, l2] = [U.slice(0, h), U.slice(h), L.slice(0, h), L.slice(h)]
+  const block = (title: string, U: number[], L: number[], withSides = false) => {
+    const half = U.length / 2
+    const [u1, u2, l1, l2] = [U.slice(0, half), U.slice(half), L.slice(0, half), L.slice(half)]
+    const leftW = u1.map((u, i) => Math.max(crownW(u), crownW(l1[i])))
+    const rightW = u2.map((u, i) => Math.max(crownW(u), crownW(l2[i])))
+    const midCol = half + 1
+    const grid = div('arch-grid')
+    grid.style.gridTemplateColumns = [...leftW.map((w) => `${w}px`), '18px', ...rightW.map((w) => `${w}px`)].join(' ')
+    const mid = div('mid')
+    mid.style.gridColumn = String(midCol)
+    mid.style.gridRow = withSides ? '2 / -1' : '1 / -1'
+    grid.appendChild(mid)
+    let row0 = 0
+    if (withSides) {
+      const leftLabel = div('side-label', 'Kanan pasien')
+      const rightLabel = div('side-label', 'Kiri pasien')
+      leftLabel.style.gridColumn = `1 / ${midCol}`
+      rightLabel.style.gridColumn = `${midCol + 1} / -1`
+      leftLabel.style.gridRow = rightLabel.style.gridRow = '1'
+      leftLabel.style.justifySelf = 'start'
+      rightLabel.style.justifySelf = 'end'
+      grid.append(leftLabel, rightLabel)
+      row0 = 1
+    }
+    // rows after optional labels: upper buccal, upper occlusal, upper nums, lower nums, lower occlusal, lower buccal
+    u1.forEach((t, i) => {
+      const col = i + 1
+      place(grid, cell(t, 'buccal'), col, row0 + 1, 'end')
+      place(grid, cell(t, 'occlusal'), col, row0 + 2, 'end')
+      place(grid, num(t), col, row0 + 3, 'center')
+    })
+    l1.forEach((t, i) => {
+      const col = i + 1
+      place(grid, num(t), col, row0 + 4, 'center')
+      place(grid, cell(t, 'occlusal'), col, row0 + 5, 'start')
+      place(grid, cell(t, 'buccal'), col, row0 + 6, 'start')
+    })
+    u2.forEach((t, i) => {
+      const col = midCol + 1 + i
+      place(grid, cell(t, 'buccal'), col, row0 + 1, 'end')
+      place(grid, cell(t, 'occlusal'), col, row0 + 2, 'end')
+      place(grid, num(t), col, row0 + 3, 'center')
+    })
+    l2.forEach((t, i) => {
+      const col = midCol + 1 + i
+      place(grid, num(t), col, row0 + 4, 'center')
+      place(grid, cell(t, 'occlusal'), col, row0 + 5, 'start')
+      place(grid, cell(t, 'buccal'), col, row0 + 6, 'start')
+    })
     const b = div('jaw-block')
-    b.append(div('dentlabel', title), row(u1, u2, 'buccal', 'upper'), row(u1, u2, 'occlusal', 'upper'), nums(u1, u2),
-      nums(l1, l2), row(l1, l2, 'occlusal', 'lower'), row(l1, l2, 'buccal', 'lower'))
+    b.append(div('dentlabel', title), grid)
     return b
   }
   const chart = div('chart')
-  const sides = div('sides')
-  sides.append(div('', 'Kanan pasien'), div('', 'Kiri pasien'))
-  chart.appendChild(sides)
-  if (dent !== 'sulung') chart.appendChild(block('Gigi tetap', UPPER, LOWER))
-  if (dent !== 'tetap') chart.appendChild(block('Gigi sulung', UPPER_PRIMARY, LOWER_PRIMARY))
+  if (dent !== 'sulung') chart.appendChild(block('Gigi tetap', UPPER, LOWER, true))
+  if (dent !== 'tetap') chart.appendChild(block('Gigi sulung', UPPER_PRIMARY, LOWER_PRIMARY, dent === 'sulung'))
   return chart
 }

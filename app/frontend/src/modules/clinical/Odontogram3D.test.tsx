@@ -14,7 +14,7 @@ afterAll(() => { vi.unstubAllGlobals(); delete window.Tooth3D })
 
 const mk = (condition: string, status?: string): Mark => ({ condition, state: 'draft', source: 'manual', status })
 const teethShown = (c: HTMLElement) => [...new Set([...c.querySelectorAll<HTMLElement>('.t3')].map((e) => Number(e.dataset.tooth)))]
-const nums = (c: HTMLElement) => [...c.querySelectorAll('.nums span')].map((s) => s.textContent)
+const nums = (c: HTMLElement) => [...c.querySelectorAll('.num')].map((s) => s.textContent)
 
 test('recordsFromMarks: karies on t16-O and mahkota on t16 become overlay layers with legend status keys', () => {
   const r = recordsFromMarks({ 't16-O': mk('karies', 'kondisi_pantau'), t16: mk('mahkota', 'ada_di_klinik_ini'), 't11-I': mk('tambalan', 'direncanakan') })
@@ -42,6 +42,23 @@ test.each([
   expect(nums(container).every((s) => Number(s) >= 11)).toBe(true) // FDI, never Universal 1–32
   expect(screen.getByText('Kanan pasien')).toBeInTheDocument()
   expect(screen.getByText('Kiri pasien')).toBeInTheDocument()
+})
+
+test('FDI numbers share a column grid with the tooth renders; no gum band', async () => {
+  const { container } = render(<Odontogram3D marks={{}} dentition="tetap" />)
+  await waitFor(() => expect(container.querySelector('.arch-grid .t3')).not.toBeNull())
+  expect(container.querySelector('.gum')).toBeNull()
+  const col = (sel: string) => (container.querySelector<HTMLElement>(sel)!.style.gridColumn)
+  expect(col('.t3[data-tooth="18"][data-view="buccal"]')).toBe(col('.num[data-tooth="18"]'))
+  expect(col('.t3[data-tooth="48"][data-view="occlusal"]')).toBe(col('.num[data-tooth="48"]'))
+  expect(col('.num[data-tooth="18"]')).toBe(col('.num[data-tooth="48"]'))
+  expect(col('.num[data-tooth="11"]')).toBe(col('.num[data-tooth="41"]'))
+  expect(col('.num[data-tooth="21"]')).toBe(col('.num[data-tooth="31"]'))
+  expect(col('.t3[data-tooth="11"][data-view="occlusal"]')).toBe(col('.t3[data-tooth="41"][data-view="buccal"]'))
+  // Midline sits between 11 (left block) and 21 (right block).
+  const mid = Number(container.querySelector<HTMLElement>('.arch-grid .mid')!.style.gridColumn)
+  expect(Number(col('.num[data-tooth="11"]'))).toBeLessThan(mid)
+  expect(Number(col('.num[data-tooth="21"]'))).toBeGreaterThan(mid)
 })
 
 test('dentitionFromDob: date-only, frozen clock', () => {
