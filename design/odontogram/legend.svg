@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 470" width="980" height="470" role="img" aria-labelledby="title" class="tooth-svg" color="#1F2937" >
+  <title id="title">Legenda internal odontogram Bitto</title>
+  <style>
+/* Bitto odontogram — classes the React build should toggle */
+.tooth-svg { color: #1F2937; font-family: Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif; }
+.tooth-surface {
+  fill: #FFFFFF;
+  stroke: none;
+  pointer-events: auto;
+  cursor: pointer;
+}
+.tooth-outline, .tooth-divisions {
+  fill: none;
+  stroke: currentColor;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+.tooth-outline { stroke-width: 1.75; }
+.tooth-divisions { stroke-width: 1.15; }
+.tooth-number {
+  fill: #1F2937;
+  font-family: Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-anchor: middle;
+  pointer-events: none;
+}
+.tooth[data-state="draft"] .tooth-outline {
+  stroke: #6D28D9;
+  stroke-width: 2.1;
+  stroke-dasharray: 3.5 2.5;
+}
+.tooth[data-state="draft"] .tooth-divisions { stroke: #6D28D9; }
+.tooth[data-state="draft"] .tooth-wash { fill: #F3EEFF; }
+.tooth[data-state="signed"] .tooth-outline {
+  stroke: #111827;
+  stroke-width: 2;
+  stroke-dasharray: none;
+}
+.tooth-lock { fill: #111827; stroke: none; }
+.tooth-draft-mark { fill: #A15C00; stroke: none; }
+
+.tooth-surface[data-condition="sehat"] { fill: #E8F6EE; }
+.tooth-surface[data-condition="karies"] { fill: #BE123C; }
+.tooth-surface[data-condition="tambalan"] { fill: #1E40AF; }
+
+.surface-dots { fill: #FFFFFF; pointer-events: none; }
+.overlay { pointer-events: none; }
+.overlay-mahkota {
+  fill: none;
+  stroke: #6D28D9;
+  stroke-width: 3;
+}
+.overlay-hilang {
+  fill: none;
+  stroke: #3F3F46;
+  stroke-width: 3.2;
+  stroke-linecap: square;
+}
+.overlay-sisa-akar {
+  fill: none;
+  stroke: #9A3412;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.overlay-perlu-dicabut {
+  fill: none;
+  stroke: #A15C00;
+  stroke-width: 3.2;
+  stroke-linecap: square;
+}
+.overlay-implan {
+  fill: none;
+  stroke: #0F5F63;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Procedure status — independent of condition colour+shape.
+   Kemungkinan MVP, menunggu persetujuan Jerome. */
+.tooth-surface[data-status] { fill-opacity: 1; }
+.tooth-surface[data-status="sudah_ada_lain"] { fill-opacity: 0.7; }
+.tooth-surface[data-status="direncanakan"] { fill-opacity: 0.5; }
+.tooth-surface[data-status="dirujuk"] { fill-opacity: 0.8; }
+.tooth[data-status="direncanakan"] .tooth-outline {
+  stroke-dasharray: 4 2.5;
+}
+.tooth[data-status="dirujuk"] .tooth-outline {
+  stroke-dasharray: 1.5 2;
+}
+.tooth[data-baseline="missing"] { opacity: 0.45; }
+.tooth[data-baseline="missing"] .tooth-surface { fill: #E5E7EB; }
+.status-mark { pointer-events: none; }
+
+/* Soft 3D graphical chart */
+.tooth-3d { cursor: pointer; }
+.tooth-3d .tooth-hit { fill: transparent; stroke: none; pointer-events: all; }
+.tooth-3d .anatomy, .tooth-3d .cond-mark { pointer-events: none; }
+.tooth-3d[data-state="draft"] .tooth-3d-frame {
+  fill: none;
+  stroke: #6D28D9;
+  stroke-width: 2.2;
+  stroke-dasharray: 4 3;
+}
+.tooth-3d[data-state="signed"] .tooth-3d-frame {
+  fill: none;
+  stroke: #111827;
+  stroke-width: 1.8;
+}
+.tooth-3d[data-baseline="missing"] { opacity: 0.4; }
+  .lg-title { font-weight: 700; font-size: 22px; fill: #111827; }
+  .lg-badge { font-weight: 650; font-size: 11px; fill: #6D28D9; }
+  .lg-disc { font-size: 12px; fill: #4B5563; }
+  .lg-name { font-weight: 650; font-size: 13px; fill: #111827; }
+  .lg-meta { font-size: 10.5px; fill: #6B7280; }
+  .lg-swatch { stroke: #E5E7EB; stroke-width: 1; }
+  </style>
+  <rect width="980" height="470" fill="#FFFFFF"/>
+  <text class="lg-title" x="32" y="36" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Legenda internal</text>
+  <rect x="214" y="20" width="228" height="20" rx="4" fill="#F3EEFF"/>
+  <text class="lg-badge" x="224" y="34" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">BUKAN standar resmi Kemenkes/PDGI</text>
+  <text class="lg-disc" x="32" y="58" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Warna + bentuk (bukan warna saja). Komponen ini bisa diganti saat formulir resmi tersedia. Kontras non-teks ≥ 3:1 terhadap putih (WCAG 2.2).</text>
+  <g id="legend-item-sehat" transform="translate(32 78)">
+    <rect x="0" y="0" width="216" height="152" rx="10" fill="#F8FAFC" stroke="#D1D5DB"/>
+    <g transform="translate(8 12)"><g transform="translate(4 4) scale(0.6)"><path d="M15,8 L85,8 Q92,8 92,15 L92,85 Q92,92 85,92 L15,92 Q8,92 8,85 L8,15 Q8,8 15,8 Z" fill="#FFFFFF" stroke="#1F2937" stroke-width="1.8"/><path d="M32,32 L68,32 L68,68 L32,68 Z M32,32 L8,8 M68,32 L92,8 M68,68 L92,92 M32,68 L8,92" fill="none" stroke="#1F2937" stroke-width="1.15"/><path d="M32,32 L68,32 L68,68 L32,68 Z" fill="#E8F6EE" stroke="none"/><path d="M40 52 L47 60 L62 42" fill="none" stroke="#0B7A45" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></g></g>
+    <rect class="lg-swatch" x="88" y="18" width="14" height="14" rx="3" fill="#0B7A45"/>
+    <text class="lg-name" x="84" y="50" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Sehat</text>
+    <text class="lg-meta" x="84" y="70" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">permukaan · check</text>
+    <text class="lg-meta" x="84" y="86" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">#0B7A45 · 5.41:1</text>
+  </g>
+  <g id="legend-item-karies" transform="translate(264 78)">
+    <rect x="0" y="0" width="216" height="152" rx="10" fill="#F8FAFC" stroke="#D1D5DB"/>
+    <g transform="translate(8 12)"><g transform="translate(4 4) scale(0.6)"><path d="M15,8 L85,8 Q92,8 92,15 L92,85 Q92,92 85,92 L15,92 Q8,92 8,85 L8,15 Q8,8 15,8 Z" fill="#FFFFFF" stroke="#1F2937" stroke-width="1.8"/><path d="M32,32 L68,32 L68,68 L32,68 Z M32,32 L8,8 M68,32 L92,8 M68,68 L92,92 M32,68 L8,92" fill="none" stroke="#1F2937" stroke-width="1.15"/><path d="M32,32 L68,32 L68,68 L32,68 Z" fill="#BE123C" stroke="none"/><circle class="surface-dots" cx="45" cy="46" r="2.1" fill="#FFFFFF"/><circle class="surface-dots" cx="55" cy="46" r="2.1" fill="#FFFFFF"/><circle class="surface-dots" cx="50" cy="52" r="2.1" fill="#FFFFFF"/><circle class="surface-dots" cx="46" cy="55" r="2.1" fill="#FFFFFF"/><circle class="surface-dots" cx="54" cy="55" r="2.1" fill="#FFFFFF"/></g></g>
+    <rect class="lg-swatch" x="88" y="18" width="14" height="14" rx="3" fill="#BE123C"/>
+    <text class="lg-name" x="84" y="50" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Karies</text>
+    <text class="lg-meta" x="84" y="70" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">permukaan · dots</text>
+    <text class="lg-meta" x="84" y="86" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">#BE123C · 6.29:1</text>
+  </g>
+  <g id="legend-item-tambalan" transform="translate(496 78)">
+    <rect x="0" y="0" width="216" height="152" rx="10" fill="#F8FAFC" stroke="#D1D5DB"/>
+    <g transform="translate(8 12)"><g transform="translate(4 4) scale(0.6)"><path d="M15,8 L85,8 Q92,8 92,15 L92,85 Q92,92 85,92 L15,92 Q8,92 8,85 L8,15 Q8,8 15,8 Z" fill="#FFFFFF" stroke="#1F2937" stroke-width="1.8"/><path d="M32,32 L68,32 L68,68 L32,68 Z M32,32 L8,8 M68,32 L92,8 M68,68 L92,92 M32,68 L8,92" fill="none" stroke="#1F2937" stroke-width="1.15"/><path d="M32,32 L68,32 L68,68 L32,68 Z" fill="#1E40AF" stroke="none"/></g></g>
+    <rect class="lg-swatch" x="88" y="18" width="14" height="14" rx="3" fill="#1E40AF"/>
+    <text class="lg-name" x="84" y="50" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Tambalan</text>
+    <text class="lg-meta" x="84" y="70" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">permukaan · solid</text>
+    <text class="lg-meta" x="84" y="86" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">#1E40AF · 8.72:1</text>
+  </g>
+  <g id="legend-item-mahkota" transform="translate(728 78)">
+    <rect x="0" y="0" width="216" height="152" rx="10" fill="#F8FAFC" stroke="#D1D5DB"/>
+    <g transform="translate(8 12)"><g transform="translate(4 4) scale(0.6)"><path d="M15,8 L85,8 Q92,8 92,15 L92,85 Q92,92 85,92 L15,92 Q8,92 8,85 L8,15 Q8,8 15,8 Z" fill="#FFFFFF" stroke="#1F2937" stroke-width="1.8"/><path d="M32,32 L68,32 L68,68 L32,68 Z M32,32 L8,8 M68,32 L92,8 M68,68 L92,92 M32,68 L8,92" fill="none" stroke="#1F2937" stroke-width="1.15"/><rect class="overlay overlay-mahkota" x="4" y="4" width="92" height="92" rx="10" ry="10" stroke="#6D28D9"/></g></g>
+    <rect class="lg-swatch" x="88" y="18" width="14" height="14" rx="3" fill="#6D28D9"/>
+    <text class="lg-name" x="84" y="50" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Mahkota</text>
+    <text class="lg-meta" x="84" y="70" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">seluruh gigi · ring</text>
+    <text class="lg-meta" x="84" y="86" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">#6D28D9 · 7.1:1</text>
+  </g>
+  <g id="legend-item-hilang" transform="translate(32 246)">
+    <rect x="0" y="0" width="216" height="152" rx="10" fill="#F8FAFC" stroke="#D1D5DB"/>
+    <g transform="translate(8 12)"><g transform="translate(4 4) scale(0.6)"><path d="M15,8 L85,8 Q92,8 92,15 L92,85 Q92,92 85,92 L15,92 Q8,92 8,85 L8,15 Q8,8 15,8 Z" fill="#FFFFFF" stroke="#1F2937" stroke-width="1.8"/><path d="M32,32 L68,32 L68,68 L32,68 Z M32,32 L8,8 M68,32 L92,8 M68,68 L92,92 M32,68 L8,92" fill="none" stroke="#1F2937" stroke-width="1.15"/><path class="overlay overlay-hilang" stroke="#3F3F46" d="M14,14 L86,86 M86,14 L14,86"/></g></g>
+    <rect class="lg-swatch" x="88" y="18" width="14" height="14" rx="3" fill="#3F3F46"/>
+    <text class="lg-name" x="84" y="50" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Hilang</text>
+    <text class="lg-meta" x="84" y="70" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">seluruh gigi · x</text>
+    <text class="lg-meta" x="84" y="86" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">#3F3F46 · 10.44:1</text>
+  </g>
+  <g id="legend-item-sisa_akar" transform="translate(264 246)">
+    <rect x="0" y="0" width="216" height="152" rx="10" fill="#F8FAFC" stroke="#D1D5DB"/>
+    <g transform="translate(8 12)"><g transform="translate(4 4) scale(0.6)"><path d="M15,8 L85,8 Q92,8 92,15 L92,85 Q92,92 85,92 L15,92 Q8,92 8,85 L8,15 Q8,8 15,8 Z" fill="#FFFFFF" stroke="#1F2937" stroke-width="1.8"/><path d="M32,32 L68,32 L68,68 L32,68 Z M32,32 L8,8 M68,32 L92,8 M68,68 L92,92 M32,68 L8,92" fill="none" stroke="#1F2937" stroke-width="1.15"/><path class="overlay overlay-sisa-akar" stroke="#9A3412" d="M24,38.2 L76,38.2 M45,38.2 L30,84 M55,38.2 L70,84 M50,38.2 L50,46.2"/></g></g>
+    <rect class="lg-swatch" x="88" y="18" width="14" height="14" rx="3" fill="#9A3412"/>
+    <text class="lg-name" x="84" y="48" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Sisa akar</text>
+    <text class="lg-name" x="84" y="64" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">/ akar tertinggal</text>
+    <text class="lg-meta" x="84" y="84" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">seluruh gigi · root-v</text>
+    <text class="lg-meta" x="84" y="100" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">#9A3412 · 7.31:1</text>
+  </g>
+  <g id="legend-item-perlu_dicabut" transform="translate(496 246)">
+    <rect x="0" y="0" width="216" height="152" rx="10" fill="#F8FAFC" stroke="#D1D5DB"/>
+    <g transform="translate(8 12)"><g transform="translate(4 4) scale(0.6)"><path d="M15,8 L85,8 Q92,8 92,15 L92,85 Q92,92 85,92 L15,92 Q8,92 8,85 L8,15 Q8,8 15,8 Z" fill="#FFFFFF" stroke="#1F2937" stroke-width="1.8"/><path d="M32,32 L68,32 L68,68 L32,68 Z M32,32 L8,8 M68,32 L92,8 M68,68 L92,92 M32,68 L8,92" fill="none" stroke="#1F2937" stroke-width="1.15"/><path class="overlay overlay-perlu-dicabut" stroke="#A15C00" d="M24,76 L76,24 M68.3,26.3 L76,24 L73.7,31.7"/></g></g>
+    <rect class="lg-swatch" x="88" y="18" width="14" height="14" rx="3" fill="#A15C00"/>
+    <text class="lg-name" x="84" y="50" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Perlu dicabut</text>
+    <text class="lg-meta" x="84" y="70" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">seluruh gigi · slash</text>
+    <text class="lg-meta" x="84" y="86" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">#A15C00 · 5.19:1</text>
+  </g>
+  <g id="legend-item-implan" transform="translate(728 246)">
+    <rect x="0" y="0" width="216" height="152" rx="10" fill="#F8FAFC" stroke="#D1D5DB"/>
+    <g transform="translate(8 12)"><g transform="translate(4 4) scale(0.6)"><path d="M15,8 L85,8 Q92,8 92,15 L92,85 Q92,92 85,92 L15,92 Q8,92 8,85 L8,15 Q8,8 15,8 Z" fill="#FFFFFF" stroke="#1F2937" stroke-width="1.8"/><path d="M32,32 L68,32 L68,68 L32,68 Z M32,32 L8,8 M68,32 L92,8 M68,68 L92,92 M32,68 L8,92" fill="none" stroke="#1F2937" stroke-width="1.15"/><path class="overlay overlay-implan" stroke="#0F5F63" d="M38,24 L62,24 M42,24 L42,30 L58,30 L58,24 M50,30 L50,74 L46,80 M50,74 L54,80 M41,40 L59,40 M41,50 L59,50 M41,60 L59,60"/></g></g>
+    <rect class="lg-swatch" x="88" y="18" width="14" height="14" rx="3" fill="#0F5F63"/>
+    <text class="lg-name" x="84" y="50" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Implan</text>
+    <text class="lg-meta" x="84" y="70" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">seluruh gigi · screw</text>
+    <text class="lg-meta" x="84" y="86" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">#0F5F63 · 7.4:1</text>
+  </g>
+  <text class="lg-disc" x="32" y="428" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Berlaku per permukaan: sehat, karies, tambalan. Berlaku pada seluruh gigi: mahkota, hilang, sisa akar, perlu dicabut, implan.</text>
+  <text class="lg-disc" x="32" y="446" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">React: data-condition pada .tooth-surface (sehat, karies, tambalan) atau pada grup .tooth (mahkota, hilang, sisa akar, perlu dicabut, implan).</text>
+</svg>

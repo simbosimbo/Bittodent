@@ -1,0 +1,462 @@
+/* Cangkang varian hanya untuk #/jadwal?shell=a|b|c. Tidak mengubah layar lain. */
+.app-shell[data-shell] {
+  --sh-bg: var(--shells-a-color-bg);
+  --sh-surface: var(--shells-a-color-surface);
+  --sh-sidebar: var(--shells-a-color-sidebar);
+  --sh-sidebar-text: var(--shells-a-color-sidebar-text);
+  --sh-sidebar-active-bg: var(--shells-a-color-sidebar-active-bg);
+  --sh-sidebar-active-text: var(--shells-a-color-sidebar-active-text);
+  --sh-border: var(--shells-a-color-border);
+  --sh-accent: var(--shells-a-color-accent);
+  --sh-text: var(--shells-a-color-text);
+  --sh-muted: var(--shells-a-color-muted);
+  --sh-font-size: var(--shells-a-font-size);
+  --sh-title: var(--shells-a-font-title);
+  --sh-page: var(--shells-a-space-page);
+  --sh-card: var(--shells-a-space-card);
+  --sh-gap: var(--shells-a-space-gap);
+  --sh-radius-card: var(--shells-a-radius-card);
+  --sh-radius-item: var(--shells-a-radius-item);
+  --sh-shadow: var(--shells-a-shadow-card);
+  --sh-sidebar-w: var(--shells-a-size-sidebar);
+  --sh-sidebar-compact: var(--shells-a-size-sidebar-compact);
+  --sh-topbar-h: var(--shells-a-size-topbar);
+  --sh-touch: var(--shells-a-size-touch);
+  --sh-panel-w: 360px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: row;
+  background: var(--sh-bg);
+  color: var(--sh-text);
+  font-size: var(--sh-font-size);
+}
+.app-shell[data-shell="b"] {
+  --sh-bg: var(--shells-b-color-bg);
+  --sh-surface: var(--shells-b-color-surface);
+  --sh-sidebar: var(--shells-b-color-sidebar);
+  --sh-sidebar-text: var(--shells-b-color-sidebar-text);
+  --sh-sidebar-active-bg: var(--shells-b-color-sidebar-active-bg);
+  --sh-sidebar-active-text: var(--shells-b-color-sidebar-active-text);
+  --sh-border: var(--shells-b-color-border);
+  --sh-accent: var(--shells-b-color-accent);
+  --sh-text: var(--shells-b-color-text);
+  --sh-muted: var(--shells-b-color-muted);
+  --sh-font-size: var(--shells-b-font-size);
+  --sh-title: var(--shells-b-font-title);
+  --sh-page: var(--shells-b-space-page);
+  --sh-card: var(--shells-b-space-card);
+  --sh-gap: var(--shells-b-space-gap);
+  --sh-radius-card: var(--shells-b-radius-card);
+  --sh-radius-item: var(--shells-b-radius-item);
+  --sh-shadow: var(--shells-b-shadow-card);
+  --sh-sidebar-w: var(--shells-b-size-sidebar);
+  --sh-sidebar-compact: var(--shells-b-size-sidebar-compact);
+  --sh-topbar-h: var(--shells-b-size-topbar);
+  --sh-touch: var(--shells-b-size-touch);
+}
+.app-shell[data-shell="c"] {
+  --sh-bg: var(--shells-c-color-bg);
+  --sh-surface: var(--shells-c-color-surface);
+  --sh-sidebar: var(--shells-c-color-sidebar);
+  --sh-sidebar-text: var(--shells-c-color-sidebar-text);
+  --sh-sidebar-active-bg: var(--shells-c-color-sidebar-active-bg);
+  --sh-sidebar-active-text: var(--shells-c-color-sidebar-active-text);
+  --sh-border: var(--shells-c-color-border);
+  --sh-accent: var(--shells-c-color-accent);
+  --sh-text: var(--shells-c-color-text);
+  --sh-muted: var(--shells-c-color-muted);
+  --sh-font-size: var(--shells-c-font-size);
+  --sh-title: var(--shells-c-font-title);
+  --sh-page: var(--shells-c-space-page);
+  --sh-card: var(--shells-c-space-card);
+  --sh-gap: var(--shells-c-space-gap);
+  --sh-radius-card: var(--shells-c-radius-card);
+  --sh-radius-item: var(--shells-c-radius-item);
+  --sh-shadow: var(--shells-c-shadow-card);
+  --sh-sidebar-w: var(--shells-c-size-sidebar);
+  --sh-sidebar-compact: var(--shells-c-size-sidebar-compact);
+  --sh-topbar-h: var(--shells-c-size-topbar);
+  --sh-touch: var(--shells-c-size-touch);
+  --sh-panel-w: var(--shells-c-size-panel);
+}
+
+.app-shell[data-shell] .shell-side {
+  width: var(--sh-sidebar-w);
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  background: var(--sh-sidebar);
+  color: var(--sh-sidebar-text);
+  border-right: 1px solid var(--sh-border);
+  min-height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+  padding: 16px 12px 12px;
+}
+.app-shell[data-shell] .shell-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--sh-bg);
+}
+.app-shell[data-shell] .shell-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--sh-text);
+  text-decoration: none;
+  min-height: var(--sh-touch);
+  padding: 4px 6px;
+  margin-bottom: 8px;
+}
+.app-shell[data-shell] .shell-branch {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 4px 16px;
+}
+.app-shell[data-shell] .shell-branch .input {
+  min-height: var(--sh-touch);
+  width: 100%;
+}
+.app-shell[data-shell] .shell-branch small {
+  color: var(--sh-muted);
+  font-size: 11px;
+  line-height: 1.35;
+  padding: 0 4px;
+}
+.app-shell[data-shell] .shell-nav-caption {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sh-muted);
+  padding: 12px 10px 4px;
+  font-weight: 600;
+}
+.app-shell[data-shell] .shell-nav { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; }
+.app-shell[data-shell] .shell-nav ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.app-shell[data-shell] .shell-nav a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--sh-touch);
+  padding: 0 10px;
+  border-radius: var(--sh-radius-item);
+  color: var(--sh-sidebar-text);
+  text-decoration: none;
+  font-weight: 500;
+}
+.app-shell[data-shell] .shell-nav a:hover { background: color-mix(in srgb, var(--sh-sidebar-active-bg) 55%, transparent); }
+.app-shell[data-shell] .shell-nav a.on {
+  background: var(--sh-sidebar-active-bg);
+  color: var(--sh-sidebar-active-text);
+  font-weight: 600;
+}
+.app-shell[data-shell] .shell-nav-foot { margin-top: auto; }
+.app-shell[data-shell] .shell-side-foot {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 16px;
+}
+.app-shell[data-shell] .shell-help {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--sh-touch);
+  padding: 0 10px;
+  color: var(--sh-sidebar-text);
+  text-decoration: none;
+  border-radius: var(--sh-radius-item);
+}
+.app-shell[data-shell] .shell-dirs {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--sh-muted);
+  padding: 4px 4px 0;
+}
+.app-shell[data-shell] .shell-dirs a {
+  min-width: 28px;
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--sh-border);
+  border-radius: 6px;
+  color: var(--sh-text);
+  text-decoration: none;
+  font-weight: 600;
+}
+.app-shell[data-shell] .shell-dirs a.on {
+  background: var(--sh-accent);
+  color: #fff;
+  border-color: var(--sh-accent);
+}
+
+.app-shell[data-shell] .shell-top {
+  display: flex;
+  align-items: center;
+  gap: var(--sh-gap);
+  min-height: var(--sh-topbar-h);
+  padding: 8px var(--sh-page);
+  background: var(--sh-surface);
+  border-bottom: 1px solid var(--sh-border);
+  flex-wrap: wrap;
+}
+.app-shell[data-shell] .shell-title { flex: 1; min-width: 160px; }
+.app-shell[data-shell] .shell-title h1 {
+  margin: 0;
+  font-size: var(--sh-title);
+  line-height: 1.2;
+  font-weight: 650;
+}
+.app-shell[data-shell] .shell-title p { margin: 2px 0 0; }
+.app-shell[data-shell] .shell-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--sh-touch);
+  min-width: 240px;
+  padding: 0 14px;
+  border: 1px solid var(--sh-border);
+  border-radius: var(--sh-radius-item);
+  background: var(--sh-bg);
+  color: var(--sh-muted);
+  cursor: pointer;
+  text-align: left;
+}
+.app-shell[data-shell] .shell-search.is-cmd { flex: 1; max-width: 560px; }
+.app-shell[data-shell] .shell-search kbd,
+.app-shell[data-shell] .shell-cmd kbd {
+  font: 11px var(--font-family-mono, ui-monospace, monospace);
+  border: 1px solid var(--sh-border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  margin-left: auto;
+  color: var(--sh-muted);
+}
+.app-shell[data-shell] .shell-bell { position: relative; }
+.app-shell[data-shell] .shell-bell-dot {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 99px;
+  background: var(--color-danger-fg);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.app-shell[data-shell] .shell-user { display: flex; align-items: center; gap: 8px; }
+.app-shell[data-shell] .shell-user-text { display: flex; flex-direction: column; line-height: 1.2; }
+.app-shell[data-shell] .shell-user-text small { color: var(--sh-muted); }
+.app-shell[data-shell] .shell-toggles { display: flex; gap: 12px; align-items: center; }
+
+.app-shell[data-shell] .shell-safety {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 10px var(--sh-page);
+  background: var(--sh-surface);
+  border-bottom: 1px solid var(--sh-border);
+}
+.app-shell[data-shell] .shell-safety.is-dense { padding: 6px var(--sh-page); gap: 10px; }
+.app-shell[data-shell] .shell-safety-id { display: flex; align-items: center; gap: 10px; }
+.app-shell[data-shell] .shell-safety-chips { display: flex; flex-wrap: wrap; gap: 8px; flex: 1; }
+.app-shell[data-shell] .shell-safety-sens { display: flex; align-items: center; gap: 12px; margin: 0; }
+.app-shell[data-shell] .shell-safety-sens dt { font-size: 11px; color: var(--sh-muted); }
+.app-shell[data-shell] .shell-safety-sens dd { margin: 0; font-variant-numeric: tabular-nums; }
+
+.app-shell[data-shell] .shell-main {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--sh-page);
+}
+.app-shell[data-shell="a"] .shell-card {
+  background: var(--sh-surface);
+  border-radius: var(--sh-radius-card);
+  box-shadow: var(--sh-shadow);
+  border: 1px solid var(--sh-border);
+  padding: var(--sh-card);
+}
+.app-shell[data-shell="b"] .shell-main { padding: 12px 16px 16px; }
+.app-shell[data-shell="b"] .jadwal-screen {
+  background: var(--sh-surface);
+  border: 1px solid var(--sh-border);
+  border-radius: var(--sh-radius-card);
+  box-shadow: none;
+  padding: 12px;
+}
+.app-shell[data-shell="b"] .jadwal-toolbar { gap: 6px; }
+.app-shell[data-shell="b"] .hint-line { margin: 6px 0; }
+
+.app-shell[data-shell] .shell-main.is-split {
+  display: grid;
+  grid-template-columns: 1fr var(--sh-panel-w);
+  gap: var(--sh-gap);
+  align-items: stretch;
+}
+.app-shell[data-shell] .shell-split-board,
+.app-shell[data-shell] .shell-panel {
+  background: var(--sh-surface);
+  border: 1px solid var(--sh-border);
+  border-radius: var(--sh-radius-card);
+  box-shadow: var(--sh-shadow);
+  min-height: 0;
+  overflow: auto;
+}
+.app-shell[data-shell="c"] .shell-safety {
+  border-left: 4px solid var(--shells-c-color-strip-edge, var(--sh-accent));
+}
+.app-shell[data-shell="c"] .shell-side {
+  background: var(--shells-c-color-sidebar);
+  color: var(--shells-c-color-sidebar-text);
+  border-right: 0;
+  padding: 12px 8px;
+  align-items: center;
+}
+.app-shell[data-shell="c"] .shell-brand { justify-content: center; color: #fff; margin: 0 0 8px; padding: 0; }
+.app-shell[data-shell="c"] .shell-nav-caption { display: none; }
+.app-shell[data-shell="c"] .shell-nav a {
+  justify-content: center;
+  color: var(--shells-c-color-sidebar-text);
+  padding: 0;
+  width: 48px;
+  min-height: 48px;
+  margin: 0 auto;
+}
+.app-shell[data-shell="c"] .shell-nav a.on {
+  background: var(--shells-c-color-sidebar-active-bg);
+  color: var(--shells-c-color-sidebar-active-text);
+}
+.app-shell[data-shell="c"] .shell-nav-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.app-shell[data-shell="c"] .shell-dirs { color: #D3F0EC; }
+.app-shell[data-shell="c"] .shell-dirs a { color: #fff; border-color: rgba(255,255,255,0.25); }
+.app-shell[data-shell="c"] .shell-panel-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.app-shell[data-shell="c"] .shell-panel-head { display: flex; justify-content: space-between; gap: 8px; }
+.app-shell[data-shell="c"] .shell-panel-head h2 { margin: 0; font-size: 18px; }
+.app-shell[data-shell="c"] .shell-panel-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.app-shell[data-shell="c"] .shell-panel-actions .btn { min-height: var(--sh-touch); }
+.app-shell[data-shell="c"] .shell-panel-empty {
+  padding: 32px 20px;
+  text-align: center;
+  color: var(--sh-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.app-shell[data-shell="c"] .status-btn { min-height: var(--sh-touch); }
+
+.app-shell[data-shell] .shell-cmd {
+  position: fixed;
+  inset: 0;
+  background: rgba(22, 33, 43, 0.35);
+  z-index: 80;
+  display: flex;
+  justify-content: center;
+  padding-top: 12vh;
+}
+.app-shell[data-shell] .shell-cmd-box {
+  width: min(560px, calc(100% - 32px));
+  max-height: 70vh;
+  background: var(--sh-surface);
+  border: 1px solid var(--sh-border);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.app-shell[data-shell] .shell-cmd-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--sh-border);
+}
+.app-shell[data-shell] .shell-cmd-search input {
+  flex: 1;
+  border: 0;
+  outline: none;
+  font: inherit;
+  background: transparent;
+  min-height: 36px;
+}
+.app-shell[data-shell] .shell-cmd-body { overflow: auto; padding: 8px 0 12px; }
+.app-shell[data-shell] .shell-cmd-caption {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sh-muted);
+  padding: 8px 16px 4px;
+}
+.app-shell[data-shell] .shell-cmd-body ul { list-style: none; margin: 0; padding: 0; }
+.app-shell[data-shell] .shell-cmd-body button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0 16px;
+  background: none;
+  border: 0;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.app-shell[data-shell] .shell-cmd-body button:hover,
+.app-shell[data-shell] .shell-cmd-body button:focus { background: var(--sh-sidebar-active-bg); outline: none; }
+
+.app-shell[data-shell] .offline-banner { position: static; }
+.app-shell[data-shell] .icon-btn,
+.app-shell[data-shell] .btn { min-height: var(--sh-touch); }
+
+@media (max-width: 1100px) {
+  .app-shell[data-shell="a"],
+  .app-shell[data-shell="b"] { --sh-sidebar-w: var(--sh-sidebar-compact); }
+  .app-shell[data-shell="b"] { --sh-touch: var(--shells-b-size-touch-tablet, 44px); }
+  .app-shell[data-shell="a"] .shell-brand span,
+  .app-shell[data-shell="b"] .shell-brand span,
+  .app-shell[data-shell="a"] .shell-nav-label,
+  .app-shell[data-shell="b"] .shell-nav-label,
+  .app-shell[data-shell="a"] .shell-nav-caption,
+  .app-shell[data-shell="b"] .shell-nav-caption,
+  .app-shell[data-shell="a"] .shell-branch small,
+  .app-shell[data-shell="a"] .shell-help,
+  .app-shell[data-shell="a"] .shell-user-text,
+  .app-shell[data-shell="b"] .shell-user-text { display: none; }
+  .app-shell[data-shell="a"] .shell-nav a,
+  .app-shell[data-shell="b"] .shell-nav a { justify-content: center; padding: 0; }
+  .app-shell[data-shell="a"] .shell-branch .input { font-size: 11px; padding: 0 4px; }
+  .app-shell[data-shell="c"] { --sh-panel-w: 300px; }
+  .app-shell[data-shell="c"] .jadwal-layout { grid-template-columns: 1fr; }
+  .app-shell[data-shell] .shell-top { gap: 8px; padding: 8px 12px; }
+  .app-shell[data-shell] .shell-search { min-width: 160px; }
+  .app-shell[data-shell] .shell-main { padding: 12px; }
+  .app-shell[data-shell] .shell-toggles { flex-wrap: wrap; }
+  .app-shell[data-shell] .shell-dirs span { display: none; }
+  .app-shell[data-shell] .shell-dirs { flex-direction: column; align-items: center; gap: 4px; }
+  .app-shell[data-shell="a"] .shell-branch { display: none; }
+}
+.app-shell[data-shell="c"] .shell-dirs span { display: none; }
+.app-shell[data-shell="c"] .shell-dirs { flex-direction: column; align-items: center; gap: 4px; }
+
+
+@media (max-width: 900px) {
+  .app-shell[data-shell="c"] .shell-main.is-split { grid-template-columns: 1fr; }
+}

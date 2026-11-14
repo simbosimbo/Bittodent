@@ -1,0 +1,304 @@
+/* Cangkang A (seperti Zendenta) — cangkang default seluruh aplikasi pasca-login. */
+.app-shell {
+  --sh-bg: var(--shells-a-color-bg);
+  --sh-surface: var(--shells-a-color-surface);
+  --sh-sidebar: var(--shells-a-color-sidebar);
+  --sh-sidebar-text: var(--shells-a-color-sidebar-text);
+  --sh-sidebar-active-bg: var(--shells-a-color-sidebar-active-bg);
+  --sh-sidebar-active-text: var(--shells-a-color-sidebar-active-text);
+  --sh-border: var(--shells-a-color-border);
+  --sh-accent: var(--shells-a-color-accent);
+  --sh-text: var(--shells-a-color-text);
+  --sh-muted: var(--shells-a-color-muted);
+  --sh-font-size: var(--shells-a-font-size);
+  --sh-title: var(--shells-a-font-title);
+  --sh-page: var(--shells-a-space-page);
+  --sh-card: var(--shells-a-space-card);
+  --sh-gap: var(--shells-a-space-gap);
+  --sh-radius-card: var(--shells-a-radius-card);
+  --sh-radius-item: var(--shells-a-radius-item);
+  --sh-shadow: var(--shells-a-shadow-card);
+  --sh-sidebar-w: var(--shells-a-size-sidebar);
+  --sh-sidebar-compact: var(--shells-a-size-sidebar-compact);
+  --sh-topbar-h: var(--shells-a-size-topbar);
+  --sh-touch: var(--shells-a-size-touch);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: row;
+  background: var(--sh-bg);
+  color: var(--sh-text);
+  font-size: var(--sh-font-size);
+}
+
+.app-shell .shell-side {
+  width: var(--sh-sidebar-w);
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  background: var(--sh-sidebar);
+  color: var(--sh-sidebar-text);
+  border-right: 1px solid var(--sh-border);
+  min-height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+  padding: 16px 12px 12px;
+}
+.app-shell .shell-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--sh-bg);
+}
+.app-shell .shell-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--sh-text);
+  text-decoration: none;
+  min-height: var(--sh-touch);
+  padding: 4px 6px;
+  margin-bottom: 8px;
+}
+.app-shell .shell-branch {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 4px 16px;
+}
+.app-shell .shell-branch .input { min-height: var(--sh-touch); width: 100%; }
+.app-shell .shell-branch small {
+  color: var(--sh-muted);
+  font-size: 11px;
+  line-height: 1.35;
+  padding: 0 4px;
+}
+.app-shell .shell-nav { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; }
+.app-shell .shell-nav-caption {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sh-muted);
+  padding: 12px 10px 4px;
+  font-weight: 600;
+}
+.app-shell .shell-nav ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.app-shell .shell-nav a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--sh-touch);
+  padding: 0 10px;
+  border-radius: var(--sh-radius-item);
+  color: var(--sh-sidebar-text);
+  text-decoration: none;
+  font-weight: 500;
+}
+.app-shell .shell-nav a:hover { background: color-mix(in srgb, var(--sh-sidebar-active-bg) 55%, transparent); }
+.app-shell .shell-nav a.on {
+  background: var(--sh-sidebar-active-bg);
+  color: var(--sh-sidebar-active-text);
+  font-weight: 600;
+}
+.app-shell .shell-nav-foot { margin-top: auto; }
+.app-shell .shell-side-foot {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 16px;
+  flex: none;
+}
+.app-shell .shell-help {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--sh-touch);
+  padding: 0 10px;
+  color: var(--sh-sidebar-text);
+  text-decoration: none;
+  border-radius: var(--sh-radius-item);
+}
+
+.app-shell .shell-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--sh-topbar-h);
+  padding: 8px var(--sh-page);
+  background: var(--sh-surface);
+  border-bottom: 1px solid var(--sh-border);
+  flex-wrap: nowrap;
+}
+.app-shell .shell-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--sh-touch);
+  flex: 1 1 240px;
+  min-width: 180px;
+  white-space: nowrap;
+  padding: 0 14px;
+  border: 1px solid var(--sh-border);
+  border-radius: var(--sh-radius-item);
+  background: var(--sh-bg);
+  color: var(--sh-muted);
+  cursor: pointer;
+  text-align: left;
+}
+.app-shell .shell-search span { overflow: hidden; text-overflow: ellipsis; }
+.app-shell .shell-bell { position: relative; }
+.app-shell .shell-bell-dot {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 99px;
+  background: var(--color-danger-fg);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.app-shell .shell-user-wrap { position: relative; flex: none; }
+.app-shell .shell-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--sh-touch);
+  padding: 0 8px 0 4px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  border-radius: var(--sh-radius-item);
+}
+.app-shell .shell-user:hover, .app-shell .shell-user[aria-expanded="true"] { background: var(--sh-bg); }
+.app-shell .shell-user-text { display: flex; flex-direction: column; line-height: 1.2; text-align: left; }
+.app-shell .shell-user-text small { color: var(--sh-muted); }
+.app-shell .shell-user-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  min-width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  background: var(--sh-surface);
+  border: 1px solid var(--sh-border);
+  border-radius: var(--sh-radius-card);
+  box-shadow: var(--sh-shadow);
+  z-index: 50;
+}
+.app-shell .shell-pagehead h1 {
+  margin: 0;
+  font-size: var(--sh-title);
+  line-height: 1.2;
+  font-weight: 650;
+}
+.app-shell .shell-pagehead p { margin: 4px 0 0; }
+
+/* Pil pasien aktif di bilah atas: nama boleh elipsis, RM selalu tampak */
+.app-shell .aps { flex: 0 1 auto; min-width: 0; max-width: 420px; }
+.app-shell .aps-id {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.app-shell .aps-name { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.app-shell .aps-sep, .app-shell .aps-rm { flex: none; white-space: nowrap; }
+.app-shell .aps-trigger {
+  border-radius: var(--radius-pill);
+  min-height: var(--sh-touch);
+  background: var(--color-primary-50);
+  border: 1px solid var(--color-primary-200);
+}
+.app-shell .aps-trigger.is-empty {
+  background: var(--sh-surface);
+  border-style: dashed;
+  border-color: var(--color-neutral-300);
+}
+.app-shell .aps-action {
+  flex: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary-700);
+  background: var(--color-primary-100);
+  border-radius: var(--radius-pill);
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+
+.app-shell .shell-safety {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 8px var(--sh-page);
+  background: var(--sh-surface);
+  border-bottom: 1px solid var(--sh-border);
+}
+.app-shell .shell-safety-chips { display: flex; flex-wrap: wrap; gap: 8px; flex: 1; }
+.app-shell .shell-safety-meta { font-size: 13px; }
+.app-shell .shell-safety-sens { display: flex; align-items: center; gap: 12px; margin: 0; }
+.app-shell .shell-safety-sens dt { font-size: 11px; color: var(--sh-muted); }
+.app-shell .shell-safety-sens dd { margin: 0; font-variant-numeric: tabular-nums; }
+
+.app-shell .shell-main {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--sh-page);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sh-gap);
+}
+.app-shell .shell-card {
+  background: var(--sh-surface);
+  border-radius: var(--sh-radius-card);
+  box-shadow: var(--sh-shadow);
+  border: 1px solid var(--sh-border);
+  padding: var(--sh-card);
+  min-width: 0;
+}
+.app-shell .shell-card > .screen { gap: var(--space-3); }
+.app-shell .shell-card .screen-head h2 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.app-shell .shell-card .screen-head > div:first-child p { display: none; }
+.app-shell .offline-banner { position: static; }
+.app-shell .icon-btn, .app-shell .btn { min-height: var(--sh-touch); }
+.app-shell .toast { display: flex; align-items: center; gap: 12px; }
+.app-shell .toast-undo {
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+  min-height: 32px;
+}
+
+@media (max-width: 1100px) {
+  .app-shell { --sh-sidebar-w: var(--sh-sidebar-compact); }
+  .app-shell .shell-brand span,
+  .app-shell .shell-nav-label,
+  .app-shell .shell-nav-caption,
+  .app-shell .shell-branch,
+  .app-shell .shell-help,
+  .app-shell .shell-user-text { display: none; }
+  .app-shell .shell-nav a { justify-content: center; padding: 0; }
+  .app-shell .shell-top { gap: 8px; padding: 8px 12px; flex-wrap: nowrap; }
+  .app-shell .shell-search { min-width: 120px; flex: 1 1 120px; }
+  .app-shell .shell-main { padding: 12px; }
+  .app-shell .aps { flex: 0 1 auto; min-width: 0; max-width: 280px; }
+}

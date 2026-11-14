@@ -1,0 +1,34 @@
+<?php
+
+// Owning module: Shared (platform; grants for every module table).
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\DB;
+
+// MySQL only. Runtime account ehr_app gets per-table SELECT/INSERT/UPDATE; DELETE only on framework tables.
+// No DROP/ALTER/CREATE/INDEX/TRIGGER/REFERENCES/GRANT, so also no TRUNCATE (MySQL TRUNCATE needs DROP).
+// PostgreSQL equivalent: postgres-target/0003 (ehr_app NOLOGIN-owner split, GRANT SELECT,INSERT,UPDATE, no DELETE/TRUNCATE,
+// plus ENABLE + FORCE ROW LEVEL SECURITY policies on tenant_id = current_setting('app.tenant_id')).
+return new class extends Migration
+{
+    private const READ_WRITE = ['users', 'tenant', 'branch', 'chair', 'membership', 'patient', 'appointment', 'visit',
+        'clinical_note', 'clinical_note_version', 'tooth_finding', 'outbox'];
+
+    private const APPEND_ONLY = ['audit_event', 'auth_event'];
+
+    private const WITH_DELETE = ['sessions', 'cache', 'cache_locks', 'jobs', 'failed_jobs'];
+
+    public function up(): void
+    {
+        $db = DB::connection()->getDatabaseName();
+        $grantee = sprintf("'%s'@'%s'", config('database.connections.mysql.username'), env('DB_APP_GRANT_HOST', '127.0.0.1'));
+        $grant = fn (string $privs, array $tables) => array_map(
+            fn ($t) => DB::statement("GRANT $privs ON `$db`.`$t` TO $grantee"), $tables);
+
+        $grant('SELECT, INSERT, UPDATE', self::READ_WRITE);
+        $grant('SELECT, INSERT', self::APPEND_ONLY);
+        $grant('SELECT, INSERT, UPDATE, DELETE', self::WITH_DELETE);
+    }
+
+    public function down(): void {}
+};

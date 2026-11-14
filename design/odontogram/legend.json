@@ -1,0 +1,193 @@
+{
+  "version": "0.2.0",
+  "title": "Legenda internal",
+  "official": false,
+  "disclaimer": "Bukan standar resmi Kemenkes/PDGI. Komponen dapat diganti saat formulir resmi tersedia.",
+  "contrast": {
+    "method": "WCAG 2.2 non-text contrast against #FFFFFF",
+    "minimum": 3.0
+  },
+  "surfaces": {
+    "M": "Mesial",
+    "D": "Distal",
+    "O": "Oklusal (premolar, molar)",
+    "I": "Insisal (insisor, kaninus)",
+    "B": "Bukal / labial",
+    "L": "Lingual (rahang bawah) / palatal (rahang atas). Id dan data-surface selalu L.",
+    "visibleLabel": "P on upper teeth (palatal), L on lower teeth (lingual). P is never used in ids or data-surface."
+  },
+  "baseline": {
+    "note": "Kemungkinan MVP, menunggu persetujuan Jerome.",
+    "chart": {
+      "attr": "data-dentition=\"permanent|primary|mixed\"",
+      "look": "Chart-level dentition mix. The full chart uses mixed."
+    },
+    "tooth": {
+      "attr": "data-baseline=\"missing\"",
+      "look": "Ghosted tooth; first-visit presence flag, distinct from condition hilang.",
+      "dentition": "data-dentition=\"permanent|primary\" already exists on each tooth."
+    }
+  },
+  "states": {
+    "empty": {
+      "attr": "data-state=\"empty\"",
+      "look": "Solid grey outline, no accent"
+    },
+    "draft": {
+      "attr": "data-state=\"draft\"",
+      "look": "Dashed violet outline, light violet wash, diamond mark",
+      "badge": "Draf AI, perlu persetujuan dokter",
+      "color": "#6D28D9",
+      "accent": "#A15C00",
+      "wash": "#F3EEFF"
+    },
+    "signed": {
+      "attr": "data-state=\"signed\"",
+      "look": "Solid thicker outline plus lock glyph",
+      "badge": "Terkunci",
+      "color": "#111827"
+    }
+  },
+  "conditions": [
+    {
+      "key": "sehat",
+      "label": "Sehat",
+      "color": "#0B7A45",
+      "glyph": "legend/sehat.svg",
+      "applies-to": "surface",
+      "mark": "check",
+      "contrastVsWhite": 5.41
+    },
+    {
+      "key": "karies",
+      "label": "Karies",
+      "color": "#BE123C",
+      "glyph": "legend/karies.svg",
+      "applies-to": "surface",
+      "mark": "dots",
+      "contrastVsWhite": 6.29
+    },
+    {
+      "key": "tambalan",
+      "label": "Tambalan",
+      "color": "#1E40AF",
+      "glyph": "legend/tambalan.svg",
+      "applies-to": "surface",
+      "mark": "solid",
+      "contrastVsWhite": 8.72
+    },
+    {
+      "key": "mahkota",
+      "label": "Mahkota",
+      "color": "#6D28D9",
+      "glyph": "legend/mahkota.svg",
+      "applies-to": "whole-tooth",
+      "mark": "ring",
+      "contrastVsWhite": 7.1
+    },
+    {
+      "key": "hilang",
+      "label": "Hilang",
+      "color": "#3F3F46",
+      "glyph": "legend/hilang.svg",
+      "applies-to": "whole-tooth",
+      "mark": "x",
+      "contrastVsWhite": 10.44
+    },
+    {
+      "key": "sisa_akar",
+      "label": "Sisa akar / akar tertinggal",
+      "color": "#9A3412",
+      "glyph": "legend/sisa_akar.svg",
+      "applies-to": "whole-tooth",
+      "mark": "root-v",
+      "contrastVsWhite": 7.31
+    },
+    {
+      "key": "perlu_dicabut",
+      "label": "Perlu dicabut",
+      "color": "#A15C00",
+      "glyph": "legend/perlu_dicabut.svg",
+      "applies-to": "whole-tooth",
+      "mark": "slash",
+      "contrastVsWhite": 5.19
+    },
+    {
+      "key": "implan",
+      "label": "Implan",
+      "color": "#0F5F63",
+      "glyph": "legend/implan.svg",
+      "applies-to": "whole-tooth",
+      "mark": "screw",
+      "contrastVsWhite": 7.4
+    }
+  ],
+  "layering": {
+    "note": "3D view (3d-blender/). One tooth record holds an ordered list of layers; later layers paint on top.",
+    "layer": "{condition, surfaces?: [M|D|O|I|B|L], status}. No surfaces = whole tooth.",
+    "opacity": "Per status: statuses.items[].fill-opacity.",
+    "planned": "direncanakan = hatched tint + dashed glyph/outline; selesai / sudah_ada = solid.",
+    "hides": "hilang hides every other layer (empty dashed slot + X). sisa_akar swaps to the roots-only render. implan swaps to the implant render.",
+    "supernumerary": "Optional small slot next to a tooth: data-tooth=\"S12\" (half size)."
+  },
+  "statuses": {
+    "note": "Kemungkinan MVP, menunggu persetujuan Jerome. Independent of condition colour+shape.",
+    "attr": "data-status on .tooth-surface or .tooth",
+    "items": [
+      {
+        "key": "kondisi",
+        "label": "Kondisi",
+        "visual": "Default watch mark: small solid disk in the corner, full opacity.",
+        "marker": "disk",
+        "outline": "solid",
+        "fill-opacity": 1.0,
+        "color": "#374151"
+      },
+      {
+        "key": "sudah_ada_sini",
+        "label": "Sudah ada (di sini)",
+        "visual": "Small filled square marker, full opacity, solid outline.",
+        "marker": "square-filled",
+        "outline": "solid",
+        "fill-opacity": 1.0,
+        "color": "#0B7A45"
+      },
+      {
+        "key": "sudah_ada_lain",
+        "label": "Sudah ada (di tempat lain)",
+        "visual": "Small open square marker, slightly reduced opacity.",
+        "marker": "square-open",
+        "outline": "solid",
+        "fill-opacity": 0.7,
+        "color": "#1E40AF"
+      },
+      {
+        "key": "direncanakan",
+        "label": "Direncanakan",
+        "visual": "Small triangle marker, reduced opacity, dashed outline.",
+        "marker": "triangle",
+        "outline": "dashed",
+        "fill-opacity": 0.5,
+        "color": "#A15C00"
+      },
+      {
+        "key": "selesai",
+        "label": "Selesai",
+        "visual": "Small check marker, full opacity, solid outline.",
+        "marker": "check",
+        "outline": "solid",
+        "fill-opacity": 1.0,
+        "color": "#0F5F63"
+      },
+      {
+        "key": "dirujuk",
+        "label": "Dirujuk",
+        "visual": "Small arrow marker, slightly reduced opacity, dotted outline.",
+        "marker": "arrow",
+        "outline": "dotted",
+        "fill-opacity": 0.8,
+        "color": "#6D28D9"
+      }
+    ]
+  }
+}

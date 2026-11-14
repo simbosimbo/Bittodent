@@ -1,0 +1,904 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1174 532" width="1174" height="532" role="img" aria-labelledby="title" class="tooth-svg" color="#1F2937" data-dentition="mixed">
+  <title id="title">Odontogram Bitto — gigi tetap dan gigi sulung, penomoran FDI</title>
+  <desc>Tata letak standar: atas 18..11 | 21..28, sulung 55..51 | 61..65, sulung 85..81 | 71..75, bawah 48..41 | 31..38. Kanan pasien di kiri bagan. Legenda internal, bukan standar resmi Kemenkes/PDGI.</desc>
+  <style>
+/* Bitto odontogram — classes the React build should toggle */
+.tooth-svg { color: #1F2937; font-family: Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif; }
+.tooth-surface {
+  fill: #FFFFFF;
+  stroke: none;
+  pointer-events: auto;
+  cursor: pointer;
+}
+.tooth-outline, .tooth-divisions {
+  fill: none;
+  stroke: currentColor;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+.tooth-outline { stroke-width: 1.75; }
+.tooth-divisions { stroke-width: 1.15; }
+.tooth-number {
+  fill: #1F2937;
+  font-family: Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-anchor: middle;
+  pointer-events: none;
+}
+.tooth[data-state="draft"] .tooth-outline {
+  stroke: #6D28D9;
+  stroke-width: 2.1;
+  stroke-dasharray: 3.5 2.5;
+}
+.tooth[data-state="draft"] .tooth-divisions { stroke: #6D28D9; }
+.tooth[data-state="draft"] .tooth-wash { fill: #F3EEFF; }
+.tooth[data-state="signed"] .tooth-outline {
+  stroke: #111827;
+  stroke-width: 2;
+  stroke-dasharray: none;
+}
+.tooth-lock { fill: #111827; stroke: none; }
+.tooth-draft-mark { fill: #A15C00; stroke: none; }
+
+.tooth-surface[data-condition="sehat"] { fill: #E8F6EE; }
+.tooth-surface[data-condition="karies"] { fill: #BE123C; }
+.tooth-surface[data-condition="tambalan"] { fill: #1E40AF; }
+
+.surface-dots { fill: #FFFFFF; pointer-events: none; }
+.overlay { pointer-events: none; }
+.overlay-mahkota {
+  fill: none;
+  stroke: #6D28D9;
+  stroke-width: 3;
+}
+.overlay-hilang {
+  fill: none;
+  stroke: #3F3F46;
+  stroke-width: 3.2;
+  stroke-linecap: square;
+}
+.overlay-sisa-akar {
+  fill: none;
+  stroke: #9A3412;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.overlay-perlu-dicabut {
+  fill: none;
+  stroke: #A15C00;
+  stroke-width: 3.2;
+  stroke-linecap: square;
+}
+.overlay-implan {
+  fill: none;
+  stroke: #0F5F63;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Procedure status — independent of condition colour+shape.
+   Kemungkinan MVP, menunggu persetujuan Jerome. */
+.tooth-surface[data-status] { fill-opacity: 1; }
+.tooth-surface[data-status="sudah_ada_lain"] { fill-opacity: 0.7; }
+.tooth-surface[data-status="direncanakan"] { fill-opacity: 0.5; }
+.tooth-surface[data-status="dirujuk"] { fill-opacity: 0.8; }
+.tooth[data-status="direncanakan"] .tooth-outline {
+  stroke-dasharray: 4 2.5;
+}
+.tooth[data-status="dirujuk"] .tooth-outline {
+  stroke-dasharray: 1.5 2;
+}
+.tooth[data-baseline="missing"] { opacity: 0.45; }
+.tooth[data-baseline="missing"] .tooth-surface { fill: #E5E7EB; }
+.status-mark { pointer-events: none; }
+
+/* Soft 3D graphical chart */
+.tooth-3d { cursor: pointer; }
+.tooth-3d .tooth-hit { fill: transparent; stroke: none; pointer-events: all; }
+.tooth-3d .anatomy, .tooth-3d .cond-mark { pointer-events: none; }
+.tooth-3d[data-state="draft"] .tooth-3d-frame {
+  fill: none;
+  stroke: #6D28D9;
+  stroke-width: 2.2;
+  stroke-dasharray: 4 3;
+}
+.tooth-3d[data-state="signed"] .tooth-3d-frame {
+  fill: none;
+  stroke: #111827;
+  stroke-width: 1.8;
+}
+.tooth-3d[data-baseline="missing"] { opacity: 0.4; }
+  .chart-title { font-weight: 700; font-size: 20px; fill: #111827; }
+  .chart-sub { font-size: 11px; fill: #4B5563; }
+  .chart-side { font-size: 11px; fill: #6B7280; font-weight: 600; letter-spacing: 0.04em; }
+  .chart-row { font-size: 10px; fill: #6B7280; font-weight: 600; }
+  .chart-mid { stroke: #9CA3AF; stroke-width: 1; }
+  .orient-label { font-size: 15px; font-weight: 700; fill: #111827; stroke: #FFFFFF; stroke-width: 3; paint-order: stroke fill; text-anchor: middle; dominant-baseline: middle; pointer-events: none; }
+  </style>
+  <rect width="1174" height="532" fill="#FFFFFF"/>
+  <text class="chart-title" x="108" y="28" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Odontogram</text>
+  <text class="chart-sub" x="108" y="46" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Penomoran FDI · gigi tetap dan gigi sulung · bagan dari pandangan operator (kanan pasien di kiri). Legenda internal, bukan formulir resmi Kemenkes/PDGI.</text>
+  <line class="chart-mid" x1="609" y1="60" x2="609" y2="484"/>
+  <text class="chart-side" x="20" y="273" text-anchor="middle" transform="rotate(90 20 273)" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">KANAN PASIEN</text>
+  <text class="chart-side" x="1154" y="273" text-anchor="middle" transform="rotate(90 1154 273)" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">KIRI PASIEN</text>
+  <text class="chart-row" x="96" y="111" text-anchor="end" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Tetap</text>
+  <text class="chart-row" x="96" y="193" text-anchor="end" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Sulung</text>
+  <text class="chart-row" x="96" y="357" text-anchor="end" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Sulung</text>
+  <text class="chart-row" x="96" y="441" text-anchor="end" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Tetap</text>
+  <g transform="translate(108 80) scale(0.6)">
+    <g id="t18" class="tooth tooth--molar tooth--permanent" data-tooth="18" data-type="molar" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-state="empty">
+<path id="t18-M" class="tooth-surface" data-tooth="18" data-surface="M" d="M92,15 L92,85 L68,68 L68,32 Z"/>
+<path id="t18-D" class="tooth-surface" data-tooth="18" data-surface="D" d="M8,85 L8,15 L32,32 L32,68 Z"/>
+<path id="t18-O" class="tooth-surface" data-tooth="18" data-surface="O" d="M32,32 L68,32 L68,68 L32,68 Z"/>
+<path id="t18-B" class="tooth-surface" data-tooth="18" data-surface="B" d="M15,8 L85,8 Q92,8 92,15 L68,32 L32,32 L8,15 Q8,8 15,8 Z"/>
+<path id="t18-L" class="tooth-surface" data-tooth="18" data-surface="L" d="M85,92 L15,92 Q8,92 8,85 L32,68 L68,68 L92,85 Q92,92 85,92 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M32,32 L68,32 L68,68 L32,68 Z M32,32 L8,8 M68,32 L92,8 M68,68 L92,92 M32,68 L8,92"/>
+<path class="tooth-outline" d="M15,8 L85,8 Q92,8 92,15 L92,85 Q92,92 85,92 L15,92 Q8,92 8,85 L8,15 Q8,8 15,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="136" y="76" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">18</text>
+  <g transform="translate(170 80) scale(0.6)">
+    <g id="t17" class="tooth tooth--molar tooth--permanent" data-tooth="17" data-type="molar" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-state="empty">
+<path id="t17-M" class="tooth-surface" data-tooth="17" data-surface="M" d="M92,15 L92,85 L68,68 L68,32 Z"/>
+<path id="t17-D" class="tooth-surface" data-tooth="17" data-surface="D" d="M8,85 L8,15 L32,32 L32,68 Z"/>
+<path id="t17-O" class="tooth-surface" data-tooth="17" data-surface="O" d="M32,32 L68,32 L68,68 L32,68 Z"/>
+<path id="t17-B" class="tooth-surface" data-tooth="17" data-surface="B" d="M15,8 L85,8 Q92,8 92,15 L68,32 L32,32 L8,15 Q8,8 15,8 Z"/>
+<path id="t17-L" class="tooth-surface" data-tooth="17" data-surface="L" d="M85,92 L15,92 Q8,92 8,85 L32,68 L68,68 L92,85 Q92,92 85,92 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M32,32 L68,32 L68,68 L32,68 Z M32,32 L8,8 M68,32 L92,8 M68,68 L92,92 M32,68 L8,92"/>
+<path class="tooth-outline" d="M15,8 L85,8 Q92,8 92,15 L92,85 Q92,92 85,92 L15,92 Q8,92 8,85 L8,15 Q8,8 15,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="198" y="76" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">17</text>
+  <g transform="translate(232 80) scale(0.6)">
+    <g id="t16" class="tooth tooth--molar tooth--permanent" data-tooth="16" data-type="molar" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-state="empty">
+<path id="t16-M" class="tooth-surface" data-tooth="16" data-surface="M" d="M92,15 L92,85 L68,68 L68,32 Z"/>
+<path id="t16-D" class="tooth-surface" data-tooth="16" data-surface="D" d="M8,85 L8,15 L32,32 L32,68 Z"/>
+<path id="t16-O" class="tooth-surface" data-tooth="16" data-surface="O" d="M32,32 L68,32 L68,68 L32,68 Z"/>
+<path id="t16-B" class="tooth-surface" data-tooth="16" data-surface="B" d="M15,8 L85,8 Q92,8 92,15 L68,32 L32,32 L8,15 Q8,8 15,8 Z"/>
+<path id="t16-L" class="tooth-surface" data-tooth="16" data-surface="L" d="M85,92 L15,92 Q8,92 8,85 L32,68 L68,68 L92,85 Q92,92 85,92 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M32,32 L68,32 L68,68 L32,68 Z M32,32 L8,8 M68,32 L92,8 M68,68 L92,92 M32,68 L8,92"/>
+<path class="tooth-outline" d="M15,8 L85,8 Q92,8 92,15 L92,85 Q92,92 85,92 L15,92 Q8,92 8,85 L8,15 Q8,8 15,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="260" y="76" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">16</text>
+  <g transform="translate(294 80) scale(0.6)">
+    <g id="t15" class="tooth tooth--premolar tooth--permanent" data-tooth="15" data-type="premolar" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-state="empty">
+<path id="t15-M" class="tooth-surface" data-tooth="15" data-surface="M" d="M86,20 L86,80 L62,62 L62,38 Z"/>
+<path id="t15-D" class="tooth-surface" data-tooth="15" data-surface="D" d="M14,80 L14,20 L38,38 L38,62 Z"/>
+<path id="t15-O" class="tooth-surface" data-tooth="15" data-surface="O" d="M38,38 L62,38 L62,62 L38,62 Z"/>
+<path id="t15-B" class="tooth-surface" data-tooth="15" data-surface="B" d="M20,14 L80,14 Q86,14 86,20 L62,38 L38,38 L14,20 Q14,14 20,14 Z"/>
+<path id="t15-L" class="tooth-surface" data-tooth="15" data-surface="L" d="M80,86 L20,86 Q14,86 14,80 L38,62 L62,62 L86,80 Q86,86 80,86 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M38,38 L62,38 L62,62 L38,62 Z M38,38 L14,14 M62,38 L86,14 M62,62 L86,86 M38,62 L14,86"/>
+<path class="tooth-outline" d="M20,14 L80,14 Q86,14 86,20 L86,80 Q86,86 80,86 L20,86 Q14,86 14,80 L14,20 Q14,14 20,14 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="322" y="76" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">15</text>
+  <g transform="translate(356 80) scale(0.6)">
+    <g id="t14" class="tooth tooth--premolar tooth--permanent" data-tooth="14" data-type="premolar" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-state="empty">
+<path id="t14-M" class="tooth-surface" data-tooth="14" data-surface="M" d="M86,20 L86,80 L62,62 L62,38 Z"/>
+<path id="t14-D" class="tooth-surface" data-tooth="14" data-surface="D" d="M14,80 L14,20 L38,38 L38,62 Z"/>
+<path id="t14-O" class="tooth-surface" data-tooth="14" data-surface="O" d="M38,38 L62,38 L62,62 L38,62 Z"/>
+<path id="t14-B" class="tooth-surface" data-tooth="14" data-surface="B" d="M20,14 L80,14 Q86,14 86,20 L62,38 L38,38 L14,20 Q14,14 20,14 Z"/>
+<path id="t14-L" class="tooth-surface" data-tooth="14" data-surface="L" d="M80,86 L20,86 Q14,86 14,80 L38,62 L62,62 L86,80 Q86,86 80,86 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M38,38 L62,38 L62,62 L38,62 Z M38,38 L14,14 M62,38 L86,14 M62,62 L86,86 M38,62 L14,86"/>
+<path class="tooth-outline" d="M20,14 L80,14 Q86,14 86,20 L86,80 Q86,86 80,86 L20,86 Q14,86 14,80 L14,20 Q14,14 20,14 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="384" y="76" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">14</text>
+  <g transform="translate(418 80) scale(0.6)">
+    <g id="t13" class="tooth tooth--canine tooth--permanent" data-tooth="13" data-type="canine" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-state="empty">
+<path id="t13-M" class="tooth-surface" data-tooth="13" data-surface="M" d="M84,12 L84,88 L50,56 L64,50 L50,44 Z"/>
+<path id="t13-D" class="tooth-surface" data-tooth="13" data-surface="D" d="M16,88 L16,12 L50,44 L36,50 L50,56 Z"/>
+<path id="t13-I" class="tooth-surface" data-tooth="13" data-surface="I" d="M50,44 L64,50 L50,56 L36,50 Z"/>
+<path id="t13-B" class="tooth-surface" data-tooth="13" data-surface="B" d="M20,8 L80,8 Q84,8 84,12 L64,50 L50,44 L36,50 L16,12 Q16,8 20,8 Z"/>
+<path id="t13-L" class="tooth-surface" data-tooth="13" data-surface="L" d="M80,92 L20,92 Q16,92 16,88 L36,50 L50,56 L64,50 L84,88 Q84,92 80,92 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M50,44 L64,50 L50,56 L36,50 Z M50,44 L50,8 M64,50 L84,50 M50,56 L50,92 M36,50 L16,50"/>
+<path class="tooth-outline" d="M20,8 L80,8 Q84,8 84,12 L84,88 Q84,92 80,92 L20,92 Q16,92 16,88 L16,12 Q16,8 20,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="446" y="76" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">13</text>
+  <g transform="translate(480 80) scale(0.6)">
+    <g id="t12" class="tooth tooth--incisor tooth--permanent" data-tooth="12" data-type="incisor" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-state="empty">
+<path id="t12-M" class="tooth-surface" data-tooth="12" data-surface="M" d="M82,11 L82,89 L66,55 L66,45 Z"/>
+<path id="t12-D" class="tooth-surface" data-tooth="12" data-surface="D" d="M18,89 L18,11 L34,45 L34,55 Z"/>
+<path id="t12-I" class="tooth-surface" data-tooth="12" data-surface="I" d="M34,45 L66,45 L66,55 L34,55 Z"/>
+<path id="t12-B" class="tooth-surface" data-tooth="12" data-surface="B" d="M21,8 L79,8 Q82,8 82,11 L66,45 L34,45 L18,11 Q18,8 21,8 Z"/>
+<path id="t12-L" class="tooth-surface" data-tooth="12" data-surface="L" d="M79,92 L21,92 Q18,92 18,89 L34,55 L66,55 L82,89 Q82,92 79,92 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M34,45 L66,45 L66,55 L34,55 Z M34,45 L18,8 M66,45 L82,8 M66,55 L82,92 M34,55 L18,92"/>
+<path class="tooth-outline" d="M21,8 L79,8 Q82,8 82,11 L82,89 Q82,92 79,92 L21,92 Q18,92 18,89 L18,11 Q18,8 21,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="508" y="76" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">12</text>
+  <g transform="translate(542 80) scale(0.6)">
+    <g id="t11" class="tooth tooth--incisor tooth--permanent" data-tooth="11" data-type="incisor" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-state="empty">
+<path id="t11-M" class="tooth-surface" data-tooth="11" data-surface="M" d="M82,11 L82,89 L66,55 L66,45 Z"/>
+<path id="t11-D" class="tooth-surface" data-tooth="11" data-surface="D" d="M18,89 L18,11 L34,45 L34,55 Z"/>
+<path id="t11-I" class="tooth-surface" data-tooth="11" data-surface="I" d="M34,45 L66,45 L66,55 L34,55 Z"/>
+<path id="t11-B" class="tooth-surface" data-tooth="11" data-surface="B" d="M21,8 L79,8 Q82,8 82,11 L66,45 L34,45 L18,11 Q18,8 21,8 Z"/>
+<path id="t11-L" class="tooth-surface" data-tooth="11" data-surface="L" d="M79,92 L21,92 Q18,92 18,89 L34,55 L66,55 L82,89 Q82,92 79,92 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M34,45 L66,45 L66,55 L34,55 Z M34,45 L18,8 M66,45 L82,8 M66,55 L82,92 M34,55 L18,92"/>
+<path class="tooth-outline" d="M21,8 L79,8 Q82,8 82,11 L82,89 Q82,92 79,92 L21,92 Q18,92 18,89 L18,11 Q18,8 21,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="570" y="76" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">11</text>
+  <g transform="translate(620 80) scale(0.6)">
+    <g id="t21" class="tooth tooth--incisor tooth--permanent" data-tooth="21" data-type="incisor" data-dentition="permanent" data-arch="upper" data-quadrant="2" data-state="empty">
+<path id="t21-M" class="tooth-surface" data-tooth="21" data-surface="M" d="M18,89 L18,11 L34,45 L34,55 Z"/>
+<path id="t21-D" class="tooth-surface" data-tooth="21" data-surface="D" d="M82,11 L82,89 L66,55 L66,45 Z"/>
+<path id="t21-I" class="tooth-surface" data-tooth="21" data-surface="I" d="M34,45 L66,45 L66,55 L34,55 Z"/>
+<path id="t21-B" class="tooth-surface" data-tooth="21" data-surface="B" d="M21,8 L79,8 Q82,8 82,11 L66,45 L34,45 L18,11 Q18,8 21,8 Z"/>
+<path id="t21-L" class="tooth-surface" data-tooth="21" data-surface="L" d="M79,92 L21,92 Q18,92 18,89 L34,55 L66,55 L82,89 Q82,92 79,92 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M34,45 L66,45 L66,55 L34,55 Z M34,45 L18,8 M66,45 L82,8 M66,55 L82,92 M34,55 L18,92"/>
+<path class="tooth-outline" d="M21,8 L79,8 Q82,8 82,11 L82,89 Q82,92 79,92 L21,92 Q18,92 18,89 L18,11 Q18,8 21,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="648" y="76" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">21</text>
+  <g transform="translate(682 80) scale(0.6)">
+    <g id="t22" class="tooth tooth--incisor tooth--permanent" data-tooth="22" data-type="incisor" data-dentition="permanent" data-arch="upper" data-quadrant="2" data-state="empty">
+<path id="t22-M" class="tooth-surface" data-tooth="22" data-surface="M" d="M18,89 L18,11 L34,45 L34,55 Z"/>
+<path id="t22-D" class="tooth-surface" data-tooth="22" data-surface="D" d="M82,11 L82,89 L66,55 L66,45 Z"/>
+<path id="t22-I" class="tooth-surface" data-tooth="22" data-surface="I" d="M34,45 L66,45 L66,55 L34,55 Z"/>
+<path id="t22-B" class="tooth-surface" data-tooth="22" data-surface="B" d="M21,8 L79,8 Q82,8 82,11 L66,45 L34,45 L18,11 Q18,8 21,8 Z"/>
+<path id="t22-L" class="tooth-surface" data-tooth="22" data-surface="L" d="M79,92 L21,92 Q18,92 18,89 L34,55 L66,55 L82,89 Q82,92 79,92 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M34,45 L66,45 L66,55 L34,55 Z M34,45 L18,8 M66,45 L82,8 M66,55 L82,92 M34,55 L18,92"/>
+<path class="tooth-outline" d="M21,8 L79,8 Q82,8 82,11 L82,89 Q82,92 79,92 L21,92 Q18,92 18,89 L18,11 Q18,8 21,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="710" y="76" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">22</text>
+  <g transform="translate(744 80) scale(0.6)">
+    <g id="t23" class="tooth tooth--canine tooth--permanent" data-tooth="23" data-type="canine" data-dentition="permanent" data-arch="upper" data-quadrant="2" data-state="empty">
+<path id="t23-M" class="tooth-surface" data-tooth="23" data-surface="M" d="M16,88 L16,12 L50,44 L36,50 L50,56 Z"/>
+<path id="t23-D" class="tooth-surface" data-tooth="23" data-surface="D" d="M84,12 L84,88 L50,56 L64,50 L50,44 Z"/>
+<path id="t23-I" class="tooth-surface" data-tooth="23" data-surface="I" d="M50,44 L64,50 L50,56 L36,50 Z"/>
+<path id="t23-B" class="tooth-surface" data-tooth="23" data-surface="B" d="M20,8 L80,8 Q84,8 84,12 L64,50 L50,44 L36,50 L16,12 Q16,8 20,8 Z"/>
+<path id="t23-L" class="tooth-surface" data-tooth="23" data-surface="L" d="M80,92 L20,92 Q16,92 16,88 L36,50 L50,56 L64,50 L84,88 Q84,92 80,92 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M50,44 L64,50 L50,56 L36,50 Z M50,44 L50,8 M64,50 L84,50 M50,56 L50,92 M36,50 L16,50"/>
+<path class="tooth-outline" d="M20,8 L80,8 Q84,8 84,12 L84,88 Q84,92 80,92 L20,92 Q16,92 16,88 L16,12 Q16,8 20,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="772" y="76" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">23</text>
+  <g transform="translate(806 80) scale(0.6)">
+    <g id="t24" class="tooth tooth--premolar tooth--permanent" data-tooth="24" data-type="premolar" data-dentition="permanent" data-arch="upper" data-quadrant="2" data-state="empty">
+<path id="t24-M" class="tooth-surface" data-tooth="24" data-surface="M" d="M14,80 L14,20 L38,38 L38,62 Z"/>
+<path id="t24-D" class="tooth-surface" data-tooth="24" data-surface="D" d="M86,20 L86,80 L62,62 L62,38 Z"/>
+<path id="t24-O" class="tooth-surface" data-tooth="24" data-surface="O" d="M38,38 L62,38 L62,62 L38,62 Z"/>
+<path id="t24-B" class="tooth-surface" data-tooth="24" data-surface="B" d="M20,14 L80,14 Q86,14 86,20 L62,38 L38,38 L14,20 Q14,14 20,14 Z"/>
+<path id="t24-L" class="tooth-surface" data-tooth="24" data-surface="L" d="M80,86 L20,86 Q14,86 14,80 L38,62 L62,62 L86,80 Q86,86 80,86 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M38,38 L62,38 L62,62 L38,62 Z M38,38 L14,14 M62,38 L86,14 M62,62 L86,86 M38,62 L14,86"/>
+<path class="tooth-outline" d="M20,14 L80,14 Q86,14 86,20 L86,80 Q86,86 80,86 L20,86 Q14,86 14,80 L14,20 Q14,14 20,14 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="834" y="76" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">24</text>
+  <g transform="translate(868 80) scale(0.6)">
+    <g id="t25" class="tooth tooth--premolar tooth--permanent" data-tooth="25" data-type="premolar" data-dentition="permanent" data-arch="upper" data-quadrant="2" data-state="empty">
+<path id="t25-M" class="tooth-surface" data-tooth="25" data-surface="M" d="M14,80 L14,20 L38,38 L38,62 Z"/>
+<path id="t25-D" class="tooth-surface" data-tooth="25" data-surface="D" d="M86,20 L86,80 L62,62 L62,38 Z"/>
+<path id="t25-O" class="tooth-surface" data-tooth="25" data-surface="O" d="M38,38 L62,38 L62,62 L38,62 Z"/>
+<path id="t25-B" class="tooth-surface" data-tooth="25" data-surface="B" d="M20,14 L80,14 Q86,14 86,20 L62,38 L38,38 L14,20 Q14,14 20,14 Z"/>
+<path id="t25-L" class="tooth-surface" data-tooth="25" data-surface="L" d="M80,86 L20,86 Q14,86 14,80 L38,62 L62,62 L86,80 Q86,86 80,86 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M38,38 L62,38 L62,62 L38,62 Z M38,38 L14,14 M62,38 L86,14 M62,62 L86,86 M38,62 L14,86"/>
+<path class="tooth-outline" d="M20,14 L80,14 Q86,14 86,20 L86,80 Q86,86 80,86 L20,86 Q14,86 14,80 L14,20 Q14,14 20,14 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="896" y="76" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">25</text>
+  <g transform="translate(930 80) scale(0.6)">
+    <g id="t26" class="tooth tooth--molar tooth--permanent" data-tooth="26" data-type="molar" data-dentition="permanent" data-arch="upper" data-quadrant="2" data-state="empty">
+<path id="t26-M" class="tooth-surface" data-tooth="26" data-surface="M" d="M8,85 L8,15 L32,32 L32,68 Z"/>
+<path id="t26-D" class="tooth-surface" data-tooth="26" data-surface="D" d="M92,15 L92,85 L68,68 L68,32 Z"/>
+<path id="t26-O" class="tooth-surface" data-tooth="26" data-surface="O" d="M32,32 L68,32 L68,68 L32,68 Z"/>
+<path id="t26-B" class="tooth-surface" data-tooth="26" data-surface="B" d="M15,8 L85,8 Q92,8 92,15 L68,32 L32,32 L8,15 Q8,8 15,8 Z"/>
+<path id="t26-L" class="tooth-surface" data-tooth="26" data-surface="L" d="M85,92 L15,92 Q8,92 8,85 L32,68 L68,68 L92,85 Q92,92 85,92 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M32,32 L68,32 L68,68 L32,68 Z M32,32 L8,8 M68,32 L92,8 M68,68 L92,92 M32,68 L8,92"/>
+<path class="tooth-outline" d="M15,8 L85,8 Q92,8 92,15 L92,85 Q92,92 85,92 L15,92 Q8,92 8,85 L8,15 Q8,8 15,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="958" y="76" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">26</text>
+  <g transform="translate(992 80) scale(0.6)">
+    <g id="t27" class="tooth tooth--molar tooth--permanent" data-tooth="27" data-type="molar" data-dentition="permanent" data-arch="upper" data-quadrant="2" data-state="empty">
+<path id="t27-M" class="tooth-surface" data-tooth="27" data-surface="M" d="M8,85 L8,15 L32,32 L32,68 Z"/>
+<path id="t27-D" class="tooth-surface" data-tooth="27" data-surface="D" d="M92,15 L92,85 L68,68 L68,32 Z"/>
+<path id="t27-O" class="tooth-surface" data-tooth="27" data-surface="O" d="M32,32 L68,32 L68,68 L32,68 Z"/>
+<path id="t27-B" class="tooth-surface" data-tooth="27" data-surface="B" d="M15,8 L85,8 Q92,8 92,15 L68,32 L32,32 L8,15 Q8,8 15,8 Z"/>
+<path id="t27-L" class="tooth-surface" data-tooth="27" data-surface="L" d="M85,92 L15,92 Q8,92 8,85 L32,68 L68,68 L92,85 Q92,92 85,92 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M32,32 L68,32 L68,68 L32,68 Z M32,32 L8,8 M68,32 L92,8 M68,68 L92,92 M32,68 L8,92"/>
+<path class="tooth-outline" d="M15,8 L85,8 Q92,8 92,15 L92,85 Q92,92 85,92 L15,92 Q8,92 8,85 L8,15 Q8,8 15,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="1020" y="76" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">27</text>
+  <g transform="translate(1054 80) scale(0.6)">
+    <g id="t28" class="tooth tooth--molar tooth--permanent" data-tooth="28" data-type="molar" data-dentition="permanent" data-arch="upper" data-quadrant="2" data-state="empty">
+<path id="t28-M" class="tooth-surface" data-tooth="28" data-surface="M" d="M8,85 L8,15 L32,32 L32,68 Z"/>
+<path id="t28-D" class="tooth-surface" data-tooth="28" data-surface="D" d="M92,15 L92,85 L68,68 L68,32 Z"/>
+<path id="t28-O" class="tooth-surface" data-tooth="28" data-surface="O" d="M32,32 L68,32 L68,68 L32,68 Z"/>
+<path id="t28-B" class="tooth-surface" data-tooth="28" data-surface="B" d="M15,8 L85,8 Q92,8 92,15 L68,32 L32,32 L8,15 Q8,8 15,8 Z"/>
+<path id="t28-L" class="tooth-surface" data-tooth="28" data-surface="L" d="M85,92 L15,92 Q8,92 8,85 L32,68 L68,68 L92,85 Q92,92 85,92 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M32,32 L68,32 L68,68 L32,68 Z M32,32 L8,8 M68,32 L92,8 M68,68 L92,92 M32,68 L8,92"/>
+<path class="tooth-outline" d="M15,8 L85,8 Q92,8 92,15 L92,85 Q92,92 85,92 L15,92 Q8,92 8,85 L8,15 Q8,8 15,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="1082" y="76" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">28</text>
+  <g transform="translate(294 162) scale(0.6)">
+    <g id="t55" class="tooth tooth--molar tooth--primary" data-tooth="55" data-type="molar" data-dentition="primary" data-arch="upper" data-quadrant="5" data-state="empty">
+<path id="t55-M" class="tooth-surface" data-tooth="55" data-surface="M" d="M90,22 L90,78 L66,66 L66,34 Z"/>
+<path id="t55-D" class="tooth-surface" data-tooth="55" data-surface="D" d="M10,78 L10,22 L34,34 L34,66 Z"/>
+<path id="t55-O" class="tooth-surface" data-tooth="55" data-surface="O" d="M34,34 L66,34 L66,66 L34,66 Z"/>
+<path id="t55-B" class="tooth-surface" data-tooth="55" data-surface="B" d="M22,10 L78,10 Q90,10 90,22 L66,34 L34,34 L10,22 Q10,10 22,10 Z"/>
+<path id="t55-L" class="tooth-surface" data-tooth="55" data-surface="L" d="M78,90 L22,90 Q10,90 10,78 L34,66 L66,66 L90,78 Q90,90 78,90 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M34,34 L66,34 L66,66 L34,66 Z M34,34 L10,10 M66,34 L90,10 M66,66 L90,90 M34,66 L10,90"/>
+<path class="tooth-outline" d="M22,10 L78,10 Q90,10 90,22 L90,78 Q90,90 78,90 L22,90 Q10,90 10,78 L10,22 Q10,10 22,10 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="322" y="158" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">55</text>
+  <g transform="translate(356 162) scale(0.6)">
+    <g id="t54" class="tooth tooth--molar tooth--primary" data-tooth="54" data-type="molar" data-dentition="primary" data-arch="upper" data-quadrant="5" data-state="empty">
+<path id="t54-M" class="tooth-surface" data-tooth="54" data-surface="M" d="M90,22 L90,78 L66,66 L66,34 Z"/>
+<path id="t54-D" class="tooth-surface" data-tooth="54" data-surface="D" d="M10,78 L10,22 L34,34 L34,66 Z"/>
+<path id="t54-O" class="tooth-surface" data-tooth="54" data-surface="O" d="M34,34 L66,34 L66,66 L34,66 Z"/>
+<path id="t54-B" class="tooth-surface" data-tooth="54" data-surface="B" d="M22,10 L78,10 Q90,10 90,22 L66,34 L34,34 L10,22 Q10,10 22,10 Z"/>
+<path id="t54-L" class="tooth-surface" data-tooth="54" data-surface="L" d="M78,90 L22,90 Q10,90 10,78 L34,66 L66,66 L90,78 Q90,90 78,90 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M34,34 L66,34 L66,66 L34,66 Z M34,34 L10,10 M66,34 L90,10 M66,66 L90,90 M34,66 L10,90"/>
+<path class="tooth-outline" d="M22,10 L78,10 Q90,10 90,22 L90,78 Q90,90 78,90 L22,90 Q10,90 10,78 L10,22 Q10,10 22,10 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="384" y="158" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">54</text>
+  <g transform="translate(418 162) scale(0.6)">
+    <g id="t53" class="tooth tooth--canine tooth--primary" data-tooth="53" data-type="canine" data-dentition="primary" data-arch="upper" data-quadrant="5" data-state="empty">
+<path id="t53-M" class="tooth-surface" data-tooth="53" data-surface="M" d="M84,15 L84,85 L50,56 L64,50 L50,44 Z"/>
+<path id="t53-D" class="tooth-surface" data-tooth="53" data-surface="D" d="M16,85 L16,15 L50,44 L36,50 L50,56 Z"/>
+<path id="t53-I" class="tooth-surface" data-tooth="53" data-surface="I" d="M50,44 L64,50 L50,56 L36,50 Z"/>
+<path id="t53-B" class="tooth-surface" data-tooth="53" data-surface="B" d="M23,8 L77,8 Q84,8 84,15 L64,50 L50,44 L36,50 L16,15 Q16,8 23,8 Z"/>
+<path id="t53-L" class="tooth-surface" data-tooth="53" data-surface="L" d="M77,92 L23,92 Q16,92 16,85 L36,50 L50,56 L64,50 L84,85 Q84,92 77,92 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M50,44 L64,50 L50,56 L36,50 Z M50,44 L50,8 M64,50 L84,50 M50,56 L50,92 M36,50 L16,50"/>
+<path class="tooth-outline" d="M23,8 L77,8 Q84,8 84,15 L84,85 Q84,92 77,92 L23,92 Q16,92 16,85 L16,15 Q16,8 23,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="446" y="158" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">53</text>
+  <g transform="translate(480 162) scale(0.6)">
+    <g id="t52" class="tooth tooth--incisor tooth--primary" data-tooth="52" data-type="incisor" data-dentition="primary" data-arch="upper" data-quadrant="5" data-state="empty">
+<path id="t52-M" class="tooth-surface" data-tooth="52" data-surface="M" d="M82,14 L82,86 L66,55 L66,45 Z"/>
+<path id="t52-D" class="tooth-surface" data-tooth="52" data-surface="D" d="M18,86 L18,14 L34,45 L34,55 Z"/>
+<path id="t52-I" class="tooth-surface" data-tooth="52" data-surface="I" d="M34,45 L66,45 L66,55 L34,55 Z"/>
+<path id="t52-B" class="tooth-surface" data-tooth="52" data-surface="B" d="M24,8 L76,8 Q82,8 82,14 L66,45 L34,45 L18,14 Q18,8 24,8 Z"/>
+<path id="t52-L" class="tooth-surface" data-tooth="52" data-surface="L" d="M76,92 L24,92 Q18,92 18,86 L34,55 L66,55 L82,86 Q82,92 76,92 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M34,45 L66,45 L66,55 L34,55 Z M34,45 L18,8 M66,45 L82,8 M66,55 L82,92 M34,55 L18,92"/>
+<path class="tooth-outline" d="M24,8 L76,8 Q82,8 82,14 L82,86 Q82,92 76,92 L24,92 Q18,92 18,86 L18,14 Q18,8 24,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="508" y="158" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">52</text>
+  <g transform="translate(542 162) scale(0.6)">
+    <g id="t51" class="tooth tooth--incisor tooth--primary" data-tooth="51" data-type="incisor" data-dentition="primary" data-arch="upper" data-quadrant="5" data-state="empty">
+<path id="t51-M" class="tooth-surface" data-tooth="51" data-surface="M" d="M82,14 L82,86 L66,55 L66,45 Z"/>
+<path id="t51-D" class="tooth-surface" data-tooth="51" data-surface="D" d="M18,86 L18,14 L34,45 L34,55 Z"/>
+<path id="t51-I" class="tooth-surface" data-tooth="51" data-surface="I" d="M34,45 L66,45 L66,55 L34,55 Z"/>
+<path id="t51-B" class="tooth-surface" data-tooth="51" data-surface="B" d="M24,8 L76,8 Q82,8 82,14 L66,45 L34,45 L18,14 Q18,8 24,8 Z"/>
+<path id="t51-L" class="tooth-surface" data-tooth="51" data-surface="L" d="M76,92 L24,92 Q18,92 18,86 L34,55 L66,55 L82,86 Q82,92 76,92 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M34,45 L66,45 L66,55 L34,55 Z M34,45 L18,8 M66,45 L82,8 M66,55 L82,92 M34,55 L18,92"/>
+<path class="tooth-outline" d="M24,8 L76,8 Q82,8 82,14 L82,86 Q82,92 76,92 L24,92 Q18,92 18,86 L18,14 Q18,8 24,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="570" y="158" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">51</text>
+  <g transform="translate(620 162) scale(0.6)">
+    <g id="t61" class="tooth tooth--incisor tooth--primary" data-tooth="61" data-type="incisor" data-dentition="primary" data-arch="upper" data-quadrant="6" data-state="empty">
+<path id="t61-M" class="tooth-surface" data-tooth="61" data-surface="M" d="M18,86 L18,14 L34,45 L34,55 Z"/>
+<path id="t61-D" class="tooth-surface" data-tooth="61" data-surface="D" d="M82,14 L82,86 L66,55 L66,45 Z"/>
+<path id="t61-I" class="tooth-surface" data-tooth="61" data-surface="I" d="M34,45 L66,45 L66,55 L34,55 Z"/>
+<path id="t61-B" class="tooth-surface" data-tooth="61" data-surface="B" d="M24,8 L76,8 Q82,8 82,14 L66,45 L34,45 L18,14 Q18,8 24,8 Z"/>
+<path id="t61-L" class="tooth-surface" data-tooth="61" data-surface="L" d="M76,92 L24,92 Q18,92 18,86 L34,55 L66,55 L82,86 Q82,92 76,92 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M34,45 L66,45 L66,55 L34,55 Z M34,45 L18,8 M66,45 L82,8 M66,55 L82,92 M34,55 L18,92"/>
+<path class="tooth-outline" d="M24,8 L76,8 Q82,8 82,14 L82,86 Q82,92 76,92 L24,92 Q18,92 18,86 L18,14 Q18,8 24,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="648" y="158" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">61</text>
+  <g transform="translate(682 162) scale(0.6)">
+    <g id="t62" class="tooth tooth--incisor tooth--primary" data-tooth="62" data-type="incisor" data-dentition="primary" data-arch="upper" data-quadrant="6" data-state="empty">
+<path id="t62-M" class="tooth-surface" data-tooth="62" data-surface="M" d="M18,86 L18,14 L34,45 L34,55 Z"/>
+<path id="t62-D" class="tooth-surface" data-tooth="62" data-surface="D" d="M82,14 L82,86 L66,55 L66,45 Z"/>
+<path id="t62-I" class="tooth-surface" data-tooth="62" data-surface="I" d="M34,45 L66,45 L66,55 L34,55 Z"/>
+<path id="t62-B" class="tooth-surface" data-tooth="62" data-surface="B" d="M24,8 L76,8 Q82,8 82,14 L66,45 L34,45 L18,14 Q18,8 24,8 Z"/>
+<path id="t62-L" class="tooth-surface" data-tooth="62" data-surface="L" d="M76,92 L24,92 Q18,92 18,86 L34,55 L66,55 L82,86 Q82,92 76,92 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M34,45 L66,45 L66,55 L34,55 Z M34,45 L18,8 M66,45 L82,8 M66,55 L82,92 M34,55 L18,92"/>
+<path class="tooth-outline" d="M24,8 L76,8 Q82,8 82,14 L82,86 Q82,92 76,92 L24,92 Q18,92 18,86 L18,14 Q18,8 24,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="710" y="158" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">62</text>
+  <g transform="translate(744 162) scale(0.6)">
+    <g id="t63" class="tooth tooth--canine tooth--primary" data-tooth="63" data-type="canine" data-dentition="primary" data-arch="upper" data-quadrant="6" data-state="empty">
+<path id="t63-M" class="tooth-surface" data-tooth="63" data-surface="M" d="M16,85 L16,15 L50,44 L36,50 L50,56 Z"/>
+<path id="t63-D" class="tooth-surface" data-tooth="63" data-surface="D" d="M84,15 L84,85 L50,56 L64,50 L50,44 Z"/>
+<path id="t63-I" class="tooth-surface" data-tooth="63" data-surface="I" d="M50,44 L64,50 L50,56 L36,50 Z"/>
+<path id="t63-B" class="tooth-surface" data-tooth="63" data-surface="B" d="M23,8 L77,8 Q84,8 84,15 L64,50 L50,44 L36,50 L16,15 Q16,8 23,8 Z"/>
+<path id="t63-L" class="tooth-surface" data-tooth="63" data-surface="L" d="M77,92 L23,92 Q16,92 16,85 L36,50 L50,56 L64,50 L84,85 Q84,92 77,92 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M50,44 L64,50 L50,56 L36,50 Z M50,44 L50,8 M64,50 L84,50 M50,56 L50,92 M36,50 L16,50"/>
+<path class="tooth-outline" d="M23,8 L77,8 Q84,8 84,15 L84,85 Q84,92 77,92 L23,92 Q16,92 16,85 L16,15 Q16,8 23,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="772" y="158" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">63</text>
+  <g transform="translate(806 162) scale(0.6)">
+    <g id="t64" class="tooth tooth--molar tooth--primary" data-tooth="64" data-type="molar" data-dentition="primary" data-arch="upper" data-quadrant="6" data-state="empty">
+<path id="t64-M" class="tooth-surface" data-tooth="64" data-surface="M" d="M10,78 L10,22 L34,34 L34,66 Z"/>
+<path id="t64-D" class="tooth-surface" data-tooth="64" data-surface="D" d="M90,22 L90,78 L66,66 L66,34 Z"/>
+<path id="t64-O" class="tooth-surface" data-tooth="64" data-surface="O" d="M34,34 L66,34 L66,66 L34,66 Z"/>
+<path id="t64-B" class="tooth-surface" data-tooth="64" data-surface="B" d="M22,10 L78,10 Q90,10 90,22 L66,34 L34,34 L10,22 Q10,10 22,10 Z"/>
+<path id="t64-L" class="tooth-surface" data-tooth="64" data-surface="L" d="M78,90 L22,90 Q10,90 10,78 L34,66 L66,66 L90,78 Q90,90 78,90 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M34,34 L66,34 L66,66 L34,66 Z M34,34 L10,10 M66,34 L90,10 M66,66 L90,90 M34,66 L10,90"/>
+<path class="tooth-outline" d="M22,10 L78,10 Q90,10 90,22 L90,78 Q90,90 78,90 L22,90 Q10,90 10,78 L10,22 Q10,10 22,10 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="834" y="158" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">64</text>
+  <g transform="translate(868 162) scale(0.6)">
+    <g id="t65" class="tooth tooth--molar tooth--primary" data-tooth="65" data-type="molar" data-dentition="primary" data-arch="upper" data-quadrant="6" data-state="empty">
+<path id="t65-M" class="tooth-surface" data-tooth="65" data-surface="M" d="M10,78 L10,22 L34,34 L34,66 Z"/>
+<path id="t65-D" class="tooth-surface" data-tooth="65" data-surface="D" d="M90,22 L90,78 L66,66 L66,34 Z"/>
+<path id="t65-O" class="tooth-surface" data-tooth="65" data-surface="O" d="M34,34 L66,34 L66,66 L34,66 Z"/>
+<path id="t65-B" class="tooth-surface" data-tooth="65" data-surface="B" d="M22,10 L78,10 Q90,10 90,22 L66,34 L34,34 L10,22 Q10,10 22,10 Z"/>
+<path id="t65-L" class="tooth-surface" data-tooth="65" data-surface="L" d="M78,90 L22,90 Q10,90 10,78 L34,66 L66,66 L90,78 Q90,90 78,90 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M34,34 L66,34 L66,66 L34,66 Z M34,34 L10,10 M66,34 L90,10 M66,66 L90,90 M34,66 L10,90"/>
+<path class="tooth-outline" d="M22,10 L78,10 Q90,10 90,22 L90,78 Q90,90 78,90 L22,90 Q10,90 10,78 L10,22 Q10,10 22,10 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="896" y="158" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">65</text>
+  <g transform="translate(294 326) scale(0.6)">
+    <g id="t85" class="tooth tooth--molar tooth--primary" data-tooth="85" data-type="molar" data-dentition="primary" data-arch="lower" data-quadrant="8" data-state="empty">
+<path id="t85-M" class="tooth-surface" data-tooth="85" data-surface="M" d="M90,22 L90,78 L66,66 L66,34 Z"/>
+<path id="t85-D" class="tooth-surface" data-tooth="85" data-surface="D" d="M10,78 L10,22 L34,34 L34,66 Z"/>
+<path id="t85-O" class="tooth-surface" data-tooth="85" data-surface="O" d="M34,34 L66,34 L66,66 L34,66 Z"/>
+<path id="t85-B" class="tooth-surface" data-tooth="85" data-surface="B" d="M78,90 L22,90 Q10,90 10,78 L34,66 L66,66 L90,78 Q90,90 78,90 Z"/>
+<path id="t85-L" class="tooth-surface" data-tooth="85" data-surface="L" d="M22,10 L78,10 Q90,10 90,22 L66,34 L34,34 L10,22 Q10,10 22,10 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M34,34 L66,34 L66,66 L34,66 Z M34,34 L10,10 M66,34 L90,10 M66,66 L90,90 M34,66 L10,90"/>
+<path class="tooth-outline" d="M22,10 L78,10 Q90,10 90,22 L90,78 Q90,90 78,90 L22,90 Q10,90 10,78 L10,22 Q10,10 22,10 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="322" y="396" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">85</text>
+  <g transform="translate(356 326) scale(0.6)">
+    <g id="t84" class="tooth tooth--molar tooth--primary" data-tooth="84" data-type="molar" data-dentition="primary" data-arch="lower" data-quadrant="8" data-state="empty">
+<path id="t84-M" class="tooth-surface" data-tooth="84" data-surface="M" d="M90,22 L90,78 L66,66 L66,34 Z"/>
+<path id="t84-D" class="tooth-surface" data-tooth="84" data-surface="D" d="M10,78 L10,22 L34,34 L34,66 Z"/>
+<path id="t84-O" class="tooth-surface" data-tooth="84" data-surface="O" d="M34,34 L66,34 L66,66 L34,66 Z"/>
+<path id="t84-B" class="tooth-surface" data-tooth="84" data-surface="B" d="M78,90 L22,90 Q10,90 10,78 L34,66 L66,66 L90,78 Q90,90 78,90 Z"/>
+<path id="t84-L" class="tooth-surface" data-tooth="84" data-surface="L" d="M22,10 L78,10 Q90,10 90,22 L66,34 L34,34 L10,22 Q10,10 22,10 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M34,34 L66,34 L66,66 L34,66 Z M34,34 L10,10 M66,34 L90,10 M66,66 L90,90 M34,66 L10,90"/>
+<path class="tooth-outline" d="M22,10 L78,10 Q90,10 90,22 L90,78 Q90,90 78,90 L22,90 Q10,90 10,78 L10,22 Q10,10 22,10 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="384" y="396" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">84</text>
+  <g transform="translate(418 326) scale(0.6)">
+    <g id="t83" class="tooth tooth--canine tooth--primary" data-tooth="83" data-type="canine" data-dentition="primary" data-arch="lower" data-quadrant="8" data-state="empty">
+<path id="t83-M" class="tooth-surface" data-tooth="83" data-surface="M" d="M84,15 L84,85 L50,56 L64,50 L50,44 Z"/>
+<path id="t83-D" class="tooth-surface" data-tooth="83" data-surface="D" d="M16,85 L16,15 L50,44 L36,50 L50,56 Z"/>
+<path id="t83-I" class="tooth-surface" data-tooth="83" data-surface="I" d="M50,44 L64,50 L50,56 L36,50 Z"/>
+<path id="t83-B" class="tooth-surface" data-tooth="83" data-surface="B" d="M77,92 L23,92 Q16,92 16,85 L36,50 L50,56 L64,50 L84,85 Q84,92 77,92 Z"/>
+<path id="t83-L" class="tooth-surface" data-tooth="83" data-surface="L" d="M23,8 L77,8 Q84,8 84,15 L64,50 L50,44 L36,50 L16,15 Q16,8 23,8 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M50,44 L64,50 L50,56 L36,50 Z M50,44 L50,8 M64,50 L84,50 M50,56 L50,92 M36,50 L16,50"/>
+<path class="tooth-outline" d="M23,8 L77,8 Q84,8 84,15 L84,85 Q84,92 77,92 L23,92 Q16,92 16,85 L16,15 Q16,8 23,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="446" y="396" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">83</text>
+  <g transform="translate(480 326) scale(0.6)">
+    <g id="t82" class="tooth tooth--incisor tooth--primary" data-tooth="82" data-type="incisor" data-dentition="primary" data-arch="lower" data-quadrant="8" data-state="empty">
+<path id="t82-M" class="tooth-surface" data-tooth="82" data-surface="M" d="M82,14 L82,86 L66,55 L66,45 Z"/>
+<path id="t82-D" class="tooth-surface" data-tooth="82" data-surface="D" d="M18,86 L18,14 L34,45 L34,55 Z"/>
+<path id="t82-I" class="tooth-surface" data-tooth="82" data-surface="I" d="M34,45 L66,45 L66,55 L34,55 Z"/>
+<path id="t82-B" class="tooth-surface" data-tooth="82" data-surface="B" d="M76,92 L24,92 Q18,92 18,86 L34,55 L66,55 L82,86 Q82,92 76,92 Z"/>
+<path id="t82-L" class="tooth-surface" data-tooth="82" data-surface="L" d="M24,8 L76,8 Q82,8 82,14 L66,45 L34,45 L18,14 Q18,8 24,8 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M34,45 L66,45 L66,55 L34,55 Z M34,45 L18,8 M66,45 L82,8 M66,55 L82,92 M34,55 L18,92"/>
+<path class="tooth-outline" d="M24,8 L76,8 Q82,8 82,14 L82,86 Q82,92 76,92 L24,92 Q18,92 18,86 L18,14 Q18,8 24,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="508" y="396" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">82</text>
+  <g transform="translate(542 326) scale(0.6)">
+    <g id="t81" class="tooth tooth--incisor tooth--primary" data-tooth="81" data-type="incisor" data-dentition="primary" data-arch="lower" data-quadrant="8" data-state="empty">
+<path id="t81-M" class="tooth-surface" data-tooth="81" data-surface="M" d="M82,14 L82,86 L66,55 L66,45 Z"/>
+<path id="t81-D" class="tooth-surface" data-tooth="81" data-surface="D" d="M18,86 L18,14 L34,45 L34,55 Z"/>
+<path id="t81-I" class="tooth-surface" data-tooth="81" data-surface="I" d="M34,45 L66,45 L66,55 L34,55 Z"/>
+<path id="t81-B" class="tooth-surface" data-tooth="81" data-surface="B" d="M76,92 L24,92 Q18,92 18,86 L34,55 L66,55 L82,86 Q82,92 76,92 Z"/>
+<path id="t81-L" class="tooth-surface" data-tooth="81" data-surface="L" d="M24,8 L76,8 Q82,8 82,14 L66,45 L34,45 L18,14 Q18,8 24,8 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M34,45 L66,45 L66,55 L34,55 Z M34,45 L18,8 M66,45 L82,8 M66,55 L82,92 M34,55 L18,92"/>
+<path class="tooth-outline" d="M24,8 L76,8 Q82,8 82,14 L82,86 Q82,92 76,92 L24,92 Q18,92 18,86 L18,14 Q18,8 24,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="570" y="396" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">81</text>
+  <g transform="translate(620 326) scale(0.6)">
+    <g id="t71" class="tooth tooth--incisor tooth--primary" data-tooth="71" data-type="incisor" data-dentition="primary" data-arch="lower" data-quadrant="7" data-state="empty">
+<path id="t71-M" class="tooth-surface" data-tooth="71" data-surface="M" d="M18,86 L18,14 L34,45 L34,55 Z"/>
+<path id="t71-D" class="tooth-surface" data-tooth="71" data-surface="D" d="M82,14 L82,86 L66,55 L66,45 Z"/>
+<path id="t71-I" class="tooth-surface" data-tooth="71" data-surface="I" d="M34,45 L66,45 L66,55 L34,55 Z"/>
+<path id="t71-B" class="tooth-surface" data-tooth="71" data-surface="B" d="M76,92 L24,92 Q18,92 18,86 L34,55 L66,55 L82,86 Q82,92 76,92 Z"/>
+<path id="t71-L" class="tooth-surface" data-tooth="71" data-surface="L" d="M24,8 L76,8 Q82,8 82,14 L66,45 L34,45 L18,14 Q18,8 24,8 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M34,45 L66,45 L66,55 L34,55 Z M34,45 L18,8 M66,45 L82,8 M66,55 L82,92 M34,55 L18,92"/>
+<path class="tooth-outline" d="M24,8 L76,8 Q82,8 82,14 L82,86 Q82,92 76,92 L24,92 Q18,92 18,86 L18,14 Q18,8 24,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="648" y="396" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">71</text>
+  <g transform="translate(682 326) scale(0.6)">
+    <g id="t72" class="tooth tooth--incisor tooth--primary" data-tooth="72" data-type="incisor" data-dentition="primary" data-arch="lower" data-quadrant="7" data-state="empty">
+<path id="t72-M" class="tooth-surface" data-tooth="72" data-surface="M" d="M18,86 L18,14 L34,45 L34,55 Z"/>
+<path id="t72-D" class="tooth-surface" data-tooth="72" data-surface="D" d="M82,14 L82,86 L66,55 L66,45 Z"/>
+<path id="t72-I" class="tooth-surface" data-tooth="72" data-surface="I" d="M34,45 L66,45 L66,55 L34,55 Z"/>
+<path id="t72-B" class="tooth-surface" data-tooth="72" data-surface="B" d="M76,92 L24,92 Q18,92 18,86 L34,55 L66,55 L82,86 Q82,92 76,92 Z"/>
+<path id="t72-L" class="tooth-surface" data-tooth="72" data-surface="L" d="M24,8 L76,8 Q82,8 82,14 L66,45 L34,45 L18,14 Q18,8 24,8 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M34,45 L66,45 L66,55 L34,55 Z M34,45 L18,8 M66,45 L82,8 M66,55 L82,92 M34,55 L18,92"/>
+<path class="tooth-outline" d="M24,8 L76,8 Q82,8 82,14 L82,86 Q82,92 76,92 L24,92 Q18,92 18,86 L18,14 Q18,8 24,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="710" y="396" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">72</text>
+  <g transform="translate(744 326) scale(0.6)">
+    <g id="t73" class="tooth tooth--canine tooth--primary" data-tooth="73" data-type="canine" data-dentition="primary" data-arch="lower" data-quadrant="7" data-state="empty">
+<path id="t73-M" class="tooth-surface" data-tooth="73" data-surface="M" d="M16,85 L16,15 L50,44 L36,50 L50,56 Z"/>
+<path id="t73-D" class="tooth-surface" data-tooth="73" data-surface="D" d="M84,15 L84,85 L50,56 L64,50 L50,44 Z"/>
+<path id="t73-I" class="tooth-surface" data-tooth="73" data-surface="I" d="M50,44 L64,50 L50,56 L36,50 Z"/>
+<path id="t73-B" class="tooth-surface" data-tooth="73" data-surface="B" d="M77,92 L23,92 Q16,92 16,85 L36,50 L50,56 L64,50 L84,85 Q84,92 77,92 Z"/>
+<path id="t73-L" class="tooth-surface" data-tooth="73" data-surface="L" d="M23,8 L77,8 Q84,8 84,15 L64,50 L50,44 L36,50 L16,15 Q16,8 23,8 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M50,44 L64,50 L50,56 L36,50 Z M50,44 L50,8 M64,50 L84,50 M50,56 L50,92 M36,50 L16,50"/>
+<path class="tooth-outline" d="M23,8 L77,8 Q84,8 84,15 L84,85 Q84,92 77,92 L23,92 Q16,92 16,85 L16,15 Q16,8 23,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="772" y="396" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">73</text>
+  <g transform="translate(806 326) scale(0.6)">
+    <g id="t74" class="tooth tooth--molar tooth--primary" data-tooth="74" data-type="molar" data-dentition="primary" data-arch="lower" data-quadrant="7" data-state="empty">
+<path id="t74-M" class="tooth-surface" data-tooth="74" data-surface="M" d="M10,78 L10,22 L34,34 L34,66 Z"/>
+<path id="t74-D" class="tooth-surface" data-tooth="74" data-surface="D" d="M90,22 L90,78 L66,66 L66,34 Z"/>
+<path id="t74-O" class="tooth-surface" data-tooth="74" data-surface="O" d="M34,34 L66,34 L66,66 L34,66 Z"/>
+<path id="t74-B" class="tooth-surface" data-tooth="74" data-surface="B" d="M78,90 L22,90 Q10,90 10,78 L34,66 L66,66 L90,78 Q90,90 78,90 Z"/>
+<path id="t74-L" class="tooth-surface" data-tooth="74" data-surface="L" d="M22,10 L78,10 Q90,10 90,22 L66,34 L34,34 L10,22 Q10,10 22,10 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M34,34 L66,34 L66,66 L34,66 Z M34,34 L10,10 M66,34 L90,10 M66,66 L90,90 M34,66 L10,90"/>
+<path class="tooth-outline" d="M22,10 L78,10 Q90,10 90,22 L90,78 Q90,90 78,90 L22,90 Q10,90 10,78 L10,22 Q10,10 22,10 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="834" y="396" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">74</text>
+  <g transform="translate(868 326) scale(0.6)">
+    <g id="t75" class="tooth tooth--molar tooth--primary" data-tooth="75" data-type="molar" data-dentition="primary" data-arch="lower" data-quadrant="7" data-state="empty">
+<path id="t75-M" class="tooth-surface" data-tooth="75" data-surface="M" d="M10,78 L10,22 L34,34 L34,66 Z"/>
+<path id="t75-D" class="tooth-surface" data-tooth="75" data-surface="D" d="M90,22 L90,78 L66,66 L66,34 Z"/>
+<path id="t75-O" class="tooth-surface" data-tooth="75" data-surface="O" d="M34,34 L66,34 L66,66 L34,66 Z"/>
+<path id="t75-B" class="tooth-surface" data-tooth="75" data-surface="B" d="M78,90 L22,90 Q10,90 10,78 L34,66 L66,66 L90,78 Q90,90 78,90 Z"/>
+<path id="t75-L" class="tooth-surface" data-tooth="75" data-surface="L" d="M22,10 L78,10 Q90,10 90,22 L66,34 L34,34 L10,22 Q10,10 22,10 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M34,34 L66,34 L66,66 L34,66 Z M34,34 L10,10 M66,34 L90,10 M66,66 L90,90 M34,66 L10,90"/>
+<path class="tooth-outline" d="M22,10 L78,10 Q90,10 90,22 L90,78 Q90,90 78,90 L22,90 Q10,90 10,78 L10,22 Q10,10 22,10 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="896" y="396" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">75</text>
+  <g transform="translate(108 410) scale(0.6)">
+    <g id="t48" class="tooth tooth--molar tooth--permanent" data-tooth="48" data-type="molar" data-dentition="permanent" data-arch="lower" data-quadrant="4" data-state="empty">
+<path id="t48-M" class="tooth-surface" data-tooth="48" data-surface="M" d="M92,15 L92,85 L68,68 L68,32 Z"/>
+<path id="t48-D" class="tooth-surface" data-tooth="48" data-surface="D" d="M8,85 L8,15 L32,32 L32,68 Z"/>
+<path id="t48-O" class="tooth-surface" data-tooth="48" data-surface="O" d="M32,32 L68,32 L68,68 L32,68 Z"/>
+<path id="t48-B" class="tooth-surface" data-tooth="48" data-surface="B" d="M85,92 L15,92 Q8,92 8,85 L32,68 L68,68 L92,85 Q92,92 85,92 Z"/>
+<path id="t48-L" class="tooth-surface" data-tooth="48" data-surface="L" d="M15,8 L85,8 Q92,8 92,15 L68,32 L32,32 L8,15 Q8,8 15,8 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M32,32 L68,32 L68,68 L32,68 Z M32,32 L8,8 M68,32 L92,8 M68,68 L92,92 M32,68 L8,92"/>
+<path class="tooth-outline" d="M15,8 L85,8 Q92,8 92,15 L92,85 Q92,92 85,92 L15,92 Q8,92 8,85 L8,15 Q8,8 15,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="136" y="480" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">48</text>
+  <g transform="translate(170 410) scale(0.6)">
+    <g id="t47" class="tooth tooth--molar tooth--permanent" data-tooth="47" data-type="molar" data-dentition="permanent" data-arch="lower" data-quadrant="4" data-state="empty">
+<path id="t47-M" class="tooth-surface" data-tooth="47" data-surface="M" d="M92,15 L92,85 L68,68 L68,32 Z"/>
+<path id="t47-D" class="tooth-surface" data-tooth="47" data-surface="D" d="M8,85 L8,15 L32,32 L32,68 Z"/>
+<path id="t47-O" class="tooth-surface" data-tooth="47" data-surface="O" d="M32,32 L68,32 L68,68 L32,68 Z"/>
+<path id="t47-B" class="tooth-surface" data-tooth="47" data-surface="B" d="M85,92 L15,92 Q8,92 8,85 L32,68 L68,68 L92,85 Q92,92 85,92 Z"/>
+<path id="t47-L" class="tooth-surface" data-tooth="47" data-surface="L" d="M15,8 L85,8 Q92,8 92,15 L68,32 L32,32 L8,15 Q8,8 15,8 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M32,32 L68,32 L68,68 L32,68 Z M32,32 L8,8 M68,32 L92,8 M68,68 L92,92 M32,68 L8,92"/>
+<path class="tooth-outline" d="M15,8 L85,8 Q92,8 92,15 L92,85 Q92,92 85,92 L15,92 Q8,92 8,85 L8,15 Q8,8 15,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="198" y="480" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">47</text>
+  <g transform="translate(232 410) scale(0.6)">
+    <g id="t46" class="tooth tooth--molar tooth--permanent" data-tooth="46" data-type="molar" data-dentition="permanent" data-arch="lower" data-quadrant="4" data-state="empty">
+<path id="t46-M" class="tooth-surface" data-tooth="46" data-surface="M" d="M92,15 L92,85 L68,68 L68,32 Z"/>
+<path id="t46-D" class="tooth-surface" data-tooth="46" data-surface="D" d="M8,85 L8,15 L32,32 L32,68 Z"/>
+<path id="t46-O" class="tooth-surface" data-tooth="46" data-surface="O" d="M32,32 L68,32 L68,68 L32,68 Z"/>
+<path id="t46-B" class="tooth-surface" data-tooth="46" data-surface="B" d="M85,92 L15,92 Q8,92 8,85 L32,68 L68,68 L92,85 Q92,92 85,92 Z"/>
+<path id="t46-L" class="tooth-surface" data-tooth="46" data-surface="L" d="M15,8 L85,8 Q92,8 92,15 L68,32 L32,32 L8,15 Q8,8 15,8 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M32,32 L68,32 L68,68 L32,68 Z M32,32 L8,8 M68,32 L92,8 M68,68 L92,92 M32,68 L8,92"/>
+<path class="tooth-outline" d="M15,8 L85,8 Q92,8 92,15 L92,85 Q92,92 85,92 L15,92 Q8,92 8,85 L8,15 Q8,8 15,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="260" y="480" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">46</text>
+  <g transform="translate(294 410) scale(0.6)">
+    <g id="t45" class="tooth tooth--premolar tooth--permanent" data-tooth="45" data-type="premolar" data-dentition="permanent" data-arch="lower" data-quadrant="4" data-state="empty">
+<path id="t45-M" class="tooth-surface" data-tooth="45" data-surface="M" d="M86,20 L86,80 L62,62 L62,38 Z"/>
+<path id="t45-D" class="tooth-surface" data-tooth="45" data-surface="D" d="M14,80 L14,20 L38,38 L38,62 Z"/>
+<path id="t45-O" class="tooth-surface" data-tooth="45" data-surface="O" d="M38,38 L62,38 L62,62 L38,62 Z"/>
+<path id="t45-B" class="tooth-surface" data-tooth="45" data-surface="B" d="M80,86 L20,86 Q14,86 14,80 L38,62 L62,62 L86,80 Q86,86 80,86 Z"/>
+<path id="t45-L" class="tooth-surface" data-tooth="45" data-surface="L" d="M20,14 L80,14 Q86,14 86,20 L62,38 L38,38 L14,20 Q14,14 20,14 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M38,38 L62,38 L62,62 L38,62 Z M38,38 L14,14 M62,38 L86,14 M62,62 L86,86 M38,62 L14,86"/>
+<path class="tooth-outline" d="M20,14 L80,14 Q86,14 86,20 L86,80 Q86,86 80,86 L20,86 Q14,86 14,80 L14,20 Q14,14 20,14 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="322" y="480" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">45</text>
+  <g transform="translate(356 410) scale(0.6)">
+    <g id="t44" class="tooth tooth--premolar tooth--permanent" data-tooth="44" data-type="premolar" data-dentition="permanent" data-arch="lower" data-quadrant="4" data-state="empty">
+<path id="t44-M" class="tooth-surface" data-tooth="44" data-surface="M" d="M86,20 L86,80 L62,62 L62,38 Z"/>
+<path id="t44-D" class="tooth-surface" data-tooth="44" data-surface="D" d="M14,80 L14,20 L38,38 L38,62 Z"/>
+<path id="t44-O" class="tooth-surface" data-tooth="44" data-surface="O" d="M38,38 L62,38 L62,62 L38,62 Z"/>
+<path id="t44-B" class="tooth-surface" data-tooth="44" data-surface="B" d="M80,86 L20,86 Q14,86 14,80 L38,62 L62,62 L86,80 Q86,86 80,86 Z"/>
+<path id="t44-L" class="tooth-surface" data-tooth="44" data-surface="L" d="M20,14 L80,14 Q86,14 86,20 L62,38 L38,38 L14,20 Q14,14 20,14 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M38,38 L62,38 L62,62 L38,62 Z M38,38 L14,14 M62,38 L86,14 M62,62 L86,86 M38,62 L14,86"/>
+<path class="tooth-outline" d="M20,14 L80,14 Q86,14 86,20 L86,80 Q86,86 80,86 L20,86 Q14,86 14,80 L14,20 Q14,14 20,14 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="384" y="480" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">44</text>
+  <g transform="translate(418 410) scale(0.6)">
+    <g id="t43" class="tooth tooth--canine tooth--permanent" data-tooth="43" data-type="canine" data-dentition="permanent" data-arch="lower" data-quadrant="4" data-state="empty">
+<path id="t43-M" class="tooth-surface" data-tooth="43" data-surface="M" d="M84,12 L84,88 L50,56 L64,50 L50,44 Z"/>
+<path id="t43-D" class="tooth-surface" data-tooth="43" data-surface="D" d="M16,88 L16,12 L50,44 L36,50 L50,56 Z"/>
+<path id="t43-I" class="tooth-surface" data-tooth="43" data-surface="I" d="M50,44 L64,50 L50,56 L36,50 Z"/>
+<path id="t43-B" class="tooth-surface" data-tooth="43" data-surface="B" d="M80,92 L20,92 Q16,92 16,88 L36,50 L50,56 L64,50 L84,88 Q84,92 80,92 Z"/>
+<path id="t43-L" class="tooth-surface" data-tooth="43" data-surface="L" d="M20,8 L80,8 Q84,8 84,12 L64,50 L50,44 L36,50 L16,12 Q16,8 20,8 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M50,44 L64,50 L50,56 L36,50 Z M50,44 L50,8 M64,50 L84,50 M50,56 L50,92 M36,50 L16,50"/>
+<path class="tooth-outline" d="M20,8 L80,8 Q84,8 84,12 L84,88 Q84,92 80,92 L20,92 Q16,92 16,88 L16,12 Q16,8 20,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="446" y="480" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">43</text>
+  <g transform="translate(480 410) scale(0.6)">
+    <g id="t42" class="tooth tooth--incisor tooth--permanent" data-tooth="42" data-type="incisor" data-dentition="permanent" data-arch="lower" data-quadrant="4" data-state="empty">
+<path id="t42-M" class="tooth-surface" data-tooth="42" data-surface="M" d="M82,11 L82,89 L66,55 L66,45 Z"/>
+<path id="t42-D" class="tooth-surface" data-tooth="42" data-surface="D" d="M18,89 L18,11 L34,45 L34,55 Z"/>
+<path id="t42-I" class="tooth-surface" data-tooth="42" data-surface="I" d="M34,45 L66,45 L66,55 L34,55 Z"/>
+<path id="t42-B" class="tooth-surface" data-tooth="42" data-surface="B" d="M79,92 L21,92 Q18,92 18,89 L34,55 L66,55 L82,89 Q82,92 79,92 Z"/>
+<path id="t42-L" class="tooth-surface" data-tooth="42" data-surface="L" d="M21,8 L79,8 Q82,8 82,11 L66,45 L34,45 L18,11 Q18,8 21,8 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M34,45 L66,45 L66,55 L34,55 Z M34,45 L18,8 M66,45 L82,8 M66,55 L82,92 M34,55 L18,92"/>
+<path class="tooth-outline" d="M21,8 L79,8 Q82,8 82,11 L82,89 Q82,92 79,92 L21,92 Q18,92 18,89 L18,11 Q18,8 21,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="508" y="480" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">42</text>
+  <g transform="translate(542 410) scale(0.6)">
+    <g id="t41" class="tooth tooth--incisor tooth--permanent" data-tooth="41" data-type="incisor" data-dentition="permanent" data-arch="lower" data-quadrant="4" data-state="empty">
+<path id="t41-M" class="tooth-surface" data-tooth="41" data-surface="M" d="M82,11 L82,89 L66,55 L66,45 Z"/>
+<path id="t41-D" class="tooth-surface" data-tooth="41" data-surface="D" d="M18,89 L18,11 L34,45 L34,55 Z"/>
+<path id="t41-I" class="tooth-surface" data-tooth="41" data-surface="I" d="M34,45 L66,45 L66,55 L34,55 Z"/>
+<path id="t41-B" class="tooth-surface" data-tooth="41" data-surface="B" d="M79,92 L21,92 Q18,92 18,89 L34,55 L66,55 L82,89 Q82,92 79,92 Z"/>
+<path id="t41-L" class="tooth-surface" data-tooth="41" data-surface="L" d="M21,8 L79,8 Q82,8 82,11 L66,45 L34,45 L18,11 Q18,8 21,8 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M34,45 L66,45 L66,55 L34,55 Z M34,45 L18,8 M66,45 L82,8 M66,55 L82,92 M34,55 L18,92"/>
+<path class="tooth-outline" d="M21,8 L79,8 Q82,8 82,11 L82,89 Q82,92 79,92 L21,92 Q18,92 18,89 L18,11 Q18,8 21,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="570" y="480" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">41</text>
+  <g transform="translate(620 410) scale(0.6)">
+    <g id="t31" class="tooth tooth--incisor tooth--permanent" data-tooth="31" data-type="incisor" data-dentition="permanent" data-arch="lower" data-quadrant="3" data-state="empty">
+<path id="t31-M" class="tooth-surface" data-tooth="31" data-surface="M" d="M18,89 L18,11 L34,45 L34,55 Z"/>
+<path id="t31-D" class="tooth-surface" data-tooth="31" data-surface="D" d="M82,11 L82,89 L66,55 L66,45 Z"/>
+<path id="t31-I" class="tooth-surface" data-tooth="31" data-surface="I" d="M34,45 L66,45 L66,55 L34,55 Z"/>
+<path id="t31-B" class="tooth-surface" data-tooth="31" data-surface="B" d="M79,92 L21,92 Q18,92 18,89 L34,55 L66,55 L82,89 Q82,92 79,92 Z"/>
+<path id="t31-L" class="tooth-surface" data-tooth="31" data-surface="L" d="M21,8 L79,8 Q82,8 82,11 L66,45 L34,45 L18,11 Q18,8 21,8 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M34,45 L66,45 L66,55 L34,55 Z M34,45 L18,8 M66,45 L82,8 M66,55 L82,92 M34,55 L18,92"/>
+<path class="tooth-outline" d="M21,8 L79,8 Q82,8 82,11 L82,89 Q82,92 79,92 L21,92 Q18,92 18,89 L18,11 Q18,8 21,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="648" y="480" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">31</text>
+  <g transform="translate(682 410) scale(0.6)">
+    <g id="t32" class="tooth tooth--incisor tooth--permanent" data-tooth="32" data-type="incisor" data-dentition="permanent" data-arch="lower" data-quadrant="3" data-state="empty">
+<path id="t32-M" class="tooth-surface" data-tooth="32" data-surface="M" d="M18,89 L18,11 L34,45 L34,55 Z"/>
+<path id="t32-D" class="tooth-surface" data-tooth="32" data-surface="D" d="M82,11 L82,89 L66,55 L66,45 Z"/>
+<path id="t32-I" class="tooth-surface" data-tooth="32" data-surface="I" d="M34,45 L66,45 L66,55 L34,55 Z"/>
+<path id="t32-B" class="tooth-surface" data-tooth="32" data-surface="B" d="M79,92 L21,92 Q18,92 18,89 L34,55 L66,55 L82,89 Q82,92 79,92 Z"/>
+<path id="t32-L" class="tooth-surface" data-tooth="32" data-surface="L" d="M21,8 L79,8 Q82,8 82,11 L66,45 L34,45 L18,11 Q18,8 21,8 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M34,45 L66,45 L66,55 L34,55 Z M34,45 L18,8 M66,45 L82,8 M66,55 L82,92 M34,55 L18,92"/>
+<path class="tooth-outline" d="M21,8 L79,8 Q82,8 82,11 L82,89 Q82,92 79,92 L21,92 Q18,92 18,89 L18,11 Q18,8 21,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="710" y="480" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">32</text>
+  <g transform="translate(744 410) scale(0.6)">
+    <g id="t33" class="tooth tooth--canine tooth--permanent" data-tooth="33" data-type="canine" data-dentition="permanent" data-arch="lower" data-quadrant="3" data-state="empty">
+<path id="t33-M" class="tooth-surface" data-tooth="33" data-surface="M" d="M16,88 L16,12 L50,44 L36,50 L50,56 Z"/>
+<path id="t33-D" class="tooth-surface" data-tooth="33" data-surface="D" d="M84,12 L84,88 L50,56 L64,50 L50,44 Z"/>
+<path id="t33-I" class="tooth-surface" data-tooth="33" data-surface="I" d="M50,44 L64,50 L50,56 L36,50 Z"/>
+<path id="t33-B" class="tooth-surface" data-tooth="33" data-surface="B" d="M80,92 L20,92 Q16,92 16,88 L36,50 L50,56 L64,50 L84,88 Q84,92 80,92 Z"/>
+<path id="t33-L" class="tooth-surface" data-tooth="33" data-surface="L" d="M20,8 L80,8 Q84,8 84,12 L64,50 L50,44 L36,50 L16,12 Q16,8 20,8 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M50,44 L64,50 L50,56 L36,50 Z M50,44 L50,8 M64,50 L84,50 M50,56 L50,92 M36,50 L16,50"/>
+<path class="tooth-outline" d="M20,8 L80,8 Q84,8 84,12 L84,88 Q84,92 80,92 L20,92 Q16,92 16,88 L16,12 Q16,8 20,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="772" y="480" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">33</text>
+  <g transform="translate(806 410) scale(0.6)">
+    <g id="t34" class="tooth tooth--premolar tooth--permanent" data-tooth="34" data-type="premolar" data-dentition="permanent" data-arch="lower" data-quadrant="3" data-state="empty">
+<path id="t34-M" class="tooth-surface" data-tooth="34" data-surface="M" d="M14,80 L14,20 L38,38 L38,62 Z"/>
+<path id="t34-D" class="tooth-surface" data-tooth="34" data-surface="D" d="M86,20 L86,80 L62,62 L62,38 Z"/>
+<path id="t34-O" class="tooth-surface" data-tooth="34" data-surface="O" d="M38,38 L62,38 L62,62 L38,62 Z"/>
+<path id="t34-B" class="tooth-surface" data-tooth="34" data-surface="B" d="M80,86 L20,86 Q14,86 14,80 L38,62 L62,62 L86,80 Q86,86 80,86 Z"/>
+<path id="t34-L" class="tooth-surface" data-tooth="34" data-surface="L" d="M20,14 L80,14 Q86,14 86,20 L62,38 L38,38 L14,20 Q14,14 20,14 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M38,38 L62,38 L62,62 L38,62 Z M38,38 L14,14 M62,38 L86,14 M62,62 L86,86 M38,62 L14,86"/>
+<path class="tooth-outline" d="M20,14 L80,14 Q86,14 86,20 L86,80 Q86,86 80,86 L20,86 Q14,86 14,80 L14,20 Q14,14 20,14 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="834" y="480" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">34</text>
+  <g transform="translate(868 410) scale(0.6)">
+    <g id="t35" class="tooth tooth--premolar tooth--permanent" data-tooth="35" data-type="premolar" data-dentition="permanent" data-arch="lower" data-quadrant="3" data-state="empty">
+<path id="t35-M" class="tooth-surface" data-tooth="35" data-surface="M" d="M14,80 L14,20 L38,38 L38,62 Z"/>
+<path id="t35-D" class="tooth-surface" data-tooth="35" data-surface="D" d="M86,20 L86,80 L62,62 L62,38 Z"/>
+<path id="t35-O" class="tooth-surface" data-tooth="35" data-surface="O" d="M38,38 L62,38 L62,62 L38,62 Z"/>
+<path id="t35-B" class="tooth-surface" data-tooth="35" data-surface="B" d="M80,86 L20,86 Q14,86 14,80 L38,62 L62,62 L86,80 Q86,86 80,86 Z"/>
+<path id="t35-L" class="tooth-surface" data-tooth="35" data-surface="L" d="M20,14 L80,14 Q86,14 86,20 L62,38 L38,38 L14,20 Q14,14 20,14 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M38,38 L62,38 L62,62 L38,62 Z M38,38 L14,14 M62,38 L86,14 M62,62 L86,86 M38,62 L14,86"/>
+<path class="tooth-outline" d="M20,14 L80,14 Q86,14 86,20 L86,80 Q86,86 80,86 L20,86 Q14,86 14,80 L14,20 Q14,14 20,14 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="896" y="480" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">35</text>
+  <g transform="translate(930 410) scale(0.6)">
+    <g id="t36" class="tooth tooth--molar tooth--permanent" data-tooth="36" data-type="molar" data-dentition="permanent" data-arch="lower" data-quadrant="3" data-state="empty">
+<path id="t36-M" class="tooth-surface" data-tooth="36" data-surface="M" d="M8,85 L8,15 L32,32 L32,68 Z"/>
+<path id="t36-D" class="tooth-surface" data-tooth="36" data-surface="D" d="M92,15 L92,85 L68,68 L68,32 Z"/>
+<path id="t36-O" class="tooth-surface" data-tooth="36" data-surface="O" d="M32,32 L68,32 L68,68 L32,68 Z"/>
+<path id="t36-B" class="tooth-surface" data-tooth="36" data-surface="B" d="M85,92 L15,92 Q8,92 8,85 L32,68 L68,68 L92,85 Q92,92 85,92 Z"/>
+<path id="t36-L" class="tooth-surface" data-tooth="36" data-surface="L" d="M15,8 L85,8 Q92,8 92,15 L68,32 L32,32 L8,15 Q8,8 15,8 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M32,32 L68,32 L68,68 L32,68 Z M32,32 L8,8 M68,32 L92,8 M68,68 L92,92 M32,68 L8,92"/>
+<path class="tooth-outline" d="M15,8 L85,8 Q92,8 92,15 L92,85 Q92,92 85,92 L15,92 Q8,92 8,85 L8,15 Q8,8 15,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="958" y="480" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">36</text>
+  <g transform="translate(992 410) scale(0.6)">
+    <g id="t37" class="tooth tooth--molar tooth--permanent" data-tooth="37" data-type="molar" data-dentition="permanent" data-arch="lower" data-quadrant="3" data-state="empty">
+<path id="t37-M" class="tooth-surface" data-tooth="37" data-surface="M" d="M8,85 L8,15 L32,32 L32,68 Z"/>
+<path id="t37-D" class="tooth-surface" data-tooth="37" data-surface="D" d="M92,15 L92,85 L68,68 L68,32 Z"/>
+<path id="t37-O" class="tooth-surface" data-tooth="37" data-surface="O" d="M32,32 L68,32 L68,68 L32,68 Z"/>
+<path id="t37-B" class="tooth-surface" data-tooth="37" data-surface="B" d="M85,92 L15,92 Q8,92 8,85 L32,68 L68,68 L92,85 Q92,92 85,92 Z"/>
+<path id="t37-L" class="tooth-surface" data-tooth="37" data-surface="L" d="M15,8 L85,8 Q92,8 92,15 L68,32 L32,32 L8,15 Q8,8 15,8 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M32,32 L68,32 L68,68 L32,68 Z M32,32 L8,8 M68,32 L92,8 M68,68 L92,92 M32,68 L8,92"/>
+<path class="tooth-outline" d="M15,8 L85,8 Q92,8 92,15 L92,85 Q92,92 85,92 L15,92 Q8,92 8,85 L8,15 Q8,8 15,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="1020" y="480" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">37</text>
+  <g transform="translate(1054 410) scale(0.6)">
+    <g id="t38" class="tooth tooth--molar tooth--permanent" data-tooth="38" data-type="molar" data-dentition="permanent" data-arch="lower" data-quadrant="3" data-state="empty">
+<path id="t38-M" class="tooth-surface" data-tooth="38" data-surface="M" d="M8,85 L8,15 L32,32 L32,68 Z"/>
+<path id="t38-D" class="tooth-surface" data-tooth="38" data-surface="D" d="M92,15 L92,85 L68,68 L68,32 Z"/>
+<path id="t38-O" class="tooth-surface" data-tooth="38" data-surface="O" d="M32,32 L68,32 L68,68 L32,68 Z"/>
+<path id="t38-B" class="tooth-surface" data-tooth="38" data-surface="B" d="M85,92 L15,92 Q8,92 8,85 L32,68 L68,68 L92,85 Q92,92 85,92 Z"/>
+<path id="t38-L" class="tooth-surface" data-tooth="38" data-surface="L" d="M15,8 L85,8 Q92,8 92,15 L68,32 L32,32 L8,15 Q8,8 15,8 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M32,32 L68,32 L68,68 L32,68 Z M32,32 L8,8 M68,32 L92,8 M68,68 L92,92 M32,68 L8,92"/>
+<path class="tooth-outline" d="M15,8 L85,8 Q92,8 92,15 L92,85 Q92,92 85,92 L15,92 Q8,92 8,85 L8,15 Q8,8 15,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="tooth-number" x="1082" y="480" font-size="11" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">38</text>
+  <g id="orientasi-permukaan" transform="translate(425 223)">
+    <rect x="0" y="0" width="368" height="98" rx="8" fill="#F8FAFC" stroke="#D1D5DB"/>
+    <text class="chart-sub" x="14" y="16" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif" font-weight="600">Orientasi permukaan (bukan gigi pasien)</text>
+    <g transform="translate(16 20) scale(0.68)">
+      <g id="t16" class="tooth tooth--molar tooth--permanent" data-tooth="16" data-type="molar" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-state="empty">
+<path id="t16-M" class="tooth-surface" data-tooth="16" data-surface="M" d="M92,15 L92,85 L68,68 L68,32 Z"/>
+<path id="t16-D" class="tooth-surface" data-tooth="16" data-surface="D" d="M8,85 L8,15 L32,32 L32,68 Z"/>
+<path id="t16-O" class="tooth-surface" data-tooth="16" data-surface="O" d="M32,32 L68,32 L68,68 L32,68 Z"/>
+<path id="t16-B" class="tooth-surface" data-tooth="16" data-surface="B" d="M15,8 L85,8 Q92,8 92,15 L68,32 L32,32 L8,15 Q8,8 15,8 Z"/>
+<path id="t16-L" class="tooth-surface" data-tooth="16" data-surface="L" d="M85,92 L15,92 Q8,92 8,85 L32,68 L68,68 L92,85 Q92,92 85,92 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M32,32 L68,32 L68,68 L32,68 Z M32,32 L8,8 M68,32 L92,8 M68,68 L92,92 M32,68 L8,92"/>
+<path class="tooth-outline" d="M15,8 L85,8 Q92,8 92,15 L92,85 Q92,92 85,92 L15,92 Q8,92 8,85 L8,15 Q8,8 15,8 Z"/>
+</g>
+</g>
+      <text class="orient-label" x="50" y="20" font-size="15" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">B</text>
+      <text class="orient-label" x="50" y="80" font-size="15" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">P</text>
+      <text class="orient-label" x="20" y="50" font-size="15" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">D</text>
+      <text class="orient-label" x="80" y="50" font-size="15" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">M</text>
+      <text class="orient-label" x="50" y="50" font-size="15" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">O</text>
+    </g>
+    <text class="chart-sub" x="50" y="90" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">16 · kanan atas</text>
+    <g transform="translate(196 20) scale(0.68)">
+      <g id="t46" class="tooth tooth--molar tooth--permanent" data-tooth="46" data-type="molar" data-dentition="permanent" data-arch="lower" data-quadrant="4" data-state="empty">
+<path id="t46-M" class="tooth-surface" data-tooth="46" data-surface="M" d="M92,15 L92,85 L68,68 L68,32 Z"/>
+<path id="t46-D" class="tooth-surface" data-tooth="46" data-surface="D" d="M8,85 L8,15 L32,32 L32,68 Z"/>
+<path id="t46-O" class="tooth-surface" data-tooth="46" data-surface="O" d="M32,32 L68,32 L68,68 L32,68 Z"/>
+<path id="t46-B" class="tooth-surface" data-tooth="46" data-surface="B" d="M85,92 L15,92 Q8,92 8,85 L32,68 L68,68 L92,85 Q92,92 85,92 Z"/>
+<path id="t46-L" class="tooth-surface" data-tooth="46" data-surface="L" d="M15,8 L85,8 Q92,8 92,15 L68,32 L32,32 L8,15 Q8,8 15,8 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M32,32 L68,32 L68,68 L32,68 Z M32,32 L8,8 M68,32 L92,8 M68,68 L92,92 M32,68 L8,92"/>
+<path class="tooth-outline" d="M15,8 L85,8 Q92,8 92,15 L92,85 Q92,92 85,92 L15,92 Q8,92 8,85 L8,15 Q8,8 15,8 Z"/>
+</g>
+</g>
+      <text class="orient-label" x="50" y="20" font-size="15" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">L</text>
+      <text class="orient-label" x="50" y="80" font-size="15" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">B</text>
+      <text class="orient-label" x="20" y="50" font-size="15" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">D</text>
+      <text class="orient-label" x="80" y="50" font-size="15" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">M</text>
+      <text class="orient-label" x="50" y="50" font-size="15" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">O</text>
+    </g>
+    <text class="chart-sub" x="230" y="90" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">46 · kanan bawah</text>
+  </g>
+  <text class="chart-sub" x="108" y="518" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Id: t16-O, t11-I, t16-M, t16-D, t16-B, t16-L. Label tampak: P di gigi atas (palatal), L di gigi bawah (lingual); data-surface tetap L. I = insisal. Pandangan operator (kanan pasien di kiri).</text>
+</svg>

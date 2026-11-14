@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 520" width="1080" height="520" role="img" aria-labelledby="title" class="tooth-svg" color="#1F2937" >
+  <title id="title">Kondisi pada gigi 3D — molar 16 dan insisor 11</title>
+  <style>
+/* Bitto odontogram — classes the React build should toggle */
+.tooth-svg { color: #1F2937; font-family: Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif; }
+.tooth-surface {
+  fill: #FFFFFF;
+  stroke: none;
+  pointer-events: auto;
+  cursor: pointer;
+}
+.tooth-outline, .tooth-divisions {
+  fill: none;
+  stroke: currentColor;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+.tooth-outline { stroke-width: 1.75; }
+.tooth-divisions { stroke-width: 1.15; }
+.tooth-number {
+  fill: #1F2937;
+  font-family: Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-anchor: middle;
+  pointer-events: none;
+}
+.tooth[data-state="draft"] .tooth-outline {
+  stroke: #6D28D9;
+  stroke-width: 2.1;
+  stroke-dasharray: 3.5 2.5;
+}
+.tooth[data-state="draft"] .tooth-divisions { stroke: #6D28D9; }
+.tooth[data-state="draft"] .tooth-wash { fill: #F3EEFF; }
+.tooth[data-state="signed"] .tooth-outline {
+  stroke: #111827;
+  stroke-width: 2;
+  stroke-dasharray: none;
+}
+.tooth-lock { fill: #111827; stroke: none; }
+.tooth-draft-mark { fill: #A15C00; stroke: none; }
+
+.tooth-surface[data-condition="sehat"] { fill: #E8F6EE; }
+.tooth-surface[data-condition="karies"] { fill: #BE123C; }
+.tooth-surface[data-condition="tambalan"] { fill: #1E40AF; }
+
+.surface-dots { fill: #FFFFFF; pointer-events: none; }
+.overlay { pointer-events: none; }
+.overlay-mahkota {
+  fill: none;
+  stroke: #6D28D9;
+  stroke-width: 3;
+}
+.overlay-hilang {
+  fill: none;
+  stroke: #3F3F46;
+  stroke-width: 3.2;
+  stroke-linecap: square;
+}
+.overlay-sisa-akar {
+  fill: none;
+  stroke: #9A3412;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.overlay-perlu-dicabut {
+  fill: none;
+  stroke: #A15C00;
+  stroke-width: 3.2;
+  stroke-linecap: square;
+}
+.overlay-implan {
+  fill: none;
+  stroke: #0F5F63;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Procedure status — independent of condition colour+shape.
+   Kemungkinan MVP, menunggu persetujuan Jerome. */
+.tooth-surface[data-status] { fill-opacity: 1; }
+.tooth-surface[data-status="sudah_ada_lain"] { fill-opacity: 0.7; }
+.tooth-surface[data-status="direncanakan"] { fill-opacity: 0.5; }
+.tooth-surface[data-status="dirujuk"] { fill-opacity: 0.8; }
+.tooth[data-status="direncanakan"] .tooth-outline {
+  stroke-dasharray: 4 2.5;
+}
+.tooth[data-status="dirujuk"] .tooth-outline {
+  stroke-dasharray: 1.5 2;
+}
+.tooth[data-baseline="missing"] { opacity: 0.45; }
+.tooth[data-baseline="missing"] .tooth-surface { fill: #E5E7EB; }
+.status-mark { pointer-events: none; }
+
+/* Soft 3D graphical chart */
+.tooth-3d { cursor: pointer; }
+.tooth-3d .tooth-hit { fill: transparent; stroke: none; pointer-events: all; }
+.tooth-3d .anatomy, .tooth-3d .cond-mark { pointer-events: none; }
+.tooth-3d[data-state="draft"] .tooth-3d-frame {
+  fill: none;
+  stroke: #6D28D9;
+  stroke-width: 2.2;
+  stroke-dasharray: 4 3;
+}
+.tooth-3d[data-state="signed"] .tooth-3d-frame {
+  fill: none;
+  stroke: #111827;
+  stroke-width: 1.8;
+}
+.tooth-3d[data-baseline="missing"] { opacity: 0.4; }
+  .sheet-title { font-weight: 700; font-size: 20px; fill: #111827; }
+  .sheet-sub { font-size: 11px; fill: #4B5563; }
+  .sheet-cap { font-size: 11px; fill: #1F2937; font-weight: 600; text-anchor: middle; }
+  </style>
+  <defs>
+    <linearGradient id="enamel" x1="0.2" y1="0.1" x2="0.85" y2="0.95">
+      <stop offset="0" stop-color="#FFF9F2"/>
+      <stop offset="0.45" stop-color="#F0E2CC"/>
+      <stop offset="1" stop-color="#D2BB9A"/>
+    </linearGradient>
+    <linearGradient id="enamel-occlusal" x1="0.3" y1="0" x2="0.7" y2="1">
+      <stop offset="0" stop-color="#E6D3B6"/>
+      <stop offset="1" stop-color="#C4AB88"/>
+    </linearGradient>
+    <linearGradient id="root-grad" x1="0.3" y1="1" x2="0.7" y2="0">
+      <stop offset="0" stop-color="#EAD4B4"/>
+      <stop offset="1" stop-color="#D0B087"/>
+    </linearGradient>
+    <linearGradient id="root-back" x1="0.3" y1="1" x2="0.7" y2="0">
+      <stop offset="0" stop-color="#E0C49A"/>
+      <stop offset="1" stop-color="#C4A078"/>
+    </linearGradient>
+    <radialGradient id="soft-shadow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#8A7A68" stop-opacity="0.3"/>
+      <stop offset="1" stop-color="#8A7A68" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="cap-grad" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0" stop-color="#DDD6FE"/>
+      <stop offset="1" stop-color="#7C3AED"/>
+    </linearGradient>
+    <linearGradient id="implant-grad" x1="0.3" y1="0" x2="0.7" y2="1">
+      <stop offset="0" stop-color="#5EEAD4"/>
+      <stop offset="1" stop-color="#0F5F63"/>
+    </linearGradient>
+    <linearGradient id="prosthetic" x1="0.2" y1="0.1" x2="0.85" y2="0.95">
+      <stop offset="0" stop-color="#F5F0E8"/>
+      <stop offset="1" stop-color="#C8B8A0"/>
+    </linearGradient>
+  </defs>
+  <rect width="1080" height="520" fill="#FFFFFF"/>
+  <text class="sheet-title" x="32" y="32" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Kondisi pada bagan grafis 3D</text>
+  <text class="sheet-sub" x="32" y="50" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Molar 16 (atas) dan insisor 11 (atas). Legenda internal, bukan standar resmi Kemenkes/PDGI. Karies di oklusal/insisal; kondisi seluruh gigi menutupi mahkota atau akar.</text>
+  <text class="sheet-sub" x="32" y="78" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif" font-weight="600">Molar 16</text>
+  <g transform="translate(24 82) scale(1.05)">
+    <g id="t16-sehat" class="tooth tooth-3d tooth--molar tooth--permanent" data-tooth="16" data-type="molar" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-roots="3" data-state="empty"><g class="anatomy"><ellipse cx="52" cy="128" rx="26" ry="7" fill="url(#soft-shadow)"/><path d="M43.7,76.9 C47.1,49.4 49.9,22 51,22 C52.1,22 53.9,49.6 56.3,77.1 Z" fill="url(#root-back)" stroke="#6F5E4A" stroke-width="1.05" stroke-linejoin="round"/><path d="M32.7,77.7 C33.1,53.9 32.9,30.1 34,30 C35.1,29.9 39.9,53.1 45.3,76.3 Z" fill="url(#root-grad)" stroke="#6F5E4A" stroke-width="1.05" stroke-linejoin="round"/><path d="M54.7,76.3 C60.1,53.1 64.9,29.9 66,30 C67.1,30.1 66.9,53.9 67.3,77.7 Z" fill="url(#root-grad)" stroke="#6F5E4A" stroke-width="1.05" stroke-linejoin="round"/><ellipse cx="50" cy="76" rx="22" ry="5.5" fill="url(#enamel)" stroke="#6F5E4A" stroke-width="0.8"/><path d="M29,76 C27,84 25,99 25,103 C25,114 28,119 33,124 L67,124 C72,119 75,114 75,103 C75,99 73,84 71,76 Z" fill="url(#enamel)" fill-opacity="1" stroke="#6F5E4A" stroke-width="1.15" stroke-linejoin="round"/><path d="M35.5,113 L64.5,113 Q68,113 68,116.5 L68,118.5 Q68,122 64.5,122 L35.5,122 Q32,122 32,118.5 L32,116.5 Q32,113 35.5,113 Z" fill="url(#enamel-occlusal)" fill-opacity="1" stroke="#6F5E4A" stroke-width="0.85"/><path d="M31,84 C38,86 39,94.4 34,102.4 C32,92.4 30,94 31,84 Z" fill="#FFFFFF" fill-opacity="0.42"/><path class="cond-mark" d="M47,95.2 L49.5,98.2 L54,92.2" fill="none" stroke="#0B7A45" stroke-width="1.6" stroke-linecap="round"/></g><rect class="tooth-hit" x="8" y="6" width="84" height="148" rx="12"><title>Pilih gigi 16</title></rect></g>
+  </g>
+  <text class="sheet-cap" x="74" y="266" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Sehat</text>
+  <g transform="translate(150 82) scale(1.05)">
+    <g id="t16-karies" class="tooth tooth-3d tooth--molar tooth--permanent" data-tooth="16" data-type="molar" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-roots="3" data-state="empty"><g class="anatomy"><ellipse cx="52" cy="128" rx="26" ry="7" fill="url(#soft-shadow)"/><path d="M43.7,76.9 C47.1,49.4 49.9,22 51,22 C52.1,22 53.9,49.6 56.3,77.1 Z" fill="url(#root-back)" stroke="#6F5E4A" stroke-width="1.05" stroke-linejoin="round"/><path d="M32.7,77.7 C33.1,53.9 32.9,30.1 34,30 C35.1,29.9 39.9,53.1 45.3,76.3 Z" fill="url(#root-grad)" stroke="#6F5E4A" stroke-width="1.05" stroke-linejoin="round"/><path d="M54.7,76.3 C60.1,53.1 64.9,29.9 66,30 C67.1,30.1 66.9,53.9 67.3,77.7 Z" fill="url(#root-grad)" stroke="#6F5E4A" stroke-width="1.05" stroke-linejoin="round"/><ellipse cx="50" cy="76" rx="22" ry="5.5" fill="url(#enamel)" stroke="#6F5E4A" stroke-width="0.8"/><path d="M29,76 C27,84 25,99 25,103 C25,114 28,119 33,124 L67,124 C72,119 75,114 75,103 C75,99 73,84 71,76 Z" fill="url(#enamel)" fill-opacity="1" stroke="#6F5E4A" stroke-width="1.15" stroke-linejoin="round"/><path d="M35.5,113 L64.5,113 Q68,113 68,116.5 L68,118.5 Q68,122 64.5,122 L35.5,122 Q32,122 32,118.5 L32,116.5 Q32,113 35.5,113 Z" fill="url(#enamel-occlusal)" fill-opacity="1" stroke="#6F5E4A" stroke-width="0.85"/><path d="M31,84 C38,86 39,94.4 34,102.4 C32,92.4 30,94 31,84 Z" fill="#FFFFFF" fill-opacity="0.42"/><circle class="cond-mark" cx="50" cy="118" r="1.8" fill="#BE123C"/><circle class="cond-mark" cx="45.4" cy="117" r="1.8" fill="#BE123C"/><circle class="cond-mark" cx="54.6" cy="117" r="1.8" fill="#BE123C"/><circle class="cond-mark" cx="47.2" cy="121.7" r="1.8" fill="#BE123C"/><circle class="cond-mark" cx="52.8" cy="121.7" r="1.8" fill="#BE123C"/></g><rect class="tooth-hit" x="8" y="6" width="84" height="148" rx="12"><title>Pilih gigi 16</title></rect></g>
+  </g>
+  <text class="sheet-cap" x="200" y="266" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Karies</text>
+  <g transform="translate(276 82) scale(1.05)">
+    <g id="t16-tambalan" class="tooth tooth-3d tooth--molar tooth--permanent" data-tooth="16" data-type="molar" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-roots="3" data-state="empty"><g class="anatomy"><ellipse cx="52" cy="128" rx="26" ry="7" fill="url(#soft-shadow)"/><path d="M43.7,76.9 C47.1,49.4 49.9,22 51,22 C52.1,22 53.9,49.6 56.3,77.1 Z" fill="url(#root-back)" stroke="#6F5E4A" stroke-width="1.05" stroke-linejoin="round"/><path d="M32.7,77.7 C33.1,53.9 32.9,30.1 34,30 C35.1,29.9 39.9,53.1 45.3,76.3 Z" fill="url(#root-grad)" stroke="#6F5E4A" stroke-width="1.05" stroke-linejoin="round"/><path d="M54.7,76.3 C60.1,53.1 64.9,29.9 66,30 C67.1,30.1 66.9,53.9 67.3,77.7 Z" fill="url(#root-grad)" stroke="#6F5E4A" stroke-width="1.05" stroke-linejoin="round"/><ellipse cx="50" cy="76" rx="22" ry="5.5" fill="url(#enamel)" stroke="#6F5E4A" stroke-width="0.8"/><path d="M29,76 C27,84 25,99 25,103 C25,114 28,119 33,124 L67,124 C72,119 75,114 75,103 C75,99 73,84 71,76 Z" fill="url(#enamel)" fill-opacity="1" stroke="#6F5E4A" stroke-width="1.15" stroke-linejoin="round"/><path d="M35.5,113 L64.5,113 Q68,113 68,116.5 L68,118.5 Q68,122 64.5,122 L35.5,122 Q32,122 32,118.5 L32,116.5 Q32,113 35.5,113 Z" fill="url(#enamel-occlusal)" fill-opacity="1" stroke="#6F5E4A" stroke-width="0.85"/><path d="M31,84 C38,86 39,94.4 34,102.4 C32,92.4 30,94 31,84 Z" fill="#FFFFFF" fill-opacity="0.42"/><rect class="cond-mark" x="43" y="114" width="14" height="8" rx="2.5" fill="#1E40AF"/></g><rect class="tooth-hit" x="8" y="6" width="84" height="148" rx="12"><title>Pilih gigi 16</title></rect></g>
+  </g>
+  <text class="sheet-cap" x="326" y="266" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Tambalan</text>
+  <g transform="translate(402 82) scale(1.05)">
+    <g id="t16-mahkota" class="tooth tooth-3d tooth--molar tooth--permanent" data-tooth="16" data-type="molar" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-roots="3" data-state="empty" data-condition="mahkota"><g class="anatomy"><ellipse cx="52" cy="128" rx="26" ry="7" fill="url(#soft-shadow)"/><path d="M43.7,76.9 C47.1,49.4 49.9,22 51,22 C52.1,22 53.9,49.6 56.3,77.1 Z" fill="url(#root-back)" stroke="#6F5E4A" stroke-width="1.05" stroke-linejoin="round"/><path d="M32.7,77.7 C33.1,53.9 32.9,30.1 34,30 C35.1,29.9 39.9,53.1 45.3,76.3 Z" fill="url(#root-grad)" stroke="#6F5E4A" stroke-width="1.05" stroke-linejoin="round"/><path d="M54.7,76.3 C60.1,53.1 64.9,29.9 66,30 C67.1,30.1 66.9,53.9 67.3,77.7 Z" fill="url(#root-grad)" stroke="#6F5E4A" stroke-width="1.05" stroke-linejoin="round"/><ellipse cx="50" cy="76" rx="22" ry="5.5" fill="url(#enamel)" stroke="#6F5E4A" stroke-width="0.8"/><path d="M29,76 C27,84 25,99 25,103 C25,114 28,119 33,124 L67,124 C72,119 75,114 75,103 C75,99 73,84 71,76 Z" fill="url(#enamel)" fill-opacity="1" stroke="#6F5E4A" stroke-width="1.15" stroke-linejoin="round"/><path d="M35.5,113 L64.5,113 Q68,113 68,116.5 L68,118.5 Q68,122 64.5,122 L35.5,122 Q32,122 32,118.5 L32,116.5 Q32,113 35.5,113 Z" fill="url(#enamel-occlusal)" fill-opacity="1" stroke="#6F5E4A" stroke-width="0.85"/><path d="M31,84 C38,86 39,94.4 34,102.4 C32,92.4 30,94 31,84 Z" fill="#FFFFFF" fill-opacity="0.42"/><path d="M29,76 C27,84 25,99 25,103 C25,114 28,119 33,124 L67,124 C72,119 75,114 75,103 C75,99 73,84 71,76 Z" fill="none" stroke="#6D28D9" stroke-width="3.2" stroke-linejoin="round"/><path d="M29,76 C27,84 25,99 25,103 C25,114 28,119 33,124 L67,124 C72,119 75,114 75,103 C75,99 73,84 71,76 Z" fill="url(#cap-grad)" fill-opacity="0.22" stroke="none"/></g><rect class="tooth-hit" x="8" y="6" width="84" height="148" rx="12"><title>Pilih gigi 16</title></rect></g>
+  </g>
+  <text class="sheet-cap" x="452" y="266" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Mahkota</text>
+  <g transform="translate(528 82) scale(1.05)">
+    <g id="t16-hilang" class="tooth tooth-3d tooth--molar tooth--permanent" data-tooth="16" data-type="molar" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-roots="3" data-state="empty" data-condition="hilang"><g class="anatomy"><ellipse cx="52" cy="128" rx="26" ry="7" fill="url(#soft-shadow)"/><path d="M43.7,76.9 C47.1,49.4 49.9,22 51,22 C52.1,22 53.9,49.6 56.3,77.1 Z" fill="url(#root-back)" stroke="#6F5E4A" stroke-width="1.05" stroke-linejoin="round"/><path d="M32.7,77.7 C33.1,53.9 32.9,30.1 34,30 C35.1,29.9 39.9,53.1 45.3,76.3 Z" fill="url(#root-grad)" stroke="#6F5E4A" stroke-width="1.05" stroke-linejoin="round"/><path d="M54.7,76.3 C60.1,53.1 64.9,29.9 66,30 C67.1,30.1 66.9,53.9 67.3,77.7 Z" fill="url(#root-grad)" stroke="#6F5E4A" stroke-width="1.05" stroke-linejoin="round"/><ellipse cx="50" cy="76" rx="22" ry="5.5" fill="url(#enamel)" stroke="#6F5E4A" stroke-width="0.8"/><path d="M29,76 C27,84 25,99 25,103 C25,114 28,119 33,124 L67,124 C72,119 75,114 75,103 C75,99 73,84 71,76 Z" fill="url(#enamel)" fill-opacity="0.35" stroke="#6F5E4A" stroke-width="1.15" stroke-linejoin="round"/><path d="M35.5,113 L64.5,113 Q68,113 68,116.5 L68,118.5 Q68,122 64.5,122 L35.5,122 Q32,122 32,118.5 L32,116.5 Q32,113 35.5,113 Z" fill="url(#enamel-occlusal)" fill-opacity="0.35" stroke="#6F5E4A" stroke-width="0.85"/><path d="M32,82 L68,120 M68,82 L32,120" fill="none" stroke="#3F3F46" stroke-width="3.2" stroke-linecap="square"/></g><rect class="tooth-hit" x="8" y="6" width="84" height="148" rx="12"><title>Pilih gigi 16</title></rect></g>
+  </g>
+  <text class="sheet-cap" x="578" y="266" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Hilang</text>
+  <g transform="translate(654 82) scale(1.05)">
+    <g id="t16-sisa_akar" class="tooth tooth-3d tooth--molar tooth--permanent" data-tooth="16" data-type="molar" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-roots="3" data-state="empty" data-condition="sisa_akar"><g class="anatomy"><ellipse cx="52" cy="128" rx="26" ry="7" fill="url(#soft-shadow)"/><path d="M43.7,76.9 C47.1,49.4 49.9,22 51,22 C52.1,22 53.9,49.6 56.3,77.1 Z" fill="url(#root-back)" stroke="#6F5E4A" stroke-width="1.05" stroke-linejoin="round"/><path d="M32.7,77.7 C33.1,53.9 32.9,30.1 34,30 C35.1,29.9 39.9,53.1 45.3,76.3 Z" fill="url(#root-grad)" stroke="#6F5E4A" stroke-width="1.05" stroke-linejoin="round"/><path d="M54.7,76.3 C60.1,53.1 64.9,29.9 66,30 C67.1,30.1 66.9,53.9 67.3,77.7 Z" fill="url(#root-grad)" stroke="#6F5E4A" stroke-width="1.05" stroke-linejoin="round"/><ellipse cx="50" cy="76" rx="22" ry="5.5" fill="url(#enamel)" stroke="#6F5E4A" stroke-width="0.8"/><path d="M29,76 C27,84 25,99 25,103 C25,114 28,119 33,124 L67,124 C72,119 75,114 75,103 C75,99 73,84 71,76 Z" fill="url(#enamel)" fill-opacity="0.18" stroke="#6F5E4A" stroke-width="1" stroke-dasharray="3 2" stroke-linejoin="round"/><path d="M27,76 L73,76" fill="none" stroke="#9A3412" stroke-width="2.2" stroke-linecap="round"/></g><rect class="tooth-hit" x="8" y="6" width="84" height="148" rx="12"><title>Pilih gigi 16</title></rect></g>
+  </g>
+  <text class="sheet-cap" x="704" y="266" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Sisa akar / akar tertinggal</text>
+  <g transform="translate(780 82) scale(1.05)">
+    <g id="t16-perlu_dicabut" class="tooth tooth-3d tooth--molar tooth--permanent" data-tooth="16" data-type="molar" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-roots="3" data-state="empty" data-condition="perlu_dicabut"><g class="anatomy"><ellipse cx="52" cy="128" rx="26" ry="7" fill="url(#soft-shadow)"/><path d="M43.7,76.9 C47.1,49.4 49.9,22 51,22 C52.1,22 53.9,49.6 56.3,77.1 Z" fill="url(#root-back)" stroke="#6F5E4A" stroke-width="1.05" stroke-linejoin="round"/><path d="M32.7,77.7 C33.1,53.9 32.9,30.1 34,30 C35.1,29.9 39.9,53.1 45.3,76.3 Z" fill="url(#root-grad)" stroke="#6F5E4A" stroke-width="1.05" stroke-linejoin="round"/><path d="M54.7,76.3 C60.1,53.1 64.9,29.9 66,30 C67.1,30.1 66.9,53.9 67.3,77.7 Z" fill="url(#root-grad)" stroke="#6F5E4A" stroke-width="1.05" stroke-linejoin="round"/><ellipse cx="50" cy="76" rx="22" ry="5.5" fill="url(#enamel)" stroke="#6F5E4A" stroke-width="0.8"/><path d="M29,76 C27,84 25,99 25,103 C25,114 28,119 33,124 L67,124 C72,119 75,114 75,103 C75,99 73,84 71,76 Z" fill="url(#enamel)" fill-opacity="1" stroke="#6F5E4A" stroke-width="1.15" stroke-linejoin="round"/><path d="M35.5,113 L64.5,113 Q68,113 68,116.5 L68,118.5 Q68,122 64.5,122 L35.5,122 Q32,122 32,118.5 L32,116.5 Q32,113 35.5,113 Z" fill="url(#enamel-occlusal)" fill-opacity="1" stroke="#6F5E4A" stroke-width="0.85"/><path d="M31,84 C38,86 39,94.4 34,102.4 C32,92.4 30,94 31,84 Z" fill="#FFFFFF" fill-opacity="0.42"/><path d="M28,120 L72,82" fill="none" stroke="#A15C00" stroke-width="3" stroke-linecap="square"/><path d="M72,82 L64,79 L68,89" fill="none" stroke="#A15C00" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/></g><rect class="tooth-hit" x="8" y="6" width="84" height="148" rx="12"><title>Pilih gigi 16</title></rect></g>
+  </g>
+  <text class="sheet-cap" x="830" y="266" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Perlu dicabut</text>
+  <g transform="translate(906 82) scale(1.05)">
+    <g id="t16-implan" class="tooth tooth-3d tooth--molar tooth--permanent" data-tooth="16" data-type="molar" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-roots="3" data-state="empty" data-condition="implan"><g class="anatomy"><ellipse cx="52" cy="128" rx="26" ry="7" fill="url(#soft-shadow)"/><path d="M44,76 L44,34 L50,22 L56,34 L56,76 Z" fill="url(#implant-grad)" stroke="#0F5F63" stroke-width="1.1"/><path d="M42,66 L58,66" fill="none" stroke="#0F5F63" stroke-width="1.6" stroke-linecap="round"/><path d="M42,56 L58,56" fill="none" stroke="#0F5F63" stroke-width="1.6" stroke-linecap="round"/><path d="M42,46 L58,46" fill="none" stroke="#0F5F63" stroke-width="1.6" stroke-linecap="round"/><path d="M42,36 L58,36" fill="none" stroke="#0F5F63" stroke-width="1.6" stroke-linecap="round"/><rect x="42" y="74" width="16" height="8" rx="1.5" fill="#5F7468" stroke="#0F5F63" stroke-width="0.9"/><path d="M29,76 C27,84 25,99 25,103 C25,114 28,119 33,124 L67,124 C72,119 75,114 75,103 C75,99 73,84 71,76 Z" fill="url(#prosthetic)" stroke="#6F5E4A" stroke-width="1.15" stroke-linejoin="round"/><path d="M35.5,113 L64.5,113 Q68,113 68,116.5 L68,118.5 Q68,122 64.5,122 L35.5,122 Q32,122 32,118.5 L32,116.5 Q32,113 35.5,113 Z" fill="url(#enamel-occlusal)" stroke="#6F5E4A" stroke-width="0.8"/></g><rect class="tooth-hit" x="8" y="6" width="84" height="148" rx="12"><title>Pilih gigi 16</title></rect></g>
+  </g>
+  <text class="sheet-cap" x="956" y="266" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Implan</text>
+  <text class="sheet-sub" x="32" y="298" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif" font-weight="600">Insisor 11</text>
+  <g transform="translate(24 302) scale(1.05)">
+    <g id="t11-sehat" class="tooth tooth-3d tooth--incisor tooth--permanent" data-tooth="11" data-type="incisor" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-roots="1" data-state="empty"><g class="anatomy"><ellipse cx="52" cy="132" rx="26" ry="7" fill="url(#soft-shadow)"/><path d="M42.9,77 C46.2,50.5 48.9,24 50,24 C51.1,24 53.8,50.5 57.1,77 Z" fill="url(#root-grad)" stroke="#6F5E4A" stroke-width="1.05" stroke-linejoin="round"/><ellipse cx="50" cy="76" rx="14" ry="5.5" fill="url(#enamel)" stroke="#6F5E4A" stroke-width="0.8"/><path d="M37,76 C36,88 32,101 32,103 C32,113 33,123 34.5,128 Q50,126.8 65.5,128 C67,123 68,113 68,103 C68,101 64,88 63,76 Z" fill="url(#enamel)" fill-opacity="1" stroke="#6F5E4A" stroke-width="1.15" stroke-linejoin="round"/><path d="M38,84 C45,86 46,96.6 41,104.6 C39,94.6 37,94 38,84 Z" fill="#FFFFFF" fill-opacity="0.42"/><path class="cond-mark" d="M47,96.8 L49.5,99.8 L54,93.8" fill="none" stroke="#0B7A45" stroke-width="1.6" stroke-linecap="round"/></g><rect class="tooth-hit" x="8" y="6" width="84" height="148" rx="12"><title>Pilih gigi 11</title></rect></g>
+  </g>
+  <text class="sheet-cap" x="74" y="486" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Sehat</text>
+  <g transform="translate(150 302) scale(1.05)">
+    <g id="t11-karies" class="tooth tooth-3d tooth--incisor tooth--permanent" data-tooth="11" data-type="incisor" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-roots="1" data-state="empty"><g class="anatomy"><ellipse cx="52" cy="132" rx="26" ry="7" fill="url(#soft-shadow)"/><path d="M42.9,77 C46.2,50.5 48.9,24 50,24 C51.1,24 53.8,50.5 57.1,77 Z" fill="url(#root-grad)" stroke="#6F5E4A" stroke-width="1.05" stroke-linejoin="round"/><ellipse cx="50" cy="76" rx="14" ry="5.5" fill="url(#enamel)" stroke="#6F5E4A" stroke-width="0.8"/><path d="M37,76 C36,88 32,101 32,103 C32,113 33,123 34.5,128 Q50,126.8 65.5,128 C67,123 68,113 68,103 C68,101 64,88 63,76 Z" fill="url(#enamel)" fill-opacity="1" stroke="#6F5E4A" stroke-width="1.15" stroke-linejoin="round"/><path d="M38,84 C45,86 46,96.6 41,104.6 C39,94.6 37,94 38,84 Z" fill="#FFFFFF" fill-opacity="0.42"/><circle class="cond-mark" cx="45.4" cy="122" r="1.8" fill="#BE123C"/><circle class="cond-mark" cx="50" cy="122" r="1.8" fill="#BE123C"/><circle class="cond-mark" cx="54.6" cy="122" r="1.8" fill="#BE123C"/></g><rect class="tooth-hit" x="8" y="6" width="84" height="148" rx="12"><title>Pilih gigi 11</title></rect></g>
+  </g>
+  <text class="sheet-cap" x="200" y="486" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Karies</text>
+  <g transform="translate(276 302) scale(1.05)">
+    <g id="t11-tambalan" class="tooth tooth-3d tooth--incisor tooth--permanent" data-tooth="11" data-type="incisor" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-roots="1" data-state="empty"><g class="anatomy"><ellipse cx="52" cy="132" rx="26" ry="7" fill="url(#soft-shadow)"/><path d="M42.9,77 C46.2,50.5 48.9,24 50,24 C51.1,24 53.8,50.5 57.1,77 Z" fill="url(#root-grad)" stroke="#6F5E4A" stroke-width="1.05" stroke-linejoin="round"/><ellipse cx="50" cy="76" rx="14" ry="5.5" fill="url(#enamel)" stroke="#6F5E4A" stroke-width="0.8"/><path d="M37,76 C36,88 32,101 32,103 C32,113 33,123 34.5,128 Q50,126.8 65.5,128 C67,123 68,113 68,103 C68,101 64,88 63,76 Z" fill="url(#enamel)" fill-opacity="1" stroke="#6F5E4A" stroke-width="1.15" stroke-linejoin="round"/><path d="M38,84 C45,86 46,96.6 41,104.6 C39,94.6 37,94 38,84 Z" fill="#FFFFFF" fill-opacity="0.42"/><rect class="cond-mark" x="42" y="119.5" width="16" height="5" rx="2.5" fill="#1E40AF"/></g><rect class="tooth-hit" x="8" y="6" width="84" height="148" rx="12"><title>Pilih gigi 11</title></rect></g>
+  </g>
+  <text class="sheet-cap" x="326" y="486" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Tambalan</text>
+  <g transform="translate(402 302) scale(1.05)">
+    <g id="t11-mahkota" class="tooth tooth-3d tooth--incisor tooth--permanent" data-tooth="11" data-type="incisor" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-roots="1" data-state="empty" data-condition="mahkota"><g class="anatomy"><ellipse cx="52" cy="132" rx="26" ry="7" fill="url(#soft-shadow)"/><path d="M42.9,77 C46.2,50.5 48.9,24 50,24 C51.1,24 53.8,50.5 57.1,77 Z" fill="url(#root-grad)" stroke="#6F5E4A" stroke-width="1.05" stroke-linejoin="round"/><ellipse cx="50" cy="76" rx="14" ry="5.5" fill="url(#enamel)" stroke="#6F5E4A" stroke-width="0.8"/><path d="M37,76 C36,88 32,101 32,103 C32,113 33,123 34.5,128 Q50,126.8 65.5,128 C67,123 68,113 68,103 C68,101 64,88 63,76 Z" fill="url(#enamel)" fill-opacity="1" stroke="#6F5E4A" stroke-width="1.15" stroke-linejoin="round"/><path d="M38,84 C45,86 46,96.6 41,104.6 C39,94.6 37,94 38,84 Z" fill="#FFFFFF" fill-opacity="0.42"/><path d="M37,76 C36,88 32,101 32,103 C32,113 33,123 34.5,128 Q50,126.8 65.5,128 C67,123 68,113 68,103 C68,101 64,88 63,76 Z" fill="none" stroke="#6D28D9" stroke-width="3.2" stroke-linejoin="round"/><path d="M37,76 C36,88 32,101 32,103 C32,113 33,123 34.5,128 Q50,126.8 65.5,128 C67,123 68,113 68,103 C68,101 64,88 63,76 Z" fill="url(#cap-grad)" fill-opacity="0.22" stroke="none"/></g><rect class="tooth-hit" x="8" y="6" width="84" height="148" rx="12"><title>Pilih gigi 11</title></rect></g>
+  </g>
+  <text class="sheet-cap" x="452" y="486" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Mahkota</text>
+  <g transform="translate(528 302) scale(1.05)">
+    <g id="t11-hilang" class="tooth tooth-3d tooth--incisor tooth--permanent" data-tooth="11" data-type="incisor" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-roots="1" data-state="empty" data-condition="hilang"><g class="anatomy"><ellipse cx="52" cy="132" rx="26" ry="7" fill="url(#soft-shadow)"/><path d="M42.9,77 C46.2,50.5 48.9,24 50,24 C51.1,24 53.8,50.5 57.1,77 Z" fill="url(#root-grad)" stroke="#6F5E4A" stroke-width="1.05" stroke-linejoin="round"/><ellipse cx="50" cy="76" rx="14" ry="5.5" fill="url(#enamel)" stroke="#6F5E4A" stroke-width="0.8"/><path d="M37,76 C36,88 32,101 32,103 C32,113 33,123 34.5,128 Q50,126.8 65.5,128 C67,123 68,113 68,103 C68,101 64,88 63,76 Z" fill="url(#enamel)" fill-opacity="0.35" stroke="#6F5E4A" stroke-width="1.15" stroke-linejoin="round"/><path d="M32,82 L68,124 M68,82 L32,124" fill="none" stroke="#3F3F46" stroke-width="3.2" stroke-linecap="square"/></g><rect class="tooth-hit" x="8" y="6" width="84" height="148" rx="12"><title>Pilih gigi 11</title></rect></g>
+  </g>
+  <text class="sheet-cap" x="578" y="486" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Hilang</text>
+  <g transform="translate(654 302) scale(1.05)">
+    <g id="t11-sisa_akar" class="tooth tooth-3d tooth--incisor tooth--permanent" data-tooth="11" data-type="incisor" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-roots="1" data-state="empty" data-condition="sisa_akar"><g class="anatomy"><ellipse cx="52" cy="132" rx="26" ry="7" fill="url(#soft-shadow)"/><path d="M42.9,77 C46.2,50.5 48.9,24 50,24 C51.1,24 53.8,50.5 57.1,77 Z" fill="url(#root-grad)" stroke="#6F5E4A" stroke-width="1.05" stroke-linejoin="round"/><ellipse cx="50" cy="76" rx="14" ry="5.5" fill="url(#enamel)" stroke="#6F5E4A" stroke-width="0.8"/><path d="M37,76 C36,88 32,101 32,103 C32,113 33,123 34.5,128 Q50,126.8 65.5,128 C67,123 68,113 68,103 C68,101 64,88 63,76 Z" fill="url(#enamel)" fill-opacity="0.18" stroke="#6F5E4A" stroke-width="1" stroke-dasharray="3 2" stroke-linejoin="round"/><path d="M35,76 L65,76" fill="none" stroke="#9A3412" stroke-width="2.2" stroke-linecap="round"/></g><rect class="tooth-hit" x="8" y="6" width="84" height="148" rx="12"><title>Pilih gigi 11</title></rect></g>
+  </g>
+  <text class="sheet-cap" x="704" y="486" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Sisa akar / akar tertinggal</text>
+  <g transform="translate(780 302) scale(1.05)">
+    <g id="t11-perlu_dicabut" class="tooth tooth-3d tooth--incisor tooth--permanent" data-tooth="11" data-type="incisor" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-roots="1" data-state="empty" data-condition="perlu_dicabut"><g class="anatomy"><ellipse cx="52" cy="132" rx="26" ry="7" fill="url(#soft-shadow)"/><path d="M42.9,77 C46.2,50.5 48.9,24 50,24 C51.1,24 53.8,50.5 57.1,77 Z" fill="url(#root-grad)" stroke="#6F5E4A" stroke-width="1.05" stroke-linejoin="round"/><ellipse cx="50" cy="76" rx="14" ry="5.5" fill="url(#enamel)" stroke="#6F5E4A" stroke-width="0.8"/><path d="M37,76 C36,88 32,101 32,103 C32,113 33,123 34.5,128 Q50,126.8 65.5,128 C67,123 68,113 68,103 C68,101 64,88 63,76 Z" fill="url(#enamel)" fill-opacity="1" stroke="#6F5E4A" stroke-width="1.15" stroke-linejoin="round"/><path d="M38,84 C45,86 46,96.6 41,104.6 C39,94.6 37,94 38,84 Z" fill="#FFFFFF" fill-opacity="0.42"/><path d="M28,124 L72,82" fill="none" stroke="#A15C00" stroke-width="3" stroke-linecap="square"/><path d="M72,82 L64,79 L68,89" fill="none" stroke="#A15C00" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/></g><rect class="tooth-hit" x="8" y="6" width="84" height="148" rx="12"><title>Pilih gigi 11</title></rect></g>
+  </g>
+  <text class="sheet-cap" x="830" y="486" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Perlu dicabut</text>
+  <g transform="translate(906 302) scale(1.05)">
+    <g id="t11-implan" class="tooth tooth-3d tooth--incisor tooth--permanent" data-tooth="11" data-type="incisor" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-roots="1" data-state="empty" data-condition="implan"><g class="anatomy"><ellipse cx="52" cy="132" rx="26" ry="7" fill="url(#soft-shadow)"/><path d="M44,76 L44,36 L50,24 L56,36 L56,76 Z" fill="url(#implant-grad)" stroke="#0F5F63" stroke-width="1.1"/><path d="M42,66 L58,66" fill="none" stroke="#0F5F63" stroke-width="1.6" stroke-linecap="round"/><path d="M42,56 L58,56" fill="none" stroke="#0F5F63" stroke-width="1.6" stroke-linecap="round"/><path d="M42,46 L58,46" fill="none" stroke="#0F5F63" stroke-width="1.6" stroke-linecap="round"/><path d="M42,36 L58,36" fill="none" stroke="#0F5F63" stroke-width="1.6" stroke-linecap="round"/><rect x="42" y="74" width="16" height="8" rx="1.5" fill="#5F7468" stroke="#0F5F63" stroke-width="0.9"/><path d="M37,76 C36,88 32,101 32,103 C32,113 33,123 34.5,128 Q50,126.8 65.5,128 C67,123 68,113 68,103 C68,101 64,88 63,76 Z" fill="url(#prosthetic)" stroke="#6F5E4A" stroke-width="1.15" stroke-linejoin="round"/></g><rect class="tooth-hit" x="8" y="6" width="84" height="148" rx="12"><title>Pilih gigi 11</title></rect></g>
+  </g>
+  <text class="sheet-cap" x="956" y="486" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Implan</text>
+</svg>

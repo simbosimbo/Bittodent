@@ -1,0 +1,35 @@
+/* GENERATED from legend.json by blender/compose.py. Do not edit; change legend.json. */
+:root {
+  --c-sehat: #0B7A45;
+  --c-karies: #BE123C;
+  --c-tambalan: #1E40AF;
+  --c-mahkota: #6D28D9;
+  --c-hilang: #3F3F46;
+  --c-sisa_akar: #9A3412;
+  --c-perlu_dicabut: #A15C00;
+  --c-implan: #0F5F63;
+  --s-kondisi: #374151;
+  --s-sudah_ada_sini: #0B7A45;
+  --s-sudah_ada_lain: #1E40AF;
+  --s-direncanakan: #A15C00;
+  --s-selesai: #0F5F63;
+  --s-dirujuk: #6D28D9;
+  --state-draft: #6D28D9;
+  --state-draft-accent: #A15C00;
+  --state-draft-wash: #F3EEFF;
+  --state-signed: #111827;
+}
+[data-condition="sehat"] { --cc: var(--c-sehat); }
+[data-condition="karies"] { --cc: var(--c-karies); }
+[data-condition="tambalan"] { --cc: var(--c-tambalan); }
+[data-condition="mahkota"] { --cc: var(--c-mahkota); }
+[data-condition="hilang"] { --cc: var(--c-hilang); }
+[data-condition="sisa_akar"] { --cc: var(--c-sisa_akar); }
+[data-condition="perlu_dicabut"] { --cc: var(--c-perlu_dicabut); }
+[data-condition="implan"] { --cc: var(--c-implan); }
+[data-status="kondisi"] { --sc: var(--s-kondisi); --op: 1.0; }
+[data-status="sudah_ada_sini"] { --sc: var(--s-sudah_ada_sini); --op: 1.0; }
+[data-status="sudah_ada_lain"] { --sc: var(--s-sudah_ada_lain); --op: 0.7; }
+[data-status="direncanakan"] { --sc: var(--s-direncanakan); --op: 0.5; }
+[data-status="selesai"] { --sc: var(--s-selesai); --op: 1.0; }
+[data-status="dirujuk"] { --sc: var(--s-dirujuk); --op: 0.8; }

@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 160" width="100" height="160" role="img" aria-labelledby="title" class="tooth-svg" color="#1F2937" >
+  <title id="title">Gigi FDI 51 (grafis 3D, incisor, primary, upper, 1 akar)</title>
+  <desc>Bagan grafis 3D lembut. Ketuk untuk memilih gigi 51, bukan per permukaan. Sasaran ketuk per permukaan ada di bagan 2D.</desc>
+  <style>
+/* Bitto odontogram — classes the React build should toggle */
+.tooth-svg { color: #1F2937; font-family: Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif; }
+.tooth-surface {
+  fill: #FFFFFF;
+  stroke: none;
+  pointer-events: auto;
+  cursor: pointer;
+}
+.tooth-outline, .tooth-divisions {
+  fill: none;
+  stroke: currentColor;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+.tooth-outline { stroke-width: 1.75; }
+.tooth-divisions { stroke-width: 1.15; }
+.tooth-number {
+  fill: #1F2937;
+  font-family: Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-anchor: middle;
+  pointer-events: none;
+}
+.tooth[data-state="draft"] .tooth-outline {
+  stroke: #6D28D9;
+  stroke-width: 2.1;
+  stroke-dasharray: 3.5 2.5;
+}
+.tooth[data-state="draft"] .tooth-divisions { stroke: #6D28D9; }
+.tooth[data-state="draft"] .tooth-wash { fill: #F3EEFF; }
+.tooth[data-state="signed"] .tooth-outline {
+  stroke: #111827;
+  stroke-width: 2;
+  stroke-dasharray: none;
+}
+.tooth-lock { fill: #111827; stroke: none; }
+.tooth-draft-mark { fill: #A15C00; stroke: none; }
+
+.tooth-surface[data-condition="sehat"] { fill: #E8F6EE; }
+.tooth-surface[data-condition="karies"] { fill: #BE123C; }
+.tooth-surface[data-condition="tambalan"] { fill: #1E40AF; }
+
+.surface-dots { fill: #FFFFFF; pointer-events: none; }
+.overlay { pointer-events: none; }
+.overlay-mahkota {
+  fill: none;
+  stroke: #6D28D9;
+  stroke-width: 3;
+}
+.overlay-hilang {
+  fill: none;
+  stroke: #3F3F46;
+  stroke-width: 3.2;
+  stroke-linecap: square;
+}
+.overlay-sisa-akar {
+  fill: none;
+  stroke: #9A3412;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.overlay-perlu-dicabut {
+  fill: none;
+  stroke: #A15C00;
+  stroke-width: 3.2;
+  stroke-linecap: square;
+}
+.overlay-implan {
+  fill: none;
+  stroke: #0F5F63;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Procedure status — independent of condition colour+shape.
+   Kemungkinan MVP, menunggu persetujuan Jerome. */
+.tooth-surface[data-status] { fill-opacity: 1; }
+.tooth-surface[data-status="sudah_ada_lain"] { fill-opacity: 0.7; }
+.tooth-surface[data-status="direncanakan"] { fill-opacity: 0.5; }
+.tooth-surface[data-status="dirujuk"] { fill-opacity: 0.8; }
+.tooth[data-status="direncanakan"] .tooth-outline {
+  stroke-dasharray: 4 2.5;
+}
+.tooth[data-status="dirujuk"] .tooth-outline {
+  stroke-dasharray: 1.5 2;
+}
+.tooth[data-baseline="missing"] { opacity: 0.45; }
+.tooth[data-baseline="missing"] .tooth-surface { fill: #E5E7EB; }
+.status-mark { pointer-events: none; }
+
+/* Soft 3D graphical chart */
+.tooth-3d { cursor: pointer; }
+.tooth-3d .tooth-hit { fill: transparent; stroke: none; pointer-events: all; }
+.tooth-3d .anatomy, .tooth-3d .cond-mark { pointer-events: none; }
+.tooth-3d[data-state="draft"] .tooth-3d-frame {
+  fill: none;
+  stroke: #6D28D9;
+  stroke-width: 2.2;
+  stroke-dasharray: 4 3;
+}
+.tooth-3d[data-state="signed"] .tooth-3d-frame {
+  fill: none;
+  stroke: #111827;
+  stroke-width: 1.8;
+}
+.tooth-3d[data-baseline="missing"] { opacity: 0.4; }
+  </style>
+  <defs>
+    <linearGradient id="enamel" x1="0.2" y1="0.1" x2="0.85" y2="0.95">
+      <stop offset="0" stop-color="#FFF9F2"/>
+      <stop offset="0.45" stop-color="#F0E2CC"/>
+      <stop offset="1" stop-color="#D2BB9A"/>
+    </linearGradient>
+    <linearGradient id="enamel-occlusal" x1="0.3" y1="0" x2="0.7" y2="1">
+      <stop offset="0" stop-color="#E6D3B6"/>
+      <stop offset="1" stop-color="#C4AB88"/>
+    </linearGradient>
+    <linearGradient id="root-grad" x1="0.3" y1="1" x2="0.7" y2="0">
+      <stop offset="0" stop-color="#EAD4B4"/>
+      <stop offset="1" stop-color="#D0B087"/>
+    </linearGradient>
+    <linearGradient id="root-back" x1="0.3" y1="1" x2="0.7" y2="0">
+      <stop offset="0" stop-color="#E0C49A"/>
+      <stop offset="1" stop-color="#C4A078"/>
+    </linearGradient>
+    <radialGradient id="soft-shadow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#8A7A68" stop-opacity="0.3"/>
+      <stop offset="1" stop-color="#8A7A68" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="cap-grad" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0" stop-color="#DDD6FE"/>
+      <stop offset="1" stop-color="#7C3AED"/>
+    </linearGradient>
+    <linearGradient id="implant-grad" x1="0.3" y1="0" x2="0.7" y2="1">
+      <stop offset="0" stop-color="#5EEAD4"/>
+      <stop offset="1" stop-color="#0F5F63"/>
+    </linearGradient>
+    <linearGradient id="prosthetic" x1="0.2" y1="0.1" x2="0.85" y2="0.95">
+      <stop offset="0" stop-color="#F5F0E8"/>
+      <stop offset="1" stop-color="#C8B8A0"/>
+    </linearGradient>
+  </defs>
+  <g id="t51" class="tooth tooth-3d tooth--incisor tooth--primary" data-tooth="51" data-type="incisor" data-dentition="primary" data-arch="upper" data-quadrant="5" data-roots="1" data-state="empty"><g class="anatomy"><ellipse cx="52" cy="130.2" rx="26" ry="7" fill="url(#soft-shadow)"/><path d="M42.9,71 C46.2,50.4 48.9,29.9 50,29.9 C51.1,29.9 53.8,50.4 57.1,71 Z" fill="url(#root-grad)" stroke="#6F5E4A" stroke-width="1.05" stroke-linejoin="round"/><ellipse cx="50" cy="70" rx="14" ry="5.5" fill="url(#enamel)" stroke="#6F5E4A" stroke-width="0.8"/><path d="M37,70 C36,82 32,97 32,99 C32,109 33,121.2 34.5,126.2 Q50,125 65.5,126.2 C67,121.2 68,109 68,99 C68,97 64,82 63,70 Z" fill="url(#enamel)" fill-opacity="1" stroke="#6F5E4A" stroke-width="1.15" stroke-linejoin="round"/><path d="M38,78 C45,80 46,92.9 41,100.9 C39,90.9 37,88 38,78 Z" fill="#FFFFFF" fill-opacity="0.42"/></g><text class="tooth-number" x="50" y="154" font-size="11">51</text><rect class="tooth-hit" x="8" y="6" width="84" height="148" rx="12"><title>Pilih gigi 51</title></rect></g>
+</svg>

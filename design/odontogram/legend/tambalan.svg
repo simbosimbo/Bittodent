@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-labelledby="title" class="tooth-svg" color="#1F2937" >
+  <title id="title">Tambalan (legenda internal)</title>
+  <desc>Huruf/bentuk: solid. Warna #1E40AF. Berlaku pada surface. Bukan standar resmi Kemenkes/PDGI.</desc>
+  <g id="legend-tambalan">
+    <g transform="translate(4 4) scale(0.6)"><path d="M15,8 L85,8 Q92,8 92,15 L92,85 Q92,92 85,92 L15,92 Q8,92 8,85 L8,15 Q8,8 15,8 Z" fill="#FFFFFF" stroke="#1F2937" stroke-width="1.8"/><path d="M32,32 L68,32 L68,68 L32,68 Z M32,32 L8,8 M68,32 L92,8 M68,68 L92,92 M32,68 L8,92" fill="none" stroke="#1F2937" stroke-width="1.15"/><path d="M32,32 L68,32 L68,68 L32,68 Z" fill="#1E40AF" stroke="none"/></g>
+  </g>
+</svg>

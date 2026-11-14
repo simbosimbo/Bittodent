@@ -1,0 +1,16 @@
+// Shape of GET /api/me (the logged-in session), used by the shell and every module.
+export type Me = {
+  user: { id: string; name: string; email: string }
+  roles: string[]
+  permissions: string[]
+  active: { tenant_id: string; tenant_name: string; branch_id: string | null; branch_name: string | null; timezone: string | null }
+  branches: { id: string; name: string; timezone: string }[]
+}
+
+export const ROLE_LABELS: Record<string, string> = {
+  owner: 'Pemilik',
+  dentist: 'Dokter Gigi',
+  assistant: 'Asisten',
+  front_desk: 'Resepsionis',
+  kasir: 'Kasir',
+}

@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 440" width="920" height="440" role="img" aria-labelledby="title" class="tooth-svg" color="#1F2937" >
+  <title id="title">Status tindakan odontogram (kemungkinan MVP)</title>
+  <style>
+/* Bitto odontogram — classes the React build should toggle */
+.tooth-svg { color: #1F2937; font-family: Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif; }
+.tooth-surface {
+  fill: #FFFFFF;
+  stroke: none;
+  pointer-events: auto;
+  cursor: pointer;
+}
+.tooth-outline, .tooth-divisions {
+  fill: none;
+  stroke: currentColor;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+.tooth-outline { stroke-width: 1.75; }
+.tooth-divisions { stroke-width: 1.15; }
+.tooth-number {
+  fill: #1F2937;
+  font-family: Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-anchor: middle;
+  pointer-events: none;
+}
+.tooth[data-state="draft"] .tooth-outline {
+  stroke: #6D28D9;
+  stroke-width: 2.1;
+  stroke-dasharray: 3.5 2.5;
+}
+.tooth[data-state="draft"] .tooth-divisions { stroke: #6D28D9; }
+.tooth[data-state="draft"] .tooth-wash { fill: #F3EEFF; }
+.tooth[data-state="signed"] .tooth-outline {
+  stroke: #111827;
+  stroke-width: 2;
+  stroke-dasharray: none;
+}
+.tooth-lock { fill: #111827; stroke: none; }
+.tooth-draft-mark { fill: #A15C00; stroke: none; }
+
+.tooth-surface[data-condition="sehat"] { fill: #E8F6EE; }
+.tooth-surface[data-condition="karies"] { fill: #BE123C; }
+.tooth-surface[data-condition="tambalan"] { fill: #1E40AF; }
+
+.surface-dots { fill: #FFFFFF; pointer-events: none; }
+.overlay { pointer-events: none; }
+.overlay-mahkota {
+  fill: none;
+  stroke: #6D28D9;
+  stroke-width: 3;
+}
+.overlay-hilang {
+  fill: none;
+  stroke: #3F3F46;
+  stroke-width: 3.2;
+  stroke-linecap: square;
+}
+.overlay-sisa-akar {
+  fill: none;
+  stroke: #9A3412;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.overlay-perlu-dicabut {
+  fill: none;
+  stroke: #A15C00;
+  stroke-width: 3.2;
+  stroke-linecap: square;
+}
+.overlay-implan {
+  fill: none;
+  stroke: #0F5F63;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Procedure status — independent of condition colour+shape.
+   Kemungkinan MVP, menunggu persetujuan Jerome. */
+.tooth-surface[data-status] { fill-opacity: 1; }
+.tooth-surface[data-status="sudah_ada_lain"] { fill-opacity: 0.7; }
+.tooth-surface[data-status="direncanakan"] { fill-opacity: 0.5; }
+.tooth-surface[data-status="dirujuk"] { fill-opacity: 0.8; }
+.tooth[data-status="direncanakan"] .tooth-outline {
+  stroke-dasharray: 4 2.5;
+}
+.tooth[data-status="dirujuk"] .tooth-outline {
+  stroke-dasharray: 1.5 2;
+}
+.tooth[data-baseline="missing"] { opacity: 0.45; }
+.tooth[data-baseline="missing"] .tooth-surface { fill: #E5E7EB; }
+.status-mark { pointer-events: none; }
+
+/* Soft 3D graphical chart */
+.tooth-3d { cursor: pointer; }
+.tooth-3d .tooth-hit { fill: transparent; stroke: none; pointer-events: all; }
+.tooth-3d .anatomy, .tooth-3d .cond-mark { pointer-events: none; }
+.tooth-3d[data-state="draft"] .tooth-3d-frame {
+  fill: none;
+  stroke: #6D28D9;
+  stroke-width: 2.2;
+  stroke-dasharray: 4 3;
+}
+.tooth-3d[data-state="signed"] .tooth-3d-frame {
+  fill: none;
+  stroke: #111827;
+  stroke-width: 1.8;
+}
+.tooth-3d[data-baseline="missing"] { opacity: 0.4; }
+  .sheet-title { font-weight: 700; font-size: 20px; fill: #111827; }
+  .sheet-sub { font-size: 11px; fill: #4B5563; }
+  .sheet-cap { font-size: 11px; fill: #1F2937; font-weight: 600; text-anchor: middle; }
+  .sheet-hint { font-size: 10px; fill: #6B7280; text-anchor: middle; }
+  </style>
+  <rect width="920" height="440" fill="#FFFFFF"/>
+  <text class="sheet-title" x="32" y="32" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Status tindakan</text>
+  <text class="sheet-sub" x="32" y="50" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Kemungkinan MVP, menunggu persetujuan Jerome. Lapisan terpisah dari kondisi (semua contoh memakai karies di O + tambalan di M). data-status pada .tooth.</text>
+  <g transform="translate(30 80) scale(1.15)">
+    <g id="t16s0-status-kondisi" class="tooth tooth--molar tooth--permanent" data-tooth="16" data-type="molar" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-state="empty" data-status="kondisi">
+<path id="t16s0-M" class="tooth-surface" data-tooth="16" data-surface="M" data-condition="tambalan" d="M92,15 L92,85 L68,68 L68,32 Z"/>
+<path id="t16s0-D" class="tooth-surface" data-tooth="16" data-surface="D" d="M8,85 L8,15 L32,32 L32,68 Z"/>
+<path id="t16s0-O" class="tooth-surface" data-tooth="16" data-surface="O" data-condition="karies" d="M32,32 L68,32 L68,68 L32,68 Z"/>
+<circle class="surface-dots" cx="45" cy="46" r="1.6" fill="#FFFFFF"/><circle class="surface-dots" cx="55" cy="46" r="1.6" fill="#FFFFFF"/><circle class="surface-dots" cx="50" cy="52" r="1.6" fill="#FFFFFF"/><circle class="surface-dots" cx="46" cy="55" r="1.6" fill="#FFFFFF"/><circle class="surface-dots" cx="54" cy="55" r="1.6" fill="#FFFFFF"/>
+<path id="t16s0-B" class="tooth-surface" data-tooth="16" data-surface="B" d="M15,8 L85,8 Q92,8 92,15 L68,32 L32,32 L8,15 Q8,8 15,8 Z"/>
+<path id="t16s0-L" class="tooth-surface" data-tooth="16" data-surface="L" d="M85,92 L15,92 Q8,92 8,85 L32,68 L68,68 L92,85 Q92,92 85,92 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M32,32 L68,32 L68,68 L32,68 Z M32,32 L8,8 M68,32 L92,8 M68,68 L92,92 M32,68 L8,92"/>
+<path class="tooth-outline" d="M15,8 L85,8 Q92,8 92,15 L92,85 Q92,92 85,92 L15,92 Q8,92 8,85 L8,15 Q8,8 15,8 Z"/>
+</g>
+<g class="status-mark" data-status="kondisi"><circle cx="13.5" cy="13.5" r="5.4" fill="#374151"/></g>
+</g>
+  </g>
+  <text class="sheet-cap" x="88" y="220" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Kondisi</text>
+  <text class="sheet-hint" x="88" y="236" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">data-status="kondisi"</text>
+  <g transform="translate(178 80) scale(1.15)">
+    <g id="t16s1-status-sudah_ada_sini" class="tooth tooth--molar tooth--permanent" data-tooth="16" data-type="molar" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-state="empty" data-status="sudah_ada_sini">
+<path id="t16s1-M" class="tooth-surface" data-tooth="16" data-surface="M" data-condition="tambalan" d="M92,15 L92,85 L68,68 L68,32 Z"/>
+<path id="t16s1-D" class="tooth-surface" data-tooth="16" data-surface="D" d="M8,85 L8,15 L32,32 L32,68 Z"/>
+<path id="t16s1-O" class="tooth-surface" data-tooth="16" data-surface="O" data-condition="karies" d="M32,32 L68,32 L68,68 L32,68 Z"/>
+<circle class="surface-dots" cx="45" cy="46" r="1.6" fill="#FFFFFF"/><circle class="surface-dots" cx="55" cy="46" r="1.6" fill="#FFFFFF"/><circle class="surface-dots" cx="50" cy="52" r="1.6" fill="#FFFFFF"/><circle class="surface-dots" cx="46" cy="55" r="1.6" fill="#FFFFFF"/><circle class="surface-dots" cx="54" cy="55" r="1.6" fill="#FFFFFF"/>
+<path id="t16s1-B" class="tooth-surface" data-tooth="16" data-surface="B" d="M15,8 L85,8 Q92,8 92,15 L68,32 L32,32 L8,15 Q8,8 15,8 Z"/>
+<path id="t16s1-L" class="tooth-surface" data-tooth="16" data-surface="L" d="M85,92 L15,92 Q8,92 8,85 L32,68 L68,68 L92,85 Q92,92 85,92 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M32,32 L68,32 L68,68 L32,68 Z M32,32 L8,8 M68,32 L92,8 M68,68 L92,92 M32,68 L8,92"/>
+<path class="tooth-outline" d="M15,8 L85,8 Q92,8 92,15 L92,85 Q92,92 85,92 L15,92 Q8,92 8,85 L8,15 Q8,8 15,8 Z"/>
+</g>
+<g class="status-mark" data-status="sudah_ada_sini"><rect x="8" y="8" width="11" height="11" rx="1" fill="#0B7A45"/></g>
+</g>
+  </g>
+  <text class="sheet-cap" x="236" y="220" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Sudah ada (di sini)</text>
+  <text class="sheet-hint" x="236" y="236" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">data-status="sudah_ada_sini"</text>
+  <g transform="translate(326 80) scale(1.15)">
+    <g id="t16s2-status-sudah_ada_lain" class="tooth tooth--molar tooth--permanent" data-tooth="16" data-type="molar" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-state="empty" data-status="sudah_ada_lain">
+<path id="t16s2-M" class="tooth-surface" data-tooth="16" data-surface="M" data-condition="tambalan" d="M92,15 L92,85 L68,68 L68,32 Z"/>
+<path id="t16s2-D" class="tooth-surface" data-tooth="16" data-surface="D" d="M8,85 L8,15 L32,32 L32,68 Z"/>
+<path id="t16s2-O" class="tooth-surface" data-tooth="16" data-surface="O" data-condition="karies" d="M32,32 L68,32 L68,68 L32,68 Z"/>
+<circle class="surface-dots" cx="45" cy="46" r="1.6" fill="#FFFFFF"/><circle class="surface-dots" cx="55" cy="46" r="1.6" fill="#FFFFFF"/><circle class="surface-dots" cx="50" cy="52" r="1.6" fill="#FFFFFF"/><circle class="surface-dots" cx="46" cy="55" r="1.6" fill="#FFFFFF"/><circle class="surface-dots" cx="54" cy="55" r="1.6" fill="#FFFFFF"/>
+<path id="t16s2-B" class="tooth-surface" data-tooth="16" data-surface="B" d="M15,8 L85,8 Q92,8 92,15 L68,32 L32,32 L8,15 Q8,8 15,8 Z"/>
+<path id="t16s2-L" class="tooth-surface" data-tooth="16" data-surface="L" d="M85,92 L15,92 Q8,92 8,85 L32,68 L68,68 L92,85 Q92,92 85,92 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M32,32 L68,32 L68,68 L32,68 Z M32,32 L8,8 M68,32 L92,8 M68,68 L92,92 M32,68 L8,92"/>
+<path class="tooth-outline" d="M15,8 L85,8 Q92,8 92,15 L92,85 Q92,92 85,92 L15,92 Q8,92 8,85 L8,15 Q8,8 15,8 Z"/>
+</g>
+<g class="status-mark" data-status="sudah_ada_lain"><rect x="8.2" y="8.2" width="10.6" height="10.6" rx="1" fill="none" stroke="#1E40AF" stroke-width="1.6"/></g>
+</g>
+  </g>
+  <text class="sheet-cap" x="384" y="220" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Sudah ada (di tempat lain)</text>
+  <text class="sheet-hint" x="384" y="236" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">data-status="sudah_ada_lain"</text>
+  <g transform="translate(474 80) scale(1.15)">
+    <g id="t16s3-status-direncanakan" class="tooth tooth--molar tooth--permanent" data-tooth="16" data-type="molar" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-state="empty" data-status="direncanakan">
+<path id="t16s3-M" class="tooth-surface" data-tooth="16" data-surface="M" data-condition="tambalan" d="M92,15 L92,85 L68,68 L68,32 Z"/>
+<path id="t16s3-D" class="tooth-surface" data-tooth="16" data-surface="D" d="M8,85 L8,15 L32,32 L32,68 Z"/>
+<path id="t16s3-O" class="tooth-surface" data-tooth="16" data-surface="O" data-condition="karies" d="M32,32 L68,32 L68,68 L32,68 Z"/>
+<circle class="surface-dots" cx="45" cy="46" r="1.6" fill="#FFFFFF"/><circle class="surface-dots" cx="55" cy="46" r="1.6" fill="#FFFFFF"/><circle class="surface-dots" cx="50" cy="52" r="1.6" fill="#FFFFFF"/><circle class="surface-dots" cx="46" cy="55" r="1.6" fill="#FFFFFF"/><circle class="surface-dots" cx="54" cy="55" r="1.6" fill="#FFFFFF"/>
+<path id="t16s3-B" class="tooth-surface" data-tooth="16" data-surface="B" d="M15,8 L85,8 Q92,8 92,15 L68,32 L32,32 L8,15 Q8,8 15,8 Z"/>
+<path id="t16s3-L" class="tooth-surface" data-tooth="16" data-surface="L" d="M85,92 L15,92 Q8,92 8,85 L32,68 L68,68 L92,85 Q92,92 85,92 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M32,32 L68,32 L68,68 L32,68 Z M32,32 L8,8 M68,32 L92,8 M68,68 L92,92 M32,68 L8,92"/>
+<path class="tooth-outline" d="M15,8 L85,8 Q92,8 92,15 L92,85 Q92,92 85,92 L15,92 Q8,92 8,85 L8,15 Q8,8 15,8 Z"/>
+</g>
+<g class="status-mark" data-status="direncanakan"><path d="M13.5,8 L19,19 L8,19 Z" fill="#A15C00"/></g>
+</g>
+  </g>
+  <text class="sheet-cap" x="532" y="220" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Direncanakan</text>
+  <text class="sheet-hint" x="532" y="236" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">data-status="direncanakan"</text>
+  <g transform="translate(622 80) scale(1.15)">
+    <g id="t16s4-status-selesai" class="tooth tooth--molar tooth--permanent" data-tooth="16" data-type="molar" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-state="empty" data-status="selesai">
+<path id="t16s4-M" class="tooth-surface" data-tooth="16" data-surface="M" data-condition="tambalan" d="M92,15 L92,85 L68,68 L68,32 Z"/>
+<path id="t16s4-D" class="tooth-surface" data-tooth="16" data-surface="D" d="M8,85 L8,15 L32,32 L32,68 Z"/>
+<path id="t16s4-O" class="tooth-surface" data-tooth="16" data-surface="O" data-condition="karies" d="M32,32 L68,32 L68,68 L32,68 Z"/>
+<circle class="surface-dots" cx="45" cy="46" r="1.6" fill="#FFFFFF"/><circle class="surface-dots" cx="55" cy="46" r="1.6" fill="#FFFFFF"/><circle class="surface-dots" cx="50" cy="52" r="1.6" fill="#FFFFFF"/><circle class="surface-dots" cx="46" cy="55" r="1.6" fill="#FFFFFF"/><circle class="surface-dots" cx="54" cy="55" r="1.6" fill="#FFFFFF"/>
+<path id="t16s4-B" class="tooth-surface" data-tooth="16" data-surface="B" d="M15,8 L85,8 Q92,8 92,15 L68,32 L32,32 L8,15 Q8,8 15,8 Z"/>
+<path id="t16s4-L" class="tooth-surface" data-tooth="16" data-surface="L" d="M85,92 L15,92 Q8,92 8,85 L32,68 L68,68 L92,85 Q92,92 85,92 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M32,32 L68,32 L68,68 L32,68 Z M32,32 L8,8 M68,32 L92,8 M68,68 L92,92 M32,68 L8,92"/>
+<path class="tooth-outline" d="M15,8 L85,8 Q92,8 92,15 L92,85 Q92,92 85,92 L15,92 Q8,92 8,85 L8,15 Q8,8 15,8 Z"/>
+</g>
+<g class="status-mark" data-status="selesai"><path d="M8.5,13.8 L12.2,18.5 L18.8,8.8" fill="none" stroke="#0F5F63" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></g>
+</g>
+  </g>
+  <text class="sheet-cap" x="680" y="220" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Selesai</text>
+  <text class="sheet-hint" x="680" y="236" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">data-status="selesai"</text>
+  <g transform="translate(770 80) scale(1.15)">
+    <g id="t16s5-status-dirujuk" class="tooth tooth--molar tooth--permanent" data-tooth="16" data-type="molar" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-state="empty" data-status="dirujuk">
+<path id="t16s5-M" class="tooth-surface" data-tooth="16" data-surface="M" data-condition="tambalan" d="M92,15 L92,85 L68,68 L68,32 Z"/>
+<path id="t16s5-D" class="tooth-surface" data-tooth="16" data-surface="D" d="M8,85 L8,15 L32,32 L32,68 Z"/>
+<path id="t16s5-O" class="tooth-surface" data-tooth="16" data-surface="O" data-condition="karies" d="M32,32 L68,32 L68,68 L32,68 Z"/>
+<circle class="surface-dots" cx="45" cy="46" r="1.6" fill="#FFFFFF"/><circle class="surface-dots" cx="55" cy="46" r="1.6" fill="#FFFFFF"/><circle class="surface-dots" cx="50" cy="52" r="1.6" fill="#FFFFFF"/><circle class="surface-dots" cx="46" cy="55" r="1.6" fill="#FFFFFF"/><circle class="surface-dots" cx="54" cy="55" r="1.6" fill="#FFFFFF"/>
+<path id="t16s5-B" class="tooth-surface" data-tooth="16" data-surface="B" d="M15,8 L85,8 Q92,8 92,15 L68,32 L32,32 L8,15 Q8,8 15,8 Z"/>
+<path id="t16s5-L" class="tooth-surface" data-tooth="16" data-surface="L" d="M85,92 L15,92 Q8,92 8,85 L32,68 L68,68 L92,85 Q92,92 85,92 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M32,32 L68,32 L68,68 L32,68 Z M32,32 L8,8 M68,32 L92,8 M68,68 L92,92 M32,68 L8,92"/>
+<path class="tooth-outline" d="M15,8 L85,8 Q92,8 92,15 L92,85 Q92,92 85,92 L15,92 Q8,92 8,85 L8,15 Q8,8 15,8 Z"/>
+</g>
+<g class="status-mark" data-status="dirujuk"><path d="M8.5,16.1 L14.2,16.1 L14.2,19 L19,13.5 L14.2,8 L14.2,10.9 L8.5,10.9 Z" fill="#6D28D9"/></g>
+</g>
+  </g>
+  <text class="sheet-cap" x="828" y="220" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Dirujuk</text>
+  <text class="sheet-hint" x="828" y="236" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">data-status="dirujuk"</text>
+  <g transform="translate(30 280) scale(0.95)">
+    <g id="t16b-baseline-missing" class="tooth tooth--molar tooth--permanent" data-tooth="16" data-type="molar" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-state="empty" data-baseline="missing">
+<path id="t16b-M" class="tooth-surface" data-tooth="16" data-surface="M" d="M92,15 L92,85 L68,68 L68,32 Z"/>
+<path id="t16b-D" class="tooth-surface" data-tooth="16" data-surface="D" d="M8,85 L8,15 L32,32 L32,68 Z"/>
+<path id="t16b-O" class="tooth-surface" data-tooth="16" data-surface="O" d="M32,32 L68,32 L68,68 L32,68 Z"/>
+<path id="t16b-B" class="tooth-surface" data-tooth="16" data-surface="B" d="M15,8 L85,8 Q92,8 92,15 L68,32 L32,32 L8,15 Q8,8 15,8 Z"/>
+<path id="t16b-L" class="tooth-surface" data-tooth="16" data-surface="L" d="M85,92 L15,92 Q8,92 8,85 L32,68 L68,68 L92,85 Q92,92 85,92 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M32,32 L68,32 L68,68 L32,68 Z M32,32 L8,8 M68,32 L92,8 M68,68 L92,92 M32,68 L8,92"/>
+<path class="tooth-outline" d="M15,8 L85,8 Q92,8 92,15 L92,85 Q92,92 85,92 L15,92 Q8,92 8,85 L8,15 Q8,8 15,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="sheet-sub" x="150" y="330" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif" font-weight="600">Baseline: data-baseline="missing" (kunjungan pertama, bukan temuan hilang)</text>
+  <text class="sheet-sub" x="150" y="348" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Kemungkinan MVP, menunggu persetujuan Jerome. Bagan: data-dentition="permanent|primary|mixed".</text>
+</svg>

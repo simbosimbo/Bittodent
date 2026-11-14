@@ -1,0 +1,83 @@
+/* Rekam Medis. Odontogram colours/states from design/odontogram/legend.json + odontogram.css (internal legend). */
+.card-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.card-head h2 { margin: 0 8px 0 0; }
+.badge { display: inline-block; font-size: 11px; font-weight: 650; border-radius: 999px; padding: 2px 9px; border: 1px solid transparent; white-space: nowrap; }
+.badge-draft { color: #6D28D9; background: #F3EEFF; border: 1px dashed #6D28D9; }
+.badge-ai { color: #6D28D9; background: #F3EEFF; border: 1px dashed #6D28D9; }
+.badge-ai::before { content: '◆ '; color: #A15C00; }
+.badge-signed { color: #fff; background: #111827; }
+.badge-old { color: var(--muted); background: var(--bg); border-color: var(--border); }
+.badge-fix { color: var(--warn); background: var(--warn-50); }
+.notice { padding: 8px 12px; border-radius: var(--radius-sm); background: var(--info-50); margin: 0 0 12px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.notice-warn { background: var(--warn-50); color: var(--warn); }
+
+.odontogram { width: 100%; max-width: 980px; height: auto; display: block; }
+.odontogram .midline { stroke: var(--border); stroke-dasharray: 4 4; }
+.tooth-surface > :not(title) { fill: #fff; stroke: #9AA5B1; stroke-width: 1; cursor: pointer; }
+.tooth-surface:focus { outline: none; }
+.tooth-surface:focus-visible > :not(title), .tooth-surface.is-sel > :not(title) { stroke: var(--accent-600, #0E8579); stroke-width: 2.5; }
+.tooth-surface[data-condition='sehat'] > :not(title) { fill: #E8F6EE; }
+.tooth-surface[data-condition='karies'] > :not(title) { fill: url(#odo-dots); }
+.tooth-surface[data-condition='tambalan'] > :not(title) { fill: #1E40AF; }
+.tooth-surface[data-state='draft'] > :not(title) { stroke: #6D28D9; stroke-dasharray: 3 2; stroke-width: 1.6; }
+.tooth-outline { fill: none; stroke: #1F2937; stroke-width: 1.5; pointer-events: none; }
+.tooth[data-state='draft'] .tooth-outline { stroke: #6D28D9; stroke-width: 2.1; stroke-dasharray: 3.5 2.5; }
+.tooth[data-state='signed'] .tooth-outline { stroke: #111827; stroke-width: 2; }
+.tooth-wash { fill: #F3EEFF; }
+.tooth-draft-mark { fill: #A15C00; }
+.tooth-lock rect { fill: #111827; }
+.tooth-lock path { stroke: #111827; }
+.tooth-glyph, .tooth-letter, .tooth-number, .tooth-lock, .tooth-draft-mark, .tooth-wash { pointer-events: none; }
+.tooth-glyph[data-state='draft'] { stroke-dasharray: 4 2; }
+.tooth-letter { font-size: 8px; fill: var(--muted); }
+.tooth-number { font-size: 12px; font-weight: 600; fill: #1F2937; }
+
+.odo-legend { list-style: none; padding: 0; margin: 12px 0 0; display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; }
+.swatch { display: inline-block; width: 14px; height: 14px; border: 2px solid #9AA5B1; border-radius: 3px; vertical-align: -2px; background: #fff; }
+.swatch-sehat { background: #E8F6EE; }
+.swatch-karies { background: radial-gradient(circle, #fff 1.5px, #BE123C 1.6px) 0 0 / 5px 5px; }
+.swatch-tambalan { background: #1E40AF; }
+.swatch-draft { border: 2px dashed #6D28D9; background: #F3EEFF; }
+.swatch-signed { border-color: #111827; }
+
+.picker-pop { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; margin-top: 8px; display: grid; gap: 6px; }
+.cond-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.cond { border-left: 4px solid currentColor; }
+.cond-sehat { color: #0B7A45; } .cond-karies { color: #BE123C; } .cond-tambalan { color: #1E40AF; } .cond-mahkota { color: #6D28D9; }
+.cond-hilang { color: #3F3F46; } .cond-sisa_akar { color: #9A3412; } .cond-perlu_dicabut { color: #A15C00; } .cond-implan { color: #0F5F63; }
+
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 10px; flex-wrap: wrap; }
+.tabs button { background: none; border: none; border-bottom: 2px solid transparent; padding: 8px 10px; font: inherit; cursor: pointer; color: var(--muted); }
+.tabs button.is-active { color: inherit; border-bottom-color: var(--accent-600, #0E8579); font-weight: 650; }
+.soap-panel { display: grid; gap: 8px; }
+.soap-panel textarea, .dialog textarea { width: 100%; font: inherit; }
+
+.timeline { list-style: none; padding: 0; margin: 0; }
+.timeline > li { border-left: 2px solid var(--border); padding: 0 0 14px 14px; position: relative; }
+.timeline > li::before { content: ''; position: absolute; left: -6px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent-600, #0E8579); }
+.version { margin: 6px 0; }
+.version-row { background: none; border: none; font: inherit; padding: 4px 0; cursor: pointer; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; text-align: left; }
+.version-digantikan .version-row strong { text-decoration: line-through; color: var(--muted); }
+.dialog-wide { width: 720px; }
+.sign-list { margin: 0 0 8px; padding-left: 18px; }
+label.check { flex-direction: row; gap: 8px; align-items: flex-start; font-weight: 400; margin: 8px 0 14px; }
+
+/* C3: procedure status layer (design/odontogram/odontogram.css, legend.json statuses) + baseline ghost */
+.tooth-surface[data-status="sudah_ada_lain"] { fill-opacity: 0.7; }
+.tooth-surface[data-status="direncanakan"] { fill-opacity: 0.5; }
+.tooth-surface[data-status="dirujuk"] { fill-opacity: 0.8; }
+.tooth[data-status="direncanakan"] .tooth-outline { stroke-dasharray: 4 2.5; }
+.tooth[data-status="dirujuk"] .tooth-outline { stroke-dasharray: 1.5 2; }
+.tooth[data-baseline="missing"] { opacity: 0.45; }
+.tooth[data-baseline="missing"] .tooth-surface { fill: #E5E7EB; }
+.items { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 6px; }
+.items li { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+/* status chips: text label + border style, never colour alone */
+.st { border: 1px solid currentColor; }
+.st-kondisi_pantau { color: #374151; background: #F3F4F6; }
+.st-ada_di_klinik_ini { color: #1E40AF; background: #EFF6FF; }
+.st-ada_di_tempat_lain { color: #1E40AF; background: #fff; border-style: dashed; }
+.st-direncanakan { color: #A15C00; background: #FFF7ED; border-style: dashed; }
+.st-selesai { color: #0B7A45; background: #ECFDF5; }
+.st-dirujuk { color: #6D28D9; background: #fff; border-style: dotted; }
+.baseline-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }

@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 460" width="780" height="460" role="img" aria-labelledby="title" class="tooth-svg" color="#1F2937" >
+  <title id="title">Contoh state: kosong, draf AI, terkunci</title>
+  <style>
+/* Bitto odontogram — classes the React build should toggle */
+.tooth-svg { color: #1F2937; font-family: Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif; }
+.tooth-surface {
+  fill: #FFFFFF;
+  stroke: none;
+  pointer-events: auto;
+  cursor: pointer;
+}
+.tooth-outline, .tooth-divisions {
+  fill: none;
+  stroke: currentColor;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+.tooth-outline { stroke-width: 1.75; }
+.tooth-divisions { stroke-width: 1.15; }
+.tooth-number {
+  fill: #1F2937;
+  font-family: Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-anchor: middle;
+  pointer-events: none;
+}
+.tooth[data-state="draft"] .tooth-outline {
+  stroke: #6D28D9;
+  stroke-width: 2.1;
+  stroke-dasharray: 3.5 2.5;
+}
+.tooth[data-state="draft"] .tooth-divisions { stroke: #6D28D9; }
+.tooth[data-state="draft"] .tooth-wash { fill: #F3EEFF; }
+.tooth[data-state="signed"] .tooth-outline {
+  stroke: #111827;
+  stroke-width: 2;
+  stroke-dasharray: none;
+}
+.tooth-lock { fill: #111827; stroke: none; }
+.tooth-draft-mark { fill: #A15C00; stroke: none; }
+
+.tooth-surface[data-condition="sehat"] { fill: #E8F6EE; }
+.tooth-surface[data-condition="karies"] { fill: #BE123C; }
+.tooth-surface[data-condition="tambalan"] { fill: #1E40AF; }
+
+.surface-dots { fill: #FFFFFF; pointer-events: none; }
+.overlay { pointer-events: none; }
+.overlay-mahkota {
+  fill: none;
+  stroke: #6D28D9;
+  stroke-width: 3;
+}
+.overlay-hilang {
+  fill: none;
+  stroke: #3F3F46;
+  stroke-width: 3.2;
+  stroke-linecap: square;
+}
+.overlay-sisa-akar {
+  fill: none;
+  stroke: #9A3412;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.overlay-perlu-dicabut {
+  fill: none;
+  stroke: #A15C00;
+  stroke-width: 3.2;
+  stroke-linecap: square;
+}
+.overlay-implan {
+  fill: none;
+  stroke: #0F5F63;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Procedure status — independent of condition colour+shape.
+   Kemungkinan MVP, menunggu persetujuan Jerome. */
+.tooth-surface[data-status] { fill-opacity: 1; }
+.tooth-surface[data-status="sudah_ada_lain"] { fill-opacity: 0.7; }
+.tooth-surface[data-status="direncanakan"] { fill-opacity: 0.5; }
+.tooth-surface[data-status="dirujuk"] { fill-opacity: 0.8; }
+.tooth[data-status="direncanakan"] .tooth-outline {
+  stroke-dasharray: 4 2.5;
+}
+.tooth[data-status="dirujuk"] .tooth-outline {
+  stroke-dasharray: 1.5 2;
+}
+.tooth[data-baseline="missing"] { opacity: 0.45; }
+.tooth[data-baseline="missing"] .tooth-surface { fill: #E5E7EB; }
+.status-mark { pointer-events: none; }
+
+/* Soft 3D graphical chart */
+.tooth-3d { cursor: pointer; }
+.tooth-3d .tooth-hit { fill: transparent; stroke: none; pointer-events: all; }
+.tooth-3d .anatomy, .tooth-3d .cond-mark { pointer-events: none; }
+.tooth-3d[data-state="draft"] .tooth-3d-frame {
+  fill: none;
+  stroke: #6D28D9;
+  stroke-width: 2.2;
+  stroke-dasharray: 4 3;
+}
+.tooth-3d[data-state="signed"] .tooth-3d-frame {
+  fill: none;
+  stroke: #111827;
+  stroke-width: 1.8;
+}
+.tooth-3d[data-baseline="missing"] { opacity: 0.4; }
+  .sheet-title { font-weight: 650; font-size: 18px; fill: #111827; }
+  .sheet-sub { font-size: 11px; fill: #4B5563; }
+  .sheet-cap { font-size: 11px; fill: #1F2937; font-weight: 600; text-anchor: middle; }
+  .sheet-hint { font-size: 10px; fill: #6B7280; text-anchor: middle; }
+  </style>
+  <rect width="780" height="460" fill="#FFFFFF"/>
+  <text class="sheet-title" x="32" y="36" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">State variants</text>
+  <text class="sheet-sub" x="32" y="52" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Toggle data-state pada grup .tooth (kosong, draft, atau signed).</text>
+  <text class="sheet-sub" x="32" y="68" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">Draf AI = garis putus violet + rombus ambar, selaras lencana “Draf AI, perlu persetujuan dokter”. Terkunci = garis solid + gembok.</text>
+  <g transform="translate(50 92) scale(1.15)">
+    <g id="t16" class="tooth tooth--molar tooth--permanent" data-tooth="16" data-type="molar" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-state="empty">
+<path id="t16-M" class="tooth-surface" data-tooth="16" data-surface="M" d="M92,15 L92,85 L68,68 L68,32 Z"/>
+<path id="t16-D" class="tooth-surface" data-tooth="16" data-surface="D" d="M8,85 L8,15 L32,32 L32,68 Z"/>
+<path id="t16-O" class="tooth-surface" data-tooth="16" data-surface="O" d="M32,32 L68,32 L68,68 L32,68 Z"/>
+<path id="t16-B" class="tooth-surface" data-tooth="16" data-surface="B" d="M15,8 L85,8 Q92,8 92,15 L68,32 L32,32 L8,15 Q8,8 15,8 Z"/>
+<path id="t16-L" class="tooth-surface" data-tooth="16" data-surface="L" d="M85,92 L15,92 Q8,92 8,85 L32,68 L68,68 L92,85 Q92,92 85,92 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M32,32 L68,32 L68,68 L32,68 Z M32,32 L8,8 M68,32 L92,8 M68,68 L92,92 M32,68 L8,92"/>
+<path class="tooth-outline" d="M15,8 L85,8 Q92,8 92,15 L92,85 Q92,92 85,92 L15,92 Q8,92 8,85 L8,15 Q8,8 15,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="sheet-cap" x="108" y="220" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">t16 · Kosong</text>
+  <text class="sheet-hint" x="108" y="235" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">data-state tidak diisi, atau empty</text>
+  <g transform="translate(295 92) scale(1.15)">
+    <g id="t16" class="tooth tooth--molar tooth--permanent" data-tooth="16" data-type="molar" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-state="draft">
+<rect class="tooth-wash" x="8" y="8" width="84" height="84" rx="7" fill="#F3EEFF"/>
+<path id="t16-M" class="tooth-surface" data-tooth="16" data-surface="M" data-condition="tambalan" d="M92,15 L92,85 L68,68 L68,32 Z"/>
+<path id="t16-D" class="tooth-surface" data-tooth="16" data-surface="D" d="M8,85 L8,15 L32,32 L32,68 Z"/>
+<path id="t16-O" class="tooth-surface" data-tooth="16" data-surface="O" data-condition="karies" d="M32,32 L68,32 L68,68 L32,68 Z"/>
+<circle class="surface-dots" cx="45" cy="46" r="1.6" fill="#FFFFFF"/><circle class="surface-dots" cx="55" cy="46" r="1.6" fill="#FFFFFF"/><circle class="surface-dots" cx="50" cy="52" r="1.6" fill="#FFFFFF"/><circle class="surface-dots" cx="46" cy="55" r="1.6" fill="#FFFFFF"/><circle class="surface-dots" cx="54" cy="55" r="1.6" fill="#FFFFFF"/>
+<path id="t16-B" class="tooth-surface" data-tooth="16" data-surface="B" d="M15,8 L85,8 Q92,8 92,15 L68,32 L32,32 L8,15 Q8,8 15,8 Z"/>
+<path id="t16-L" class="tooth-surface" data-tooth="16" data-surface="L" d="M85,92 L15,92 Q8,92 8,85 L32,68 L68,68 L92,85 Q92,92 85,92 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M32,32 L68,32 L68,68 L32,68 Z M32,32 L8,8 M68,32 L92,8 M68,68 L92,92 M32,68 L8,92"/>
+<path class="tooth-outline" d="M15,8 L85,8 Q92,8 92,15 L92,85 Q92,92 85,92 L15,92 Q8,92 8,85 L8,15 Q8,8 15,8 Z"/>
+</g>
+<path class="tooth-draft-mark overlay" d="M9,4 L14,9 L9,14 L4,9 Z"/>
+</g>
+  </g>
+  <text class="sheet-cap" x="353" y="220" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">t16 · Draf AI, perlu persetujuan dokter</text>
+  <text class="sheet-hint" x="353" y="235" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">data-state=&quot;draft&quot;</text>
+  <g transform="translate(540 92) scale(1.15)">
+    <g id="t16" class="tooth tooth--molar tooth--permanent" data-tooth="16" data-type="molar" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-state="signed">
+<path id="t16-M" class="tooth-surface" data-tooth="16" data-surface="M" data-condition="tambalan" d="M92,15 L92,85 L68,68 L68,32 Z"/>
+<path id="t16-D" class="tooth-surface" data-tooth="16" data-surface="D" d="M8,85 L8,15 L32,32 L32,68 Z"/>
+<path id="t16-O" class="tooth-surface" data-tooth="16" data-surface="O" data-condition="karies" d="M32,32 L68,32 L68,68 L32,68 Z"/>
+<circle class="surface-dots" cx="45" cy="46" r="1.6" fill="#FFFFFF"/><circle class="surface-dots" cx="55" cy="46" r="1.6" fill="#FFFFFF"/><circle class="surface-dots" cx="50" cy="52" r="1.6" fill="#FFFFFF"/><circle class="surface-dots" cx="46" cy="55" r="1.6" fill="#FFFFFF"/><circle class="surface-dots" cx="54" cy="55" r="1.6" fill="#FFFFFF"/>
+<path id="t16-B" class="tooth-surface" data-tooth="16" data-surface="B" d="M15,8 L85,8 Q92,8 92,15 L68,32 L32,32 L8,15 Q8,8 15,8 Z"/>
+<path id="t16-L" class="tooth-surface" data-tooth="16" data-surface="L" d="M85,92 L15,92 Q8,92 8,85 L32,68 L68,68 L92,85 Q92,92 85,92 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M32,32 L68,32 L68,68 L32,68 Z M32,32 L8,8 M68,32 L92,8 M68,68 L92,92 M32,68 L8,92"/>
+<path class="tooth-outline" d="M15,8 L85,8 Q92,8 92,15 L92,85 Q92,92 85,92 L15,92 Q8,92 8,85 L8,15 Q8,8 15,8 Z"/>
+</g>
+<g class="tooth-lock overlay" transform="translate(74 -6) scale(0.7)" aria-hidden="true"><path fill="#111827" d="M8 12.2V8.4C8 5.4 10.2 3 13 3s5 2.4 5 5.4v3.8h2.2c.8 0 1.5.7 1.5 1.5v10.3c0 .8-.7 1.5-1.5 1.5H5.8c-.8 0-1.5-.7-1.5-1.5V13.7c0-.8.7-1.5 1.5-1.5H8zm2.4 0h5.2V8.4c0-1.5-1.2-2.7-2.6-2.7s-2.6 1.2-2.6 2.7v3.8z"/><circle cx="13" cy="19" r="1.6" fill="#FFFFFF"/></g>
+</g>
+  </g>
+  <text class="sheet-cap" x="598" y="220" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">t16 · Terkunci — sudah ditandatangani</text>
+  <text class="sheet-hint" x="598" y="235" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">data-state=&quot;signed&quot;</text>
+  <g transform="translate(50 264) scale(1.15)">
+    <g id="t11" class="tooth tooth--incisor tooth--permanent" data-tooth="11" data-type="incisor" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-state="empty">
+<path id="t11-M" class="tooth-surface" data-tooth="11" data-surface="M" d="M82,11 L82,89 L66,55 L66,45 Z"/>
+<path id="t11-D" class="tooth-surface" data-tooth="11" data-surface="D" d="M18,89 L18,11 L34,45 L34,55 Z"/>
+<path id="t11-I" class="tooth-surface" data-tooth="11" data-surface="I" d="M34,45 L66,45 L66,55 L34,55 Z"/>
+<path id="t11-B" class="tooth-surface" data-tooth="11" data-surface="B" d="M21,8 L79,8 Q82,8 82,11 L66,45 L34,45 L18,11 Q18,8 21,8 Z"/>
+<path id="t11-L" class="tooth-surface" data-tooth="11" data-surface="L" d="M79,92 L21,92 Q18,92 18,89 L34,55 L66,55 L82,89 Q82,92 79,92 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M34,45 L66,45 L66,55 L34,55 Z M34,45 L18,8 M66,45 L82,8 M66,55 L82,92 M34,55 L18,92"/>
+<path class="tooth-outline" d="M21,8 L79,8 Q82,8 82,11 L82,89 Q82,92 79,92 L21,92 Q18,92 18,89 L18,11 Q18,8 21,8 Z"/>
+</g>
+</g>
+  </g>
+  <text class="sheet-cap" x="108" y="392" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">t11 · Kosong</text>
+  <text class="sheet-hint" x="108" y="407" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">data-state tidak diisi, atau empty</text>
+  <g transform="translate(295 264) scale(1.15)">
+    <g id="t11" class="tooth tooth--incisor tooth--permanent" data-tooth="11" data-type="incisor" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-state="draft">
+<rect class="tooth-wash" x="18" y="8" width="64" height="84" rx="3" fill="#F3EEFF"/>
+<path id="t11-M" class="tooth-surface" data-tooth="11" data-surface="M" data-condition="tambalan" d="M82,11 L82,89 L66,55 L66,45 Z"/>
+<path id="t11-D" class="tooth-surface" data-tooth="11" data-surface="D" d="M18,89 L18,11 L34,45 L34,55 Z"/>
+<path id="t11-I" class="tooth-surface" data-tooth="11" data-surface="I" data-condition="karies" d="M34,45 L66,45 L66,55 L34,55 Z"/>
+<circle class="surface-dots" cx="42" cy="50" r="1.6" fill="#FFFFFF"/><circle class="surface-dots" cx="50" cy="50" r="1.6" fill="#FFFFFF"/><circle class="surface-dots" cx="58" cy="50" r="1.6" fill="#FFFFFF"/>
+<path id="t11-B" class="tooth-surface" data-tooth="11" data-surface="B" d="M21,8 L79,8 Q82,8 82,11 L66,45 L34,45 L18,11 Q18,8 21,8 Z"/>
+<path id="t11-L" class="tooth-surface" data-tooth="11" data-surface="L" d="M79,92 L21,92 Q18,92 18,89 L34,55 L66,55 L82,89 Q82,92 79,92 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M34,45 L66,45 L66,55 L34,55 Z M34,45 L18,8 M66,45 L82,8 M66,55 L82,92 M34,55 L18,92"/>
+<path class="tooth-outline" d="M21,8 L79,8 Q82,8 82,11 L82,89 Q82,92 79,92 L21,92 Q18,92 18,89 L18,11 Q18,8 21,8 Z"/>
+</g>
+<path class="tooth-draft-mark overlay" d="M9,4 L14,9 L9,14 L4,9 Z"/>
+</g>
+  </g>
+  <text class="sheet-cap" x="353" y="392" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">t11 · Draf AI, perlu persetujuan dokter</text>
+  <text class="sheet-hint" x="353" y="407" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">data-state=&quot;draft&quot;</text>
+  <g transform="translate(540 264) scale(1.15)">
+    <g id="t11" class="tooth tooth--incisor tooth--permanent" data-tooth="11" data-type="incisor" data-dentition="permanent" data-arch="upper" data-quadrant="1" data-state="signed">
+<path id="t11-M" class="tooth-surface" data-tooth="11" data-surface="M" data-condition="tambalan" d="M82,11 L82,89 L66,55 L66,45 Z"/>
+<path id="t11-D" class="tooth-surface" data-tooth="11" data-surface="D" d="M18,89 L18,11 L34,45 L34,55 Z"/>
+<path id="t11-I" class="tooth-surface" data-tooth="11" data-surface="I" data-condition="karies" d="M34,45 L66,45 L66,55 L34,55 Z"/>
+<circle class="surface-dots" cx="42" cy="50" r="1.6" fill="#FFFFFF"/><circle class="surface-dots" cx="50" cy="50" r="1.6" fill="#FFFFFF"/><circle class="surface-dots" cx="58" cy="50" r="1.6" fill="#FFFFFF"/>
+<path id="t11-B" class="tooth-surface" data-tooth="11" data-surface="B" d="M21,8 L79,8 Q82,8 82,11 L66,45 L34,45 L18,11 Q18,8 21,8 Z"/>
+<path id="t11-L" class="tooth-surface" data-tooth="11" data-surface="L" d="M79,92 L21,92 Q18,92 18,89 L34,55 L66,55 L82,89 Q82,92 79,92 Z"/>
+<g class="tooth-lines" pointer-events="none">
+<path class="tooth-divisions" d="M34,45 L66,45 L66,55 L34,55 Z M34,45 L18,8 M66,45 L82,8 M66,55 L82,92 M34,55 L18,92"/>
+<path class="tooth-outline" d="M21,8 L79,8 Q82,8 82,11 L82,89 Q82,92 79,92 L21,92 Q18,92 18,89 L18,11 Q18,8 21,8 Z"/>
+</g>
+<g class="tooth-lock overlay" transform="translate(74 -6) scale(0.7)" aria-hidden="true"><path fill="#111827" d="M8 12.2V8.4C8 5.4 10.2 3 13 3s5 2.4 5 5.4v3.8h2.2c.8 0 1.5.7 1.5 1.5v10.3c0 .8-.7 1.5-1.5 1.5H5.8c-.8 0-1.5-.7-1.5-1.5V13.7c0-.8.7-1.5 1.5-1.5H8zm2.4 0h5.2V8.4c0-1.5-1.2-2.7-2.6-2.7s-2.6 1.2-2.6 2.7v3.8z"/><circle cx="13" cy="19" r="1.6" fill="#FFFFFF"/></g>
+</g>
+  </g>
+  <text class="sheet-cap" x="598" y="392" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">t11 · Terkunci — sudah ditandatangani</text>
+  <text class="sheet-hint" x="598" y="407" font-family="Inter, IBM Plex Sans, Liberation Sans, system-ui, sans-serif">data-state=&quot;signed&quot;</text>
+</svg>

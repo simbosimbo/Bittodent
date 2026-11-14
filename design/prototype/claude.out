@@ -1,0 +1,59 @@
+The Bitto prototype is built in `design/prototype/` and `npm run build` passes. I also clicked through the main flows in headless Chrome and they behaved as specified.
+
+**Mistake on my side:** while clearing out the Vite demo I deleted `claude.out` and `claude.err` in the prototype folder. They were this session's live log files, and both were still empty (0 bytes) when I deleted them. I recreated them with two background `tail` processes that copy the still-open logs back to disk. Those processes stop when this session ends. Please check both files are complete before you use them.
+
+**Run:** `npm install && npm run dev`. Building and starting the dev server regenerate `src/styles/tokens.css` from `design/tokens.json` first.
+
+**Tokens and font**
+- Primary teal: `#0B6B62` (700, text and buttons), `#0E8579` (600), `#14A396` (500), `#EEF9F8` (50).
+- Neutrals: `#16212B`, `#3B4752`, `#5F6C77`, `#D4DBE1`, `#F8FAFB`.
+- Status colours: success `#1B6E42`, warning `#7A4A00` on `#FFF4DB`, danger `#B42318`, info `#1D5FBF`.
+- AI draft: `#704400` on `#FFF8E1` with a dashed `#D99A00` border. Locked: `#2E3A45` on `#EEF1F4`.
+- Font: Inter if it is installed on the device, otherwise `system-ui`. Nothing is loaded from the internet. Body text is 14px on desktop and 16px at 1180px wide or less.
+
+**Hash routes:** all the routes you listed work, plus `#/pasien/RM-xxxxxx`. The flags `offline`, `mode=sederhana`, `soap=signed|draft` and `pinTries` go inside the hash, e.g. `#/tagihan?offline=1`.
+
+**Patient-centric navigation**
+- One global store holds the "Pasien aktif". The top-bar selector (search plus recently opened) sets it.
+- Every module and the patient header read from it. Clearing it shows a "Pilih pasien" state in each module.
+- The allergy chip is always visible. NIK and phone are masked, with one eye toggle.
+- The left rail has the 7 modules plus Alur and Desain. Mode sederhana hides Gambar, Kelola and Desain. On tablet the rail collapses to icons with short labels.
+- The "Alur kunjungan pertama" stepper shows when the flow is active. Each step opens the real module for that patient. A step is ticked from the actual data (registered, booked, findings, SOAP signed, paid), not from a fake wizard.
+
+**Charting → Rencana → Tagihan, one click**
+- Pick a tooth and surfaces, then press a quick button (e.g. Tambalan komposit).
+- That adds a "rencana" procedure and puts an "R" mark on the tooth.
+- The procedure appears in Rencana Perawatan straight away.
+- If "Alirkan otomatis ke Tagihan" is on (the default), a ledger line is also added at once. If it is off, Rencana shows a "Kirim ke tagihan" button.
+- Tested: Siti's remaining balance goes from Rp 45.000 to Rp 225.000 after one filling. A QRIS payment brings it to Rp 0.
+
+**Other checks that passed**
+- The SOAP sign button stays disabled until the reviewer box is ticked. Signing locks both the SOAP and the odontogram.
+- "Buat versi baru" requires a reason.
+- The `#/pasien/RM-000156` alias opens Dewi Kusuma's profile.
+- Tapping an empty schedule slot with no active patient opens the patient selector.
+
+**Odontogram:** I built my own, because `design/odontogram/` did not exist.
+- IDs follow your scheme: `t16-O` for a surface, `t16` for a tooth, plus `data-state`, `data-condition` and `data-plan`.
+- The legend is one object in `src/data/legend.ts`, labelled "Legenda internal". Each condition has a colour plus a pattern or mark (dots, hatching, ring, X, √, double line, screw).
+- Draft findings have a dashed outline. In compare mode, changed teeth get a yellow frame.
+
+**Mobbin:** `research/mobbin-patterns.md` was not present, so nothing from it is applied.
+
+**Known gaps**
+- Drag and drop uses the browser's built-in drag, which doesn't work by touch on tablets. On tablets you tap "Pindahkan", then tap a slot.
+- No real print layout beyond hiding everything except the receipt.
+- New appointments are always 60 minutes.
+- Registration always sets sex to "P" (there is no field for it).
+- The NIK/HP "show" toggle does not write an audit log yet.
+- Nothing is saved: reloading the page resets all data.
+- There are no automated tests in the repo; the click-through script was temporary.
+- `POLISH.md` appeared in the folder while I was working. I didn't write it and didn't touch it.
+
+**Open questions for Jerome / the architect**
+1. QRIS: which payment provider, and how is a payment confirmed (webhook or manual)?
+2. WhatsApp receipt: is a total plus a secure link enough, or must the procedure lines go in the message? This needs a check against the "no clinical content" rule (D-011).
+3. Billing timing: should a planned procedure post to the ledger right away, or only when it is marked done? Auto-posting is a toggle for now.
+4. Insurance share: is a single cover percentage per patient realistic for Prudential, or do we need limits per procedure?
+5. Correcting the odontogram after signing: should a new SOAP version always create a new odontogram version too? It does in the prototype.
+6. Which condition list should the official legend use? The current one is our own and needs checking.

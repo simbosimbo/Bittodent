@@ -1,0 +1,2894 @@
+{
+ "units": "Pixel sizes below are for the @160 set; @320 is exactly 2x.",
+ "ppm160": 5.079365079365079,
+ "orientation": "Every image has MESIAL on image right. Quadrants 2,3,6,7 (patient left, chart right) use CSS transform: scaleX(-1).",
+ "maskFrames": [
+  "M",
+  "D",
+  "O",
+  "B",
+  "L",
+  "crown",
+  "root"
+ ],
+ "maskNote": "masks/<model>-<view>.webp is a 7-frame horizontal sprite (alpha = region). CSS: mask-size: 700% 100%; mask-position: calc(i * 100% / 6) 0. O frame = I on anterior teeth.",
+ "models": {
+  "incisor-upper": {
+   "dentition": "permanent",
+   "arch": "upper",
+   "kind": "incisor",
+   "crownWidthMm": 8.6,
+   "crownWidthPx": 43.68,
+   "w": 50,
+   "buccal": {
+    "h": 160,
+    "cejY": 0.6032,
+    "img": {
+     "160": "buccal/incisor-upper@160.webp",
+     "320": "buccal/incisor-upper@320.webp"
+    },
+    "mask": "masks/incisor-upper-buccal.webp",
+    "anchors": {
+     "M": [
+      0.827,
+      0.738,
+      0.0307
+     ],
+     "D": [
+      0.166,
+      0.734,
+      0.0294
+     ],
+     "O": [
+      0.492,
+      0.892,
+      0.0502
+     ],
+     "B": [
+      0.495,
+      0.749,
+      0.1589
+     ],
+     "L": [
+      0.496,
+      0.5,
+      0.0016
+     ],
+     "crown": [
+      0.497,
+      0.771,
+      0.2691
+     ],
+     "root": [
+      0.466,
+      0.432,
+      0.1908
+     ]
+    },
+    "bbox": {
+     "M": [
+      0.73,
+      0.616,
+      0.95,
+      0.878
+     ],
+     "D": [
+      0.05,
+      0.619,
+      0.27,
+      0.875
+     ],
+     "O": [
+      0.05,
+      0.853,
+      0.94,
+      0.941
+     ],
+     "B": [
+      0.18,
+      0.603,
+      0.82,
+      0.884
+     ],
+     "crown": [
+      0.05,
+      0.603,
+      0.95,
+      0.941
+     ],
+     "root": [
+      0.16,
+      0.166,
+      0.84,
+      0.634
+     ]
+    }
+   },
+   "occlusal": {
+    "h": 72,
+    "img": {
+     "160": "occlusal/incisor-upper@160.webp",
+     "320": "occlusal/incisor-upper@320.webp"
+    },
+    "mask": "masks/incisor-upper-occlusal.webp",
+    "anchors": {
+     "M": [
+      0.821,
+      0.511,
+      0.0154
+     ],
+     "D": [
+      0.176,
+      0.516,
+      0.0141
+     ],
+     "O": [
+      0.492,
+      0.411,
+      0.1682
+     ],
+     "B": [
+      0.493,
+      0.283,
+      0.0371
+     ],
+     "L": [
+      0.495,
+      0.618,
+      0.1289
+     ],
+     "crown": [
+      0.495,
+      0.48,
+      0.3614
+     ],
+     "root": [
+      0.497,
+      0.499,
+      0.0016
+     ]
+    },
+    "bbox": {
+     "M": [
+      0.78,
+      0.306,
+      0.95,
+      0.66
+     ],
+     "D": [
+      0.06,
+      0.306,
+      0.24,
+      0.674
+     ],
+     "O": [
+      0.05,
+      0.299,
+      0.95,
+      0.528
+     ],
+     "B": [
+      0.17,
+      0.229,
+      0.82,
+      0.326
+     ],
+     "L": [
+      0.18,
+      0.5,
+      0.82,
+      0.764
+     ],
+     "crown": [
+      0.05,
+      0.229,
+      0.95,
+      0.764
+     ]
+    }
+   },
+   "ghost": {
+    "160": "ghost/incisor-upper@160.webp",
+    "320": "ghost/incisor-upper@320.webp"
+   },
+   "roots": {
+    "buccal": {
+     "160": "roots/incisor-upper-buccal@160.webp",
+     "320": "roots/incisor-upper-buccal@320.webp"
+    },
+    "occlusal": {
+     "160": "roots/incisor-upper-occlusal@160.webp",
+     "320": "roots/incisor-upper-occlusal@320.webp"
+    }
+   },
+   "implant": {
+    "160": "implant/incisor-upper@160.webp",
+    "320": "implant/incisor-upper@320.webp"
+   }
+  },
+  "incisor-lower": {
+   "dentition": "permanent",
+   "arch": "lower",
+   "kind": "incisor",
+   "crownWidthMm": 5.6,
+   "crownWidthPx": 28.44,
+   "w": 35,
+   "buccal": {
+    "h": 160,
+    "cejY": 0.3968,
+    "img": {
+     "160": "buccal/incisor-lower@160.webp",
+     "320": "buccal/incisor-lower@320.webp"
+    },
+    "mask": "masks/incisor-lower-buccal.webp",
+    "anchors": {
+     "M": [
+      0.8,
+      0.282,
+      0.0244
+     ],
+     "D": [
+      0.19,
+      0.287,
+      0.0233
+     ],
+     "O": [
+      0.493,
+      0.148,
+      0.0486
+     ],
+     "B": [
+      0.493,
+      0.273,
+      0.1237
+     ],
+     "L": [
+      0.501,
+      0.499,
+      0.0016
+     ],
+     "crown": [
+      0.495,
+      0.249,
+      0.2202
+     ],
+     "root": [
+      0.467,
+      0.554,
+      0.1353
+     ]
+    },
+    "bbox": {
+     "M": [
+      0.729,
+      0.166,
+      0.914,
+      0.378
+     ],
+     "D": [
+      0.086,
+      0.169,
+      0.271,
+      0.378
+     ],
+     "O": [
+      0.086,
+      0.103,
+      0.914,
+      0.191
+     ],
+     "B": [
+      0.2,
+      0.162,
+      0.8,
+      0.397
+     ],
+     "crown": [
+      0.086,
+      0.103,
+      0.914,
+      0.397
+     ],
+     "root": [
+      0.171,
+      0.369,
+      0.829,
+      0.816
+     ]
+    }
+   },
+   "occlusal": {
+    "h": 72,
+    "img": {
+     "160": "occlusal/incisor-lower@160.webp",
+     "320": "occlusal/incisor-lower@320.webp"
+    },
+    "mask": "masks/incisor-lower-occlusal.webp",
+    "anchors": {
+     "M": [
+      0.782,
+      0.481,
+      0.011
+     ],
+     "D": [
+      0.213,
+      0.475,
+      0.0098
+     ],
+     "O": [
+      0.49,
+      0.552,
+      0.1511
+     ],
+     "B": [
+      0.493,
+      0.677,
+      0.0341
+     ],
+     "L": [
+      0.492,
+      0.368,
+      0.0963
+     ],
+     "crown": [
+      0.493,
+      0.502,
+      0.3004
+     ],
+     "root": [
+      0.501,
+      0.498,
+      0.0016
+     ]
+    },
+    "bbox": {
+     "M": [
+      0.771,
+      0.368,
+      0.914,
+      0.66
+     ],
+     "D": [
+      0.086,
+      0.368,
+      0.229,
+      0.66
+     ],
+     "O": [
+      0.086,
+      0.444,
+      0.929,
+      0.667
+     ],
+     "B": [
+      0.2,
+      0.639,
+      0.8,
+      0.743
+     ],
+     "L": [
+      0.2,
+      0.25,
+      0.8,
+      0.472
+     ],
+     "crown": [
+      0.086,
+      0.25,
+      0.929,
+      0.743
+     ]
+    }
+   },
+   "ghost": {
+    "160": "ghost/incisor-lower@160.webp",
+    "320": "ghost/incisor-lower@320.webp"
+   },
+   "roots": {
+    "buccal": {
+     "160": "roots/incisor-lower-buccal@160.webp",
+     "320": "roots/incisor-lower-buccal@320.webp"
+    },
+    "occlusal": {
+     "160": "roots/incisor-lower-occlusal@160.webp",
+     "320": "roots/incisor-lower-occlusal@320.webp"
+    }
+   },
+   "implant": {
+    "160": "implant/incisor-lower@160.webp",
+    "320": "implant/incisor-lower@320.webp"
+   }
+  },
+  "canine-upper": {
+   "dentition": "permanent",
+   "arch": "upper",
+   "kind": "canine",
+   "crownWidthMm": 7.8,
+   "crownWidthPx": 39.62,
+   "w": 46,
+   "buccal": {
+    "h": 160,
+    "cejY": 0.6032,
+    "img": {
+     "160": "buccal/canine-upper@160.webp",
+     "320": "buccal/canine-upper@320.webp"
+    },
+    "mask": "masks/canine-upper-buccal.webp",
+    "anchors": {
+     "M": [
+      0.808,
+      0.688,
+      0.0202
+     ],
+     "D": [
+      0.185,
+      0.682,
+      0.0188
+     ],
+     "O": [
+      0.493,
+      0.838,
+      0.0648
+     ],
+     "B": [
+      0.5,
+      0.718,
+      0.1243
+     ],
+     "L": [
+      0.499,
+      0.499,
+      0.0016
+     ],
+     "crown": [
+      0.499,
+      0.745,
+      0.2283
+     ],
+     "root": [
+      0.453,
+      0.384,
+      0.2488
+     ]
+    },
+    "bbox": {
+     "M": [
+      0.739,
+      0.619,
+      0.935,
+      0.794
+     ],
+     "D": [
+      0.065,
+      0.619,
+      0.272,
+      0.784
+     ],
+     "O": [
+      0.065,
+      0.759,
+      0.946,
+      0.928
+     ],
+     "B": [
+      0.185,
+      0.603,
+      0.815,
+      0.856
+     ],
+     "crown": [
+      0.065,
+      0.603,
+      0.946,
+      0.928
+     ],
+     "root": [
+      0.141,
+      0.044,
+      0.859,
+      0.638
+     ]
+    }
+   },
+   "occlusal": {
+    "h": 72,
+    "img": {
+     "160": "occlusal/canine-upper@160.webp",
+     "320": "occlusal/canine-upper@320.webp"
+    },
+    "mask": "masks/canine-upper-occlusal.webp",
+    "anchors": {
+     "M": [
+      0.743,
+      0.561,
+      0.0057
+     ],
+     "D": [
+      0.279,
+      0.57,
+      0.0045
+     ],
+     "O": [
+      0.489,
+      0.438,
+      0.2942
+     ],
+     "B": [
+      0.511,
+      0.246,
+      0.0226
+     ],
+     "L": [
+      0.503,
+      0.689,
+      0.0872
+     ],
+     "crown": [
+      0.495,
+      0.483,
+      0.4114
+     ],
+     "root": [
+      0.5,
+      0.495,
+      0.0016
+     ]
+    },
+    "bbox": {
+     "M": [
+      0.793,
+      0.278,
+      0.935,
+      0.681
+     ],
+     "D": [
+      0.076,
+      0.278,
+      0.207,
+      0.674
+     ],
+     "O": [
+      0.065,
+      0.236,
+      0.935,
+      0.646
+     ],
+     "B": [
+      0.185,
+      0.194,
+      0.815,
+      0.285
+     ],
+     "L": [
+      0.185,
+      0.597,
+      0.815,
+      0.806
+     ],
+     "crown": [
+      0.065,
+      0.194,
+      0.935,
+      0.806
+     ]
+    }
+   },
+   "ghost": {
+    "160": "ghost/canine-upper@160.webp",
+    "320": "ghost/canine-upper@320.webp"
+   },
+   "roots": {
+    "buccal": {
+     "160": "roots/canine-upper-buccal@160.webp",
+     "320": "roots/canine-upper-buccal@320.webp"
+    },
+    "occlusal": {
+     "160": "roots/canine-upper-occlusal@160.webp",
+     "320": "roots/canine-upper-occlusal@320.webp"
+    }
+   },
+   "implant": {
+    "160": "implant/canine-upper@160.webp",
+    "320": "implant/canine-upper@320.webp"
+   }
+  },
+  "canine-lower": {
+   "dentition": "permanent",
+   "arch": "lower",
+   "kind": "canine",
+   "crownWidthMm": 7.0,
+   "crownWidthPx": 35.56,
+   "w": 42,
+   "buccal": {
+    "h": 160,
+    "cejY": 0.3968,
+    "img": {
+     "160": "buccal/canine-lower@160.webp",
+     "320": "buccal/canine-lower@320.webp"
+    },
+    "mask": "masks/canine-lower-buccal.webp",
+    "anchors": {
+     "M": [
+      0.806,
+      0.301,
+      0.0215
+     ],
+     "D": [
+      0.184,
+      0.306,
+      0.0203
+     ],
+     "O": [
+      0.493,
+      0.146,
+      0.0628
+     ],
+     "B": [
+      0.499,
+      0.271,
+      0.1307
+     ],
+     "L": [
+      0.491,
+      0.499,
+      0.0016
+     ],
+     "crown": [
+      0.498,
+      0.245,
+      0.2353
+     ],
+     "root": [
+      0.46,
+      0.597,
+      0.2189
+     ]
+    },
+    "bbox": {
+     "M": [
+      0.726,
+      0.191,
+      0.929,
+      0.381
+     ],
+     "D": [
+      0.071,
+      0.203,
+      0.274,
+      0.381
+     ],
+     "O": [
+      0.071,
+      0.059,
+      0.94,
+      0.228
+     ],
+     "B": [
+      0.19,
+      0.131,
+      0.81,
+      0.397
+     ],
+     "crown": [
+      0.071,
+      0.059,
+      0.94,
+      0.397
+     ],
+     "root": [
+      0.155,
+      0.366,
+      0.845,
+      0.912
+     ]
+    }
+   },
+   "occlusal": {
+    "h": 72,
+    "img": {
+     "160": "occlusal/canine-lower@160.webp",
+     "320": "occlusal/canine-lower@320.webp"
+    },
+    "mask": "masks/canine-lower-occlusal.webp",
+    "anchors": {
+     "M": [
+      0.756,
+      0.445,
+      0.0065
+     ],
+     "D": [
+      0.256,
+      0.437,
+      0.0051
+     ],
+     "O": [
+      0.488,
+      0.546,
+      0.2689
+     ],
+     "B": [
+      0.508,
+      0.73,
+      0.0259
+     ],
+     "L": [
+      0.503,
+      0.31,
+      0.0811
+     ],
+     "crown": [
+      0.494,
+      0.506,
+      0.3852
+     ],
+     "root": [
+      0.491,
+      0.497,
+      0.0016
+     ]
+    },
+    "bbox": {
+     "M": [
+      0.798,
+      0.326,
+      0.929,
+      0.708
+     ],
+     "D": [
+      0.095,
+      0.333,
+      0.202,
+      0.708
+     ],
+     "O": [
+      0.071,
+      0.361,
+      0.929,
+      0.736
+     ],
+     "B": [
+      0.19,
+      0.701,
+      0.81,
+      0.785
+     ],
+     "L": [
+      0.19,
+      0.208,
+      0.81,
+      0.403
+     ],
+     "crown": [
+      0.071,
+      0.208,
+      0.929,
+      0.785
+     ]
+    }
+   },
+   "ghost": {
+    "160": "ghost/canine-lower@160.webp",
+    "320": "ghost/canine-lower@320.webp"
+   },
+   "roots": {
+    "buccal": {
+     "160": "roots/canine-lower-buccal@160.webp",
+     "320": "roots/canine-lower-buccal@320.webp"
+    },
+    "occlusal": {
+     "160": "roots/canine-lower-occlusal@160.webp",
+     "320": "roots/canine-lower-occlusal@320.webp"
+    }
+   },
+   "implant": {
+    "160": "implant/canine-lower@160.webp",
+    "320": "implant/canine-lower@320.webp"
+   }
+  },
+  "premolar1-upper": {
+   "dentition": "permanent",
+   "arch": "upper",
+   "kind": "premolar",
+   "crownWidthMm": 7.1,
+   "crownWidthPx": 36.06,
+   "w": 43,
+   "buccal": {
+    "h": 160,
+    "cejY": 0.6032,
+    "img": {
+     "160": "buccal/premolar1-upper@160.webp",
+     "320": "buccal/premolar1-upper@320.webp"
+    },
+    "mask": "masks/premolar1-upper-buccal.webp",
+    "anchors": {
+     "M": [
+      0.809,
+      0.694,
+      0.022
+     ],
+     "D": [
+      0.178,
+      0.694,
+      0.0222
+     ],
+     "O": [
+      0.493,
+      0.73,
+      0.0056
+     ],
+     "B": [
+      0.494,
+      0.719,
+      0.1313
+     ],
+     "L": [
+      0.489,
+      0.499,
+      0.0017
+     ],
+     "crown": [
+      0.494,
+      0.711,
+      0.1816
+     ],
+     "root": [
+      0.476,
+      0.443,
+      0.1456
+     ]
+    },
+    "bbox": {
+     "M": [
+      0.733,
+      0.609,
+      0.93,
+      0.809
+     ],
+     "D": [
+      0.07,
+      0.612,
+      0.267,
+      0.809
+     ],
+     "O": [
+      0.221,
+      0.8,
+      0.779,
+      0.869
+     ],
+     "B": [
+      0.186,
+      0.603,
+      0.814,
+      0.866
+     ],
+     "crown": [
+      0.07,
+      0.603,
+      0.93,
+      0.869
+     ],
+     "root": [
+      0.174,
+      0.172,
+      0.826,
+      0.619
+     ]
+    }
+   },
+   "occlusal": {
+    "h": 72,
+    "img": {
+     "160": "occlusal/premolar1-upper@160.webp",
+     "320": "occlusal/premolar1-upper@320.webp"
+    },
+    "mask": "masks/premolar1-upper-occlusal.webp",
+    "anchors": {
+     "M": [
+      0.828,
+      0.495,
+      0.0571
+     ],
+     "D": [
+      0.16,
+      0.495,
+      0.0579
+     ],
+     "O": [
+      0.495,
+      0.5,
+      0.2117
+     ],
+     "B": [
+      0.495,
+      0.256,
+      0.0722
+     ],
+     "L": [
+      0.494,
+      0.74,
+      0.0684
+     ],
+     "crown": [
+      0.494,
+      0.496,
+      0.4642
+     ],
+     "root": [
+      0.49,
+      0.498,
+      0.0017
+     ]
+    },
+    "bbox": {
+     "M": [
+      0.767,
+      0.264,
+      0.93,
+      0.729
+     ],
+     "D": [
+      0.07,
+      0.264,
+      0.233,
+      0.736
+     ],
+     "O": [
+      0.209,
+      0.299,
+      0.791,
+      0.708
+     ],
+     "B": [
+      0.174,
+      0.174,
+      0.826,
+      0.333
+     ],
+     "L": [
+      0.186,
+      0.674,
+      0.826,
+      0.826
+     ],
+     "crown": [
+      0.07,
+      0.174,
+      0.93,
+      0.826
+     ]
+    }
+   },
+   "ghost": {
+    "160": "ghost/premolar1-upper@160.webp",
+    "320": "ghost/premolar1-upper@320.webp"
+   },
+   "roots": {
+    "buccal": {
+     "160": "roots/premolar1-upper-buccal@160.webp",
+     "320": "roots/premolar1-upper-buccal@320.webp"
+    },
+    "occlusal": {
+     "160": "roots/premolar1-upper-occlusal@160.webp",
+     "320": "roots/premolar1-upper-occlusal@320.webp"
+    }
+   },
+   "implant": {
+    "160": "implant/premolar1-upper@160.webp",
+    "320": "implant/premolar1-upper@320.webp"
+   }
+  },
+  "premolar-upper": {
+   "dentition": "permanent",
+   "arch": "upper",
+   "kind": "premolar",
+   "crownWidthMm": 6.8,
+   "crownWidthPx": 34.54,
+   "w": 41,
+   "buccal": {
+    "h": 160,
+    "cejY": 0.6032,
+    "img": {
+     "160": "buccal/premolar-upper@160.webp",
+     "320": "buccal/premolar-upper@320.webp"
+    },
+    "mask": "masks/premolar-upper-buccal.webp",
+    "anchors": {
+     "M": [
+      0.809,
+      0.688,
+      0.0205
+     ],
+     "D": [
+      0.177,
+      0.688,
+      0.0205
+     ],
+     "O": [
+      0.493,
+      0.728,
+      0.0056
+     ],
+     "B": [
+      0.494,
+      0.713,
+      0.1244
+     ],
+     "L": [
+      0.485,
+      0.5,
+      0.0016
+     ],
+     "crown": [
+      0.493,
+      0.705,
+      0.1716
+     ],
+     "root": [
+      0.46,
+      0.418,
+      0.1762
+     ]
+    },
+    "bbox": {
+     "M": [
+      0.732,
+      0.609,
+      0.927,
+      0.797
+     ],
+     "D": [
+      0.073,
+      0.609,
+      0.268,
+      0.797
+     ],
+     "O": [
+      0.22,
+      0.788,
+      0.78,
+      0.856
+     ],
+     "B": [
+      0.183,
+      0.603,
+      0.817,
+      0.853
+     ],
+     "crown": [
+      0.073,
+      0.603,
+      0.927,
+      0.856
+     ],
+     "root": [
+      0.171,
+      0.134,
+      0.829,
+      0.616
+     ]
+    }
+   },
+   "occlusal": {
+    "h": 72,
+    "img": {
+     "160": "occlusal/premolar-upper@160.webp",
+     "320": "occlusal/premolar-upper@320.webp"
+    },
+    "mask": "masks/premolar-upper-occlusal.webp",
+    "anchors": {
+     "M": [
+      0.83,
+      0.497,
+      0.0576
+     ],
+     "D": [
+      0.158,
+      0.496,
+      0.0564
+     ],
+     "O": [
+      0.493,
+      0.5,
+      0.2145
+     ],
+     "B": [
+      0.494,
+      0.255,
+      0.0714
+     ],
+     "L": [
+      0.492,
+      0.74,
+      0.068
+     ],
+     "crown": [
+      0.494,
+      0.497,
+      0.4647
+     ],
+     "root": [
+      0.484,
+      0.499,
+      0.0016
+     ]
+    },
+    "bbox": {
+     "M": [
+      0.768,
+      0.264,
+      0.939,
+      0.736
+     ],
+     "D": [
+      0.073,
+      0.264,
+      0.232,
+      0.736
+     ],
+     "O": [
+      0.207,
+      0.299,
+      0.793,
+      0.701
+     ],
+     "B": [
+      0.183,
+      0.174,
+      0.817,
+      0.333
+     ],
+     "L": [
+      0.171,
+      0.674,
+      0.829,
+      0.826
+     ],
+     "crown": [
+      0.073,
+      0.174,
+      0.939,
+      0.826
+     ]
+    }
+   },
+   "ghost": {
+    "160": "ghost/premolar-upper@160.webp",
+    "320": "ghost/premolar-upper@320.webp"
+   },
+   "roots": {
+    "buccal": {
+     "160": "roots/premolar-upper-buccal@160.webp",
+     "320": "roots/premolar-upper-buccal@320.webp"
+    },
+    "occlusal": {
+     "160": "roots/premolar-upper-occlusal@160.webp",
+     "320": "roots/premolar-upper-occlusal@320.webp"
+    }
+   },
+   "implant": {
+    "160": "implant/premolar-upper@160.webp",
+    "320": "implant/premolar-upper@320.webp"
+   }
+  },
+  "premolar-lower": {
+   "dentition": "permanent",
+   "arch": "lower",
+   "kind": "premolar",
+   "crownWidthMm": 7.1,
+   "crownWidthPx": 36.06,
+   "w": 43,
+   "buccal": {
+    "h": 160,
+    "cejY": 0.3968,
+    "img": {
+     "160": "buccal/premolar-lower@160.webp",
+     "320": "buccal/premolar-lower@320.webp"
+    },
+    "mask": "masks/premolar-lower-buccal.webp",
+    "anchors": {
+     "M": [
+      0.806,
+      0.307,
+      0.0218
+     ],
+     "D": [
+      0.182,
+      0.307,
+      0.0217
+     ],
+     "O": [
+      0.495,
+      0.243,
+      0.0077
+     ],
+     "B": [
+      0.494,
+      0.282,
+      0.1247
+     ],
+     "L": [
+      0.489,
+      0.499,
+      0.0017
+     ],
+     "crown": [
+      0.494,
+      0.289,
+      0.1763
+     ],
+     "root": [
+      0.461,
+      0.582,
+      0.1885
+     ]
+    },
+    "bbox": {
+     "M": [
+      0.733,
+      0.197,
+      0.93,
+      0.391
+     ],
+     "D": [
+      0.07,
+      0.197,
+      0.267,
+      0.391
+     ],
+     "O": [
+      0.209,
+      0.134,
+      0.779,
+      0.209
+     ],
+     "B": [
+      0.186,
+      0.141,
+      0.814,
+      0.397
+     ],
+     "crown": [
+      0.07,
+      0.134,
+      0.93,
+      0.397
+     ],
+     "root": [
+      0.163,
+      0.384,
+      0.826,
+      0.872
+     ]
+    }
+   },
+   "occlusal": {
+    "h": 72,
+    "img": {
+     "160": "occlusal/premolar-lower@160.webp",
+     "320": "occlusal/premolar-lower@320.webp"
+    },
+    "mask": "masks/premolar-lower-occlusal.webp",
+    "anchors": {
+     "M": [
+      0.826,
+      0.497,
+      0.0495
+     ],
+     "D": [
+      0.162,
+      0.5,
+      0.0493
+     ],
+     "O": [
+      0.493,
+      0.49,
+      0.192
+     ],
+     "B": [
+      0.494,
+      0.708,
+      0.0637
+     ],
+     "L": [
+      0.496,
+      0.279,
+      0.0564
+     ],
+     "crown": [
+      0.494,
+      0.497,
+      0.4081
+     ],
+     "root": [
+      0.49,
+      0.498,
+      0.0017
+     ]
+    },
+    "bbox": {
+     "M": [
+      0.767,
+      0.292,
+      0.93,
+      0.708
+     ],
+     "D": [
+      0.07,
+      0.292,
+      0.233,
+      0.708
+     ],
+     "O": [
+      0.209,
+      0.312,
+      0.791,
+      0.681
+     ],
+     "B": [
+      0.186,
+      0.646,
+      0.814,
+      0.785
+     ],
+     "L": [
+      0.186,
+      0.208,
+      0.814,
+      0.333
+     ],
+     "crown": [
+      0.07,
+      0.208,
+      0.93,
+      0.785
+     ]
+    }
+   },
+   "ghost": {
+    "160": "ghost/premolar-lower@160.webp",
+    "320": "ghost/premolar-lower@320.webp"
+   },
+   "roots": {
+    "buccal": {
+     "160": "roots/premolar-lower-buccal@160.webp",
+     "320": "roots/premolar-lower-buccal@320.webp"
+    },
+    "occlusal": {
+     "160": "roots/premolar-lower-occlusal@160.webp",
+     "320": "roots/premolar-lower-occlusal@320.webp"
+    }
+   },
+   "implant": {
+    "160": "implant/premolar-lower@160.webp",
+    "320": "implant/premolar-lower@320.webp"
+   }
+  },
+  "molar-upper": {
+   "dentition": "permanent",
+   "arch": "upper",
+   "kind": "molar",
+   "crownWidthMm": 10.2,
+   "crownWidthPx": 51.81,
+   "w": 58,
+   "buccal": {
+    "h": 160,
+    "cejY": 0.6032,
+    "img": {
+     "160": "buccal/molar-upper@160.webp",
+     "320": "buccal/molar-upper@320.webp"
+    },
+    "mask": "masks/molar-upper-buccal.webp",
+    "anchors": {
+     "M": [
+      0.829,
+      0.686,
+      0.0216
+     ],
+     "D": [
+      0.162,
+      0.682,
+      0.0207
+     ],
+     "O": [
+      0.504,
+      0.764,
+      0.0149
+     ],
+     "B": [
+      0.5,
+      0.694,
+      0.1111
+     ],
+     "L": [
+      0.491,
+      0.5,
+      0.0016
+     ],
+     "crown": [
+      0.501,
+      0.696,
+      0.1689
+     ],
+     "root": [
+      0.5,
+      0.414,
+      0.2819
+     ]
+    },
+    "bbox": {
+     "M": [
+      0.767,
+      0.612,
+      0.948,
+      0.812
+     ],
+     "D": [
+      0.052,
+      0.609,
+      0.233,
+      0.803
+     ],
+     "O": [
+      0.207,
+      0.759,
+      0.793,
+      0.834
+     ],
+     "B": [
+      0.164,
+      0.603,
+      0.836,
+      0.812
+     ],
+     "crown": [
+      0.052,
+      0.603,
+      0.948,
+      0.834
+     ],
+     "root": [
+      0.112,
+      0.175,
+      0.888,
+      0.622
+     ]
+    }
+   },
+   "occlusal": {
+    "h": 72,
+    "img": {
+     "160": "occlusal/molar-upper@160.webp",
+     "320": "occlusal/molar-upper@320.webp"
+    },
+    "mask": "masks/molar-upper-occlusal.webp",
+    "anchors": {
+     "M": [
+      0.848,
+      0.497,
+      0.0745
+     ],
+     "D": [
+      0.141,
+      0.495,
+      0.0711
+     ],
+     "O": [
+      0.489,
+      0.496,
+      0.2817
+     ],
+     "B": [
+      0.499,
+      0.195,
+      0.083
+     ],
+     "L": [
+      0.504,
+      0.797,
+      0.0843
+     ],
+     "crown": [
+      0.496,
+      0.497,
+      0.5907
+     ],
+     "root": [
+      0.491,
+      0.499,
+      0.0016
+     ]
+    },
+    "bbox": {
+     "M": [
+      0.776,
+      0.215,
+      0.948,
+      0.785
+     ],
+     "D": [
+      0.052,
+      0.215,
+      0.216,
+      0.785
+     ],
+     "O": [
+      0.19,
+      0.243,
+      0.802,
+      0.757
+     ],
+     "B": [
+      0.164,
+      0.104,
+      0.836,
+      0.278
+     ],
+     "L": [
+      0.164,
+      0.715,
+      0.845,
+      0.896
+     ],
+     "crown": [
+      0.052,
+      0.104,
+      0.948,
+      0.896
+     ]
+    }
+   },
+   "ghost": {
+    "160": "ghost/molar-upper@160.webp",
+    "320": "ghost/molar-upper@320.webp"
+   },
+   "roots": {
+    "buccal": {
+     "160": "roots/molar-upper-buccal@160.webp",
+     "320": "roots/molar-upper-buccal@320.webp"
+    },
+    "occlusal": {
+     "160": "roots/molar-upper-occlusal@160.webp",
+     "320": "roots/molar-upper-occlusal@320.webp"
+    }
+   },
+   "implant": {
+    "160": "implant/molar-upper@160.webp",
+    "320": "implant/molar-upper@320.webp"
+   }
+  },
+  "molar-lower": {
+   "dentition": "permanent",
+   "arch": "lower",
+   "kind": "molar",
+   "crownWidthMm": 11.0,
+   "crownWidthPx": 55.87,
+   "w": 62,
+   "buccal": {
+    "h": 160,
+    "cejY": 0.3968,
+    "img": {
+     "160": "buccal/molar-lower@160.webp",
+     "320": "buccal/molar-lower@320.webp"
+    },
+    "mask": "masks/molar-lower-buccal.webp",
+    "anchors": {
+     "M": [
+      0.835,
+      0.309,
+      0.0227
+     ],
+     "D": [
+      0.155,
+      0.303,
+      0.0245
+     ],
+     "O": [
+      0.411,
+      0.229,
+      0.0172
+     ],
+     "B": [
+      0.513,
+      0.299,
+      0.1158
+     ],
+     "L": [
+      0.496,
+      0.499,
+      0.0016
+     ],
+     "crown": [
+      0.495,
+      0.296,
+      0.1808
+     ],
+     "root": [
+      0.502,
+      0.577,
+      0.2874
+     ]
+    },
+    "bbox": {
+     "M": [
+      0.766,
+      0.175,
+      0.96,
+      0.391
+     ],
+     "D": [
+      0.048,
+      0.184,
+      0.234,
+      0.391
+     ],
+     "O": [
+      0.194,
+      0.166,
+      0.79,
+      0.247
+     ],
+     "B": [
+      0.169,
+      0.178,
+      0.839,
+      0.397
+     ],
+     "crown": [
+      0.048,
+      0.166,
+      0.96,
+      0.397
+     ],
+     "root": [
+      0.089,
+      0.378,
+      0.927,
+      0.856
+     ]
+    }
+   },
+   "occlusal": {
+    "h": 72,
+    "img": {
+     "160": "occlusal/molar-lower@160.webp",
+     "320": "occlusal/molar-lower@320.webp"
+    },
+    "mask": "masks/molar-lower-occlusal.webp",
+    "anchors": {
+     "M": [
+      0.851,
+      0.498,
+      0.0713
+     ],
+     "D": [
+      0.139,
+      0.496,
+      0.0682
+     ],
+     "O": [
+      0.489,
+      0.498,
+      0.2642
+     ],
+     "B": [
+      0.507,
+      0.78,
+      0.0813
+     ],
+     "L": [
+      0.498,
+      0.214,
+      0.083
+     ],
+     "crown": [
+      0.496,
+      0.497,
+      0.5643
+     ],
+     "root": [
+      0.497,
+      0.497,
+      0.0016
+     ]
+    },
+    "bbox": {
+     "M": [
+      0.774,
+      0.229,
+      0.96,
+      0.771
+     ],
+     "D": [
+      0.048,
+      0.229,
+      0.218,
+      0.778
+     ],
+     "O": [
+      0.194,
+      0.257,
+      0.806,
+      0.743
+     ],
+     "B": [
+      0.161,
+      0.701,
+      0.839,
+      0.875
+     ],
+     "L": [
+      0.161,
+      0.125,
+      0.839,
+      0.299
+     ],
+     "crown": [
+      0.048,
+      0.125,
+      0.96,
+      0.875
+     ]
+    }
+   },
+   "ghost": {
+    "160": "ghost/molar-lower@160.webp",
+    "320": "ghost/molar-lower@320.webp"
+   },
+   "roots": {
+    "buccal": {
+     "160": "roots/molar-lower-buccal@160.webp",
+     "320": "roots/molar-lower-buccal@320.webp"
+    },
+    "occlusal": {
+     "160": "roots/molar-lower-occlusal@160.webp",
+     "320": "roots/molar-lower-occlusal@320.webp"
+    }
+   },
+   "implant": {
+    "160": "implant/molar-lower@160.webp",
+    "320": "implant/molar-lower@320.webp"
+   }
+  },
+  "p-incisor-upper": {
+   "dentition": "primary",
+   "arch": "upper",
+   "kind": "incisor",
+   "crownWidthMm": 6.4,
+   "crownWidthPx": 32.51,
+   "w": 39,
+   "buccal": {
+    "h": 114,
+    "cejY": 0.6238,
+    "img": {
+     "160": "buccal/p-incisor-upper@160.webp",
+     "320": "buccal/p-incisor-upper@320.webp"
+    },
+    "mask": "masks/p-incisor-upper-buccal.webp",
+    "anchors": {
+     "M": [
+      0.81,
+      0.721,
+      0.0232
+     ],
+     "D": [
+      0.182,
+      0.714,
+      0.0216
+     ],
+     "O": [
+      0.49,
+      0.851,
+      0.0497
+     ],
+     "B": [
+      0.494,
+      0.734,
+      0.1198
+     ],
+     "L": [
+      0.497,
+      0.499,
+      0.0016
+     ],
+     "crown": [
+      0.496,
+      0.756,
+      0.2146
+     ],
+     "root": [
+      0.468,
+      0.441,
+      0.1939
+     ]
+    },
+    "bbox": {
+     "M": [
+      0.744,
+      0.64,
+      0.923,
+      0.838
+     ],
+     "D": [
+      0.077,
+      0.636,
+      0.269,
+      0.829
+     ],
+     "O": [
+      0.064,
+      0.803,
+      0.923,
+      0.904
+     ],
+     "B": [
+      0.192,
+      0.623,
+      0.808,
+      0.846
+     ],
+     "crown": [
+      0.064,
+      0.623,
+      0.923,
+      0.904
+     ],
+     "root": [
+      0.154,
+      0.149,
+      0.846,
+      0.654
+     ]
+    }
+   },
+   "occlusal": {
+    "h": 58,
+    "img": {
+     "160": "occlusal/p-incisor-upper@160.webp",
+     "320": "occlusal/p-incisor-upper@320.webp"
+    },
+    "mask": "masks/p-incisor-upper-occlusal.webp",
+    "anchors": {
+     "M": [
+      0.792,
+      0.52,
+      0.0119
+     ],
+     "D": [
+      0.211,
+      0.53,
+      0.01
+     ],
+     "O": [
+      0.489,
+      0.438,
+      0.179
+     ],
+     "B": [
+      0.495,
+      0.302,
+      0.0323
+     ],
+     "L": [
+      0.495,
+      0.635,
+      0.098
+     ],
+     "crown": [
+      0.494,
+      0.489,
+      0.3292
+     ],
+     "root": [
+      0.499,
+      0.498,
+      0.0016
+     ]
+    },
+    "bbox": {
+     "M": [
+      0.769,
+      0.319,
+      0.923,
+      0.664
+     ],
+     "D": [
+      0.09,
+      0.328,
+      0.231,
+      0.664
+     ],
+     "O": [
+      0.077,
+      0.31,
+      0.923,
+      0.569
+     ],
+     "B": [
+      0.179,
+      0.25,
+      0.808,
+      0.345
+     ],
+     "L": [
+      0.192,
+      0.543,
+      0.808,
+      0.759
+     ],
+     "crown": [
+      0.077,
+      0.25,
+      0.923,
+      0.759
+     ]
+    }
+   },
+   "ghost": {
+    "160": "ghost/p-incisor-upper@160.webp",
+    "320": "ghost/p-incisor-upper@320.webp"
+   },
+   "roots": {
+    "buccal": {
+     "160": "roots/p-incisor-upper-buccal@160.webp",
+     "320": "roots/p-incisor-upper-buccal@320.webp"
+    },
+    "occlusal": {
+     "160": "roots/p-incisor-upper-occlusal@160.webp",
+     "320": "roots/p-incisor-upper-occlusal@320.webp"
+    }
+   }
+  },
+  "p-incisor-lower": {
+   "dentition": "primary",
+   "arch": "lower",
+   "kind": "incisor",
+   "crownWidthMm": 4.4,
+   "crownWidthPx": 22.35,
+   "w": 29,
+   "buccal": {
+    "h": 114,
+    "cejY": 0.3762,
+    "img": {
+     "160": "buccal/p-incisor-lower@160.webp",
+     "320": "buccal/p-incisor-lower@320.webp"
+    },
+    "mask": "masks/p-incisor-lower-buccal.webp",
+    "anchors": {
+     "M": [
+      0.777,
+      0.3,
+      0.0169
+     ],
+     "D": [
+      0.212,
+      0.308,
+      0.0151
+     ],
+     "O": [
+      0.488,
+      0.189,
+      0.0468
+     ],
+     "B": [
+      0.492,
+      0.287,
+      0.0885
+     ],
+     "L": [
+      0.486,
+      0.498,
+      0.0016
+     ],
+     "crown": [
+      0.494,
+      0.265,
+      0.1679
+     ],
+     "root": [
+      0.461,
+      0.538,
+      0.1408
+     ]
+    },
+    "bbox": {
+     "M": [
+      0.741,
+      0.206,
+      0.897,
+      0.355
+     ],
+     "D": [
+      0.103,
+      0.215,
+      0.276,
+      0.36
+     ],
+     "O": [
+      0.103,
+      0.145,
+      0.897,
+      0.241
+     ],
+     "B": [
+      0.207,
+      0.202,
+      0.793,
+      0.377
+     ],
+     "crown": [
+      0.103,
+      0.145,
+      0.897,
+      0.377
+     ],
+     "root": [
+      0.172,
+      0.346,
+      0.828,
+      0.803
+     ]
+    }
+   },
+   "occlusal": {
+    "h": 58,
+    "img": {
+     "160": "occlusal/p-incisor-lower@160.webp",
+     "320": "occlusal/p-incisor-lower@320.webp"
+    },
+    "mask": "masks/p-incisor-lower-occlusal.webp",
+    "anchors": {
+     "M": [
+      0.743,
+      0.473,
+      0.008
+     ],
+     "D": [
+      0.26,
+      0.464,
+      0.0064
+     ],
+     "O": [
+      0.488,
+      0.531,
+      0.1424
+     ],
+     "B": [
+      0.493,
+      0.65,
+      0.0277
+     ],
+     "L": [
+      0.491,
+      0.37,
+      0.0698
+     ],
+     "crown": [
+      0.492,
+      0.496,
+      0.2527
+     ],
+     "root": [
+      0.488,
+      0.498,
+      0.0016
+     ]
+    },
+    "bbox": {
+     "M": [
+      0.759,
+      0.379,
+      0.897,
+      0.638
+     ],
+     "D": [
+      0.121,
+      0.371,
+      0.241,
+      0.629
+     ],
+     "O": [
+      0.103,
+      0.431,
+      0.897,
+      0.647
+     ],
+     "B": [
+      0.207,
+      0.621,
+      0.776,
+      0.707
+     ],
+     "L": [
+      0.224,
+      0.276,
+      0.776,
+      0.448
+     ],
+     "crown": [
+      0.103,
+      0.276,
+      0.897,
+      0.707
+     ]
+    }
+   },
+   "ghost": {
+    "160": "ghost/p-incisor-lower@160.webp",
+    "320": "ghost/p-incisor-lower@320.webp"
+   },
+   "roots": {
+    "buccal": {
+     "160": "roots/p-incisor-lower-buccal@160.webp",
+     "320": "roots/p-incisor-lower-buccal@320.webp"
+    },
+    "occlusal": {
+     "160": "roots/p-incisor-lower-occlusal@160.webp",
+     "320": "roots/p-incisor-lower-occlusal@320.webp"
+    }
+   }
+  },
+  "p-canine-upper": {
+   "dentition": "primary",
+   "arch": "upper",
+   "kind": "canine",
+   "crownWidthMm": 7.0,
+   "crownWidthPx": 35.56,
+   "w": 42,
+   "buccal": {
+    "h": 114,
+    "cejY": 0.6238,
+    "img": {
+     "160": "buccal/p-canine-upper@160.webp",
+     "320": "buccal/p-canine-upper@320.webp"
+    },
+    "mask": "masks/p-canine-upper-buccal.webp",
+    "anchors": {
+     "M": [
+      0.801,
+      0.692,
+      0.0177
+     ],
+     "D": [
+      0.192,
+      0.686,
+      0.0163
+     ],
+     "O": [
+      0.492,
+      0.837,
+      0.0662
+     ],
+     "B": [
+      0.5,
+      0.725,
+      0.1103
+     ],
+     "L": [
+      0.49,
+      0.496,
+      0.0016
+     ],
+     "crown": [
+      0.499,
+      0.753,
+      0.2109
+     ],
+     "root": [
+      0.461,
+      0.392,
+      0.2376
+     ]
+    },
+    "bbox": {
+     "M": [
+      0.738,
+      0.636,
+      0.929,
+      0.794
+     ],
+     "D": [
+      0.071,
+      0.636,
+      0.262,
+      0.781
+     ],
+     "O": [
+      0.071,
+      0.754,
+      0.929,
+      0.93
+     ],
+     "B": [
+      0.19,
+      0.623,
+      0.81,
+      0.855
+     ],
+     "crown": [
+      0.071,
+      0.623,
+      0.929,
+      0.93
+     ],
+     "root": [
+      0.143,
+      0.026,
+      0.857,
+      0.654
+     ]
+    }
+   },
+   "occlusal": {
+    "h": 58,
+    "img": {
+     "160": "occlusal/p-canine-upper@160.webp",
+     "320": "occlusal/p-canine-upper@320.webp"
+    },
+    "mask": "masks/p-canine-upper-occlusal.webp",
+    "anchors": {
+     "M": [
+      0.729,
+      0.577,
+      0.0051
+     ],
+     "D": [
+      0.288,
+      0.588,
+      0.004
+     ],
+     "O": [
+      0.489,
+      0.443,
+      0.3292
+     ],
+     "B": [
+      0.507,
+      0.224,
+      0.023
+     ],
+     "L": [
+      0.506,
+      0.713,
+      0.0775
+     ],
+     "crown": [
+      0.494,
+      0.482,
+      0.4361
+     ],
+     "root": [
+      0.492,
+      0.497,
+      0.0016
+     ]
+    },
+    "bbox": {
+     "M": [
+      0.798,
+      0.267,
+      0.905,
+      0.698
+     ],
+     "D": [
+      0.107,
+      0.595,
+      0.202,
+      0.698
+     ],
+     "O": [
+      0.06,
+      0.216,
+      0.94,
+      0.672
+     ],
+     "B": [
+      0.19,
+      0.172,
+      0.798,
+      0.259
+     ],
+     "L": [
+      0.19,
+      0.621,
+      0.81,
+      0.828
+     ],
+     "crown": [
+      0.06,
+      0.172,
+      0.94,
+      0.828
+     ]
+    }
+   },
+   "ghost": {
+    "160": "ghost/p-canine-upper@160.webp",
+    "320": "ghost/p-canine-upper@320.webp"
+   },
+   "roots": {
+    "buccal": {
+     "160": "roots/p-canine-upper-buccal@160.webp",
+     "320": "roots/p-canine-upper-buccal@320.webp"
+    },
+    "occlusal": {
+     "160": "roots/p-canine-upper-occlusal@160.webp",
+     "320": "roots/p-canine-upper-occlusal@320.webp"
+    }
+   }
+  },
+  "p-canine-lower": {
+   "dentition": "primary",
+   "arch": "lower",
+   "kind": "canine",
+   "crownWidthMm": 5.6,
+   "crownWidthPx": 28.44,
+   "w": 35,
+   "buccal": {
+    "h": 114,
+    "cejY": 0.3762,
+    "img": {
+     "160": "buccal/p-canine-lower@160.webp",
+     "320": "buccal/p-canine-lower@320.webp"
+    },
+    "mask": "masks/p-canine-lower-buccal.webp",
+    "anchors": {
+     "M": [
+      0.784,
+      0.312,
+      0.0155
+     ],
+     "D": [
+      0.208,
+      0.318,
+      0.0144
+     ],
+     "O": [
+      0.492,
+      0.175,
+      0.0637
+     ],
+     "B": [
+      0.499,
+      0.28,
+      0.0962
+     ],
+     "L": [
+      0.499,
+      0.495,
+      0.0016
+     ],
+     "crown": [
+      0.498,
+      0.252,
+      0.1902
+     ],
+     "root": [
+      0.454,
+      0.574,
+      0.1975
+     ]
+    },
+    "bbox": {
+     "M": [
+      0.729,
+      0.224,
+      0.914,
+      0.364
+     ],
+     "D": [
+      0.086,
+      0.237,
+      0.271,
+      0.364
+     ],
+     "O": [
+      0.086,
+      0.092,
+      0.914,
+      0.254
+     ],
+     "B": [
+      0.214,
+      0.167,
+      0.786,
+      0.377
+     ],
+     "crown": [
+      0.086,
+      0.092,
+      0.914,
+      0.377
+     ],
+     "root": [
+      0.157,
+      0.346,
+      0.843,
+      0.895
+     ]
+    }
+   },
+   "occlusal": {
+    "h": 58,
+    "img": {
+     "160": "occlusal/p-canine-lower@160.webp",
+     "320": "occlusal/p-canine-lower@320.webp"
+    },
+    "mask": "masks/p-canine-lower-occlusal.webp",
+    "anchors": {
+     "M": [
+      0.689,
+      0.428,
+      0.004
+     ],
+     "D": [
+      0.334,
+      0.425,
+      0.0033
+     ],
+     "O": [
+      0.488,
+      0.537,
+      0.2616
+     ],
+     "B": [
+      0.505,
+      0.709,
+      0.0168
+     ],
+     "L": [
+      0.502,
+      0.313,
+      0.0639
+     ],
+     "crown": [
+      0.492,
+      0.502,
+      0.3474
+     ],
+     "root": [
+      0.496,
+      0.492,
+      0.0016
+     ]
+    },
+    "bbox": {
+     "M": [
+      0.771,
+      0.328,
+      0.886,
+      0.69
+     ],
+     "D": [
+      0.143,
+      0.328,
+      0.229,
+      0.405
+     ],
+     "O": [
+      0.086,
+      0.353,
+      0.914,
+      0.733
+     ],
+     "B": [
+      0.229,
+      0.69,
+      0.786,
+      0.767
+     ],
+     "L": [
+      0.214,
+      0.224,
+      0.786,
+      0.397
+     ],
+     "crown": [
+      0.086,
+      0.224,
+      0.914,
+      0.767
+     ]
+    }
+   },
+   "ghost": {
+    "160": "ghost/p-canine-lower@160.webp",
+    "320": "ghost/p-canine-lower@320.webp"
+   },
+   "roots": {
+    "buccal": {
+     "160": "roots/p-canine-lower-buccal@160.webp",
+     "320": "roots/p-canine-lower-buccal@320.webp"
+    },
+    "occlusal": {
+     "160": "roots/p-canine-lower-occlusal@160.webp",
+     "320": "roots/p-canine-lower-occlusal@320.webp"
+    }
+   }
+  },
+  "p-molar-upper": {
+   "dentition": "primary",
+   "arch": "upper",
+   "kind": "molar",
+   "crownWidthMm": 9.0,
+   "crownWidthPx": 45.71,
+   "w": 52,
+   "buccal": {
+    "h": 114,
+    "cejY": 0.6238,
+    "img": {
+     "160": "buccal/p-molar-upper@160.webp",
+     "320": "buccal/p-molar-upper@320.webp"
+    },
+    "mask": "masks/p-molar-upper-buccal.webp",
+    "anchors": {
+     "M": [
+      0.839,
+      0.726,
+      0.0265
+     ],
+     "D": [
+      0.151,
+      0.72,
+      0.0252
+     ],
+     "O": [
+      0.514,
+      0.792,
+      0.0105
+     ],
+     "B": [
+      0.498,
+      0.727,
+      0.1342
+     ],
+     "L": [
+      0.498,
+      0.497,
+      0.0016
+     ],
+     "crown": [
+      0.501,
+      0.727,
+      0.1967
+     ],
+     "root": [
+      0.501,
+      0.45,
+      0.2419
+     ]
+    },
+    "bbox": {
+     "M": [
+      0.76,
+      0.627,
+      0.952,
+      0.864
+     ],
+     "D": [
+      0.048,
+      0.632,
+      0.231,
+      0.855
+     ],
+     "O": [
+      0.231,
+      0.825,
+      0.76,
+      0.873
+     ],
+     "B": [
+      0.173,
+      0.623,
+      0.827,
+      0.855
+     ],
+     "crown": [
+      0.048,
+      0.623,
+      0.952,
+      0.873
+     ],
+     "root": [
+      0.077,
+      0.206,
+      0.923,
+      0.64
+     ]
+    }
+   },
+   "occlusal": {
+    "h": 58,
+    "img": {
+     "160": "occlusal/p-molar-upper@160.webp",
+     "320": "occlusal/p-molar-upper@320.webp"
+    },
+    "mask": "masks/p-molar-upper-occlusal.webp",
+    "anchors": {
+     "M": [
+      0.835,
+      0.499,
+      0.094
+     ],
+     "D": [
+      0.152,
+      0.498,
+      0.0906
+     ],
+     "O": [
+      0.488,
+      0.495,
+      0.2725
+     ],
+     "B": [
+      0.498,
+      0.162,
+      0.1027
+     ],
+     "L": [
+      0.504,
+      0.828,
+      0.1029
+     ],
+     "crown": [
+      0.495,
+      0.496,
+      0.6584
+     ],
+     "root": [
+      0.564,
+      0.353,
+      0.0094
+     ]
+    },
+    "bbox": {
+     "M": [
+      0.75,
+      0.164,
+      0.952,
+      0.828
+     ],
+     "D": [
+      0.048,
+      0.164,
+      0.231,
+      0.828
+     ],
+     "O": [
+      0.212,
+      0.233,
+      0.779,
+      0.767
+     ],
+     "B": [
+      0.173,
+      0.052,
+      0.837,
+      0.259
+     ],
+     "L": [
+      0.163,
+      0.733,
+      0.827,
+      0.948
+     ],
+     "crown": [
+      0.048,
+      0.052,
+      0.952,
+      0.948
+     ],
+     "root": [
+      0.077,
+      0.172,
+      0.933,
+      0.957
+     ]
+    }
+   },
+   "ghost": {
+    "160": "ghost/p-molar-upper@160.webp",
+    "320": "ghost/p-molar-upper@320.webp"
+   },
+   "roots": {
+    "buccal": {
+     "160": "roots/p-molar-upper-buccal@160.webp",
+     "320": "roots/p-molar-upper-buccal@320.webp"
+    },
+    "occlusal": {
+     "160": "roots/p-molar-upper-occlusal@160.webp",
+     "320": "roots/p-molar-upper-occlusal@320.webp"
+    }
+   }
+  },
+  "p-molar-lower": {
+   "dentition": "primary",
+   "arch": "lower",
+   "kind": "molar",
+   "crownWidthMm": 9.6,
+   "crownWidthPx": 48.76,
+   "w": 56,
+   "buccal": {
+    "h": 114,
+    "cejY": 0.3762,
+    "img": {
+     "160": "buccal/p-molar-lower@160.webp",
+     "320": "buccal/p-molar-lower@320.webp"
+    },
+    "mask": "masks/p-molar-lower-buccal.webp",
+    "anchors": {
+     "M": [
+      0.838,
+      0.274,
+      0.0255
+     ],
+     "D": [
+      0.153,
+      0.27,
+      0.0269
+     ],
+     "O": [
+      0.408,
+      0.202,
+      0.0119
+     ],
+     "B": [
+      0.507,
+      0.268,
+      0.1333
+     ],
+     "L": [
+      0.497,
+      0.495,
+      0.0016
+     ],
+     "crown": [
+      0.496,
+      0.267,
+      0.198
+     ],
+     "root": [
+      0.501,
+      0.516,
+      0.2066
+     ]
+    },
+    "bbox": {
+     "M": [
+      0.75,
+      0.136,
+      0.946,
+      0.368
+     ],
+     "D": [
+      0.054,
+      0.145,
+      0.241,
+      0.368
+     ],
+     "O": [
+      0.223,
+      0.132,
+      0.759,
+      0.197
+     ],
+     "B": [
+      0.179,
+      0.14,
+      0.83,
+      0.377
+     ],
+     "crown": [
+      0.054,
+      0.132,
+      0.946,
+      0.377
+     ],
+     "root": [
+      0.08,
+      0.36,
+      0.92,
+      0.794
+     ]
+    }
+   },
+   "occlusal": {
+    "h": 58,
+    "img": {
+     "160": "occlusal/p-molar-lower@160.webp",
+     "320": "occlusal/p-molar-lower@320.webp"
+    },
+    "mask": "masks/p-molar-lower-occlusal.webp",
+    "anchors": {
+     "M": [
+      0.834,
+      0.495,
+      0.0826
+     ],
+     "D": [
+      0.156,
+      0.494,
+      0.0807
+     ],
+     "O": [
+      0.49,
+      0.499,
+      0.2362
+     ],
+     "B": [
+      0.504,
+      0.788,
+      0.0906
+     ],
+     "L": [
+      0.496,
+      0.204,
+      0.093
+     ],
+     "crown": [
+      0.496,
+      0.496,
+      0.5793
+     ],
+     "root": [
+      0.498,
+      0.499,
+      0.0016
+     ]
+    },
+    "bbox": {
+     "M": [
+      0.75,
+      0.207,
+      0.946,
+      0.784
+     ],
+     "D": [
+      0.054,
+      0.207,
+      0.241,
+      0.793
+     ],
+     "O": [
+      0.223,
+      0.267,
+      0.786,
+      0.741
+     ],
+     "B": [
+      0.17,
+      0.707,
+      0.83,
+      0.897
+     ],
+     "L": [
+      0.17,
+      0.103,
+      0.821,
+      0.302
+     ],
+     "crown": [
+      0.054,
+      0.103,
+      0.946,
+      0.897
+     ]
+    }
+   },
+   "ghost": {
+    "160": "ghost/p-molar-lower@160.webp",
+    "320": "ghost/p-molar-lower@320.webp"
+   },
+   "roots": {
+    "buccal": {
+     "160": "roots/p-molar-lower-buccal@160.webp",
+     "320": "roots/p-molar-lower-buccal@320.webp"
+    },
+    "occlusal": {
+     "160": "roots/p-molar-lower-occlusal@160.webp",
+     "320": "roots/p-molar-lower-occlusal@320.webp"
+    }
+   }
+  }
+ }
+}
