@@ -21,17 +21,27 @@ def grade(r): return 'AA' if r >= 4.5 else ('AA besar' if r >= 3 else 'gagal')
 assert ratio(C['muted'], C['canvas']) >= 4.5, ratio(C['muted'], C['canvas'])
 assert ratio('#FFFFFF', C['brand']) >= 4.5
 assert C['brand'] == P['700'] and C['brandHover'] == P['800']
+for _k in ('success', 'warning', 'danger', 'info'):
+    assert ratio(C[_k]['fg'], C[_k]['bg']) >= 4.5, (_k, ratio(C[_k]['fg'], C[_k]['bg']))
+    assert ratio(C[_k]['fg'], C['canvas']) >= 4.5, (_k, 'canvas', ratio(C[_k]['fg'], C['canvas']))
+    assert ratio(C[_k]['fg'], '#FFFFFF') >= 4.5, (_k, 'white', ratio(C[_k]['fg'], '#FFFFFF'))
+assert C['success']['fg'] == '#15803D' and C['success']['bg'] == '#ECFDF3'
+assert C['danger']['fg'] == '#B42318' and C['danger']['solid'] == '#D92D20'
+# success must not be teal-adjacent
+assert C['success']['fg'].lower() not in {P['600'].lower(), P['700'].lower(), P['800'].lower()}
+
 
 # ---------- shared component CSS (same block in all three files) ----------
 CSS = f"""
 :root{{--b:{P['700']};--bh:{P['800']};--b9:{P['900']};--b3:{P['300']};--b2:{P['200']};--b1:{P['100']};--b0:{P['50']};
 --n25:{N['25']};--n50:{N['50']};--n100:{N['100']};--n200:{N['200']};--n300:{N['300']};--n400:{N['400']};--n500:{N['500']};--n600:{N['600']};--n700:{N['700']};--n900:{N['900']};
---cv:{C['canvas']};--bd:{C['border']};--tx:{C['text']};--mu:{C['muted']};--sb:{C['sidebar']};
---sbg:{C['success']['bg']};--sbd:{C['success']['border']};--sfg:{C['success']['fg']};
+--cv:{C['canvas']};--bd:{C['border']};--tx:{C['text']};--mu:{C['muted']};--sb:{C['sidebar']};--sm:{C['surfaceMuted']};
+--sbg:{C['success']['bg']};--sbd:{C['success']['border']};--sfg:{C['success']['fg']};--ssd:{C['success']['solid']};
 --wbg:{C['warning']['bg']};--wbd:{C['warning']['border']};--wfg:{C['warning']['fg']};
---dbg:{C['danger']['bg']};--dbd:{C['danger']['border']};--dfg:{C['danger']['fg']};
---ibg:{C['info']['bg']};--ibd:{C['info']['border']};--ifg:{C['info']['fg']};
+--dbg:{C['danger']['bg']};--dbd:{C['danger']['border']};--dfg:{C['danger']['fg']};--dsd:{C['danger']['solid']};
+--ibg:{C['info']['bg']};--ibd:{C['info']['border']};--ifg:{C['info']['fg']};--isd:{C['info']['solid']};
 --rbg:{C['draft']['bg']};--rbd:{C['draft']['border']};--rfg:{C['draft']['fg']};
+--lbg:{C['locked']['bg']};--lbd:{C['locked']['border']};--lfg:{C['locked']['fg']};
 --fo:{TOK['shadow']['focus']};--ff:{TOK['font']['family']['sans']}}}
 *{{box-sizing:border-box;margin:0;padding:0}}
 body{{font:14px/20px var(--ff);color:var(--tx);-webkit-font-smoothing:antialiased}}
@@ -39,8 +49,8 @@ table{{border-collapse:collapse;width:100%}}
 .i{{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}}
 .i24{{width:24px;height:24px}}.i16{{width:16px;height:16px}}.i32{{width:32px;height:32px}}
 .t12{{font-size:12px;line-height:16px}}.t14{{font-size:14px;line-height:20px}}.t16{{font-size:16px;line-height:24px}}
-.t18{{font-size:18px;line-height:26px;font-weight:700}}.t20{{font-size:20px;line-height:28px;font-weight:700}}.t24{{font-size:24px;line-height:32px;font-weight:700}}
-.t28{{font-size:28px;line-height:36px;font-weight:700;letter-spacing:-.01em}}.t32{{font-size:32px;line-height:40px;font-weight:700;letter-spacing:-.01em}}
+.t18{{font-size:18px;line-height:26px;font-weight:600}}.t20{{font-size:20px;line-height:28px;font-weight:600}}.t24{{font-size:24px;line-height:32px;font-weight:600}}
+.t28{{font-size:28px;line-height:36px;font-weight:600;letter-spacing:-.02em}}.t32{{font-size:32px;line-height:40px;font-weight:600;letter-spacing:-.02em}}
 .t56{{font-size:56px;line-height:64px;font-weight:700}}
 .mu{{color:var(--mu)}}.b6{{font-weight:600}}.b7{{font-weight:700}}.br{{color:var(--b)}}.ok{{color:var(--sfg)}}.er{{color:var(--dfg)}}
 .num,.t28,.t32,.t56,.kp{{font-variant-numeric:tabular-nums}}.r{{text-align:right}}.c{{text-align:center}}
@@ -49,69 +59,69 @@ table{{border-collapse:collapse;width:100%}}
 .w1{{flex:1;min-width:0}}.wr{{flex-wrap:wrap}}.ma{{margin-left:auto}}.as{{align-self:stretch}}
 .g2{{gap:2px}}.g4{{gap:4px}}.g8{{gap:8px}}.g12{{gap:12px}}.g16{{gap:16px}}.g20{{gap:20px}}.g24{{gap:24px}}.g32{{gap:32px}}
 .gd{{display:grid;gap:20px}}.c2{{grid-template-columns:1fr 1fr}}.c3{{grid-template-columns:repeat(3,1fr)}}.c4{{grid-template-columns:repeat(4,1fr)}}
-.card{{background:#fff;border:1px solid var(--bd);border-radius:20px;padding:20px}}.p16{{padding:16px}}.p24{{padding:24px}}
+.card{{background:#fff;border:1px solid var(--bd);border-radius:16px;padding:20px}}.p16{{padding:16px}}.p24{{padding:24px}}
 .hr{{border-top:1px solid var(--bd)}}.hd{{border-top:1px dashed var(--n300)}}
 .kv{{display:flex;justify-content:space-between;gap:12px}}.kv>:last-child{{text-align:right;font-variant-numeric:tabular-nums}}
-.btn{{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:12px;border:1px solid transparent;font:600 14px/20px var(--ff);white-space:nowrap}}
-.btn.s{{height:36px;padding:0 14px}}.btn.l{{height:48px;padding:0 22px;font-size:16px}}.btn.xl{{height:64px;padding:0 32px;font-size:18px;border-radius:16px}}.btn.wf{{width:100%}}
+.btn{{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:10px;border:1px solid transparent;font:600 14px/20px var(--ff);white-space:nowrap}}
+.btn.s{{height:36px;padding:0 14px}}.btn.l{{height:48px;padding:0 22px;font-size:16px}}.btn.xl{{height:64px;padding:0 32px;font-size:18px;border-radius:12px}}.btn.wf{{width:100%}}
 .pri{{background:var(--b);color:#fff}}.pri.is-h{{background:var(--bh)}}
 .sec{{background:#fff;color:var(--tx);border-color:var(--n200)}}.sec.is-h{{background:var(--n50)}}
 .gh{{background:transparent;color:var(--b)}}.gh.is-h{{background:var(--b0)}}
-.dan{{background:var(--dfg);color:#fff}}.dan.is-h{{background:#912018}}
+.dan{{background:var(--dsd);color:#fff}}.dan.is-h{{background:var(--dfg)}}
 .is-f{{box-shadow:var(--fo)}}
 .btn.is-d{{background:var(--n100);color:var(--n500);border-color:transparent}}
 .lab{{font-size:12px;line-height:16px;font-weight:600;color:var(--n700)}}
 .fld{{display:flex;flex-direction:column;gap:6px}}
-.inp{{display:flex;align-items:center;gap:8px;height:44px;padding:0 14px;border:1px solid var(--n200);border-radius:12px;background:#fff;font-size:14px;color:var(--tx)}}
+.inp{{display:flex;align-items:center;gap:8px;height:44px;padding:0 14px;border:1px solid var(--n200);border-radius:10px;background:#fff;font-size:14px;color:var(--tx)}}
 .inp.l{{height:56px;font-size:20px;font-weight:700;letter-spacing:.08em}}
 .inp .ph{{color:var(--mu)}}.inp.is-f{{border-color:var(--b)}}.inp.is-e{{border-color:var(--dfg)}}.inp.is-d{{background:var(--n50);color:var(--n500);border-color:var(--n100)}}
 .hint{{font-size:12px;line-height:16px;color:var(--mu)}}.hint.er{{color:var(--dfg)}}
-.otp{{display:flex;gap:8px}}.otp span{{flex:1;height:56px;min-width:40px;display:flex;align-items:center;justify-content:center;border:1px solid var(--n200);border-radius:12px;background:#fff;font-size:22px;font-weight:700}}
+.otp{{display:flex;gap:8px}}.otp span{{flex:1;height:56px;min-width:40px;display:flex;align-items:center;justify-content:center;border:1px solid var(--n200);border-radius:10px;background:#fff;font-size:22px;font-weight:700}}
 .otp .is-f{{border-color:var(--b)}}.otp.is-e span{{border-color:var(--dfg)}}
 .chip{{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--n200);background:#fff;font-weight:600;white-space:nowrap}}
 .chip.on{{background:var(--b0);border-color:var(--b);color:var(--b)}}.chip.off{{background:var(--n50);border-color:var(--n100);color:var(--n500);text-decoration:line-through}}
-.slot{{height:44px;display:flex;align-items:center;justify-content:center;border:1px solid var(--n200);border-radius:12px;background:#fff;font-weight:600;font-variant-numeric:tabular-nums}}
+.slot{{height:44px;display:flex;align-items:center;justify-content:center;border:1px solid var(--n200);border-radius:10px;background:#fff;font-weight:600;font-variant-numeric:tabular-nums}}
 .slot.on{{background:var(--b);border-color:var(--b);color:#fff}}.slot.off{{background:var(--n50);border-color:var(--n100);color:var(--n500);text-decoration:line-through}}
-.day{{flex:1;height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:1px solid var(--n200);border-radius:12px;background:#fff}}
+.day{{flex:1;height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:1px solid var(--n200);border-radius:10px;background:#fff}}
 .day b{{font-size:18px;line-height:24px}}.day small{{font-size:12px;line-height:16px;color:var(--mu)}}
 .day.on{{background:var(--b);border-color:var(--b);color:#fff}}.day.on small{{color:#fff}}.day.off{{background:var(--n50);border-color:var(--n100);color:var(--n500)}}.day.off b{{text-decoration:line-through}}
-.svc{{display:flex;align-items:center;gap:12px;padding:8px 16px;min-height:44px;border:1px solid var(--n200);border-radius:12px;background:#fff}}
+.svc{{display:flex;align-items:center;gap:12px;padding:8px 16px;min-height:44px;border:1px solid var(--n200);border-radius:10px;background:#fff}}
 .svc.on{{border-color:var(--b);box-shadow:inset 0 0 0 1px var(--b);background:var(--b0)}}
 .rad{{width:20px;height:20px;border-radius:50%;border:2px solid var(--n300);flex:none}}.on>.rad,.rad.on{{border:6px solid var(--b)}}
 .stp{{display:flex;flex-direction:column;gap:8px}}.stp i{{display:flex;gap:4px}}.stp i b{{flex:1;height:4px;border-radius:2px;background:var(--n100)}}.stp i b.on{{background:var(--b)}}
 .bdg{{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;border:1px solid var(--n200);background:var(--n50);color:var(--n700);font-size:12px;font-weight:600;white-space:nowrap}}
 .bdg.ok{{background:var(--sbg);border-color:var(--sbd);color:var(--sfg)}}.bdg.wt{{background:var(--wbg);border-color:var(--wbd);color:var(--wfg)}}
 .bdg.dg{{background:var(--dbg);border-color:var(--dbd);color:var(--dfg)}}.bdg.in{{background:var(--ibg);border-color:var(--ibd);color:var(--ifg)}}
-.bdg.dr{{background:var(--rbg);border-color:var(--rbd);color:var(--rfg)}}.bdg.sg{{background:var(--b0);border-color:var(--b2);color:var(--bh)}}
+.bdg.dr{{background:var(--rbg);border-color:var(--rbd);color:var(--rfg)}}.bdg.sg{{background:var(--lbg);border-color:var(--lbd);color:var(--lfg)}}
 .dot:before{{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}}
 .syn{{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;background:var(--wbg);color:var(--wfg);font-size:11px;font-weight:700;letter-spacing:.06em}}
-.tbl th{{font-size:12px;line-height:16px;font-weight:600;color:var(--mu);text-align:left;padding:10px 12px;border-bottom:1px solid var(--bd);background:var(--n25)}}
+.tbl th{{font-size:11px;line-height:16px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--mu);text-align:left;padding:10px 12px;border-bottom:1px solid var(--bd);background:var(--sm)}}
 .tbl td{{padding:12px;border-bottom:1px solid var(--bd);vertical-align:middle}}.tbl tr:last-child td{{border-bottom:0}}
 .tbl .r{{text-align:right;font-variant-numeric:tabular-nums}}.tbl tfoot td{{font-weight:700;border-top:1px solid var(--bd);border-bottom:0}}
 .pm{{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}}
-.pm>div{{height:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:1px solid var(--n200);border-radius:12px;background:#fff;font-weight:600}}
+.pm>div{{height:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:1px solid var(--n200);border-radius:10px;background:#fff;font-weight:600}}
 .pm>div.on{{border-color:var(--b);box-shadow:inset 0 0 0 1px var(--b);background:var(--b0);color:var(--b)}}.pm.sm>div{{height:64px;font-size:12px}}
 .kp{{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}}
-.kp b{{height:56px;display:flex;align-items:center;justify-content:center;border:1px solid var(--n200);border-radius:12px;background:#fff;font-size:22px;font-weight:600}}
+.kp b{{height:56px;display:flex;align-items:center;justify-content:center;border:1px solid var(--n200);border-radius:10px;background:#fff;font-size:22px;font-weight:600}}
 .kp.k64 b{{height:64px}}.kp b.is-h{{background:var(--n50)}}
 .nom{{display:flex;flex-direction:column;gap:4px;padding:16px;border-radius:16px;background:var(--b0)}}.nom .t32{{color:var(--b9)}}
-.toast{{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:12px;background:var(--n900);color:#fff;font-weight:500}}.toast .i{{color:var(--b3)}}
-.ban{{display:flex;gap:12px;align-items:flex-start;padding:12px 16px;border-radius:12px;border:1px solid}}
+.toast{{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:10px;background:var(--n900);color:#fff;font-weight:500}}.toast .i{{color:#4ADE80}}.toast .act{{color:#fff;font-weight:600}}
+.ban{{display:flex;gap:12px;align-items:flex-start;padding:12px 16px;border-radius:10px;border:1px solid}}
 .ban.in{{background:var(--ibg);border-color:var(--ibd)}}.ban.in .i{{color:var(--ifg)}}.ban.wt{{background:var(--wbg);border-color:var(--wbd)}}.ban.wt .i{{color:var(--wfg)}}
 .ban.ok{{background:var(--sbg);border-color:var(--sbd)}}.ban.ok .i{{color:var(--sfg)}}.ban.dg{{background:var(--dbg);border-color:var(--dbd)}}.ban.dg .i{{color:var(--dfg)}}
 .scrim{{position:absolute;inset:0;background:rgba(22,33,43,.48);display:flex;align-items:center;justify-content:center}}
-.modal{{background:#fff;border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:16px}}
-.sheet{{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:20px 20px 0 0;padding:12px 16px 16px;display:flex;flex-direction:column;gap:16px}}
+.modal{{background:#fff;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:16px;box-shadow:0 16px 40px rgba(36,48,68,.08)}}
+.sheet{{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:16px 16px 0 0;padding:12px 16px 16px;display:flex;flex-direction:column;gap:16px}}
 .sheet:before{{content:"";align-self:center;width:40px;height:4px;border-radius:2px;background:var(--n200)}}
-.side{{width:248px;flex:none;background:var(--sb);border-right:1px solid var(--bd);padding:16px 12px;display:flex;flex-direction:column;gap:2px}}
+.side{{width:264px;flex:none;background:var(--sb);border-right:1px solid var(--bd);padding:20px 16px;display:flex;flex-direction:column;gap:2px}}
 .side.cp{{width:72px;align-items:center}}
-.nav{{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:12px;color:var(--n600);font-weight:600}}
-.nav.on{{background:var(--b1);color:var(--bh)}}.side.cp .nav{{width:48px;height:44px;padding:0;justify-content:center}}
+.nav{{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:10px;color:var(--n600);font-weight:500}}
+.nav.on{{background:var(--b0);color:var(--bh)}}.side.cp .nav{{width:48px;height:44px;padding:0;justify-content:center}}
 .nlab{{padding:16px 12px 6px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--mu)}}
 .logo{{display:flex;align-items:center;gap:10px;height:40px;padding:0 8px;margin-bottom:8px;font-weight:700;font-size:16px}}
 .lg{{width:32px;height:32px;border-radius:10px;background:var(--b);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex:none}}
-.top{{height:56px;flex:none;display:flex;align-items:center;gap:16px;padding:0 24px;background:#fff;border-bottom:1px solid var(--bd)}}
-.srch{{display:flex;align-items:center;gap:8px;width:320px;height:36px;padding:0 12px;border-radius:12px;background:var(--cv);color:var(--mu)}}
+.top{{height:64px;flex:none;display:flex;align-items:center;gap:16px;padding:0 28px;background:#fff}}
+.srch{{display:flex;align-items:center;gap:8px;width:280px;height:40px;padding:0 16px;border-radius:999px;background:var(--sm);color:var(--mu)}}
 .av{{width:32px;height:32px;border-radius:50%;background:var(--b1);color:var(--bh);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex:none}}
 .av.l{{width:44px;height:44px;font-size:14px}}
 .tabb{{height:64px;flex:none;display:flex;background:#fff;border-top:1px solid var(--bd)}}
@@ -125,6 +135,9 @@ table{{border-collapse:collapse;width:100%}}
 .seg{{display:flex;padding:4px;gap:4px;border-radius:12px;background:var(--n50)}}.seg div{{flex:1;height:36px;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:9px;font-weight:600;color:var(--n600)}}
 .seg .on{{background:#fff;color:var(--b);box-shadow:inset 0 0 0 1px var(--bd)}}
 .stepr{{display:flex;align-items:center;border:1px solid var(--n200);border-radius:12px;height:36px;background:#fff}}.stepr b{{width:36px;text-align:center;color:var(--b)}}.stepr span{{width:44px;text-align:center;font-weight:600;font-variant-numeric:tabular-nums}}
+.ib{{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--n600);flex:none}}
+.clinic{{margin:4px 0 16px;padding:10px 12px;border:1px solid var(--bd);border-radius:10px;background:#fff;display:flex;flex-direction:column;gap:2px}}
+.clinic b{{font-size:12px;line-height:16px;font-weight:600}}
 .paper{{background:#fff;border:1px solid var(--n200);font-size:12px;line-height:18px}}
 """
 
@@ -232,8 +245,8 @@ body{background:var(--cv)}
 .dnav a:hover{background:var(--n50)}.dnav .h{padding:16px 12px 6px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--mu)}
 .dmain{margin-left:232px;padding:40px 48px 96px;max-width:1360px}
 .dsec{padding-top:48px;display:flex;flex-direction:column;gap:20px}
-.dsec>h2{font-size:28px;line-height:36px;font-weight:700}.dsec h3{font-size:18px;line-height:26px;font-weight:700}
-.frame{background:#fff;border:1px solid var(--bd);border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:16px}
+.dsec>h2{font-size:28px;line-height:36px;font-weight:600}.dsec h3{font-size:18px;line-height:26px;font-weight:600}
+.frame{background:#fff;border:1px solid var(--bd);border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:16px}
 .ann{font-size:11px;line-height:14px;font-weight:600;color:#6D28D9;font-family:ui-monospace,Menlo,monospace}
 .sw{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
 .sw>div{border:1px solid var(--bd);border-radius:12px;overflow:hidden;background:#fff}
@@ -242,12 +255,13 @@ body{background:var(--cv)}
 .rule{display:flex;gap:16px;align-items:center;padding:16px 20px;border-radius:16px;background:var(--b0);border:1px solid var(--b2)}
 .lad{display:flex;flex-direction:column;gap:8px}.lad div{display:flex;align-items:center;gap:16px}.lad span{width:40px;font-size:12px;color:var(--mu);font-variant-numeric:tabular-nums}
 .lad b{height:16px;background:var(--b3);border-radius:4px}
-.grd{position:relative;padding:0 24px;height:200px;background:var(--cv);border:1px solid var(--bd);border-radius:12px;display:grid;grid-template-columns:repeat(12,1fr);gap:20px}
+.grd{position:relative;padding:0 28px;height:200px;background:var(--cv);border:1px solid var(--bd);border-radius:12px;display:grid;grid-template-columns:repeat(12,1fr);gap:20px}
 .grd i{background:rgba(234,85,85,.12);border-left:1px solid rgba(234,85,85,.35);border-right:1px solid rgba(234,85,85,.35)}
 .grd.t{grid-template-columns:repeat(8,1fr)}.grd.m{grid-template-columns:repeat(4,1fr);padding:0 16px;gap:16px;width:390px}
 .st{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start}.st>div{display:flex;flex-direction:column;gap:8px}
 .ph{position:relative;overflow:hidden;border:1px solid var(--bd);border-radius:16px;background:var(--cv)}
 .dhead{display:flex;align-items:center;gap:12px}
+.dmain a{color:var(--b);font-weight:600}
 """
 
 def sw(name, hx, label=''):
@@ -261,12 +275,12 @@ def sw(name, hx, label=''):
 
 def ds():
     navs = [('foundations', 'Foundations'), ('color', 'Color'), ('type', 'Type'), ('space', 'Space'), ('grid', 'Grid'),
-            ('radius', 'Radius'), ('icon', 'Icon'), ('components', 'Components')]
+            ('radius', 'Radius'), ('icon', 'Icon'), ('ref', 'Referensi'), ('components', 'Components')]
     comps = [('btn', 'Button'), ('input', 'Input'), ('chip', 'Chip & slot'), ('choice', 'Pilihan layanan'), ('badge', 'Badge'),
              ('table', 'Table'), ('pay', 'Pembayaran'), ('msg', 'Toast & banner'), ('overlay', 'Modal & sheet'),
              ('shell', 'Navigasi'), ('state', 'Empty & skeleton')]
     nav = ('<nav class="dnav"><div class="logo"><span class="lg">B</span>Bittodent</div>'
-           + ''.join(f'<a href="#{a}">{b}</a>' for a, b in navs[:7]) + '<div class="h">COMPONENTS</div>'
+           + ''.join(f'<a href="#{a}">{b}</a>' for a, b in navs if a != 'components') + '<div class="h">COMPONENTS</div>'
            + ''.join(f'<a href="#{a}">{b}</a>' for a, b in comps) + '</nav>')
 
     brand = ''.join(sw(k, P[k], (k + (' Brand / action' if k == '700' else ' hover' if k == '800' else ' bukan tombol' if k == '500' else '')))
@@ -279,14 +293,50 @@ def ds():
         sem += (f'<div><i style="background:{v["bg"]};color:{v["fg"]};box-shadow:inset 0 -4px 0 {v["border"]}">{k}</i>'
                 f'<p><b>{v["fg"]} / {v["bg"]}</b><span class="mu">fg di bg: {r:.2f}:1 {grade(r)}</span></p></div>')
     mr = ratio(C['muted'], C['canvas'])
+    def crow(label, fg, bg, note=''):
+        r = ratio(fg, bg)
+        return f'<tr><td>{label}</td><td>{bg}</td><td>{fg}</td><td class="num">{r:.2f}:1</td><td>{grade(r)}{(" · " + note) if note else ""}</td></tr>'
+    S, D, W, I_ = C['success'], C['danger'], C['warning'], C['info']
+    contrast_rows = ''.join([
+        crow('Success / Lunas, teks di latar', S['fg'], S['bg']),
+        crow('Success, teks di putih', S['fg'], '#FFFFFF'),
+        crow('Success, teks di canvas', S['fg'], C['canvas']),
+        crow('Success solid, putih di #15803D', '#FFFFFF', S['solid']),
+        crow('#16A34A di latar success', '#16A34A', S['bg'], 'AA besar saja, bukan teks 14'),
+        crow('Danger, teks di latar', D['fg'], D['bg']),
+        crow('Danger, teks di putih', D['fg'], '#FFFFFF'),
+        crow('Danger, teks di canvas', D['fg'], C['canvas']),
+        crow('Danger solid, putih di #D92D20', '#FFFFFF', D['solid']),
+        crow('#D92D20 di latar danger', D['solid'], D['bg'], 'AA besar, bukan teks kecil'),
+        crow('Warning, teks di latar', W['fg'], W['bg']),
+        crow('Warning, teks di putih', W['fg'], '#FFFFFF'),
+        crow('Warning, teks di canvas', W['fg'], C['canvas']),
+        crow('Info / Grup, teks di latar', I_['fg'], I_['bg']),
+        crow('Info / Grup, teks di putih', I_['fg'], '#FFFFFF'),
+        crow('Info / Grup, teks di canvas', I_['fg'], C['canvas']),
+        crow('Info solid, putih di #3B5BDB', '#FFFFFF', I_['solid']),
+        crow('Brand, putih di teal', '#FFFFFF', C['brand']),
+        crow('Muted di canvas', C['muted'], C['canvas']),
+    ])
+    compare = ('<div class="f ac g16 wr" style="padding-top:8px">'
+               '<button class="btn pri">Bayar</button>'
+               '<span class="bdg ok">Lunas</span>'
+               '<span class="bdg dg">Gagal</span>'
+               '<span class="bdg in">Grup</span>'
+               '<span class="ann">Teal = aksi. Hijau = lunas. Merah = danger. Biru = grup.</span></div>')
 
     color = f"""
 <section class="dsec" id="color"><h2>Color</h2>
-<div class="rule">{I('info', 24, ' br')}<div><b>Brand / action = primary-700 {P['700']}. Hover = 800 {P['800']}.</b><div class="mu">500 {P['500']} hanya di skala. Tidak untuk tombol, chrome, atau focus ring.</div></div></div>
+<div class="rule">{I('info', 24, ' br')}<div><b>Brand / action = primary-700 {P['700']}. Hover = 800 {P['800']}.</b><div class="mu">500 {P['500']} hanya di skala. Teal hanya untuk brand dan aksi utama. Lunas dan sukses memakai hijau #15803D, bukan teal.</div></div></div>
 <div class="frame"><h3>Brand</h3><div class="sw">{brand}</div></div>
 <div class="frame"><h3>Neutral</h3><div class="sw">{neut}</div></div>
 <div class="frame"><h3>Alias</h3><div class="sw">{alias}</div><div class="ann">muted {C['muted']} di canvas {C['canvas']}: {mr:.2f}:1 {grade(mr)}</div></div>
-<div class="frame"><h3>Semantic</h3><div class="sw">{sem}</div></div>
+<div class="frame"><h3>Semantic</h3><div class="sw">{sem}</div>
+<div class="mu t12">Success hijau #15803D / #ECFDF3, jauh dari teal. Info biru #2E5AAC. Teal tidak dipakai di badge Lunas.</div>
+{compare}</div>
+<div class="frame"><h3>Kontras WCAG</h3>
+<table class="tbl"><thead><tr><th>Kombinasi</th><th>Latar</th><th>Teks</th><th class="r">Rasio</th><th>Grade</th></tr></thead>
+<tbody>{contrast_rows}</tbody></table></div>
 </section>"""
 
     types = [(12, 'Label', 'label', 'Nomor antrean'), (14, 'Body', 'body', 'Tambalan komposit, Rp 450.000'),
@@ -304,15 +354,15 @@ def ds():
     spc = f'<section class="dsec" id="space"><h2>Space</h2><div class="frame"><div class="ann">Basis 4 px</div><div class="lad">{lad}</div></div></section>'
 
     grid = f"""<section class="dsec" id="grid"><h2>Grid</h2>
-<div class="frame"><div class="f jb"><h3>Desktop 12 kolom</h3><span class="ann">gutter 20, padding 24, sidebar 248</span></div><div class="grd">{'<i></i>' * 12}</div></div>
+<div class="frame"><div class="f jb"><h3>Desktop 12 kolom</h3><span class="ann">gutter 20, padding 28, sidebar 264</span></div><div class="grd">{'<i></i>' * 12}</div></div>
 <div class="gd c2"><div class="frame"><div class="f jb"><h3>Tablet 8 kolom</h3><span class="ann">gutter 20, padding 24</span></div><div class="grd t">{'<i></i>' * 8}</div></div>
 <div class="frame"><div class="f jb"><h3>HP 4 kolom</h3><span class="ann">gutter 16, padding 16</span></div><div class="grd m">{'<i></i>' * 4}</div></div></div></section>"""
 
     rad = f"""<section class="dsec" id="radius"><h2>Radius</h2><div class="frame">
-<div class="st"><div><div class="card" style="width:200px;height:120px"></div><span class="ann">radius.card 20</span></div>
-<div><div class="inp" style="width:200px">Kontrol</div><span class="ann">radius.control 12</span></div>
+<div class="st"><div><div class="card" style="width:200px;height:120px"></div><span class="ann">radius.card 16</span></div>
+<div><div class="inp" style="width:200px">Kontrol</div><span class="ann">radius.control 10</span></div>
 <div><span class="chip on">Chip</span><span class="ann">pill 999</span></div></div>
-<div class="rule">{I('info', 24, ' br')}<div><b>Tanpa bayangan. Elevasi = border 1 px {C['border']}. Canvas {C['canvas']}.</b><div class="mu">Bayangan hanya untuk focus ring: {TOK['shadow']['focus']}</div></div></div>
+<div class="rule">{I('info', 24, ' br')}<div><b>Tanpa bayangan. Elevasi = border 1 px {C['border']}. Canvas {C['canvas']}.</b><div class="mu">Kartu tanpa bayangan. Modal: shadow.float. Focus: {TOK['shadow']['focus']}</div></div></div>
 </div></section>"""
 
     show = ['plus', 'check', 'chev', 'search', 'cal', 'card', 'cash', 'qr', 'phone', 'user', 'x']
@@ -335,10 +385,10 @@ def ds():
 <div><button class="btn pri">Simpan</button><span class="ann">M 44×auto, bawaan</span></div>
 <div><button class="btn pri l">Simpan</button><span class="ann">L 48×auto, CTA utama</span></div>
 <div><button class="btn pri xl">Ketuk untuk mulai</button><span class="ann">XL 64, kios</span></div></div>
-<div class="ann">radius 12. Sentuh min 44. S 32 terlalu kecil untuk sentuh, jadi S = 36 dan hanya di tabel desktop.</div></div></section>"""
+<div class="ann">radius 10. Sentuh min 44. S 32 terlalu kecil untuk sentuh, jadi S = 36 dan hanya di tabel desktop.</div></div></section>"""
 
     inp = f"""<section class="dsec" id="input"><h3>Input, select, OTP</h3><div class="frame"><div class="gd c3">
-<div class="fld"><span class="lab">Nama lengkap</span><div class="inp"><span class="ph">Contoh: Ratna Dewi</span></div><span class="ann">Default 44, radius 12</span></div>
+<div class="fld"><span class="lab">Nama lengkap</span><div class="inp"><span class="ph">Contoh: Ratna Dewi</span></div><span class="ann">Default 44, radius 10</span></div>
 <div class="fld"><span class="lab">Nama lengkap</span><div class="inp is-f">Ratna Dewi Anggraini</div><span class="ann">Focus</span></div>
 <div class="fld"><span class="lab">Nomor WhatsApp</span><div class="inp is-e">0800-000</div><span class="hint er">Nomor belum lengkap.</span></div>
 <div class="fld"><span class="lab">Penjamin</span><div class="inp is-d">Umum</div><span class="ann">Disabled</span></div>
@@ -352,19 +402,19 @@ def ds():
 
     chip = f"""<section class="dsec" id="chip"><h3>Chip dan slot waktu</h3><div class="frame"><div class="st">
 <div><div class="f g8"><span class="chip">10%</span><span class="chip on">{I('check', 16)}15%</span><span class="chip off">20%</span></div><span class="ann">Chip 36, pill. Default, selected, disabled</span></div>
-<div><div class="f g8" style="width:320px"><span class="slot w1">09.45</span><span class="slot on w1">09.00</span><span class="slot off w1">13.45</span></div><span class="ann">Slot 44, radius 12. Default, selected, terisi</span></div>
-<div><div class="f g8" style="width:300px"><div class="day off"><small>Min</small><b>15</b></div><div class="day"><small>Sen</small><b>16</b></div><div class="day on"><small>Sel</small><b>17</b></div></div><span class="ann">Tanggal 60</span></div>
+<div><div class="f g8" style="width:320px"><span class="slot w1">09.30</span><span class="slot on w1">09.00</span><span class="slot off w1">13.30</span></div><span class="ann">Slot 44, radius 10. Default, selected, terisi</span></div>
+<div><div class="f g8" style="width:300px"><div class="day off"><small>Min</small><b>15</b></div><div class="day"><small>Sen</small><b>16</b></div><div class="day on"><small>Sel</small><b>17</b></div></div><span class="ann">Tanggal 52</span></div>
 </div></div></section>"""
 
     choice = f"""<section class="dsec" id="choice"><h3>Pilihan layanan dan stepper</h3><div class="frame"><div class="gd c3">
-<div class="fc g8"><div class="svc"><span class="rad"></span><div class="w1"><b>Konsultasi</b><div class="t12 mu">30 mnt</div></div><b class="num">Rp 100.000</b></div><span class="ann">Default, padding 12 16, radius 12</span></div>
+<div class="fc g8"><div class="svc"><span class="rad"></span><div class="w1"><b>Konsultasi</b><div class="t12 mu">30 mnt</div></div><b class="num">Rp 100.000</b></div><span class="ann">Default, padding 8 16, radius 10</span></div>
 <div class="fc g8"><div class="svc on"><span class="rad"></span><div class="w1"><b>Scaling</b><div class="t12 mu">40 mnt</div></div><b class="num">Rp 400.000</b></div><span class="ann">Selected, border 2 brand</span></div>
 <div class="fc g8"><div class="stp"><span class="up">Langkah 2 dari 3</span><i><b class="on"></b><b class="on"></b><b></b></i></div><span class="ann">Stepper, bar 4</span></div>
 </div></div></section>"""
 
     badge = f"""<section class="dsec" id="badge"><h3>Badge status</h3><div class="frame"><div class="f wr g12">
 <span class="bdg ok dot">Online</span><span class="bdg wt">Menunggu</span><span class="bdg ok">Lunas</span><span class="bdg dr">Draft</span>
-<span class="bdg sg">{I('lock', 16)}Ditandatangani</span><span class="bdg dg">Void</span><span class="bdg in">Check-in</span><span class="bdg">Tutup</span></div>
+<span class="bdg sg">{I('lock', 16)}Ditandatangani</span><span class="bdg dg">Void</span><span class="bdg in">Check-in</span><span class="bdg in">Grup</span><span class="bdg">Tutup</span></div>
 <span class="ann">24 tinggi, 12/600, pill. Warna = status, teks tetap ada.</span></div></section>"""
 
     table = f"""<section class="dsec" id="table"><h3>Table</h3><div class="frame"><table class="tbl">
@@ -375,14 +425,14 @@ def ds():
 </tbody></table><span class="ann">Header 12/600 muted, baris 44+, angka rata kanan</span></div></section>"""
 
     pay = f"""<section class="dsec" id="pay"><h3>Metode bayar, keypad, nominal</h3><div class="frame"><div class="gd" style="grid-template-columns:1.4fr 1fr">
-<div class="fc g16">{pm('Tunai')}<span class="ann">Tile 72, radius 12. Ikon + label saja</span>
+<div class="fc g16">{pm('Tunai')}<span class="ann">Tile 72, radius 10. Ikon + label saja</span>
 <div class="nom"><span class="lab">Nominal</span><span class="t32">Rp 600.000</span></div><span class="ann">KPI 32, tabular</span></div>
 <div class="fc g8">{keypad()}<span class="ann">Tombol 56 (HP), 64 (desktop)</span></div></div></div></section>"""
 
     msg = f"""<section class="dsec" id="msg"><h3>Toast dan banner</h3><div class="frame"><div class="gd c2">
 <div class="fc g12">{ban('in', 'info', 'Tagihan dikirim ke WhatsApp pasien.')}{ban('wt', 'alert', 'Di atas Rp 500.000 perlu PIN pemilik.')}
 {ban('ok', 'check', 'Shift dibuka. Kas awal Rp 500.000.')}{ban('dg', 'alert', 'QR sudah tidak berlaku.')}</div>
-<div class="fc g12"><div class="toast">{I('check')}Pembayaran diterima<span class="ma b6" style="color:var(--b3)">Lihat</span></div><span class="ann">Toast: n900, 4 dtk, bawah tengah</span></div>
+<div class="fc g12"><div class="toast">{I('check')}Pembayaran diterima<span class="ma act">Lihat</span></div><span class="ann">Toast: n900, 4 dtk, bawah tengah</span></div>
 </div></div></section>"""
 
     overlay = f"""<section class="dsec" id="overlay"><h3>Modal dan sheet</h3><div class="f g24 wr">
@@ -392,21 +442,50 @@ def ds():
 <div class="f g12"><button class="btn sec w1">Kembali</button><button class="btn pri w1">Setujui</button></div></div></div></div>
 <div class="ph" style="width:300px;height:420px"><div class="scrim" style="align-items:flex-end"></div><div class="sheet">
 <span class="t18">Bayar di meja depan</span><div class="mu">Tunai atau EDC. Tunjukkan kode ini.</div><b class="t24 c">TG-2026-11014-001</b><button class="btn sec wf">Tutup</button></div></div>
-</div><span class="ann">Modal 420 lebar, radius 20, padding 24. Sheet radius 20 atas. Scrim n900 48%.</span></section>"""
+</div><span class="ann">Modal 420 lebar, radius 16, padding 24. Sheet radius 16 atas. Scrim n900 48%.</span></section>"""
 
     shell = f"""<section class="dsec" id="shell"><h3>Sidebar, top bar, bottom bar</h3><div class="f g24 wr ae">
 <div class="ph f" style="width:760px;height:420px">{sidebar(KASIR_NAV, 'Kasir')}<div class="w1 fc">{topbar('Sari Front Desk', 'Kasir', 'SF')}<div class="fc g12" style="padding:24px"><div class="sk" style="width:40%;height:20px"></div><div class="sk" style="width:70%"></div></div></div></div>
 <div class="ph fc" style="width:300px;height:420px"><div class="w1"></div>{tabbar()}</div></div>
-<span class="ann">Sidebar 248 (ringkas 72), item 40, aktif primary-100. Top bar 56. Bottom bar 64.</span></section>"""
+<span class="ann">Sidebar 264 (ringkas 72), item 40, aktif primary-50. Top bar 64, cari pill. Bottom bar 64.</span></section>"""
 
     state = f"""<section class="dsec" id="state"><h3>Empty state dan skeleton</h3><div class="gd c2">
 <div class="frame"><div class="empty"><span class="ico">{I('file', 24)}</span><b class="t18">Belum ada tagihan</b><span class="mu">Tagihan muncul setelah tindakan ditandatangani.</span></div></div>
 <div class="frame">{''.join(f'<div class="f g12 ac"><div class="sk" style="width:44px;height:44px;border-radius:50%"></div><div class="fc g8 w1"><div class="sk" style="width:{w}%"></div><div class="sk" style="width:{w - 25}%"></div></div><div class="sk" style="width:72px"></div></div>' for w in (70, 55, 80))}</div>
 </div></section>"""
 
+
+    ref = f"""<section class="dsec" id="ref"><h2>Referensi Zendenta</h2>
+<p class="mu">Pola visual mengikuti Zendenta V2 karya Fikri Studio. Brand Bittodent tetap teal #0B6B62 dan font Plus Jakarta Sans. Aset atau logo Zendenta tidak disalin.</p>
+<div class="frame">
+<table class="tbl">
+<thead><tr><th>Token</th><th>Zendenta V2 (diukur)</th><th>Bittodent</th></tr></thead>
+<tbody>
+<tr><td>Canvas</td><td>#F2F4F8</td><td>#F2F4F8</td></tr>
+<tr><td>Teks</td><td>#243044</td><td>#243044</td></tr>
+<tr><td>Muted</td><td>#8C90A0 (3.18:1, gagal AA)</td><td>#5C6573 (5.35:1 AA)</td></tr>
+<tr><td>Border</td><td>#EAECF8</td><td>#EAECF8</td></tr>
+<tr><td>Sidebar</td><td>#FAFAFC, 264, pil selected pucat</td><td>#FAFAFC, 264, pil primary-50</td></tr>
+<tr><td>Isian lembut</td><td>#F4F6FA (cari, header tabel)</td><td>#F4F6FA</td></tr>
+<tr><td>Radius kartu / kontrol / bingkai</td><td>16 / 10 / 24</td><td>16 / 10 / 24</td></tr>
+<tr><td>Grid desktop</td><td>12 kolom, gutter 20, padding 28</td><td>Sama</td></tr>
+<tr><td>Aksen</td><td>#4460E8 (indigo)</td><td>#0B6B62 (teal, tetap)</td></tr>
+<tr><td>Font</td><td>Manrope</td><td>Plus Jakarta Sans (tetap)</td></tr>
+<tr><td>Kartu</td><td>Tanpa shadow, elevasi dari border</td><td>Sama. Modal memakai shadow lembut.</td></tr>
+</tbody>
+</table>
+</div>
+<div class="fc g8 t14">
+<div>Sumber case study: <a href="https://fikristudio.com/project/zendenta">fikristudio.com/project/zendenta</a></div>
+<div>Behance V2 (2 Mei 2024): <a href="https://www.behance.net/gallery/197426423/Zendenta-V2-Dental-Clinic-Management-System-SaaS">Zendenta V2 di Behance</a></div>
+<div>Dribbble dashboard: <a href="https://dribbble.com/shots/24571656-Zendenta-Dashboard-for-SaaS-Dental-Clinic-Management">Dashboard Zendenta</a></div>
+<div class="mu">Tidak ada file Figma Community Zendenta yang publik. Yang ada hanya Dash Freebies Fikri Studio, bukan Zendenta.</div>
+</div>
+</section>"""
+
     head = f"""<header class="dhead" id="foundations"><div class="fc g4 w1"><span class="up">Foundations dan components</span><h1 class="t32">Bittodent design system</h1>
 <span class="mu">Sumber: design/tokens.json</span></div><span class="syn">DATA SINTETIS</span></header>"""
-    body = nav + '<main class="dmain">' + head + color + typ + spc + grid + rad + icn + btn + inp + chip + choice + badge + table + pay + msg + overlay + shell + state + '</main>'
+    body = nav + '<main class="dmain">' + head + color + typ + spc + grid + rad + icn + ref + btn + inp + chip + choice + badge + table + pay + msg + overlay + shell + state + '</main>'
     return page('Bittodent design system', DS_CSS, body)
 
 # ---------- shared building blocks ----------
@@ -430,7 +509,8 @@ FO_NAV = [('Pengecualian', 'alert'), ('Antrean', 'users'), ('Jadwal', 'cal'), ('
 DOC_NAV = [('KLINIK', None), ('Jadwal saya', 'cal'), ('Rekam medis', 'file'), ('Pasien', 'users'), ('Pendapatan saya', 'chart')]
 
 def sidebar(items, active, compact=False):
-    out = f'<aside class="side{" cp" if compact else ""}"><div class="logo"><span class="lg">B</span>{"" if compact else "Bittodent"}</div>'
+    clinic = '' if compact else '<div class="clinic"><b>Klinik Gigi Senyum Sehat</b><span class="t12 mu">Tebet, Jakarta Selatan</span></div>'
+    out = f'<aside class="side{" cp" if compact else ""}"><div class="logo"><span class="lg">B</span>{"" if compact else "Bittodent"}</div>{clinic}'
     for n, ic in items:
         if ic is None:
             out += '' if compact else f'<div class="nlab">{n}</div>'
@@ -440,7 +520,7 @@ def sidebar(items, active, compact=False):
 
 def topbar(name, role, ini, left=None):
     lft = left or f'<div class="srch">{I("search", 16)}Cari pasien atau tagihan</div>'
-    return (f'<header class="top">{lft}<span class="syn">DATA SINTETIS</span><div class="ma f ac g12">{I("bell")}'
+    return (f'<header class="top">{lft}<span class="syn">DATA SINTETIS</span><div class="ma f ac g8"><span class="ib">{I("bell")}</span>'
             f'<span class="av">{ini}</span><div class="fc"><b class="t14">{name}</b><span class="t12 mu">{role}</span></div></div></header>')
 
 def tabbar(active='Beranda'):
@@ -467,7 +547,7 @@ body{background:#D9DCE3;padding:40px 48px 96px;min-width:max-content}
 .ph-b{flex:1;min-height:0;overflow:hidden;padding:16px;display:flex;flex-direction:column;gap:12px}
 .ph-f{flex:none;padding:12px 16px 16px;background:#fff;border-top:1px solid var(--bd);display:flex;flex-direction:column;gap:8px}
 .app{flex:1;min-width:0;display:flex;flex-direction:column}
-.cnt{flex:1;min-height:0;overflow:hidden;padding:24px;display:flex;flex-direction:column;gap:20px}
+.cnt{flex:1;min-height:0;overflow:hidden;padding:28px;display:flex;flex-direction:column;gap:20px}
 .k-top{height:72px;flex:none;display:flex;align-items:center;gap:12px;padding:0 32px;background:#fff;border-bottom:1px solid var(--bd)}
 .cam{position:relative;width:280px;height:280px;border-radius:20px;background:var(--n900);display:flex;align-items:center;justify-content:center}
 .cam:after{content:"";position:absolute;left:32px;right:32px;top:50%;height:2px;background:var(--b3)}
@@ -673,7 +753,7 @@ def staff(nav, active, name, role, ini, content, compact=False, dim=None):
 
 def kpi_card(label, val, sub='', cls='t32'):
     s = f'<span class="t12 mu">{sub}</span>' if sub else ''
-    return f'<div class="card p16 kpi"><span class="t12 b6 mu">{label}</span><span class="{cls}">{val}</span>{s}</div>'
+    return f'<div class="card p16 fc g8"><span class="up">{label}</span><span class="{cls}">{val}</span>{s}</div>'
 
 def fo_row(ini, name, meta, amt, badge, actions):
     return (f'<div class="f ac g12" style="padding:12px 0"><span class="av l">{ini}</span><div class="w1 fc"><b>{name}</b><span class="t12 mu num">{meta}</span></div>'
@@ -835,7 +915,7 @@ def receipt_80():
 {r('No.', 'TG-2026-11014-001')}{r('Tanggal', '14/11/2026 20.28')}{r('Kasir', 'Sari Front Desk')}{r('Pasien', 'Budi Santoso')}{r('Dokter', 'drg. Nadia Putri')}{r('Penjamin', 'Umum')}<div class="hd"></div>
 <div><div>Tambalan komposit</div>{r('1 × 450.000', '450.000')}</div><div><div>Ekstraksi gigi permanen</div>{r('1 × 350.000', '350.000')}</div><div class="hd"></div>
 {r('Subtotal', '800.000')}{r('Diskon', '0')}{r('Saldo deposit', '−200.000')}<div class="kv b7 t14"><span>Tunai</span><span>600.000</span></div>{r('Kembalian', '0')}
-<div class="c b7" style="letter-spacing:.2em;margin-top:4px">LUNAS</div><div class="hd"></div><div class="c">Terima kasih. Semoga lekas pulih.</div>
+<div class="c b7 ok" style="letter-spacing:.2em;margin-top:4px">LUNAS</div><div class="hd"></div><div class="c">Terima kasih. Semoga lekas pulih.</div>
 <div class="c mu">Bukti pembayaran, bukan dokumen klinis.</div></div>"""
 
 def k_struk():
@@ -986,3 +1066,13 @@ if __name__ == '__main__':
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(html)
         print(f'{p.relative_to(ROOT)}: {len(html.encode()):,} B')
+    arts = Path('/workspace/artifacts')
+    if arts.is_dir():
+        mapping = {
+            ROOT / 'design/system/index.html': arts / 'bittodent-design-system.html',
+            ROOT / 'design/boards/self-service.html': arts / 'bittodent-board-self-service.html',
+            ROOT / 'design/boards/kasir.html': arts / 'bittodent-board-kasir.html',
+        }
+        for src, dst in mapping.items():
+            dst.write_text(src.read_text())
+            print(f'artifact {dst.name}: {dst.stat().st_size:,} B')
