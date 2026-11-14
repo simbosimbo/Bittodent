@@ -48,7 +48,7 @@ export function usePatientSearch(q: string, delay = 300) {
   return { rows, next, error, loading, more }
 }
 
-export function PatientList({ canCreate, initialQ = '' }: { canCreate: boolean; initialQ?: string }) {
+export function PatientList({ canCreate, canChart = false, initialQ = '' }: { canCreate: boolean; canChart?: boolean; initialQ?: string }) {
   const [q, setQ] = useState(initialQ)
   const { rows, next, error, loading, more } = usePatientSearch(q)
   return (
@@ -63,7 +63,7 @@ export function PatientList({ canCreate, initialQ = '' }: { canCreate: boolean; 
           : rows === null ? <p className="state-card muted">Memuat…</p>
           : rows.length === 0 ? <p className="state-card muted">{q ? `Tidak ada pasien yang cocok dengan “${q}”.` : 'Belum ada pasien.'}</p> : (
             <table className={'table' + (loading ? ' is-loading' : '')}>
-              <thead><tr><th>Nama</th><th>Tanggal lahir</th><th>Jenis kelamin</th><th>Penjamin</th></tr></thead>
+              <thead><tr><th>Nama</th><th>Tanggal lahir</th><th>Jenis kelamin</th><th>Penjamin</th>{canChart && <th><span className="sr-only">Aksi</span></th>}</tr></thead>
               <tbody>
                 {rows.map((p) => (
                   <tr key={p.id} onClick={() => (location.hash = '/pasien/' + p.id)}>
@@ -71,6 +71,8 @@ export function PatientList({ canCreate, initialQ = '' }: { canCreate: boolean; 
                     <td>{dob(p.dob)} <span className="muted small">{age(p.dob)}</span></td>
                     <td>{p.sex ? SEX[p.sex] : '—'}</td>
                     <td><span className="chip chip-neutral">{PAYER[p.payer_type] ?? p.payer_type}</span></td>
+                    {canChart && <td className="cell-action"><a className="btn row-action" href={'#/rekam-medis/' + p.id}
+                      aria-label={'Rekam Medis ' + p.name} onClick={(e) => e.stopPropagation()}>Rekam Medis</a></td>}
                   </tr>
                 ))}
               </tbody>
