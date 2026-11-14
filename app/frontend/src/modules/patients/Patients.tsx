@@ -15,7 +15,7 @@ export const dob = (d: string | null) => { const t = birthDate(d); return t ? ne
 export const age = (d: string | null) => { const t = birthDate(d); return t ? Math.floor((Date.now() - t.getTime()) / 31_557_600_000) + ' th' : '' }
 
 /** Debounced patient search against the API; stale responses are dropped. */
-function usePatientSearch(q: string, delay = 300) {
+export function usePatientSearch(q: string, delay = 300) {
   const [rows, setRows] = useState<PatientRow[] | null>(null)
   const [next, setNext] = useState<string | null>(null)
   const [error, setError] = useState('')

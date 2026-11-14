@@ -1,12 +1,12 @@
 // Composition root: routes + shell. Imports modules only through their index.ts.
 import { useCallback, useEffect, useState } from 'react'
 import { ApiError, hasCsrfCookie } from './shared/api/http'
-import { setActivePatient, useActivePatient } from './shared/activePatient'
+import { clearActivePatients, useActivePatient } from './shared/activePatient'
 import { Shell, withActivePatientHref, type NavItem } from './shared/layout/Shell'
 import type { Me } from './shared/session'
 import { ICONS } from './shared/ui/Icon'
 import { getMe, Login, logout as apiLogout, switchBranch as apiSwitchBranch } from './modules/auth'
-import { AlertRibbon, FamilyPage, MedicalHistoryPage, PatientDetail, PatientForm, PatientList } from './modules/patients'
+import { ActivePatientPicker, AlertRibbon, FamilyPage, MedicalHistoryPage, PatientDetail, PatientForm, PatientList } from './modules/patients'
 import { Home, Schedule } from './modules/scheduling'
 import { ChartPage } from './modules/clinical'
 
@@ -50,7 +50,7 @@ export default function App() {
 
   useEffect(() => {
     load()
-    const out = () => { setMe(null); setActivePatient(null); setState('guest') }
+    const out = () => { setMe(null); clearActivePatients(); setState('guest') }
     addEventListener('ehr:unauthorized', out)
     return () => removeEventListener('ehr:unauthorized', out)
   }, [load])
@@ -58,7 +58,7 @@ export default function App() {
   async function logout() {
     await apiLogout().catch(() => null)
     setMe(null)
-    setActivePatient(null)
+    clearActivePatients()
     setState('guest')
     location.hash = '/'
   }
@@ -96,5 +96,6 @@ export default function App() {
   else if (hash === '/jadwal' && can('appointment.read')) page = <Schedule me={me} />
   else page = <Home me={me} />
 
-  return <Shell me={me} nav={nav} active={active} ribbon={patient && can('patient.read') && <AlertRibbon patientId={patient.id} />} onSwitchBranch={switchBranch} onLogout={logout}>{page}</Shell>
+  return <Shell me={me} nav={nav} active={active} ribbon={patient && can('patient.read') && <AlertRibbon patientId={patient.id} />}
+    patientPicker={can('patient.read') && <ActivePatientPicker />} onSwitchBranch={switchBranch} onLogout={logout}>{page}</Shell>
 }
