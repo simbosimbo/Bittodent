@@ -71,7 +71,7 @@ export function PatientList({ canCreate, canChart = false, initialQ = '' }: { ca
                     <td>{dob(p.dob)} <span className="muted small">{age(p.dob)}</span></td>
                     <td>{p.sex ? SEX[p.sex] : '—'}</td>
                     <td><span className="chip chip-neutral">{PAYER[p.payer_type] ?? p.payer_type}</span></td>
-                    {canChart && <td className="cell-action"><a className="btn row-action" href={'#/rekam-medis/' + p.id}
+                    {canChart && <td className="cell-action"><a className="btn-link row-action" href={'#/rekam-medis/' + p.id}
                       aria-label={'Rekam Medis ' + p.name} onClick={(e) => e.stopPropagation()}>Rekam Medis</a></td>}
                   </tr>
                 ))}
