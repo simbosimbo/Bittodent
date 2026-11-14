@@ -15,6 +15,7 @@
     "dev:all": "bash ../dev.sh"
   },
   "dependencies": {
+    "@fontsource/plus-jakarta-sans": "^5.3.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },

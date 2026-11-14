@@ -50,7 +50,7 @@
 .soap .tabs button { background: none; border: none; border-bottom: 2px solid transparent; padding: 8px 10px; font: inherit; cursor: pointer; color: var(--muted); }
 .soap .tabs button.is-active { color: inherit; border-bottom-color: var(--accent-600, #0E8579); font-weight: 650; }
 .soap-panel { display: grid; gap: 8px; }
-.soap-panel textarea, .dialog textarea { width: 100%; font: inherit; }
+.soap-panel textarea, .dialog textarea { width: 100%; font: inherit; font-size: var(--font-size-note); line-height: var(--font-line-height-normal); }
 
 .timeline { list-style: none; padding: 0; margin: 0; }
 .timeline > li { border-left: 2px solid var(--border); padding: 0 0 14px 14px; position: relative; }
