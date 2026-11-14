@@ -1,0 +1,17 @@
+date: Sat Nov 14 19:12:31 WIB 2026
+uname: Linux grok-bot-vm-540581731 6.12.113+ #1 SMP PREEMPT_DYNAMIC Fri Nov 13 20:25:27 UTC 2026 x86_64 GNU/Linux
+CPU(s):                                  8
+On-line CPU(s) list:                     0-7
+Model name:                              Intel(R) Xeon(R) Processor
+Thread(s) per core:                      1
+NUMA node0 CPU(s):                       0-7
+               total        used        free      shared  buff/cache   available
+Mem:            15Gi       7.7Gi       4.1Gi       275Mi       4.4Gi       8.0Gi
+Swap:             0B          0B          0B
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/vdb        128G   15G  113G  12% /
+PHP 8.4.14 (cli) (built: Nov 19 2025 03:04:45) (NTS gcc 14.2.0)
+VERSION()
+8.4.13
+Variable_name	Value
+innodb_buffer_pool_size	2147483648

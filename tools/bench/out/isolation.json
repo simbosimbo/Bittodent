@@ -1,0 +1,15 @@
+{
+  "b_tenants": 10,
+  "b_patients_each": 2000,
+  "b_years": 1,
+  "b_seed_seconds": 54,
+  "shared_synthetic_nik": "9901000000000001",
+  "isolation_nik": true,
+  "isolation_name_disjoint": true,
+  "a_id": "01a1d9ec-e013-7238-bf01-4f9272b163fa",
+  "b_id": "01a1d9f9-3b26-73ba-9aae-4018df4bd4d7",
+  "a_quiet_ms_p50": 18.81,
+  "a_quiet_ms_p95": 20.65,
+  "a_noisy_ms_p50": 208.93,
+  "a_noisy_ms_p95": 220.4
+}

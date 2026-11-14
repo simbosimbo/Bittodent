@@ -1,0 +1,51 @@
+{
+  "upload_max_filesize_note": "php default 2M rejected the 2.39 MiB JXL; rerun after 32M",
+  "upload_pano_jxl": {
+    "p50_ms": 59.08,
+    "min": 49.82,
+    "max": 62.76,
+    "runs": 5,
+    "warmup": 1,
+    "bytes_plain": 2396415,
+    "bytes_envelope": 2396632,
+    "sha256": "76f560a19552044ab50b5b1282b46a87bd9115a0a68935a07178d3c2ddf49faf",
+    "label": "SYNTHETIC"
+  },
+  "view_pano_jxl": {
+    "p50_ms": 29.93,
+    "min": 29.44,
+    "max": 32.59,
+    "runs": 5,
+    "response_bytes": 2396415,
+    "label": "SYNTHETIC",
+    "queries": 5
+  },
+  "view_thumb_jpeg": {
+    "p50_ms": 21.28,
+    "min": 20.56,
+    "max": 23.95,
+    "runs": 5,
+    "response_bytes": 2793,
+    "queries": 5
+  },
+  "schedule_after_lower_bound": {
+    "p50_ms": 40.64,
+    "min": 39.48,
+    "max": 43.29,
+    "runs": 7,
+    "appointments": 80,
+    "queries": 9,
+    "bytes": 72058,
+    "before_c1_p50_ms": 187.1,
+    "before_c1_p95_ms": 232.42
+  },
+  "billing_2021_window": {
+    "p50_ms": 92.22,
+    "min": 90.55,
+    "max": 104.73,
+    "runs": 7,
+    "count": 50,
+    "queries": 4,
+    "bytes": 10121
+  }
+}

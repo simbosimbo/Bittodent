@@ -31,8 +31,10 @@ class AppointmentController extends Controller
             return Audit::denied('branch:'.$branch['id']);
         }
         $from = CarbonImmutable::parse($d['date'], $branch['timezone'])->startOfDay()->utc();
+        $to = $from->addDay();
+        // Lower bound on starts_at: without it MySQL walks every historical row on the chair (starts_at < end-of-day).
         $chairs = Chair::where('branch_id', $branch['id'])->where('active', true)->orderBy('label')
-            ->with(['appointments' => fn ($q) => $q->where('starts_at', '<', $from->addDay())->where('ends_at', '>', $from)->orderBy('starts_at')])
+            ->with(['appointments' => fn ($q) => $q->where('starts_at', '>=', $from->subDay())->where('starts_at', '<', $to)->where('ends_at', '>', $from)->orderBy('starts_at')])
             ->get(['tenant_id', 'id', 'branch_id', 'label']);
 
         $appts = $chairs->flatMap->appointments;
