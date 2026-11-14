@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import { errorText } from '../../shared/api/http'
+import { initials } from '../../shared/format'
+import { Icon, ICONS } from '../../shared/ui/Icon'
 import { searchPatients, type PatientRow } from './api'
 import { PatientPage } from './Records'
+import './patients.css'
 
 export const SEX: Record<string, string> = { laki_laki: 'Laki-laki', perempuan: 'Perempuan' }
 export const PAYER: Record<string, string> = { umum: 'Umum', asuransi: 'Asuransi', bpjs: 'BPJS' }
@@ -48,31 +51,61 @@ export function usePatientSearch(q: string, delay = 300) {
   return { rows, next, error, loading, more }
 }
 
+// Labels for patient.status (MySQL default 'aktif'; postgres target adds meninggal/diarsip). Unknown values show raw.
+const STATUS: Record<string, string> = { aktif: 'Aktif', tidak_aktif: 'Tidak aktif', meninggal: 'Meninggal', diarsip: 'Diarsip' }
+// No mrn / last-visit data in the list API yet: say so instead of inventing values.
+const Missing = () => <><span aria-hidden="true">—</span><span className="sr-only">Belum ada</span></>
+
 export function PatientList({ canCreate, canChart = false, initialQ = '' }: { canCreate: boolean; canChart?: boolean; initialQ?: string }) {
   const [q, setQ] = useState(initialQ)
+  const [status, setStatus] = useState('')
   const { rows, next, error, loading, more } = usePatientSearch(q)
+  // Counts cover only the loaded results (no totals endpoint).
+  const counts: Record<string, number> = {}
+  for (const p of rows ?? []) if (p.status) counts[p.status] = (counts[p.status] ?? 0) + 1
+  const active = counts[status] ? status : ''
+  const shown = active ? rows?.filter((p) => p.status === active) : rows
+  const filters: [string, string, number][] = [['', 'Semua', rows?.length ?? 0], ...Object.entries(counts).map(([k, n]): [string, string, number] => [k, STATUS[k] ?? k, n])]
   return (
     <>
-      <div className="page-head">
-        <div><h1>Pasien</h1><p className="muted">Cari berdasarkan awalan nama, atau NIK / no. HP lengkap.</p></div>
-        {canCreate && <a className="btn btn-primary" href="#/pasien/baru">+ Pasien Baru</a>}
-      </div>
+      <div className="page-head"><h1>Daftar Pasien</h1></div>
       <div className="card">
-        <input className="search" type="search" placeholder="Cari nama, NIK, atau no. HP" aria-label="Cari pasien" value={q} onChange={(e) => setQ(e.target.value)} />
+        <div className="pl-toolbar">
+          <label className="pl-search">Cari pasien
+            <span className="pl-search-box"><Icon d={ICONS.search} size={18} />
+              <input type="search" placeholder="Awalan nama, atau NIK / no. HP lengkap" value={q} onChange={(e) => setQ(e.target.value)} /></span>
+          </label>
+          {canCreate && <a className="btn btn-primary" href="#/pasien/baru">Pasien baru</a>}
+        </div>
+        {rows && rows.length > 0 && (
+          <div className="pl-filters" role="group" aria-label="Saring status pasien">
+            {filters.map(([k, label, n]) => (
+              <button key={k} type="button" aria-pressed={active === k} onClick={() => setStatus(k)}>{label} <span className="pl-count">{n}</span></button>
+            ))}
+          </div>
+        )}
         {error ? <p className="state-card error">{error}</p>
-          : rows === null ? <p className="state-card muted">Memuat…</p>
+          : !rows || !shown ? <p className="state-card muted">Memuat…</p>
           : rows.length === 0 ? <p className="state-card muted">{q ? `Tidak ada pasien yang cocok dengan “${q}”.` : 'Belum ada pasien.'}</p> : (
-            <table className={'table' + (loading ? ' is-loading' : '')}>
-              <thead><tr><th>Nama</th><th>Tanggal lahir</th><th>Jenis kelamin</th><th>Penjamin</th>{canChart && <th><span className="sr-only">Aksi</span></th>}</tr></thead>
+            <table className={'table pl-table' + (loading ? ' is-loading' : '')}>
+              <thead><tr><th className="pl-col-name">Pasien</th><th>No. RM</th><th>Umur</th><th>Kunjungan terakhir</th><th>Status</th><th><span className="sr-only">Aksi</span></th></tr></thead>
               <tbody>
-                {rows.map((p) => (
+                {shown.map((p) => (
                   <tr key={p.id} onClick={() => (location.hash = '/pasien/' + p.id)}>
-                    <td><a href={'#/pasien/' + p.id} className="strong">{p.name}</a></td>
-                    <td>{dob(p.dob)} <span className="muted small">{age(p.dob)}</span></td>
-                    <td>{p.sex ? SEX[p.sex] : '—'}</td>
-                    <td><span className="chip chip-neutral">{PAYER[p.payer_type] ?? p.payer_type}</span></td>
-                    {canChart && <td className="cell-action"><a className="btn-link row-action" href={'#/rekam-medis/' + p.id}
-                      aria-label={'Rekam Medis ' + p.name} onClick={(e) => e.stopPropagation()}>Rekam Medis</a></td>}
+                    <td><div className="pl-name">
+                      <span className="avatar" aria-hidden="true">{initials(p.name) || '?'}</span>
+                      <span><a href={'#/pasien/' + p.id} className="strong pl-name-text">{p.name}</a>
+                        <span className="muted small pl-payer">{PAYER[p.payer_type] ?? p.payer_type}</span></span>
+                    </div></td>
+                    <td className="muted"><Missing /></td>
+                    <td title={p.dob ? 'Lahir ' + dob(p.dob) : undefined}>{age(p.dob) || <Missing />}</td>
+                    <td className="muted"><Missing /></td>
+                    <td>{p.status ? <span className={'chip ' + (p.status === 'aktif' ? 'chip-aktif' : 'chip-neutral')}>{STATUS[p.status] ?? p.status}</span> : <Missing />}</td>
+                    <td className="cell-action">
+                      {canChart && <a className="btn-link row-action" href={'#/rekam-medis/' + p.id}
+                        aria-label={'Rekam Medis ' + p.name} onClick={(e) => e.stopPropagation()}>Rekam Medis</a>}
+                      <span className="pl-chevron" aria-hidden="true"><Icon d={ICONS.right} size={18} /></span>
+                    </td>
                   </tr>
                 ))}
               </tbody>

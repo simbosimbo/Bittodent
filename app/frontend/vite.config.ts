@@ -11,6 +11,6 @@ const proxy = Object.fromEntries(
 export default defineConfig({
   plugins: [react()],
   server: { host: '127.0.0.1', port: 5173, strictPort: true, proxy },
-  // css.include: lets the Shell test load styles.css?raw (vitest blanks CSS by default) to assert the pill name is never ellipsized.
-  test: { environment: 'jsdom', setupFiles: ['./src/test-setup.ts'], css: { include: [/styles\.css/] } },
+  // css.include: lets the Shell / PatientList tests load styles.css / patients.css ?raw (vitest blanks CSS by default) to assert the pill name is never ellipsized.
+  test: { environment: 'jsdom', setupFiles: ['./src/test-setup.ts'], css: { include: [/styles\.css/, /patients\.css/] } },
 })
