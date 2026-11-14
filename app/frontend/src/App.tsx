@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ApiError, hasCsrfCookie } from './shared/api/http'
 import { setActivePatient, useActivePatient } from './shared/activePatient'
-import { Shell, type NavItem } from './shared/layout/Shell'
+import { Shell, withActivePatientHref, type NavItem } from './shared/layout/Shell'
 import type { Me } from './shared/session'
 import { ICONS } from './shared/ui/Icon'
 import { getMe, Login, logout as apiLogout, switchBranch as apiSwitchBranch } from './modules/auth'
@@ -20,7 +20,7 @@ const useHash = () => {
   return hash
 }
 
-const NAV: (NavItem & { perm: string | null })[] = [
+export const NAV: (NavItem & { perm: string | null })[] = [
   { path: '/', label: 'Beranda', perm: null, icon: ICONS.home },
   { path: '/pasien', label: 'Pasien', perm: 'patient.read', icon: ICONS.users },
   { path: '/jadwal', label: 'Jadwal', perm: 'appointment.read', icon: ICONS.calendar },
@@ -81,7 +81,7 @@ export default function App() {
     )
 
   const can = (p: string | null) => p === null || me.permissions.includes(p)
-  const nav = NAV.filter((n) => can(n.perm)).map((n) => n.group === 'pasien' ? { ...n, href: patient ? `${n.path}/${patient.id}` : '/pasien' } : n)
+  const nav = withActivePatientHref(NAV.filter((n) => can(n.perm)), patient)
   const active = nav.find((n) => n.path === '/' ? hash === '/' : hash === n.path || hash.startsWith(n.path + '/'))
   const sub = hash.match(/^\/(keluarga|riwayat-medis)\/([\w-]+)$/)
 

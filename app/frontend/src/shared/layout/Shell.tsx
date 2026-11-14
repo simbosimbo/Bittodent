@@ -6,6 +6,9 @@ import { Icon, ICONS } from '../ui/Icon'
 // group 'pasien' = screens of the active patient (href points at that patient; without one they lead to the patient list).
 export type NavItem = { path: string; label: string; icon: string; group?: 'klinik' | 'pasien'; href?: string }
 
+export const withActivePatientHref = <T extends NavItem>(nav: T[], patient: { id: string } | null): T[] =>
+  nav.map((n) => n.group === 'pasien' ? { ...n, href: patient ? `${n.path}/${patient.id}` : '/pasien' } : n)
+
 // Shell A (design/prototype shells.css): sidebar (brand, branch, nav; icon rail <=1100px), top bar with search + "Pasien aktif" pill,
 // medical-alert ribbon (slot, owned by the patients module) whenever a patient is active, white cards on tinted bg.
 export function Shell({ me, nav, active, ribbon, onSwitchBranch, onLogout, children }: {
