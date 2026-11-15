@@ -7,7 +7,7 @@ import { useIsMobile } from '../../shared/useIsMobile'
 import { AlertRibbon, ageTahun, PatientPage, SEX } from '../patients'
 import type { PatientFull } from '../patients'
 import {
-  approveCorrection, changeStatus, correctNote, discardFinding, getChart, saveBaseline, saveFinding, saveNote, signVisit, visitFromAppointment,
+  approveCorrection, changeStatus, correctNote, discardFinding, getChart, getDentists, saveBaseline, saveFinding, saveNote, signVisit, startWalkInVisit, visitFromAppointment,
   type Baseline, type Chart, type ChartVisit, type Finding, type Note, type ProcStatus, type Soap, type Surface, type ToothPresence, type Version,
 } from './api'
 import { AI_BADGE, CONDITIONS, conditionOf, findingText, isAnterior, PRESENCE, STATUSES, statusOf, surfaceLabel, surfaceName, toothAnatomicalName } from './legend'
@@ -278,6 +278,12 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const [dentPick, setDentPick] = useState<{ base: string; v: Baseline['dentition'] } | null>(null)
   const dent = dentPick?.base === defDent ? dentPick.v : defDent.split(':')[1] as Baseline['dentition'] | undefined
   const can = (p: string) => me.permissions.includes(p)
+  // Walk-in: dentists default to themselves; others (assistant: note.write without note.sign) must pick the dentist.
+  const pickDentist = can('note.write') && !can('note.sign')
+  const [dentists, setDentists] = useState<{ id: string; name: string }[]>([])
+  const [walkInDentist, setWalkInDentist] = useState('')
+  const [starting, setStarting] = useState(false)
+  useEffect(() => { if (pickDentist) getDentists().then((r) => setDentists(r.data), () => setDentists([])) }, [pickDentist])
 
   const load = useCallback(async () => {
     try {
@@ -338,6 +344,23 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
     }, 'Temuan tersimpan sebagai draf di kunjungan hari ini.')
     setSaving(false)
   }
+  async function startVisit() {
+    setStarting(true)
+    await run(() => startWalkInVisit(p.id, pickDentist ? { dentist_id: walkInDentist } : {}), 'Kunjungan hari ini dimulai.')
+    setStarting(false)
+  }
+  const startCtl = !visit && can('note.write') && (
+    <div className="walk-in">
+      {pickDentist && (
+        <label className="small">Dokter gigi * <select required value={walkInDentist} onChange={(e) => setWalkInDentist(e.target.value)}>
+          <option value="">Pilih dokter gigi</option>
+          {dentists.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+        </select></label>
+      )}
+      <button type="button" className="btn btn-primary" disabled={starting || (pickDentist && !walkInDentist)} onClick={startVisit}>
+        {starting ? 'Memulai…' : 'Mulai kunjungan'}</button>
+    </div>
+  )
   const myDraftAt = (whole: boolean) => pick && mine.find((d) => d.tooth === pick.tooth && d.surface === (whole ? null : pick.surface))
 
   async function sign(code: string) {
@@ -358,7 +381,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const summary = findingSummary(items)
   const only = pick && allFor !== pick.tooth ? pick.tooth : null
   const shownItems = only ? items.filter((f) => f.tooth === only) : items
-  const saveWhy = !visit ? 'Belum ada kunjungan aktif. Buka janji hari ini dulu.' : !editable ? 'Hanya lihat: kunjungan ini sudah ditandatangani atau Anda tidak berhak menulis.'
+  const saveWhy = !visit ? 'Belum ada kunjungan aktif. Mulai kunjungan dulu.' : !editable ? 'Hanya lihat: kunjungan ini sudah ditandatangani atau Anda tidak berhak menulis.'
     : !chosen ? 'Pilih kondisi terlebih dahulu' : ''
   const center: Surface | null = pick && (isAnterior(pick.tooth) ? 'I' : 'O')
   const panel = !pick ? <p className="muted tooth-empty">Pilih gigi untuk melihat detail.</p> : (
@@ -403,6 +426,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
           </div>
         </div>
       ) : <p className="muted small">Hanya lihat: kondisi diisi dari kunjungan aktif yang belum ditandatangani.</p>}
+      {startCtl}
       <button type="button" className="btn btn-primary tooth-save" disabled={!!saveWhy || saving} title={saveWhy || undefined} aria-describedby={saveWhy ? 'save-why' : undefined}
         onClick={saveChosen}>{saving ? 'Menyimpan…' : 'Simpan ke kunjungan hari ini'}</button>
       {saveWhy && <p id="save-why" className="muted small">{saveWhy}</p>}
@@ -463,8 +487,11 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
               <Odontogram marks={marks} baseline={chart.baseline?.teeth} dentition={dent} compact={view === '3d'} selected={pick ? `t${pick.tooth}-${pick.surface}` : null} onPick={onPick} />
             </div>
             {!editable && (visit ? <p className="muted small">Kunjungan ini sudah ditandatangani.</p> : (
-              <p className="chart-cta small">Belum ada kunjungan aktif. Odontogram dan SOAP diisi dari janji pasien hari ini.{' '}
-                <a className="btn btn-primary" href={can('appointment.read') ? '#/jadwal' : '#/'}>Buka janji hari ini</a></p>
+              <div className="chart-cta small">
+                <p>Belum ada kunjungan aktif. Mulai kunjungan hari ini (tanpa janji juga bisa) untuk mengisi odontogram dan SOAP.</p>
+                {!pick && startCtl /* with a tooth picked the control sits in the tooth panel/sheet instead */}
+                <a href={can('appointment.read') ? '#/jadwal' : '#/'}>Buka janji hari ini</a>
+              </div>
             ))}
           </section>
           {!mobile ? <aside className="card span-4 tooth-panel" aria-label="Detail gigi">{panel}</aside> : pick && (

@@ -13,6 +13,7 @@ Route::middleware(['auth:sanctum', '2fa', 'tenant'])->group(function () {
     Route::put('/patients/{id}/baseline', [BaselineController::class, 'store'])->middleware('perm:note.write');
     Route::post('/patients/{id}/consents', [ConsentController::class, 'store'])->middleware('perm:note.write');
     Route::post('/appointments/{id}/visit', [ChartController::class, 'visitFromAppointment'])->middleware('perm:note.write');
+    Route::post('/patients/{id}/visits/walk-in', [ChartController::class, 'walkIn'])->middleware('perm:note.write');
     Route::post('/visits/{id}/findings', [FindingController::class, 'store'])->middleware('perm:note.write');
     Route::patch('/findings/{id}', [FindingController::class, 'update'])->middleware('perm:note.write');
     Route::post('/findings/{id}/status', [FindingController::class, 'changeStatus'])->middleware('perm:note.sign');

@@ -14,6 +14,11 @@ final class PatientDirectoryService implements PatientDirectory
         Patient::findOrFail($patientId, ['tenant_id', 'id']);
     }
 
+    public function lock(string $patientId): void
+    {
+        Patient::whereKey($patientId)->lockForUpdate()->firstOrFail(['tenant_id', 'id']);
+    }
+
     public function summary(string $patientId): array
     {
         $p = Patient::findOrFail($patientId);

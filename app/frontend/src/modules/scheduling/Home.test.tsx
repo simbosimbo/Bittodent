@@ -19,9 +19,9 @@ const schedule = {
   ] }],
 }
 const revenue = { date: '2026-11-14', branch_id: 'b1', amount_rp: 450000, payment_count: 2 }
-const home = (perms: string[]) => {
+const home = (perms: string[], sched: object = schedule) => {
   const fetch = vi.fn(async (url: string) =>
-    new Response(JSON.stringify(url.startsWith('/api/billing/daily-revenue') ? revenue : schedule), { status: 200 }))
+    new Response(JSON.stringify(url.startsWith('/api/billing/daily-revenue') ? revenue : sched), { status: 200 }))
   vi.stubGlobal('fetch', fetch)
   render(<Home me={me(perms)} />)
   return fetch
@@ -59,6 +59,13 @@ test('without note.read there are no chart links', async () => {
   home([])
   expect(hrefs(await region('Janji hari ini'))).toEqual([])
   expect(hrefs(await region('Antrean live'))).toEqual([])
+})
+
+test('Pasien hari ini adds walk-in patients without an appointment', async () => {
+  home([], { ...schedule, walk_in_patients: 2 })
+  const kpi = within(await region('Pasien hari ini'))
+  expect(kpi.getByText('5')).toBeInTheDocument()
+  expect(kpi.getByText('3 dengan janji · 2 tanpa janji')).toBeInTheDocument()
 })
 
 const atWib = (hhmm: string) => {
