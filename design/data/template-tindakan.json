@@ -1,7 +1,7 @@
 {
   "meta": {
     "judul": "Templat katalog tindakan praktik umum gigi Indonesia",
-    "versi": "1.0.0",
+    "versi": "1.1.0",
     "dibuat": "2026-11-15",
     "zona_waktu": "Asia/Jakarta",
     "sifat": "Data sintetis / contoh untuk memudahkan isi katalog klinik. Bukan standar nasional, bukan tarif resmi, bukan pedoman klinis.",
@@ -25,9 +25,9 @@
       "catatan_versi": "K02.5 (Caries with pulp exposure, WHO 2019) TIDAK ada di ICD10_2010 SATUSEHAT; jangan dipakai."
     },
     "tingkat_tarif": {
-      "umum": "Harga dasar. Backend men-seed hanya Umum; wajib ada agar tagihan bisa dibuat.",
-      "spesialis": "Opsional. null = mewarisi Umum. Diisi hanya bila papan/desain sudah punya contoh (atau beda jelas).",
-      "bidang": "Tingkat ke-3 (band field: Sp.Ort, Sp.BM, ...). Templat ini membiarkan null (mewarisi). Aturan turunan default mati."
+      "umum": "Harga dasar yang diisi templat. Wajib ada agar tagihan bisa dibuat.",
+      "spesialis": "Templat tidak mengisi (null = mewarisi Umum). Klinik boleh mengisi nanti.",
+      "bidang": "Tingkat ke-3 (band field: Sp.Ort, Sp.BM, ...). Templat tidak mengisi (null = mewarisi). Aturan turunan default mati."
     },
     "unit": [
       "per_tooth",
@@ -102,13 +102,13 @@
     ],
     "keselarasan_harga_contoh": {
       "DifficultyTemplate": "Tumpatan 250/350/450rb (1/2/3+ permukaan); scaling 200/400rb; cabut 150rb; sulung 100rb; cabut bedah sederhana 600rb",
-      "papan_icd_tagihan": "Cabut 150rb; sulung 100rb; sisa akar 150/200rb; odontektomi 1,5jt/2jt; tambal 450rb; PSA 800rb/1,2jt; scaling 400rb; mahkota 2jt",
+      "papan_icd_tagihan": "Harga Umum saja: cabut 150rb; sulung 100rb; sisa akar 150rb; odontektomi 1,5jt; tambal 450rb; PSA anterior 800rb; scaling 400rb; mahkota 2jt. Contoh Sp di papan tidak dipakai di templat.",
       "prototipe_mock": "Sealant 250rb; mahkota porselen 3,5jt; implan 12jt; rontgen periapikal 120rb"
     },
     "ux_usulan": {
       "setup_awal": "Klinik baru melihat katalog kosong, lalu modal 'Template awal' dengan tombol 'Pakai templat' atau 'Isi sendiri' (sudah ada di papan ICD & Tagihan, sekarang berisi set penuh bukan 8 baris).",
-      "impor": "Pakai templat mengimpor semua baris: nama klinis, nama awam, unit, ICD-9-CM, ICD-10 usulan, durasi, dan tarif Umum contoh. Spesialis/Bidang tetap mewarisi kecuali sel contoh sudah terisi. Aturan turunan tetap mati.",
-      "setelah_impor": "Pemilik mengedit harga di tabel seperti spreadsheet, menonaktifkan tindakan yang tidak ditawarkan, atau menambah baris sendiri. Boleh impor/ekspor CSV ini.",
+      "impor": "Pakai templat mengimpor semua baris (aktif=true): nama klinis, nama awam, unit, ICD-9-CM, ICD-10 usulan, durasi, dan tarif Umum contoh. Spesialis dan Bidang mewarisi Umum. Aturan turunan tetap mati.",
+      "setelah_impor": "Pemilik mengedit harga Umum di tabel seperti spreadsheet, menonaktifkan (aktif=false) tindakan yang tidak ditawarkan, atau menambah baris sendiri. Boleh impor/ekspor CSV ini.",
       "pencarian": "Cari tindakan menurut nama awam atau nama klinis (dan kode internal / kode singkat).",
       "icd": "Saat dokter memilih tindakan, ICD-9-CM dan 1–3 ICD-10 usulan terisi otomatis, tetap bisa diubah. Kode divalidasi ke daftar resmi 2010. Baris 'perlu verifikasi' ditandai, tidak dikirim ke SATUSEHAT sampai diisi.",
       "jangan_dibangun_sekarang": true
@@ -118,16 +118,19 @@
         "id": "kunci-kode",
         "pertanyaan": "Kunci katalog/tarif: kode internal TND-*** (satu baris per item, ICD-9-CM sebagai atribut) atau tetap procedure_code = ICD-9-CM + variant seperti backend sekarang?",
         "catatan": "Backend ProcedureCatalog/Tariffs dikunci ICD-9-CM (satu 23.2 untuk semua tumpatan; 1/2/3 permukaan = variant). Templat ini memisah item agar mudah diisi klinik. Impor perlu aturan mapping."
-      },
+      }
+    ],
+    "aktif": "Semua baris templat berstatus aktif=true. Setelah impor, klinik menonaktifkan tindakan yang tidak ditawarkan (bukan menghapus).",
+    "keputusan_diputuskan": [
       {
         "id": "impor-semua-atau-kategori",
-        "pertanyaan": "Pakai templat: impor semua ~58 baris, atau klinik memilih kategori dulu (mis. tanpa Ortodonti/Implan)?",
-        "catatan": "Usul default: impor semua lalu nonaktifkan yang tidak perlu, supaya pencarian dan ICD tetap lengkap."
+        "keputusan": "Impor semua baris templat. Klinik menonaktifkan yang tidak ditawarkan.",
+        "diputuskan": "2026-11-15"
       },
       {
         "id": "harga-sp-bidang",
-        "pertanyaan": "Templat hanya isi Umum (Sp/bidang mewarisi, sesuai papan), atau isi contoh Sp untuk tindakan spesialis?",
-        "catatan": "Saat ini Sp hanya diisi di EXT-RR, ODT, PSA-PRE, PSA (selaras papan/prototipe). Bidang semua null."
+        "keputusan": "Templat hanya mengisi tarif Umum. Spesialis dan Bidang mewarisi.",
+        "diputuskan": "2026-11-15"
       }
     ]
   },
@@ -137,6 +140,7 @@
       "nama_klinis": "Pemeriksaan gigi dan mulut",
       "nama_awam": "Periksa gigi",
       "kategori": "Pemeriksaan",
+      "aktif": true,
       "unit": "per_visit",
       "icd9cm": {
         "kode": "89.31",
@@ -164,6 +168,7 @@
       "nama_klinis": "Kontrol pasca tindakan",
       "nama_awam": "Kontrol",
       "kategori": "Pemeriksaan",
+      "aktif": true,
       "unit": "per_visit",
       "icd9cm": {
         "kode": "89.31",
@@ -201,6 +206,7 @@
       "nama_klinis": "Konsultasi",
       "nama_awam": "Konsultasi dokter gigi",
       "kategori": "Pemeriksaan",
+      "aktif": true,
       "unit": "per_visit",
       "icd9cm": {
         "kode": "89.31",
@@ -228,6 +234,7 @@
       "nama_klinis": "Skeling dan pemolesan (penuh)",
       "nama_awam": "Pembersihan karang gigi",
       "kategori": "Preventif",
+      "aktif": true,
       "unit": "per_visit",
       "icd9cm": {
         "kode": "96.54",
@@ -261,6 +268,7 @@
       "nama_klinis": "Profilaksis / skeling ringan",
       "nama_awam": "Pembersihan plak gigi",
       "kategori": "Preventif",
+      "aktif": true,
       "unit": "per_visit",
       "icd9cm": {
         "kode": "96.54",
@@ -299,6 +307,7 @@
       "nama_klinis": "Fissure sealant",
       "nama_awam": "Tutup celah gigi",
       "kategori": "Preventif",
+      "aktif": true,
       "unit": "per_tooth",
       "icd9cm": {
         "kode": null,
@@ -332,6 +341,7 @@
       "nama_klinis": "Aplikasi fluoride topikal",
       "nama_awam": "Oles fluoride",
       "kategori": "Preventif",
+      "aktif": true,
       "unit": "per_visit",
       "icd9cm": {
         "kode": null,
@@ -370,6 +380,7 @@
       "nama_klinis": "Tumpatan GIC 1 permukaan",
       "nama_awam": "Tambal gigi semen (1 sisi)",
       "kategori": "Restorasi",
+      "aktif": true,
       "unit": "per_surface",
       "icd9cm": {
         "kode": "23.2",
@@ -403,6 +414,7 @@
       "nama_klinis": "Tumpatan komposit 1 permukaan",
       "nama_awam": "Tambal gigi (1 sisi)",
       "kategori": "Restorasi",
+      "aktif": true,
       "unit": "per_surface",
       "icd9cm": {
         "kode": "23.2",
@@ -436,6 +448,7 @@
       "nama_klinis": "Tumpatan komposit 2 permukaan",
       "nama_awam": "Tambal gigi (2 sisi)",
       "kategori": "Restorasi",
+      "aktif": true,
       "unit": "per_surface",
       "icd9cm": {
         "kode": "23.2",
@@ -464,6 +477,7 @@
       "nama_klinis": "Tumpatan komposit 3+ permukaan",
       "nama_awam": "Tambal gigi besar",
       "kategori": "Restorasi",
+      "aktif": true,
       "unit": "per_surface",
       "icd9cm": {
         "kode": "23.2",
@@ -497,6 +511,7 @@
       "nama_klinis": "Tumpatan sementara",
       "nama_awam": "Tambal sementara",
       "kategori": "Restorasi",
+      "aktif": true,
       "unit": "per_tooth",
       "icd9cm": {
         "kode": "23.2",
@@ -528,6 +543,7 @@
       "nama_klinis": "Inlay / onlay",
       "nama_awam": "Tambal inlay",
       "kategori": "Restorasi",
+      "aktif": true,
       "unit": "per_tooth",
       "icd9cm": {
         "kode": "23.3",
@@ -559,6 +575,7 @@
       "nama_klinis": "Veneer komposit",
       "nama_awam": "Veneer gigi",
       "kategori": "Restorasi",
+      "aktif": true,
       "unit": "per_tooth",
       "icd9cm": {
         "kode": "23.49",
@@ -596,6 +613,7 @@
       "nama_klinis": "Tutup pulpa langsung (direct pulp capping)",
       "nama_awam": "Tutup saraf gigi",
       "kategori": "Endodonti",
+      "aktif": true,
       "unit": "per_tooth",
       "icd9cm": {
         "kode": null,
@@ -628,6 +646,7 @@
       "nama_klinis": "Pulpotomi",
       "nama_awam": "Perawatan saraf sebagian",
       "kategori": "Endodonti",
+      "aktif": true,
       "unit": "per_tooth",
       "icd9cm": {
         "kode": "23.70",
@@ -660,6 +679,7 @@
       "nama_klinis": "Perawatan saluran akar gigi anterior",
       "nama_awam": "Perawatan saraf gigi depan",
       "kategori": "Endodonti",
+      "aktif": true,
       "unit": "per_tooth",
       "icd9cm": {
         "kode": "23.71",
@@ -697,6 +717,7 @@
       "nama_klinis": "Perawatan saluran akar gigi premolar",
       "nama_awam": "Perawatan saraf gigi geraham kecil",
       "kategori": "Endodonti",
+      "aktif": true,
       "unit": "per_tooth",
       "icd9cm": {
         "kode": "23.71",
@@ -722,18 +743,19 @@
       ],
       "tarif_contoh_idr": {
         "umum": 1000000,
-        "spesialis": 1200000,
+        "spesialis": null,
         "bidang": null
       },
       "durasi_menit": 75,
       "kode_singkat": "PSA-PRE",
-      "catatan": "Spesialis contoh Rp1.200.000 merujuk papan ICD (satu baris PSA). Tingkat gigi = item katalog, bukan band tarif."
+      "catatan": "Tingkat gigi = item katalog, bukan band tarif. Harga hanya Umum; Spesialis dan Bidang mewarisi."
     },
     {
       "code": "TND-034",
       "nama_klinis": "Perawatan saluran akar gigi molar",
       "nama_awam": "Perawatan saraf gigi geraham",
       "kategori": "Endodonti",
+      "aktif": true,
       "unit": "per_tooth",
       "icd9cm": {
         "kode": "23.71",
@@ -764,18 +786,19 @@
       ],
       "tarif_contoh_idr": {
         "umum": 1500000,
-        "spesialis": 1800000,
+        "spesialis": null,
         "bidang": null
       },
       "durasi_menit": 90,
       "kode_singkat": "PSA",
-      "catatan": "Kompleksitas molar dipisah dari anterior. Prototipe lama memakai Rp1.800.000 sebagai satu harga PSA."
+      "catatan": "Kompleksitas molar dipisah dari anterior. Prototipe lama memakai satu harga PSA Rp1.800.000. Harga hanya Umum; Spesialis dan Bidang mewarisi."
     },
     {
       "code": "TND-035",
       "nama_klinis": "Perawatan ulang saluran akar (retreatment)",
       "nama_awam": "Ulang perawatan saraf gigi",
       "kategori": "Endodonti",
+      "aktif": true,
       "unit": "per_tooth",
       "icd9cm": {
         "kode": "23.71",
@@ -812,6 +835,7 @@
       "nama_klinis": "Apikoektomi",
       "nama_awam": "Operasi ujung akar gigi",
       "kategori": "Endodonti",
+      "aktif": true,
       "unit": "per_tooth",
       "icd9cm": {
         "kode": "23.73",
@@ -849,6 +873,7 @@
       "nama_klinis": "Trepanasi / buka kamar pulpa darurat",
       "nama_awam": "Buka saluran saraf darurat",
       "kategori": "Endodonti",
+      "aktif": true,
       "unit": "per_tooth",
       "icd9cm": {
         "kode": "23.70",
@@ -886,6 +911,7 @@
       "nama_klinis": "Scaling root planing per kuadran",
       "nama_awam": "Pembersihan karang dalam (per kuadran)",
       "kategori": "Periodonti",
+      "aktif": true,
       "unit": "per_quadrant",
       "icd9cm": {
         "kode": "96.54",
@@ -919,6 +945,7 @@
       "nama_klinis": "Kuretase gingiva",
       "nama_awam": "Pembersihan gusi dalam",
       "kategori": "Periodonti",
+      "aktif": true,
       "unit": "per_quadrant",
       "icd9cm": {
         "kode": "24.31",
@@ -951,6 +978,7 @@
       "nama_klinis": "Gingivektomi",
       "nama_awam": "Potong gusi berlebih",
       "kategori": "Periodonti",
+      "aktif": true,
       "unit": "per_tooth",
       "icd9cm": {
         "kode": "24.31",
@@ -982,6 +1010,7 @@
       "nama_klinis": "Gingivoplasti",
       "nama_awam": "Rapikan bentuk gusi",
       "kategori": "Periodonti",
+      "aktif": true,
       "unit": "per_tooth",
       "icd9cm": {
         "kode": "24.2",
@@ -1013,6 +1042,7 @@
       "nama_klinis": "Splinting periodontal",
       "nama_awam": "Penguat gigi goyang",
       "kategori": "Periodonti",
+      "aktif": true,
       "unit": "per_range",
       "icd9cm": {
         "kode": "24.7",
@@ -1045,6 +1075,7 @@
       "nama_klinis": "Pencabutan gigi permanen",
       "nama_awam": "Cabut gigi",
       "kategori": "Bedah/Ekstraksi",
+      "aktif": true,
       "unit": "per_tooth",
       "icd9cm": {
         "kode": "23.09",
@@ -1083,6 +1114,7 @@
       "nama_klinis": "Pencabutan gigi sulung",
       "nama_awam": "Cabut gigi susu",
       "kategori": "Bedah/Ekstraksi",
+      "aktif": true,
       "unit": "per_tooth",
       "icd9cm": {
         "kode": "23.01",
@@ -1120,6 +1152,7 @@
       "nama_klinis": "Pengambilan sisa akar",
       "nama_awam": "Cabut sisa akar gigi",
       "kategori": "Bedah/Ekstraksi",
+      "aktif": true,
       "unit": "per_tooth",
       "icd9cm": {
         "kode": "23.11",
@@ -1135,18 +1168,19 @@
       ],
       "tarif_contoh_idr": {
         "umum": 150000,
-        "spesialis": 200000,
+        "spesialis": null,
         "bidang": null
       },
       "durasi_menit": 30,
       "kode_singkat": "EXT-RR",
-      "catatan": "Harga selaras papan ICD: Umum Rp150.000, Spesialis Rp200.000."
+      "catatan": "Harga Umum selaras papan ICD (Rp150.000). Spesialis dan Bidang mewarisi."
     },
     {
       "code": "TND-053",
       "nama_klinis": "Odontektomi gigi impaksi",
       "nama_awam": "Operasi gigi bungsu",
       "kategori": "Bedah/Ekstraksi",
+      "aktif": true,
       "unit": "per_tooth",
       "icd9cm": {
         "kode": "23.19",
@@ -1167,18 +1201,19 @@
       ],
       "tarif_contoh_idr": {
         "umum": 1500000,
-        "spesialis": 2000000,
+        "spesialis": null,
         "bidang": null
       },
       "durasi_menit": 60,
       "kode_singkat": "ODT",
-      "catatan": "Harga selaras papan ICD (Rp1.500.000 / Sp Rp2.000.000), bukan seed lama Rp600.000 yang dipakai untuk cabut bedah sederhana."
+      "catatan": "Harga Umum selaras papan ICD (Rp1.500.000), bukan seed lama Rp600.000 yang dipakai untuk cabut bedah sederhana. Spesialis dan Bidang mewarisi."
     },
     {
       "code": "TND-054",
       "nama_klinis": "Pencabutan bedah (bukan impaksi)",
       "nama_awam": "Cabut gigi dengan bedah kecil",
       "kategori": "Bedah/Ekstraksi",
+      "aktif": true,
       "unit": "per_tooth",
       "icd9cm": {
         "kode": "23.19",
@@ -1217,6 +1252,7 @@
       "nama_klinis": "Insisi dan drainase abses",
       "nama_awam": "Iris nanah gusi",
       "kategori": "Bedah/Ekstraksi",
+      "aktif": true,
       "unit": "per_tooth",
       "icd9cm": {
         "kode": "24.0",
@@ -1258,6 +1294,7 @@
       "nama_klinis": "Alveoloplasti",
       "nama_awam": "Perapihan tulang bekas cabut",
       "kategori": "Bedah/Ekstraksi",
+      "aktif": true,
       "unit": "per_arch",
       "icd9cm": {
         "kode": "24.5",
@@ -1289,6 +1326,7 @@
       "nama_klinis": "Operkulektomi",
       "nama_awam": "Potong daging tutup gigi bungsu",
       "kategori": "Bedah/Ekstraksi",
+      "aktif": true,
       "unit": "per_tooth",
       "icd9cm": {
         "kode": "24.6",
@@ -1321,6 +1359,7 @@
       "nama_klinis": "Jahit luka gusi",
       "nama_awam": "Jahit gusi",
       "kategori": "Bedah/Ekstraksi",
+      "aktif": true,
       "unit": "per_visit",
       "icd9cm": {
         "kode": "24.32",
@@ -1352,6 +1391,7 @@
       "nama_klinis": "Perawatan alveolitis (dry socket)",
       "nama_awam": "Obat luka cabut yang nyeri",
       "kategori": "Bedah/Ekstraksi",
+      "aktif": true,
       "unit": "per_tooth",
       "icd9cm": {
         "kode": null,
@@ -1379,6 +1419,7 @@
       "nama_klinis": "Frenektomi labial",
       "nama_awam": "Potong tali bibir",
       "kategori": "Bedah/Ekstraksi",
+      "aktif": true,
       "unit": "per_visit",
       "icd9cm": {
         "kode": "27.41",
@@ -1410,6 +1451,7 @@
       "nama_klinis": "Mahkota PFM (logam-porselen)",
       "nama_awam": "Mahkota gigi logam-porselen",
       "kategori": "Prostodonti",
+      "aktif": true,
       "unit": "per_tooth",
       "icd9cm": {
         "kode": "23.41",
@@ -1447,6 +1489,7 @@
       "nama_klinis": "Mahkota zironia / porselen penuh",
       "nama_awam": "Mahkota gigi porselen",
       "kategori": "Prostodonti",
+      "aktif": true,
       "unit": "per_tooth",
       "icd9cm": {
         "kode": "23.41",
@@ -1479,6 +1522,7 @@
       "nama_klinis": "Jembatan cekat 3 unit",
       "nama_awam": "Gigi tiruan jembatan",
       "kategori": "Prostodonti",
+      "aktif": true,
       "unit": "per_range",
       "icd9cm": {
         "kode": "23.42",
@@ -1506,6 +1550,7 @@
       "nama_klinis": "Gigi tiruan sebagian lepasan (GTSL)",
       "nama_awam": "Gigi palsu lepasan sebagian",
       "kategori": "Prostodonti",
+      "aktif": true,
       "unit": "per_arch",
       "icd9cm": {
         "kode": "23.43",
@@ -1538,6 +1583,7 @@
       "nama_klinis": "Gigi tiruan lengkap (GTL)",
       "nama_awam": "Gigi palsu penuh",
       "kategori": "Prostodonti",
+      "aktif": true,
       "unit": "per_arch",
       "icd9cm": {
         "kode": "99.97",
@@ -1575,6 +1621,7 @@
       "nama_klinis": "Penyesuaian gigi tiruan",
       "nama_awam": "Setel gigi palsu",
       "kategori": "Prostodonti",
+      "aktif": true,
       "unit": "per_visit",
       "icd9cm": {
         "kode": "99.97",
@@ -1607,6 +1654,7 @@
       "nama_klinis": "Implan gigi prostetik",
       "nama_awam": "Implan gigi",
       "kategori": "Prostodonti",
+      "aktif": true,
       "unit": "per_tooth",
       "icd9cm": {
         "kode": "23.6",
@@ -1639,6 +1687,7 @@
       "nama_klinis": "Pasak dan inti (post and core)",
       "nama_awam": "Pasak gigi",
       "kategori": "Prostodonti",
+      "aktif": true,
       "unit": "per_tooth",
       "icd9cm": {
         "kode": "23.49",
@@ -1671,6 +1720,7 @@
       "nama_klinis": "Konsultasi ortodonti",
       "nama_awam": "Konsultasi kawat gigi",
       "kategori": "Ortodonti",
+      "aktif": true,
       "unit": "per_visit",
       "icd9cm": {
         "kode": "89.31",
@@ -1712,6 +1762,7 @@
       "nama_klinis": "Pemasangan alat ortodonti cekat (satu rahang)",
       "nama_awam": "Pasang kawat gigi (satu rahang)",
       "kategori": "Ortodonti",
+      "aktif": true,
       "unit": "per_arch",
       "icd9cm": {
         "kode": "24.7",
@@ -1754,6 +1805,7 @@
       "nama_klinis": "Kontrol ortodonti",
       "nama_awam": "Kontrol kawat gigi",
       "kategori": "Ortodonti",
+      "aktif": true,
       "unit": "per_visit",
       "icd9cm": {
         "kode": "24.8",
@@ -1786,6 +1838,7 @@
       "nama_klinis": "Pelepasan alat ortodonti",
       "nama_awam": "Lepas kawat gigi",
       "kategori": "Ortodonti",
+      "aktif": true,
       "unit": "per_arch",
       "icd9cm": {
         "kode": "24.8",
@@ -1813,6 +1866,7 @@
       "nama_klinis": "Pemasangan retainer",
       "nama_awam": "Pasang retainer",
       "kategori": "Ortodonti",
+      "aktif": true,
       "unit": "per_arch",
       "icd9cm": {
         "kode": "24.7",
@@ -1844,6 +1898,7 @@
       "nama_klinis": "Foto periapikal",
       "nama_awam": "Rontgen satu gigi",
       "kategori": "Radiologi",
+      "aktif": true,
       "unit": "per_tooth",
       "icd9cm": {
         "kode": "87.12",
@@ -1881,6 +1936,7 @@
       "nama_klinis": "Foto bitewing",
       "nama_awam": "Rontgen sela gigi",
       "kategori": "Radiologi",
+      "aktif": true,
       "unit": "per_visit",
       "icd9cm": {
         "kode": "87.12",
@@ -1912,6 +1968,7 @@
       "nama_klinis": "Foto panoramik (OPG)",
       "nama_awam": "Rontgen seluruh rahang",
       "kategori": "Radiologi",
+      "aktif": true,
       "unit": "per_visit",
       "icd9cm": {
         "kode": "87.12",
@@ -1944,6 +2001,7 @@
       "nama_klinis": "Foto sefalometri",
       "nama_awam": "Rontgen samping kepala",
       "kategori": "Radiologi",
+      "aktif": true,
       "unit": "per_visit",
       "icd9cm": {
         "kode": "87.12",
@@ -1976,6 +2034,7 @@
       "nama_klinis": "Bleaching (pemutihan gigi)",
       "nama_awam": "Pemutihan gigi",
       "kategori": "Lain-lain",
+      "aktif": true,
       "unit": "per_arch",
       "icd9cm": {
         "kode": null,
@@ -2004,6 +2063,7 @@
       "nama_klinis": "Splinting trauma (wiring)",
       "nama_awam": "Penguat gigi patah atau goyang karena benturan",
       "kategori": "Lain-lain",
+      "aktif": true,
       "unit": "per_range",
       "icd9cm": {
         "kode": "93.55",
@@ -2036,6 +2096,7 @@
       "nama_klinis": "Replantasi gigi avulsi",
       "nama_awam": "Pasang kembali gigi yang copot",
       "kategori": "Lain-lain",
+      "aktif": true,
       "unit": "per_tooth",
       "icd9cm": {
         "kode": "23.5",
