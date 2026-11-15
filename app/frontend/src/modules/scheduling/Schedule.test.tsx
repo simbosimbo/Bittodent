@@ -540,7 +540,7 @@ test('HP multi-peran: mode diingat per pengguna; storage gagal -> mode bawaan pe
   expect(within(group).getByRole('radio', { name: 'Meja depan' })).toBeChecked()
   fireEvent.click(within(group).getByRole('radio', { name: 'Dokter' }))
   expect(screen.getByRole('heading', { level: 1, name: 'Pasien saya' })).toBeInTheDocument()
-  expect(localStorage.getItem('jadwal-mode:d1')).toBe('dokter')
+  expect(localStorage.getItem('mode:t1:d1')).toBe('dokter')
   unmount()
   const again = render(<Schedule me={who(['owner', 'dentist'])} />)
   expect(within(await screen.findByRole('radiogroup')).getByRole('radio', { name: 'Dokter' })).toBeChecked()
@@ -738,7 +738,7 @@ test('HP Dokter (#70): kartu Terjadwal hari ini punya "Mulai kunjungan" = check-
   phoneToday()
   let status = 'booked'
   const posts = mockApi(() => [ap('c', status, '09:30')])
-  localStorage.setItem('jadwal-mode:d1', 'dokter')
+  localStorage.setItem('mode:t1:d1', 'dokter')
   render(<Schedule me={who(['owner', 'dentist'])} />)
   const cta = await screen.findByRole('button', { name: 'Mulai kunjungan Pasien c' })
   expect(screen.queryByRole('button', { name: 'Buat janji' })).toBeNull()
@@ -753,7 +753,7 @@ test('HP Dokter: Selesai -> tanpa prompt Bayar, toast "masuk antrean bayar"; pas
   phoneToday()
   let status = 'in_treatment'
   mockApi(() => [ap('c', status, '09:30', status === 'done' ? { visit_id: 'v1' } : {})], { invoices: { v1: 'terbuka' } })
-  localStorage.setItem('jadwal-mode:d1', 'dokter')
+  localStorage.setItem('mode:t1:d1', 'dokter')
   render(<Schedule me={who(['owner', 'dentist'])} />)
   fireEvent.click(await screen.findByRole('button', { name: /^09\.30.*Pasien c/ }))
   status = 'done'

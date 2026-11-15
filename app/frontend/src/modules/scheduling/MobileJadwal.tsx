@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { ApiError, errorText } from '../../shared/api/http'
 import { fmtTime, initials } from '../../shared/format'
+import { MODE_LABEL, useWorkMode } from '../../shared/mode'
 import type { Me } from '../../shared/session'
-import { storage } from '../../shared/storage'
 import { DateField } from '../../shared/ui/DateField'
 import { Icon, ICONS } from '../../shared/ui/Icon'
 import { Sheet } from '../../shared/ui/Sheet'
@@ -12,38 +12,23 @@ import { getDailyRevenue, invoiceStatuses } from '../billing'
 import { reschedule, type Appointment, type Schedule as Sched } from './api'
 import { END, hhmm, minutesOfDay, SLOTS } from './parts'
 
-// ---- Role mode ----
+// ---- Role mode (wraps the shared work-mode hook; Jadwal only needs Meja depan | Dokter) ----
 export type Mode = 'depan' | 'dokter'
-const DESK_ROLES = ['owner', 'front_desk', 'kasir', 'assistant']
 
 /**
  * Default mobile view per role: dentist only = Dokter; any desk role = Meja depan. A dentist with a desk role gets the
- * "Meja depan | Dokter" switch, remembered per user (storage may fail: then the role default). UI only: the server checks permissions.
+ * "Meja depan | Dokter" switch, remembered as mode:{tenant}:{user}. UI only: the server checks permissions.
  */
 export function useJadwalMode(me: Me) {
-  const dentist = me.roles.includes('dentist'), desk = me.roles.some((r) => DESK_ROLES.includes(r))
-  const multi = dentist && desk
-  const key = `jadwal-mode:${me.user.id}`
-  const [mode, set] = useState<Mode>(() => {
-    const saved = multi ? storage.get(key) : null
-    return saved === 'depan' || saved === 'dokter' ? saved : dentist && !desk ? 'dokter' : 'depan'
-  })
-  // Every mounted hook (Beranda + Jadwal) follows the toggle (#70: Beranda = Pasien saya in Dokter mode).
-  useEffect(() => {
-    const on = (e: Event) => { const d = (e as CustomEvent<{ key: string; m: Mode }>).detail; if (d.key === key) set(d.m) }
-    addEventListener('jadwal-mode', on)
-    return () => removeEventListener('jadwal-mode', on)
-  }, [key])
-  const setMode = (m: Mode) => {
-    if (!multi) return
-    set(m)
-    storage.set(key, m)
-    dispatchEvent(new CustomEvent('jadwal-mode', { detail: { key, m } }))
+  const { mode, setMode, modes } = useWorkMode(me)
+  const jadwal: Mode = mode === 'dokter' ? 'dokter' : 'depan'
+  return {
+    mode: jadwal,
+    setMode: (m: Mode) => setMode(m),
+    multi: modes.includes('dokter') && modes.includes('depan'),
+    owner: me.roles.includes('owner'),
   }
-  return { mode, setMode, multi, owner: me.roles.includes('owner') }
 }
-
-export const MODE_LABEL: Record<Mode, string> = { depan: 'Meja depan', dokter: 'Dokter' }
 
 /** Segmented switch (native radios: arrow keys work); the active segment is filled and the page title changes too. */
 export function ModeToggle({ mode, onChange }: { mode: Mode; onChange: (m: Mode) => void }) {

@@ -40,4 +40,18 @@ export const ICONS = {
   cloudOff: 'M2 2l20 20M10 5a5 5 0 0 1 8.9 2.3A4.5 4.5 0 0 1 20.5 16M7 7a5.1 5.1 0 0 0-3.1 8.3A4 4 0 0 0 6 20h11',
   inbox: 'M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z',
   arrowRight: 'M5 12h14M13 6l6 6-6 6',
+  logOut: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9',
+  mapPin: 'M12 21s7-7.2 7-12a7 7 0 1 0-14 0c0 4.8 7 12 7 12M12 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6',
+  monitor: 'M3 5h18v12H3zM8 21h8M12 17v4',
+  crown: 'M3 9l4 7h10l4-7-5 3-4-6-4 6zM7 16h10v3H7z',
+  building: 'M4 21V5h12v16M16 10h4v11M8 9h2M8 13h2M8 17h2',
+  printer: 'M6 9V3h12v6M6 17H4a1 1 0 0 1-1-1v-6h18v6a1 1 0 0 1-1 1h-2M6 13h12v8H6z',
+  camera: 'M4 8h3l2-3h6l2 3h3v11H4zM12 17a3 3 0 1 0 0-6 3 3 0 0 0 0 6',
+  download: 'M12 4v12M7 11l5 5 5-5M5 20h14',
+  bluetooth: 'M7 17l10-10-5-4v18l5-4L7 7',
+  usb: 'M8 2h8v5H8zM12 7v9M8 20a2 2 0 0 0 4 0M12 16h4a2 2 0 0 0 0-4',
+  qrcode: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h3v3h-3zM18 18h2v2h-2z',
+  shield: 'M12 3l8 4v6c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V7z',
+  image: 'M4 5h16v14H4zM8 13l3 3 4-5 5 6',
 }
+
