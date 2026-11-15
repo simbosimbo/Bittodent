@@ -163,4 +163,30 @@ class AgentDraftTest extends TestCase
             }
         }, $this->user('dokter@senyum.test')->id);
     }
+
+    public function test_listing_by_target_and_by_reviewer_stays_in_the_tenant(): void
+    {
+        $dokter = $this->user('dokter@senyum.test')->id;
+        [$a, $b] = Ctx::runAs($this->tenantA()->id, function () {
+            $runId = app(AgentRuns::class)->recordDeterministic(AgentKind::Koding, 'aturan-v1', [['type' => 'finding', 'id' => 'f1', 'version' => 1]], hash('sha256', 'x'));
+            $d = app(AgentDrafts::class);
+
+            return [$d->propose($runId, DraftKind::KodeIcd, 'visit', 'v-1', ['code' => 'K02.1']), $d->propose($runId, DraftKind::KodeIcd, 'visit', 'v-1', ['code' => 'K04.0'])];
+        }, $dokter);
+        Ctx::runAs($this->tenantA()->id, function () use ($a, $b, $dokter) {
+            $d = app(AgentDrafts::class);
+            Ctx::current()->roles = ['dentist'];
+            try {
+                $d->approve($a);
+            } finally {
+                Ctx::current()->roles = [];
+            }
+            $list = $d->forTarget(DraftKind::KodeIcd, 'visit', 'v-1');
+            $this->assertSame([$a, $b], array_column($list, 'id'));
+            $this->assertSame([DraftState::Disetujui, DraftState::MenungguReview], array_column($list, 'state'));
+            $this->assertSame([['state' => DraftState::Disetujui, 'payload' => ['code' => 'K02.1']]], $d->reviewedBy(DraftKind::KodeIcd, $dokter));
+            $this->assertSame('deterministik', DB::table('agent_run')->value('generator'));
+        }, $dokter);
+        Ctx::runAs($this->tenantB()->id, fn () => $this->assertSame([], app(AgentDrafts::class)->forTarget(DraftKind::KodeIcd, 'visit', 'v-1')));
+    }
 }

@@ -75,6 +75,23 @@ final class DraftReviewService implements AgentDrafts
         return $n;
     }
 
+    public function forTarget(DraftKind $kind, string $targetType, string $targetId): array
+    {
+        return AgentDraft::where('kind', $kind)->where('target_type', $targetType)->where('target_id', $targetId)
+            ->orderBy('created_at')->orderBy('id')->get()
+            ->map(fn (AgentDraft $d) => ['id' => $d->id, 'run_id' => $d->run_id, 'state' => $d->state, 'payload' => $d->payload_enc === null ? [] : $d->payload(),
+                'reviewer_id' => $d->reviewer_id, 'reviewed_at' => $d->reviewed_at, 'created_at' => $d->created_at])
+            ->values()->all();
+    }
+
+    public function reviewedBy(DraftKind $kind, string $reviewerId, int $limit = 200): array
+    {
+        return AgentDraft::where('kind', $kind)->where('reviewer_id', $reviewerId)->whereNotNull('payload_enc')
+            ->whereIn('state', [DraftState::Disetujui, DraftState::Ditolak])
+            ->orderByDesc('reviewed_at')->limit(max(1, min($limit, 1000)))->get()
+            ->map(fn (AgentDraft $d) => ['state' => $d->state, 'payload' => $d->payload()])->values()->all();
+    }
+
     private function open(DraftKind $kind, string $targetType, string $targetId, string $requestedBy)
     {
         return AgentDraft::where('kind', $kind)->where('target_type', $targetType)->where('target_id', $targetId)

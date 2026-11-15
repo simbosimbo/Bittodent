@@ -29,6 +29,20 @@ interface AgentDrafts
     public function purgeExpired(DraftKind $kind, \DateTimeInterface $now): int;
 
     /**
+     * Every draft of $kind for the target (any state, any requester), oldest first. Purged drafts come back with payload [].
+     *
+     * @return list<array{id: string, run_id: string, state: DraftState, payload: array, reviewer_id: ?string, reviewed_at: ?\DateTimeInterface, created_at: \DateTimeInterface}>
+     */
+    public function forTarget(DraftKind $kind, string $targetType, string $targetId): array;
+
+    /**
+     * The newest drafts of $kind that $reviewerId approved or rejected (a preference signal, e.g. ordering; never a rule).
+     *
+     * @return list<array{state: DraftState, payload: array}>
+     */
+    public function reviewedBy(DraftKind $kind, string $reviewerId, int $limit = 200): array;
+
+    /**
      * Dentist only (permission ai_draft.review). Kind `ringkasan` is never approvable.
      *
      * @return array the approved payload
