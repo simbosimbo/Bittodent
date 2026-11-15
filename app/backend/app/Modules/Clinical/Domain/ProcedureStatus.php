@@ -14,9 +14,9 @@ final class ProcedureStatus
         'ada_di_tempat_lain' => ['direncanakan'],
         'direncanakan' => ['selesai', 'dirujuk', 'kondisi_pantau', 'cancelled'],
         'dirujuk' => ['direncanakan'],
-        'selesai' => [],                           // final: billed once; supersede/cancel of done work = later unit
+        'selesai' => [],                           // final: billed once; replacing done work = POST /procedures/{id}/replace (unit 3)
         'cancelled' => [],                         // plan dropped; never billed
-        'superseded' => [],                        // written only by a supersede write (later unit), never by a status patch
+        'superseded' => [],                        // marker row written only by POST /procedures/{id}/replace, never by a status patch
     ];
 
     public const ALL = ['kondisi_pantau', 'ada_di_klinik_ini', 'ada_di_tempat_lain', 'direncanakan', 'selesai', 'dirujuk', 'cancelled', 'superseded'];
@@ -30,6 +30,11 @@ final class ProcedureStatus
     public const EXTERNAL = 'ada_di_tempat_lain';
 
     public const BILLABLE = 'selesai';
+
+    public const SUPERSEDED = 'superseded';
+
+    /** Existing work a new restoration may replace (unit 3). */
+    public const REPLACEABLE = ['selesai', 'ada_di_klinik_ini', 'ada_di_tempat_lain'];
 
     public static function canMove(string $from, string $to): bool
     {

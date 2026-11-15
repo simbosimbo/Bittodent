@@ -23,6 +23,9 @@ Route::middleware(['auth:sanctum', '2fa', 'tenant'])->group(function () {
     Route::post('/visits/{id}/procedures', [ProcedureController::class, 'store'])->middleware('perm:note.write');
     Route::patch('/procedures/{id}', [ProcedureController::class, 'update'])->middleware('perm:note.write');
     Route::post('/procedures/{id}/status', [ProcedureController::class, 'changeStatus'])->middleware('perm:note.sign');
+    // unit 3: history is append-only; replacing a restoration and correcting a record are new final rows
+    Route::post('/procedures/{id}/replace', [ProcedureController::class, 'replace'])->middleware('perm:note.sign');
+    Route::post('/procedures/{id}/corrections', [ProcedureController::class, 'correct'])->middleware('perm:note.sign');
     Route::delete('/procedures/{id}', [ProcedureController::class, 'destroy'])->middleware('perm:note.write');
     // unit 2: external entries made on a visit with `selesai` work that day wait for front desk / assistant
     Route::get('/procedures/pending-external', [ProcedureController::class, 'pendingExternal'])->middleware('perm:procedure.confirm_external');

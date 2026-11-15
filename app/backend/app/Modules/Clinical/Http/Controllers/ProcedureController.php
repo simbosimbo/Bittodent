@@ -8,6 +8,7 @@ use App\Modules\Clinical\Domain\ProcedureLocation;
 use App\Modules\Clinical\Domain\ProcedureSite;
 use App\Modules\Clinical\Domain\ProcedureStatus;
 use App\Modules\Clinical\Events\ProcedureRecorded;
+use App\Modules\Clinical\Http\Requests\ProcedureHistoryRequest;
 use App\Modules\Clinical\Http\Requests\ProcedureRequest;
 use App\Modules\Clinical\Models\ProcedureDefinition;
 use App\Modules\Clinical\Models\ProcedureRecord;
@@ -27,6 +28,13 @@ use Illuminate\Support\Facades\DB;
 // (NoteController::sign). A status change on a final row = new final row superseding it. Only `selesai` + code bills (ProcedureRecorded).
 class ProcedureController extends Controller
 {
+    private const SITE = ['treat_area', 'tooth', 'surfaces', 'tooth_range', 'quadrant', 'arch'];
+
+    /** Copied onto a successor row (status change, replace marker). */
+    private const COPY = ['patient_id', ...self::SITE, 'procedure_code', 'variant', 'diagnosis_code', 'diagnosis_source'];
+
+    private const CORRECTABLE = ['tooth', 'surfaces', 'tooth_range', 'quadrant', 'arch', 'procedure_code', 'variant', 'diagnosis_code', 'diagnosis_source', 'provider_id'];
+
     /** POST /api/visits/{id}/procedures: one draft per call (a MOD filling = one row with surfaces "MOD"). */
     public function store(ProcedureRequest $request, string $id, TenancyDirectory $tenancy)
     {
@@ -57,17 +65,7 @@ class ProcedureController extends Controller
     public function update(ProcedureRequest $request, string $id, TenancyDirectory $tenancy)
     {
         return $this->ownDraft($id, function (ProcedureRecord $p) use ($request, $tenancy) {
-            $d = $request->validated();
-            // unsent fields keep their stored value (an explicit null clears one); location is re-checked against the code as a whole
-            // a new code brings its own catalog area, so the stored area is only kept while the code stays
-            if (! array_key_exists('procedure_code', $d) || $d['procedure_code'] === $p->procedure_code) {
-                $d += ['treat_area' => $p->treat_area];
-            }
-            $d += $p->only(['tooth', 'surfaces', 'tooth_range', 'quadrant', 'arch', 'status', 'procedure_code', 'variant', 'diagnosis_code', 'diagnosis_source', 'provider_id']);
-            if ($d['status'] === ProcedureStatus::EXTERNAL && $p->status === ProcedureStatus::EXTERNAL) { // still external: keep unsent fields
-                $d += ['external_clinic_name' => $p->external_clinic_name,
-                    'external_date' => ApproxDate::format($p->external_date, $p->external_date_precision)];
-            }
+            $d = self::merged($request->validated(), $p);
             $attrs = self::attributes($d, Visit::lockForUpdate()->findOrFail($p->visit_id), $tenancy, $p->id);
             if (! is_array($attrs)) {
                 return $attrs;
@@ -92,11 +90,8 @@ class ProcedureController extends Controller
 
         return DB::transaction(function () use ($d, $id, $ctx, $tenancy) {
             $p = ProcedureRecord::lockForUpdate()->where('state', 'final')->findOrFail($id);
-            if (ProcedureRecord::where('supersedes_id', $id)->exists()) {
-                return response()->json(['error' => 'superseded', 'message' => 'Tindakan ini sudah digantikan; muat ulang.'], 409);
-            }
-            if (in_array($p->external_confirmation, ['pending', 'rejected'], true)) {
-                return response()->json(['error' => 'external_unconfirmed', 'message' => 'Tindakan klinik lain ini belum dikonfirmasi atau ditolak.'], 409);
+            if ($e = self::notCurrent($p)) {
+                return $e;
             }
             if (! ProcedureStatus::canMove($p->status, $d['to'])) {
                 return response()->json(['error' => 'invalid_transition', 'message' => "Status tidak bisa berpindah dari {$p->status} ke {$d['to']}."], 409);
@@ -109,12 +104,90 @@ class ProcedureController extends Controller
             if ($bad = self::badProvider($provider, $visit, $tenancy)) {
                 return $bad;
             }
-            $new = ProcedureRecord::create([...$p->only(['patient_id', 'treat_area', 'tooth', 'surfaces', 'tooth_range', 'quadrant', 'arch',
-                'procedure_code', 'variant', 'diagnosis_code', 'diagnosis_source']),
+            $new = ProcedureRecord::create([...$p->only(self::COPY),
                 'visit_id' => $visit->id, 'provider_id' => $provider, 'status' => $d['to'], 'state' => 'final', 'source' => 'manual',
                 'supersedes_id' => $p->id, 'created_by' => $ctx->userId, 'finalized_by' => $ctx->userId, 'finalized_at' => now()]);
             Audit::log('ubah_status', 'procedure_record', $new->id, ['supersedes' => $p->id, 'from' => $p->status, 'to' => $d['to']]);
             self::recorded($new);
+
+            return response()->json(self::out($new), 201);
+        });
+    }
+
+    /**
+     * POST /api/procedures/{id}/replace {visit_id, status direncanakan|selesai, reason, code + site ...}: dentist only (note.sign).
+     * Replacing existing work (selesai / ada_di_klinik_ini / ada_di_tempat_lain) on an overlapping site. Two new final rows, old row
+     * untouched: a `superseded` marker that supersedes the old one (copy of it + reason) and the new work with replaces_id = old.
+     * The old invoice_line stays; the new work bills only when it is (or later becomes) selesai.
+     */
+    public function replace(ProcedureHistoryRequest $request, string $id, TenancyDirectory $tenancy)
+    {
+        $d = $request->validated();
+        $ctx = Ctx::current();
+
+        return DB::transaction(function () use ($d, $id, $ctx, $tenancy) {
+            $old = ProcedureRecord::lockForUpdate()->where('state', 'final')->findOrFail($id);
+            if ($e = self::notCurrent($old)) {
+                return $e;
+            }
+            if (! in_array($old->status, ProcedureStatus::REPLACEABLE, true)) {
+                return response()->json(['error' => 'not_replaceable', 'message' => 'Hanya pekerjaan yang sudah ada (selesai, ada di klinik ini, klinik lain) yang bisa diganti.'], 409);
+            }
+            $visit = Visit::lockForUpdate()->where('patient_id', $old->patient_id)->findOrFail($d['visit_id']);
+            if (! $ctx->coversBranch($visit->branch_id)) {
+                return Audit::denied('branch:'.$visit->branch_id);
+            }
+            $attrs = self::attributes($d, $visit, $tenancy);
+            if (! is_array($attrs)) {
+                return $attrs;
+            }
+            if (! ProcedureSite::overlaps($attrs, $old->only(self::SITE))) {
+                return self::invalid('tooth', 'Tindakan pengganti harus pada gigi/permukaan yang sama dengan tindakan lama.');
+            }
+            $final = ['state' => 'final', 'source' => 'manual', 'reason' => $d['reason'], 'created_by' => $ctx->userId,
+                'finalized_by' => $ctx->userId, 'finalized_at' => now()];
+            $marker = ProcedureRecord::create([...$old->only([...self::COPY, 'provider_id', 'replaces_id', 'external_clinic_name', 'external_date',
+                'external_date_precision', 'external_confirmation', 'external_confirmed_by', 'external_confirmed_at', 'external_confirmation_reason']),
+                ...$final, 'visit_id' => $visit->id, 'status' => ProcedureStatus::SUPERSEDED, 'supersedes_id' => $old->id]);
+            $new = ProcedureRecord::create([...$attrs, ...$final, 'patient_id' => $old->patient_id, 'visit_id' => $visit->id, 'replaces_id' => $old->id]);
+            Audit::log('ganti_tindakan', 'procedure_record', $new->id, ['replaces' => $old->id, 'marker' => $marker->id, 'from' => $old->status, 'to' => $new->status]);
+            self::recorded($new);
+
+            return response()->json(['replaced' => self::out($marker), 'procedure' => self::out($new)], 201);
+        });
+    }
+
+    /**
+     * POST /api/procedures/{id}/corrections {reason, code/site/diagnosis/variant/provider/external fields}: dentist only (note.sign).
+     * New final row superseding the old one with the same status; the old row stays readable. Never bills: an already billed
+     * line stays on the old procedure (billing correction = Billing's job). Not hooked to correction_request yet (DEVIATIONS #49).
+     */
+    public function correct(ProcedureHistoryRequest $request, string $id, TenancyDirectory $tenancy)
+    {
+        $ctx = Ctx::current();
+
+        return DB::transaction(function () use ($request, $id, $ctx, $tenancy) {
+            $p = ProcedureRecord::lockForUpdate()->where('state', 'final')->findOrFail($id);
+            if ($e = self::notCurrent($p)) {
+                return $e;
+            }
+            $visit = Visit::lockForUpdate()->findOrFail($p->visit_id);
+            if (! $ctx->coversBranch($visit->branch_id)) {
+                return Audit::denied('branch:'.$visit->branch_id);
+            }
+            $d = self::merged($request->validated(), $p);
+            $attrs = self::attributes($d, $visit, $tenancy, $p->id);
+            if (! is_array($attrs)) {
+                return $attrs;
+            }
+            if ($p->status === ProcedureStatus::EXTERNAL) { // already confirmed or never needed it: a correction does not re-open that
+                $attrs = [...$attrs, ...$p->only(['external_confirmation', 'external_confirmed_by', 'external_confirmed_at', 'external_confirmation_reason'])];
+            }
+            $new = ProcedureRecord::create([...$attrs, 'patient_id' => $p->patient_id, 'visit_id' => $p->visit_id, 'state' => 'final',
+                'source' => 'manual', 'supersedes_id' => $p->id, 'replaces_id' => $p->replaces_id, 'reason' => $d['reason'],
+                'created_by' => $ctx->userId, 'finalized_by' => $ctx->userId, 'finalized_at' => now()]);
+            Audit::log('koreksi_tindakan', 'procedure_record', $new->id, ['supersedes' => $p->id,
+                'fields' => array_values(array_filter(self::CORRECTABLE, fn ($c) => (string) $new->$c !== (string) $p->$c))]);
 
             return response()->json(self::out($new), 201);
         });
@@ -191,11 +264,39 @@ class ProcedureController extends Controller
             : ($defs ? $defs->get($p->procedure_code) : ProcedureDefinition::where('procedure_code', $p->procedure_code)->first());
 
         return $p->only(['id', 'visit_id', 'patient_id', 'treat_area', 'tooth', 'surfaces', 'tooth_range', 'quadrant', 'arch', 'status',
-            'procedure_code', 'variant', 'diagnosis_code', 'diagnosis_source', 'provider_id', 'state', 'source', 'supersedes_id',
+            'procedure_code', 'variant', 'diagnosis_code', 'diagnosis_source', 'provider_id', 'state', 'source', 'supersedes_id', 'reason', 'replaces_id',
             'created_by', 'finalized_by', 'finalized_at', 'external_clinic_name', 'external_date_precision', 'external_confirmation',
             'external_confirmed_by', 'external_confirmed_at', 'external_confirmation_reason'])
             + ['external_date' => $p->external_date ? substr((string) $p->external_date, 0, 10) : null]
             + ['paint_type' => $def?->paint_type ?? ProcedureCatalog::DEFAULT_PAINT, 'name' => $def?->name, 'layman' => $def?->layman];
+    }
+
+    /** 409 unless $p is the latest row of its chain, not a `superseded` marker, and not an unconfirmed/rejected external. */
+    private static function notCurrent(ProcedureRecord $p): ?JsonResponse
+    {
+        if ($p->status === ProcedureStatus::SUPERSEDED || ProcedureRecord::where('supersedes_id', $p->id)->exists()) {
+            return response()->json(['error' => 'superseded', 'message' => 'Tindakan ini sudah digantikan; muat ulang.'], 409);
+        }
+        if (in_array($p->external_confirmation, ['pending', 'rejected'], true)) {
+            return response()->json(['error' => 'external_unconfirmed', 'message' => 'Tindakan klinik lain ini belum dikonfirmasi atau ditolak.'], 409);
+        }
+
+        return null;
+    }
+
+    /** Sent fields over the stored row: unsent keep their value (explicit null clears); a new code brings its own catalog area. */
+    private static function merged(array $d, ProcedureRecord $p): array
+    {
+        if (! array_key_exists('procedure_code', $d) || $d['procedure_code'] === $p->procedure_code) {
+            $d += ['treat_area' => $p->treat_area];
+        }
+        $d += $p->only(['status', ...self::CORRECTABLE]);
+        if ($d['status'] === ProcedureStatus::EXTERNAL && $p->status === ProcedureStatus::EXTERNAL) { // still external: keep unsent fields
+            $d += ['external_clinic_name' => $p->external_clinic_name,
+                'external_date' => ApproxDate::format($p->external_date, $p->external_date_precision)];
+        }
+
+        return $d;
     }
 
     /** Validated columns, or an error response. */
