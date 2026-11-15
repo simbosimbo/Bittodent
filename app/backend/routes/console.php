@@ -11,12 +11,13 @@ use App\Shared\Terminology\SatusehatSpreadsheetSource;
 use Carbon\CarbonImmutable;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 use PragmaRX\Google2FA\Google2FA;
 
-// Dev helper: print the current TOTP code of a seeded synthetic account. Never in production.
+// Dev helper: print the current TOTP code of a seeded synthetic account. Local only (not staging, not production).
 Artisan::command('dev:totp {email}', function (string $email) {
-    if (app()->isProduction()) {
-        $this->error('dev:totp ditolak di production.');
+    if (! app()->environment('local')) {
+        $this->error('dev:totp hanya untuk APP_ENV=local.');
 
         return 1;
     }
@@ -48,6 +49,34 @@ Artisan::command('dev:reset', function () {
     return 0;
 })->purpose('Reset + seed database dev (hanya APP_ENV=local, ehr_dev/ehr_test)');
 
+// First synthetic seed of a fresh staging database (after `migrate --database=mysql_admin --force`). Non-destructive:
+// no migrate:fresh, never outside APP_ENV=staging (not even with --force), never twice over the built-in synthetic accounts.
+Artisan::command('staging:seed {--force : seed walau sudah ada tenant/pengguna lain (tetap ditolak bila akun sintetis *.test sudah ada)}', function () {
+    if (! app()->environment('staging')) {
+        $this->error('staging:seed hanya untuk APP_ENV=staging (sekarang: '.app()->environment().'). Lokal: php artisan dev:reset.');
+
+        return 1;
+    }
+    // Check on the connection that will write (ehr_admin), not the runtime one.
+    if (User::on('mysql_admin')->where('email', 'like', '%.test')->exists()) {
+        $this->error('Akun sintetis (*.test) sudah ada. staging:seed tidak menimpa atau menggandakan data; tidak ada yang diubah.');
+
+        return 1;
+    }
+    if ((Tenant::on('mysql_admin')->exists() || User::on('mysql_admin')->exists()) && ! $this->option('force')) {
+        $this->error('Database sudah berisi tenant/pengguna. Tidak ada yang diubah. Pakai --force hanya jika yakin semuanya data sintetis.');
+
+        return 1;
+    }
+    $this->call('db:seed', ['--database' => 'mysql_admin', '--force' => true]);
+    $this->newLine();
+    $this->warn('AKUN PALSU (data sintetis). Jangan dipakai untuk data pasien asli. Kata sandi: '.DatabaseSeeder::PASSWORD
+        .' | TOTP secret (publik, contoh): '.DatabaseSeeder::TOTP_SECRET);
+    $this->table(['Email', 'Nama'], User::on('mysql_admin')->where('email', 'like', '%.test')->orderBy('email')->get(['email', 'name'])->toArray());
+
+    return 0;
+})->purpose('Seed data sintetis pertama kali di staging (hanya APP_ENV=staging, tidak menghapus data)');
+
 // Appointment reminders (no-op channel): one pass per tenant, each in its own tenant context. Safe to run twice (reminder_log key).
 Artisan::command('recall:send-reminders', function () {
     foreach (Tenant::pluck('id') as $tenantId) {
@@ -55,6 +84,9 @@ Artisan::command('recall:send-reminders', function () {
         $this->line("$tenantId: $n");
     }
 })->purpose('Kirim pengingat janji yang jatuh tempo (kanal no-op; tercatat di reminder_log)');
+// Reminders are due H-1 and 2 hours before the start; every 15 minutes keeps them at most ~15 min late.
+// Needs a scheduler process: `php artisan schedule:work` (Docker) or cron `* * * * * php artisan schedule:run` (Forge/VPS).
+Schedule::command('recall:send-reminders')->everyFifteenMinutes()->withoutOverlapping();
 
 // Official ICD-10 2010 / ICD-9-CM 2010 reference lists (global tables, written as ehr_admin). Safe to run twice.
 Artisan::command('icd:import {--source=file : file (CSV lokal) | satusehat (API FHIR, butuh kredensial) | satusehat-spreadsheet (spreadsheet publik resmi)} {--path= : berkas/folder CSV (default database/data/icd)} {--fallback= : hanya untuk --source=satusehat: spreadsheet = pakai spreadsheet publik bila API gagal} {--force : izinkan di production}', function (IcdImporter $importer) {
