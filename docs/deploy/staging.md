@@ -4,6 +4,8 @@
 PR yang menambah dokumen ini **tidak melakukan deploy, tidak membuat akun, tidak membayar apa pun, dan tidak di-merge**.
 Semua langkah di bawah dilakukan Yohanes nanti, setelah memberi persetujuan.
 
+> **Target staging sekarang: Hostinger (`https://inspidok.com`)**, sesuai keputusan Yohanes. Runbook: `docs/deploy/hostinger.md` (mode satu akun DB, `.htaccess` root ke `public/`, cron). Laravel Cloud di bawah tetap disimpan sebagai **alternatif**.
+
 Riset harga & penyedia (15 Nov 2026): `/workspace/research/staging-hosting.md`. Harga di bawah disalin dari halaman resmi pada tanggal itu; pajak dan pemakaian di atas kuota bisa menambah tagihan. Cek ulang di halaman resmi sebelum membayar.
 
 ## 1. Rekomendasi: Laravel Cloud Starter, Singapore
@@ -78,6 +80,7 @@ Nama menu di panel bisa berubah; bila tidak sama, ikuti dokumen resmi di atas. B
 6. **Variabel lingkungan** dari `app/backend/.env.staging.example`:
    - `APP_KEY` (Generate / `php artisan key:generate --show`), `ENCRYPTION_KEY` dan `BLIND_INDEX_KEY` masing-masing `base64:` + 32 byte acak (lihat komentar di templat). Simpan juga di pengelola sandi; kunci hilang = data terenkripsi tidak terbaca.
    - `APP_URL=https://<app>.laravel.cloud`, `SANCTUM_STATEFUL_DOMAINS=<app>.laravel.cloud`, `FRONTEND_ORIGINS=https://<app>.laravel.cloud` (satu origin).
+   - `STAGING_DEMO_PASSWORD` (min. 16 karakter) dan `STAGING_DEMO_TOTP_SECRET` (base32, min. 16 karakter) untuk akun demo `staging:seed`.
    - `APP_ENV=staging`, `APP_DEBUG=false`, `SESSION_SECURE_COOKIE=true`, `QUEUE_CONNECTION=database`, `CACHE_STORE=database`, `LOG_CHANNEL=stderr`, `FORCE_HTTPS=true`, `TRUSTED_PROXIES=*`, `DEV_QUICK_LOGIN=false`.
    - SATUSEHAT: `SATUSEHAT_ENV=sandbox`, kredensial sandbox saja (opsional).
 7. **Perintah build** (membangun SPA dari `app/frontend` lalu menyalinnya ke `public/client`, tanpa menimpa `public/index.php`):
@@ -94,7 +97,7 @@ Nama menu di panel bisa berubah; bila tidak sama, ikuti dokumen resmi di atas. B
    ```sh
    php artisan staging:seed
    ```
-   `staging:seed` hanya jalan bila `APP_ENV=staging`, menolak bila tenant/pengguna sudah ada (kecuali `--force`), selalu menolak bila akun sintetis `*.test` sudah ada, dan tidak pernah jalan di `production`. Akun yang dicetak (`*.test`, kata sandi `rahasia-dev-123`, TOTP secret contoh `JBSWY3DPEHPK3PXP`) **palsu dan publik**: tambahkan secret itu ke aplikasi authenticator untuk login 2FA. Jangan pernah dipakai dengan data asli.
+   `staging:seed` hanya jalan bila `APP_ENV=staging`, menolak bila tenant/pengguna sudah ada (kecuali `--force`), selalu menolak bila akun sintetis `*.test` sudah ada, dan tidak pernah jalan di `production`. Kata sandi dan TOTP secret akun `*.test` diambil dari `STAGING_DEMO_PASSWORD` / `STAGING_DEMO_TOTP_SECRET` (wajib, tidak boleh sama dengan nilai dev publik, **tidak dicetak**); tambahkan secret itu ke aplikasi authenticator untuk login 2FA. Jangan pernah dipakai dengan data asli.
 9. **Penjadwal**: aktifkan scheduler di compute aplikasi (menjalankan `schedule:run` tiap menit → `recall:send-reminders` tiap 15 menit). Catatan: penjadwal bisa membuat compute tidak tidur; bila biaya naik, matikan saat staging tidak dipakai (**perlu dicek** perilaku scale-to-zero dengan scheduler).
 10. **Antrean**: aktifkan worker/queue terkelola (`queue:work`, koneksi `database`). Jangan `QUEUE_CONNECTION=sync`.
 11. **TLS**: sudah termasuk untuk `*.laravel.cloud` (dan domain kustom). Aplikasi mengalihkan HTTP→HTTPS dan mengirim HSTS hanya di HTTPS.
