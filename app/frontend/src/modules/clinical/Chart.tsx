@@ -7,22 +7,26 @@ import { ApiError, errorText } from '../../shared/api/http'
 import { setActivePatient } from '../../shared/activePatient'
 import { fmtDateTime, fmtDay, fmtTime } from '../../shared/format'
 import type { Me } from '../../shared/session'
+import { ToothSheet as EntrySheet } from './odontogram/ToothSheet'
+import { conditionByKey, spanTeeth, type SurfaceKey } from './odontogram/taxonomy'
+// procedure status -> v2 entry status (line shape on the chart)
+const ENTRY: Partial<Record<string, Mark['entry']>> = { ada_di_klinik_ini: 'ada_sebelumnya', ada_di_tempat_lain: 'klinik_lain', direncanakan: 'rencana', selesai: 'selesai' }
 import { PHONE_QUERY, useIsMobile, useMedia } from '../../shared/useIsMobile'
 import { PatientPage } from '../patients'
 import type { PatientFull } from '../patients'
 import {
-  approveCorrection, approveDrafts, changeStatus, confirmExternal, correctNote, correctProcedure, discardFinding, discardProcedure, getChart, getDentists,
-  replaceProcedure, saveBaseline, saveFinding, saveNote, saveProcedure, selesaiVisit, startWalkInVisit, visitFromAppointment, appointmentDone,
+  approveCorrection, approveDrafts, changeStatus, confirmExternal, correctNote, correctProcedure, discardProcedure, getChart, getDentists,
+  replaceProcedure, saveBaseline, saveNote, selesaiVisit, startWalkInVisit, visitFromAppointment, appointmentDone,
   type Baseline, type Chart, type ChartVisit, type CorrectionType, type Finding, type Note, type ProcStatus, type Procedure, type ProcedureHistoryRow,
   type Soap, type Surface, type ToothPresence, type Version,
 } from './api'
-import { AI_BADGE, CHOOSABLE, CONDITIONS, conditionOf, CORRECTION_LABEL, findingText, isAnterior, paintCondition, PRESENCE, procedureText, sameSite, statusOf,
-  surfaceLabel, surfaceName, surfacesOf, toothAnatomicalName } from './legend'
+import { AI_BADGE, CONDITIONS, conditionOf, CORRECTION_LABEL, findingText, isAnterior, paintCondition, PRESENCE, procedureText, statusOf,
+  surfaceLabel, surfaceName, toothAnatomicalName } from './legend'
 import { Legend, Odontogram, StatusLegend, type Mark } from './Odontogram'
 import { dentitionFromDob, Odontogram3D } from './Odontogram3D'
 import { SelesaiDialog } from './SelesaiDialog'
 import { CloseVisit } from './CloseVisit'
-import { fillEmpty, quickProcs, rememberProc, SOAP_TEMPLATES, type QuickProc } from './quick'
+import { fillEmpty, SOAP_TEMPLATES } from './quick'
 import './clinical.css'
 
 type Form = { S: string; O: string; A: { codes: string; text: string }; P: { codes: string; text: string } }
@@ -395,20 +399,10 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const [signing, setSigning] = useState<{ busy: boolean; error: string; warnings?: { message: string }[] } | null>(null)
   const [billFor, setBillFor] = useState<string | null>(null) // visit just closed by Selesai -> "Lanjut ke tagihan" (#69)
   const [fixing, setFixing] = useState<Note | null>(null)
-  const [status, setStatus] = useState<ProcStatus>('selesai')
-  const [surfs, setSurfs] = useState<Surface[]>([])
-  const [procCode, setProcCode] = useState('')
-  const [procDx, setProcDx] = useState('')
   const [detailsOpen, setDetailsOpen] = useState(false) // phone: Temuan & tindakan, Tutup kunjungan, Riwayat collapsed (#70)
-  const [manualOpen, setManualOpen] = useState(false) // phone: manual code row behind "Kode lain" (#70)
-  const [extClinic, setExtClinic] = useState('')
-  const [extDate, setExtDate] = useState('')
   const [baselineOpen, setBaselineOpen] = useState(false)
   const [asOf, setAsOf] = useState('') // '' = today; otherwise the chart as of the end of that day (read-only)
   const [procFix, setProcFix] = useState<{ p: Procedure; mode: 'ganti' | 'koreksi' } | null>(null)
-  // Chosen condition waits for "Simpan ke kunjungan hari ini"; bound to its tooth so switching teeth drops it.
-  const [pending, setPending] = useState<{ tooth: number; condition: string; whole: boolean } | null>(null)
-  const [saving, setSaving] = useState(false)
   // Table filter starts on the picked tooth; "Semua gigi" is remembered for that tooth only; no pick = all.
   const [allFor, setAllFor] = useState<number | null>(null)
   const [view, setView] = useState<'2d' | '3d'>('2d') // not persisted: 2D every time
@@ -468,7 +462,6 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
     setDirty(false)
     setForm(EMPTY)
     setMsg('')
-    setPending(null)
   }, [patientId, appointmentId])
   useEffect(() => { load() }, [load])
 
@@ -492,9 +485,14 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
     // treatments paint over conditions: every letter of a combination ("MOD" -> M, O, D); cancelled ones are not painted
     for (const p of [...(chart?.procedures ?? []), ...myProcs]) {
       // an external waiting for confirmation (or rejected) never paints over today's work
-      if (p.tooth === null || p.status === 'cancelled' || p.external_confirmation === 'pending' || p.external_confirmation === 'rejected') continue
-      const mark: Mark = { condition: paintCondition(p.paint_type), paint: p.paint_type, state: p.state === 'draft' ? 'draft' : 'signed', source: p.source, status: p.status }
-      for (const k of p.surfaces ? [...p.surfaces].map((s) => `t${p.tooth}-${s}`) : [`t${p.tooth}`]) m[k] = mark
+      if (p.status === 'cancelled' || p.external_confirmation === 'pending' || p.external_confirmation === 'rejected') continue
+      const v2 = p.condition ? conditionByKey(p.condition) : undefined // odontogram v2: the entry's own official symbol
+      const teeth = p.tooth !== null ? [p.tooth] : v2 && p.tooth_range ? spanTeeth(...(p.tooth_range.split('-').map(Number) as [number, number])) : []
+      if (!teeth.length) continue
+      const mark: Mark = v2 ? { condition: v2.key, symbol: v2.symbol, code: v2.code, label: `${v2.label} (${v2.code ?? '-'})`, entry: ENTRY[p.status],
+        state: p.state === 'draft' ? 'draft' : 'signed', source: p.source, status: p.status }
+        : { condition: paintCondition(p.paint_type), paint: p.paint_type, state: p.state === 'draft' ? 'draft' : 'signed', source: p.source, status: p.status }
+      for (const t of teeth) for (const k of p.surfaces && p.tooth !== null ? [...p.surfaces].map((s) => `t${t}-${s}`) : [`t${t}`]) m[k] = mark
     }
     return m
   }, [chart, mine, myProcs])
@@ -523,19 +521,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   }
   // selecting works anytime; picker only when editable. Same tooth: add the surface to the treatment's combination (MOD); new tooth: restart.
   const onPick = (tooth: number, surface: Surface) => {
-    setSurfs(pick?.tooth === tooth ? (surfs.includes(surface) ? surfs : [...surfs, surface]) : [surface])
     setPick({ tooth, surface })
-  }
-  const chosen = pick && pending?.tooth === pick.tooth ? pending : null
-  const choose = (condition: string, whole: boolean) => pick && setPending({ tooth: pick.tooth, condition, whole })
-  async function saveChosen() {
-    if (!pick || !visit || !chosen) return
-    setSaving(true)
-    await run(async () => {
-      await saveFinding(visit.id, { tooth: pick.tooth, surface: chosen.whole ? null : pick.surface, condition: chosen.condition })
-      setPending(null)
-    }, 'Temuan tersimpan sebagai draf di kunjungan hari ini.')
-    setSaving(false)
   }
   async function startVisit() {
     setStarting(true)
@@ -554,28 +540,6 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
         {starting ? 'Memulai…' : 'Mulai kunjungan'}</button>
     </div>
   )
-  // one procedure for all toggled surfaces (MOD = one row, one price); no surface = whole tooth. The catalog decides the area for known codes.
-  const surfaces = pick ? surfacesOf(pick.tooth).filter((s) => surfs.includes(s)).join('') || null : null
-  // today's chair work on this visit (any author); an external on the same site is refused, elsewhere it waits for confirmation
-  const selesaiToday = visit ? [...visit.draft_procedures, ...chart.procedures.filter((x) => x.visit_id === visit.id)].filter((x) => x.status === 'selesai') : []
-  const external = status === 'ada_di_tempat_lain'
-  const extBlocked = external && !!pick && selesaiToday.some((x) => sameSite(pick.tooth, surfaces, x))
-  const record = () => pick && visit && run(async () => {
-    const code = procCode.trim(), dx = procDx.trim().toUpperCase()
-    await saveProcedure(visit.id, { tooth: pick.tooth, surfaces, status, procedure_code: code || null, ...(dx ? { diagnosis_code: dx } : {}),
-    ...(procCode.trim() ? {} : { treat_area: surfaces ? 'surface' : 'tooth' }),
-    ...(external ? { external_clinic_name: extClinic.trim(), external_date: extDate.trim() } : {}) })
-    if (code && dx && status === 'selesai') rememberProc(me.user.id, { code, dx, label: code }) // favourite for next time
-  },
-    external && selesaiToday.length ? 'Tersimpan; menunggu konfirmasi resepsionis/asisten.' : 'Tindakan tersimpan sebagai draf.')
-  // One tap (#70): this dentist's frequent procedure + diagnosis on the picked tooth/surfaces, status selesai.
-  const quick: QuickProc[] = quickProcs(me.user.id)
-  const quickRecord = (q: QuickProc) => pick && visit && run(async () => {
-    await saveProcedure(visit.id, { tooth: pick.tooth, surfaces, status: 'selesai', procedure_code: q.code, diagnosis_code: q.dx })
-    rememberProc(me.user.id, q)
-    if (mobile) setPick(null) // phone: the sheet closes so the tabs and the Selesai bar are free again (one tap, not two)
-  }, `${q.label} gigi ${pick.tooth}${surfaces ? ` (${[...surfaces].map((sf) => surfaceLabel(pick.tooth, sf as Surface)).join('')})` : ''} tersimpan.`)
-  const myDraftAt = (whole: boolean) => pick && mine.find((d) => d.tooth === pick.tooth && d.surface === (whole ? null : pick.surface))
 
   // agent drafts still waiting for "Setujui" (Selesai is refused until none are left; the server checks too)
   const unapproved = visit ? [...(draft?.source === 'ai_draft' && !draft.approved_at ? [draft] : []),
@@ -631,9 +595,6 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const only = pick && allFor !== pick.tooth ? pick.tooth : null
   const shownItems = only ? items.filter((f) => f.tooth === only) : items
   const shownProcs = only ? procs.filter((x) => x.tooth === only) : procs
-  const needsCode = status === 'selesai' && !procCode.trim() // a finished procedure without a code can never be billed (E2E 16-11-2026)
-  const saveWhy = !visit ? 'Belum ada kunjungan aktif. Mulai kunjungan dulu.' : !editable ? readOnlyWhy
-    : !chosen ? 'Pilih kondisi terlebih dahulu' : ''
   const center: Surface | null = pick && (isAnterior(pick.tooth) ? 'I' : 'O')
   const panel = !pick ? <p className="muted tooth-empty">Pilih gigi untuk melihat detail.</p> : (
     <>
@@ -642,13 +603,13 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
         <button type="button" className="btn btn-ghost tooth-close" aria-label="Tutup detail gigi" autoFocus={mobile} onClick={() => setPick(null)}>×</button>
       </div>
       <p className="muted small" role="status">Dipilih: Gigi {pick.tooth} · {surfaceName(pick.tooth, pick.surface)} ({surfaceLabel(pick.tooth, pick.surface)})</p>
-      <div className="surf-pad" role="group" aria-label="Permukaan">
+      {!editable && <div className="surf-pad" role="group" aria-label="Permukaan">
         {PAD.map(([s, pos]) => {
           const sv = s === 'O' ? center! : s
           return <button key={pos} type="button" className={`surf surf-${pos}`} aria-pressed={pick.surface === sv} title={surfaceName(pick.tooth, sv)}
             onClick={() => setPick({ tooth: pick.tooth, surface: sv })}>{surfaceLabel(pick.tooth, sv)}</button>
         })}
-      </div>
+      </div>}
       {items.some((f) => f.tooth === pick.tooth) || procs.some((x) => x.tooth === pick.tooth) ? (
         <ul className="items tooth-findings" aria-label={`Temuan gigi ${pick.tooth}`}>
           {items.filter((f) => f.tooth === pick.tooth).map((f) => (
@@ -661,57 +622,11 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
         </ul>
       ) : <p className="muted small">Belum ada temuan di gigi ini.</p>}
       {editable ? (
-        <div className="picker-pop" role="group" aria-label="Pilih kondisi">
-          <div className="quick-procs" role="group" aria-label="Tindakan cepat">
-            {quick.map((q) => (
-              <button key={q.code + q.dx} type="button" className="btn chip-quick" onClick={() => quickRecord(q)}
-                aria-label={`${q.label} (${q.code}, diagnosis ${q.dx}) di gigi ${pick.tooth}`}>
-                {q.label} <span className="mono small">{q.code}</span>
-              </button>
-            ))}
-            {mobile && <button type="button" className="btn btn-ghost" aria-expanded={manualOpen} onClick={() => setManualOpen(!manualOpen)}>Kode lain</button>}
-          </div>
-          {(!mobile || manualOpen) && <div className="cond-row" role="group" aria-label="Tindakan">
-            <span className="muted small">Tindakan:</span>
-            <label className="small">Kode ICD-9-CM <input className="mono" size={6} value={procCode} placeholder="mis. 23.2" onChange={(e) => setProcCode(e.target.value)} /></label>
-            <label className="small">Diagnosis ICD-10 <input className="mono" size={6} value={procDx} placeholder="mis. K02.1" onChange={(e) => setProcDx(e.target.value)} /></label>
-            <label className="small">Status <select value={status} onChange={(e) => setStatus(e.target.value as ProcStatus)}>
-              {CHOOSABLE.map((x) => <option key={x.key} value={x.key}>{x.label}</option>)}
-            </select></label>
-            {surfacesOf(pick.tooth).map((sf) => (
-              <button key={sf} type="button" className="btn btn-xs" aria-pressed={surfs.includes(sf)} title={surfaceName(pick.tooth, sf)}
-                onClick={() => setSurfs(surfs.includes(sf) ? surfs.filter((x) => x !== sf) : [...surfs, sf])}>{surfaceLabel(pick.tooth, sf)}</button>
-            ))}
-            {external && (
-              <>
-                <label className="small">Nama klinik lain * <input size={18} maxLength={120} value={extClinic} onChange={(e) => setExtClinic(e.target.value)} /></label>
-                <label className="small">Perkiraan tanggal * <input size={10} value={extDate} placeholder="2025 / 06/2025 / 12/06/2025" onChange={(e) => setExtDate(e.target.value)} /></label>
-                <span className="muted small">Tidak ditagih.</span>
-                {extBlocked ? <span className="form-error small" role="alert">Gigi/permukaan ini sudah dikerjakan hari ini; tidak bisa dicatat sebagai klinik lain.</span>
-                  : selesaiToday.length > 0 && <span className="notice notice-warn small">Kunjungan ini sudah ada tindakan selesai hari ini: perlu konfirmasi resepsionis/asisten.</span>}
-              </>
-            )}
-            {needsCode && <span className="muted small" id="proc-code-hint">Tindakan selesai perlu kode ICD-9-CM agar ditagih. Ketuk tindakan cepat di atas atau isi kodenya.</span>}
-            <button className="btn btn-xs btn-primary" onClick={record} aria-describedby={needsCode ? 'proc-code-hint' : undefined}
-              disabled={needsCode || extBlocked || (external && (!extClinic.trim() || !extDate.trim()))}>Simpan tindakan{surfaces ? ` (${[...surfaces].map((sf) => surfaceLabel(pick.tooth, sf as Surface)).join('')})` : ' (seluruh gigi)'}</button>
-          </div>}
-          <div className="cond-row">
-            <span className="muted small">Kondisi permukaan:</span>
-            {CONDITIONS.filter((c) => !c.whole).map((c) => <button key={c.key} type="button" className={`btn cond cond-${c.key}`} aria-pressed={chosen?.condition === c.key} onClick={() => choose(c.key, false)}>{c.label}</button>)}
-            {myDraftAt(false) && <button className="btn btn-xs btn-ghost" onClick={() => run(() => discardFinding(myDraftAt(false)!.id))}>Hapus draf permukaan</button>}
-          </div>
-          <div className="cond-row">
-            <span className="muted small">Kondisi seluruh gigi:</span>
-            {CONDITIONS.filter((c) => c.whole).map((c) => <button key={c.key} type="button" className={`btn cond cond-${c.key}`} aria-pressed={chosen?.condition === c.key} onClick={() => choose(c.key, true)}>{c.label}</button>)}
-            {myDraftAt(true) && <button className="btn btn-xs btn-ghost" onClick={() => run(() => discardFinding(myDraftAt(true)!.id))}>Hapus draf gigi</button>}
-          </div>
-        </div>
+        // OVv2 "tindakan dulu": one sheet records condition + status; Selesai = today's procedure, billed via the clinic mapping
+        <EntrySheet key={pick.tooth} tooth={pick.tooth} visitId={visit!.id} initialSurface={pick.surface === 'B' ? 'V' : pick.surface as SurfaceKey}
+          onSaved={(m) => { setMsg(m); load(); if (mobile) setPick(null) }} />
       ) : <p className="muted small">{visit ? readOnlyWhy : 'Hanya lihat: kondisi dan tindakan diisi dari kunjungan aktif yang belum Selesai.'}</p>}
       {startCtl}
-      <button type="button" className="btn btn-primary tooth-save" disabled={!!saveWhy || saving} title={saveWhy || undefined} aria-describedby={saveWhy && chosen ? 'save-why' : undefined}
-        onClick={saveChosen}>{saving ? 'Menyimpan…' : 'Simpan ke kunjungan hari ini'}</button>
-      {/* review-3: an empty choice just leaves the button disabled (title explains); other reasons stay visible */}
-      {saveWhy && chosen && <p id="save-why" className="muted small">{saveWhy}</p>}
     </>
   )
 

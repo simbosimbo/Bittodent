@@ -19,6 +19,8 @@ export type Procedure = {
   state: 'draft' | 'final'; source: Source; supersedes_id: string | null; created_by: string; finalized_at: string | null
   approved_at?: string | null
   paint_type: string; name: string | null; layman: string | null
+  /** odontogram v2: taxonomy condition key (e.g. tambalan_komposit) + bridge roles per tooth + protesa material; null on older rows */
+  condition?: string | null; span_roles?: Record<string, 'abutment' | 'pontic'> | null; material?: string | null
   /** status ada_di_tempat_lain only: other clinic + approximate date (first day of month/year when coarser) */
   external_clinic_name: string | null; external_date: string | null; external_date_precision: 'day' | 'month' | 'year' | null
   /** pending = entered on a day with `selesai` work; front desk / assistant confirm. pending/rejected are not chart history. */
@@ -101,6 +103,17 @@ export const saveFinding = (visitId: string, body: { tooth: number; surface: Sur
 export const saveProcedure = (visitId: string, body: { tooth: number; surfaces: string | null; status: ProcStatus; procedure_code: string | null; diagnosis_code?: string | null; treat_area?: TreatArea
   external_clinic_name?: string; external_date?: string }) =>
   api<Procedure>(`/api/visits/${visitId}/procedures`, { method: 'POST', body })
+/**
+ * Odontogram v2 "tindakan dulu" (POST /visits/{id}/tooth-entries): one Simpan = one draft row. Selesai bills the clinic code mapped to
+ * the condition: 422 {error:'pick_code', candidates} when several fit (send the chosen procedure_code again), 422 on `condition` when unmapped.
+ */
+export const saveToothEntry = (visitId: string, body: import('./odontogram/taxonomy').ToothEntry) =>
+  api<Procedure>(`/api/visits/${visitId}/tooth-entries`, { method: 'POST', body })
+export type CatalogRow = { procedure_code: string; name: string; treat_area: TreatArea; paint_type: string; conditions: string[] }
+/** Clinic procedure catalog with the mapped odontogram condition codes (dentist reads; owner edits in Pengaturan > Harga). */
+export const getCatalog = () => api<CatalogRow[]>('/api/procedure-catalog')
+export const setCatalogConditions = (code: string, conditions: string[], name?: string) =>
+  api<CatalogRow>(`/api/procedure-catalog/${encodeURIComponent(code)}/conditions`, { method: 'PUT', body: { conditions, ...(name ? { name } : {}) } })
 /** Signed procedure: the server appends a new final row superseding it (only along the allowed transitions). */
 export const changeStatus = (procedureId: string, to: ProcStatus, visitId?: string | null) =>
   api<Procedure>(`/api/procedures/${procedureId}/status`, { method: 'POST', body: { to, visit_id: visitId ?? null } })

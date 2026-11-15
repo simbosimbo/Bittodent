@@ -270,3 +270,38 @@ label.check { flex-direction: row; gap: 8px; align-items: flex-start; font-weigh
   .shell-main:has(.rm-actionbar) { padding-bottom: calc(80px + 72px + env(safe-area-inset-bottom)); }
   .rm-actions-inline .btn-primary { display: none; } /* the sticky bar carries Setujui/Selesai on a phone */
 }
+
+/* Odontogram v2 entry sheet (boards OVv2-01..03): pads 56px, cards 2 columns, every target >= 48px.
+   Selected = 2px primary-800 line + primary-50 background (not teal; teal is the primary button only). */
+.tsheet { display: flex; flex-direction: column; gap: var(--space-3, 12px); }
+.tsheet button { min-height: 48px; min-width: 48px; font: inherit; color: inherit; cursor: pointer; }
+.tsheet-tabs, .tsheet-status { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; padding: 4px; border-radius: 12px; background: var(--color-surface-2, #f1f3f5); }
+.tsheet-tabs button, .tsheet-status button { border: 0; border-radius: 9px; background: transparent; font-weight: 600; }
+.tsheet-tabs [aria-selected='true'], .tsheet-status [aria-checked='true'] { background: var(--color-primary-50, #e6f3f2); box-shadow: inset 0 0 0 2px var(--color-primary-800, #0a4f49); }
+.tsheet-pads { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.tsheet-pads button { min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; border: 1px solid var(--shells-a-color-border, #d0d5da);
+  border-radius: 10px; background: var(--color-surface, #fff); }
+.tsheet-pads button strong { font-size: 18px; }
+.tsheet-pads [aria-pressed='true'], .tsheet-card[aria-checked='true'], .tsheet-list [aria-pressed='true'], .tsheet-pick [aria-checked='true'] {
+  border: 2px solid var(--color-primary-800, #0a4f49); background: var(--color-primary-50, #e6f3f2); }
+.tsheet-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.tsheet-card, .tsheet-list button, .tsheet-pick button { display: flex; align-items: center; gap: 8px; min-height: 72px; padding: 8px 10px; text-align: left;
+  border: 1px solid var(--shells-a-color-border, #d0d5da); border-radius: 12px; background: var(--color-surface, #fff); }
+.tsheet-list { display: flex; flex-direction: column; gap: 4px; max-height: 320px; overflow-y: auto; }
+.tsheet-list button { min-height: 52px; }
+.tsheet code, .tsheet-card code { font-size: 13px; color: var(--muted, #4b5563); } /* official codes stay lowercase */
+.tsheet-roles { display: flex; gap: 6px; flex-wrap: wrap; }
+.tsheet-roles button { display: flex; flex-direction: column; align-items: center; border: 1px solid var(--shells-a-color-border, #d0d5da); border-radius: 10px; background: var(--color-surface, #fff); }
+.tsheet-pick { display: flex; flex-direction: column; gap: 6px; }
+.tsheet-search { min-height: 48px; }
+.sym-icon { flex: none; color: #111; }
+
+/* Official black-and-white symbols on surfaces (data-symbol from the v2 condition); status is a line shape, never colour. */
+[data-symbol='fill'] polygon, [data-symbol='fill'] rect, rect.sym-surface[data-symbol='fill'] { fill: #111; }
+[data-symbol='hatch'] polygon, [data-symbol='hatch'] rect, rect.sym-surface[data-symbol='hatch'] { fill: url(#odo-hatch); color: #111; }
+[data-symbol='crosshatch'] polygon, [data-symbol='crosshatch'] rect, rect.sym-surface[data-symbol='crosshatch'] { fill: url(#odo-cross); color: #111; }
+[data-symbol='outline'] polygon, [data-symbol='outline'] rect, rect.sym-surface[data-symbol='outline'] { fill: none; stroke: #111; stroke-width: 3; }
+rect.sym-surface { fill: none; }
+.tooth-surface[data-entry='rencana'] polygon, .tooth-surface[data-entry='rencana'] rect, rect.sym-surface[data-planned] { fill: none; stroke: #111; stroke-width: 2.5; stroke-dasharray: 4 3; }
+.tooth-glyph-v2 { color: #111; }
+.tooth-badge { font-size: 11px; font-weight: 700; fill: #111; }
