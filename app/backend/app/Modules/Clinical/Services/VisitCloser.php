@@ -50,14 +50,32 @@ final class VisitCloser
     /**
      * `selesai` work with a code, draft or final (an unsigned draft has no line yet, so it blocks too). A correction of a `selesai` row
      * is a new `selesai` row that is never billed (the line stays on the original): skip rows that supersede a `selesai` row.
-     * Also the owner integrity report's "tanpa tagihan" base (IntegrityFactsService).
+     * Unit B: work later corrected to `tidak_dikerjakan` is not completed work (never needs a line; if it was billed, Billing blocks
+     * the close until the linked full credit note is decided). Also the owner integrity report's "tanpa tagihan" base (IntegrityFactsService).
      */
     public static function completedProcedures()
     {
         $selesai = fn ($q) => $q->whereIn('state', ['draft', 'final'])->where('status', ProcedureStatus::BILLABLE);
 
         return ProcedureRecord::where($selesai)->whereNotNull('procedure_code')
-            ->where(fn ($q) => $q->whereNull('supersedes_id')->orWhereNotIn('supersedes_id', ProcedureRecord::where($selesai)->select('id')));
+            ->where(fn ($q) => $q->whereNull('supersedes_id')->orWhereNotIn('supersedes_id', ProcedureRecord::where($selesai)->select('id')))
+            ->whereNotIn('id', self::notDoneChainIds());
+    }
+
+    /**
+     * Rows of correction chains that end in `tidak_dikerjakan`.
+     * shortcut: loads every tidak_dikerjakan row of the tenant and walks back in PHP; fine while they are rare, move to a stored chain root when not.
+     *
+     * @return list<string>
+     */
+    private static function notDoneChainIds(): array
+    {
+        $ids = [];
+        foreach (ProcedureRecord::where('state', 'final')->where('status', ProcedureStatus::NOT_DONE)->get() as $p) {
+            $ids = [...$ids, ...array_map(fn ($r) => $r->id, $p->correctionChain())];
+        }
+
+        return $ids;
     }
 
     /** @return list<string> */

@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Billing\Http\Controllers\CreditNoteController;
 use App\Modules\Billing\Http\Controllers\InvoiceController;
 use App\Modules\Billing\Http\Controllers\PaymentAccountController;
 use Illuminate\Support\Facades\Route;
@@ -16,4 +17,15 @@ Route::middleware(['auth:sanctum', '2fa', 'tenant'])->group(function () {
     Route::get('/payment-accounts', [PaymentAccountController::class, 'index'])->middleware('perm:billing.read');
     Route::post('/payment-accounts', [PaymentAccountController::class, 'store'])->middleware('perm:billing.accounts');
     Route::patch('/payment-accounts/{id}', [PaymentAccountController::class, 'update'])->middleware('perm:billing.accounts');
+    // unit B koreksi: credit notes, void, line corrections, Rp0 tariff anomaly (DEVIATIONS #56)
+    Route::post('/invoices/{id}/credit-notes', [CreditNoteController::class, 'store'])->middleware('perm:billing.adjust');
+    Route::post('/credit-notes/{id}/approve', [CreditNoteController::class, 'decide'])->defaults('decision', 'approved')->middleware('perm:billing.approve_reversal');
+    Route::post('/credit-notes/{id}/reject', [CreditNoteController::class, 'decide'])->defaults('decision', 'rejected')->middleware('perm:billing.approve_reversal');
+    Route::post('/invoices/{id}/void', [CreditNoteController::class, 'void'])->middleware('perm:billing.adjust');
+    Route::post('/invoice-voids/{id}/approve', [CreditNoteController::class, 'decideVoid'])->defaults('decision', 'approved')->middleware('perm:billing.approve_reversal');
+    Route::post('/invoice-voids/{id}/reject', [CreditNoteController::class, 'decideVoid'])->defaults('decision', 'rejected')->middleware('perm:billing.approve_reversal');
+    Route::get('/billing/reversals/pending', [CreditNoteController::class, 'pending'])->middleware('perm:billing.approve_reversal');
+    Route::post('/invoices/{id}/lines/from-correction/{correctionId}', [CreditNoteController::class, 'lineFromCorrection'])->middleware('perm:billing.adjust');
+    Route::post('/line-corrections/{id}/review', [CreditNoteController::class, 'review'])->middleware('perm:billing.adjust');
+    Route::post('/invoice-lines/{id}/approve-zero-tariff', [CreditNoteController::class, 'approveZeroTariff'])->middleware('perm:billing.approve_zero');
 });
