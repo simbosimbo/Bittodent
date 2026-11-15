@@ -3,8 +3,8 @@ import { afterEach, expect, test, vi } from 'vitest'
 import type { Me } from '../../shared/session'
 import Home from './Home'
 
-const me = (permissions: string[]): Me => ({
-  user: { id: 'u1', name: 'drg. Uji Sintetis', email: 'dokter@uji.test' }, roles: ['dentist'], permissions,
+const me = (permissions: string[], roles = ['dentist']): Me => ({
+  user: { id: 'u1', name: 'drg. Uji Sintetis', email: 'dokter@uji.test' }, roles, permissions,
   active: { tenant_id: 't1', tenant_name: 'Klinik Uji', branch_id: 'b1', branch_name: 'Cabang Uji', timezone: 'Asia/Jakarta' },
   branches: [{ id: 'b1', name: 'Cabang Uji', timezone: 'Asia/Jakarta' }],
 })
@@ -19,11 +19,11 @@ const schedule = {
   ] }],
 }
 const revenue = { date: '2026-11-14', branch_id: 'b1', amount_rp: 450000, payment_count: 2 }
-const home = (perms: string[], sched: object = schedule) => {
+const home = (perms: string[], sched: object = schedule, roles?: string[]) => {
   const fetch = vi.fn(async (url: string) =>
     new Response(JSON.stringify(url.startsWith('/api/billing/daily-revenue') ? revenue : sched), { status: 200 }))
   vi.stubGlobal('fetch', fetch)
-  render(<Home me={me(perms)} />)
+  render(<Home me={me(perms, roles)} />)
   return fetch
 }
 const region = (name: string) => screen.findByRole('region', { name })
@@ -153,7 +153,7 @@ test('"Belum selesai" hides done appointments; "Semua" shows them', async () => 
 
 test('390px: greeting and KPIs open the page; Daftarkan pasien / Buat janji leave the top toolbar and sit after the KPI tiles', async () => {
   vi.stubGlobal('matchMedia', (q: string) => ({ media: q, matches: true, addEventListener() {}, removeEventListener() {} }))
-  home(['patient.create', 'appointment.create'])
+  home(['patient.create', 'appointment.create'], schedule, ['owner'])
   const kpi = await region('Pasien hari ini')
   expect(screen.getByText(/^Selamat (pagi|siang|sore), drg\. Uji Sintetis$/)).toBeInTheDocument()
   expect(screen.getByRole('heading', { level: 1, name: 'Beranda' })).toHaveClass('sr-only')
@@ -169,4 +169,14 @@ test('desktop: the CTAs stay in the header toolbar', async () => {
   home(['patient.create', 'appointment.create'])
   await region('Pasien hari ini')
   expect(within(document.querySelector('.home-head') as HTMLElement).getByRole('link', { name: 'Buat janji' })).toHaveAttribute('href', '#/jadwal')
+})
+
+test('#70 phone, Dokter mode: Beranda is "Pasien saya" (no KPI/revenue); a desk role keeps the KPI Beranda', async () => {
+  vi.stubGlobal('matchMedia', (q: string) => ({ media: q, matches: true, addEventListener() {}, removeEventListener() {} }))
+  home(['appointment.read', 'note.read', 'note.write', 'billing.read'])
+  expect(await screen.findByRole('heading', { level: 1, name: 'Pasien saya' })).toBeInTheDocument()
+  expect(screen.queryByRole('region', { name: 'Pasien hari ini' })).toBeNull()
+  cleanup()
+  home(['appointment.read', 'note.read', 'billing.read'], schedule, ['owner'])
+  expect(await region('Pasien hari ini')).toBeInTheDocument()
 })

@@ -28,10 +28,17 @@ export function useJadwalMode(me: Me) {
     const saved = multi ? storage.get(key) : null
     return saved === 'depan' || saved === 'dokter' ? saved : dentist && !desk ? 'dokter' : 'depan'
   })
+  // Every mounted hook (Beranda + Jadwal) follows the toggle (#70: Beranda = Pasien saya in Dokter mode).
+  useEffect(() => {
+    const on = (e: Event) => { const d = (e as CustomEvent<{ key: string; m: Mode }>).detail; if (d.key === key) set(d.m) }
+    addEventListener('jadwal-mode', on)
+    return () => removeEventListener('jadwal-mode', on)
+  }, [key])
   const setMode = (m: Mode) => {
     if (!multi) return
     set(m)
     storage.set(key, m)
+    dispatchEvent(new CustomEvent('jadwal-mode', { detail: { key, m } }))
   }
   return { mode, setMode, multi, owner: me.roles.includes('owner') }
 }

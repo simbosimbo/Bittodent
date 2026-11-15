@@ -5,7 +5,8 @@ import { RevenueCard } from '../billing'
 import { Icon, ICONS } from '../../shared/ui/Icon'
 import { useIsMobile } from '../../shared/useIsMobile'
 import type { Appointment } from './api'
-import { minutesOfDay, StatusChip, useSchedule } from './Schedule'
+import Schedule, { minutesOfDay, StatusChip, useSchedule } from './Schedule'
+import { useJadwalMode } from './MobileJadwal'
 
 type Row = Appointment & { chair: string }
 const LEGEND = [['done', 'Selesai'], ['in_treatment', 'Merawat'], ['checked_in', 'Check-in'], ['booked', 'Terjadwal']]
@@ -21,7 +22,14 @@ function useNow() {
   return now
 }
 
+// Phone in Dokter mode (#70): Beranda IS "Pasien saya" (same agenda + one-tap Mulai as Jadwal), no KPI/revenue/desk CTAs to scroll past.
 export default function Home({ me }: { me: Me }) {
+  const mobile = useIsMobile()
+  const { mode } = useJadwalMode(me)
+  return mobile && mode === 'dokter' ? <Schedule me={me} /> : <DeskHome me={me} />
+}
+
+function DeskHome({ me }: { me: Me }) {
   const date = todayWib()
   const now = useNow()
   const { data, error, loading } = useSchedule(me.active.branch_id, date)
