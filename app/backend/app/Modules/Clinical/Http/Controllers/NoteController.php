@@ -26,7 +26,7 @@ use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-// SOAP draft -> Selesai (DPJP: tanda tangan + tutup, #54) -> corrections (new version; >2x24h via correction_request, D-013).
+// SOAP draft -> Selesai (DPJP: tanda tangan + tutup, #55) -> corrections (new version; >2x24h via correction_request, D-013).
 class NoteController extends Controller
 {
     private const FREE_EDIT_HOURS = 48; // Permenkes 24/2022 Pasal 30 ayat 6; counted from v1 signed_at (dasar hukum klinis perlu dicek)
@@ -65,7 +65,7 @@ class NoteController extends Controller
     }
 
     /**
-     * POST /api/visits/{id}/selesai {revision, confirm: true, pin?, accept_warnings?, reason?} (DEVIATIONS #54): Selesai = tanda tangan
+     * POST /api/visits/{id}/selesai {revision, confirm: true, pin?, accept_warnings?, reason?} (DEVIATIONS #55): Selesai = tanda tangan
      * elektronik + tutup kunjungan in one idempotent action, only by the visit's dentist (DPJP = visit.dentist_id = note author).
      * Order: DPJP -> confirm (403) -> PIN when the clinic requires it (403 / 422 pin_not_set) -> revision (409) -> unapproved agent
      * drafts (422) -> SignCheck (422) -> sign + close in a savepoint; a close refusal (409 invoice_required, 422 reason) rolls the
@@ -95,7 +95,7 @@ class NoteController extends Controller
                 if ($visit->status !== 'berlangsung') { // idempotent second press
                     return response()->json([...SelesaiSignature::payload($signed, $id), 'visit' => VisitController::out($visit)]);
                 }
-                // signed earlier but still open (pre-#54 / race): close only, still under the invoice guard
+                // signed earlier but still open (pre-#55 / race): close only, still under the invoice guard
                 if ($error = $closer->close($visit, null, 'selesai')) {
                     return $error;
                 }

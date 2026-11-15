@@ -137,7 +137,7 @@ class ChartApiTest extends TestCase
         $this->sign($visit, ['confirm' => 'true'])->assertForbidden(); // must be a real boolean
         $this->assertSame('draft', $this->noteOf($visit)->versions->first()->state);
         $this->assertSame(3, $this->inA(fn () => AuditEvent::where('action', 'tanda_tangan_ditolak')->count()));
-        // the separate TOTP re-prompt is gone (#54): confirm alone signs when the clinic does not require a PIN
+        // the separate TOTP re-prompt is gone (#55): confirm alone signs when the clinic does not require a PIN
         $this->as(self::DOC)->postJson("/api/visits/$visit/selesai", ['revision' => 1, 'confirm' => true])->assertOk();
     }
 

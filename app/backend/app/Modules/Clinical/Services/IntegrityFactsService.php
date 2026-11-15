@@ -4,6 +4,7 @@ namespace App\Modules\Clinical\Services;
 
 use App\Modules\Clinical\Contracts\IntegrityFacts;
 use App\Modules\Clinical\Domain\ProcedureStatus;
+use App\Modules\Clinical\Models\ProcedureCorrection;
 use App\Modules\Clinical\Models\ProcedureRecord;
 use App\Modules\Clinical\Models\Visit;
 
@@ -43,6 +44,23 @@ final class IntegrityFactsService implements IntegrityFacts
                 'appointment_id' => $v->appointment_id, 'attendance_cancelled_at' => $v->attendance_cancelled_at?->toIso8601ZuluString(),
                 'closed_without_invoice' => $v->closed_without_invoice, 'close_reason' => $v->close_reason,
                 'ended_at' => $v->ended_at?->toIso8601ZuluString()])->all();
+    }
+
+    public function procedureCorrections(\DateTimeInterface $from, \DateTimeInterface $to, ?array $branchIds): array
+    {
+        $corr = ProcedureCorrection::with('decision')->where('created_at', '>=', $from)->where('created_at', '<', $to)
+            ->when($branchIds !== null, fn ($q) => $q->whereIn('procedure_id',
+                ProcedureRecord::whereIn('visit_id', $this->visits($branchIds)->select('id'))->select('id')))->get();
+        $procs = ProcedureRecord::whereIn('id', $corr->pluck('procedure_id'))->get()->keyBy('id');
+
+        // shortcut: correctionChain() walks row by row (few corrections per month); batch it if the report gets slow.
+        return $corr->map(fn ($c) => ['id' => $c->id, 'procedure_id' => $c->procedure_id,
+            'chain_procedure_ids' => array_map(fn ($r) => $r->id, $procs[$c->procedure_id]->correctionChain()),
+            'provider_id' => $procs[$c->procedure_id]->provider_id, 'patient_id' => $procs[$c->procedure_id]->patient_id,
+            'visit_id' => $procs[$c->procedure_id]->visit_id, 'reason_type' => $c->reason_type, 'within_window' => $c->within_window,
+            'status' => $c->decision->decision ?? 'pending', 'created_at' => $c->created_at->toIso8601ZuluString(),
+            'decided_at' => $c->decision?->created_at?->toIso8601ZuluString(),
+            'self_approved_sole_owner' => (bool) $c->decision?->self_approved_sole_owner])->values()->all();
     }
 
     public function dentistsOfVisits(array $visitIds): array

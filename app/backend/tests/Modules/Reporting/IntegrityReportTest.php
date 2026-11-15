@@ -91,7 +91,7 @@ class IntegrityReportTest extends TestCase
         [$v2] = $this->visit();
         $this->proc($v2, self::NO_TARIFF);
         $this->as(self::DOC)->postJson("/api/visits/$v2/selesai", ['revision' => 1, 'confirm' => true])->assertConflict()
-            ->assertJsonPath('error', 'invoice_required'); // #54: Selesai refused, work stays an unsigned `selesai` draft
+            ->assertJsonPath('error', 'invoice_required'); // #55: Selesai refused, work stays an unsigned `selesai` draft
 
         // (3) unbilled `selesai` but the appointment was cancelled: closed without invoice => batal, not tanpa tagihan
         [$v3, $appt3] = $this->visit();

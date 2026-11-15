@@ -16,7 +16,7 @@ use App\Shared\Tenancy\Ctx;
 use Illuminate\Database\QueryException;
 use Tests\TestCase;
 
-// Unit 4 (DEVIATIONS #50): a visit with completed work closes only with an invoice line per procedure (#54: via the DPJP's Selesai); the one exception is
+// Unit 4 (DEVIATIONS #50): a visit with completed work closes only with an invoice line per procedure (#55: via the DPJP's Selesai); the one exception is
 // cancelled attendance (appointment cancelled/no_show, walk-in cancel-attendance) with a reason. Rp0 adjustments wait for an owner.
 class EncounterInvoiceGuardTest extends TestCase
 {

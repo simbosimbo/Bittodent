@@ -2,8 +2,16 @@ import { api } from '../../shared/api/http'
 
 export type DentistRow = { dentist_id: string | null; name: string; external: number; external_pending: number; external_rejected: number
   rp0: number; rp0_pending: number; discounts: number; discount_total_rp: number; full_discounts: number; self_approved: number
-  unbilled_visits: number; batal: number; closed_without_invoice: number }
+  unbilled_visits: number; batal: number; closed_without_invoice: number
+  // unit D (DEVIATIONS #58): each correction kind in its own column; rp0 = approved 100% discount only, Rp0 tariff lines = tariff_zero
+  full_discount_rp: number; tariff_zero: number; tariff_zero_pending: number
+  corr_salah_kode: number; corr_salah_situs: number; corr_salah_provider: number; corr_tidak_dikerjakan: number; corr_total_rp: number
+  corr_pending: number; corr_rejected: number; corr_outside_window: number; corr_owner_approved: number; corr_self_approved: number
+  cn_partial: number; cn_partial_rp: number; cn_full: number; cn_full_rp: number; cn_pending: number; cn_pending_rp: number; cn_approved: number
+  refunds: number; refund_rp: number; refund_pending: number; refund_pending_rp: number
+  voids: number; void_rp: number; void_pending: number; void_pending_rp: number; reversal_self_approved: number }
 export type AlertKind = 'tanpa_tagihan' | 'luar_setelah_datang' | 'rp0_menunggu' | 'disetujui_sendiri' | 'batal_tanpa_tagihan'
+  | 'koreksi_menunggu' | 'pembalikan_menunggu' | 'pembalikan_disetujui_sendiri' | 'tarif_nol' | 'tinjau_koreksi_lama'
 export type Alert = { kind: AlertKind; at: string | null; dentist_id: string | null; dentist_name: string | null; patient_id: string | null
   patient_name: string | null; visit_id: string | null; ref_id: string; detail: Record<string, unknown> }
 export type Totals = Omit<DentistRow, 'dentist_id' | 'name'>

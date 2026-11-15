@@ -15,7 +15,7 @@ use App\Shared\Tenancy\Ctx;
 use Illuminate\Http\JsonResponse;
 
 // Unit 4 (DEVIATIONS #50): the one way a visit becomes `selesai` (Selesai, POST /visits/{id}/close and appointment -> done).
-// #54: unsigned clinical work is refused (409 use_selesai) unless attendance was cancelled; Selesai signs first, then calls close().
+// #55: unsigned clinical work is refused (409 use_selesai) unless attendance was cancelled; Selesai signs first, then calls close().
 // Completed work needs an invoice line (Billing answers via VisitClosing). Only exception (Yohanes, 15 Nov 2026): attendance
 // cancelled (appointment cancelled/no_show, or walk-in "batalkan kehadiran") => may close without invoice, reason required.
 final class VisitCloser
@@ -51,7 +51,7 @@ final class VisitCloser
         return null;
     }
 
-    /** Unsigned clinical work (draft note version, draft finding or draft procedure): only the DPJP's Selesai may close (#54). */
+    /** Unsigned clinical work (draft note version, draft finding or draft procedure): only the DPJP's Selesai may close (#55). */
     public static function needsSelesai(Visit $v): bool
     {
         return ClinicalNoteVersion::whereIn('note_id', ClinicalNote::where('visit_id', $v->id)->select('id'))->where('state', 'draft')->exists()
@@ -68,14 +68,32 @@ final class VisitCloser
     /**
      * `selesai` work with a code, draft or final (an unsigned draft has no line yet, so it blocks too). A correction of a `selesai` row
      * is a new `selesai` row that is never billed (the line stays on the original): skip rows that supersede a `selesai` row.
-     * Also the owner integrity report's "tanpa tagihan" base (IntegrityFactsService).
+     * Unit B: work later corrected to `tidak_dikerjakan` is not completed work (never needs a line; if it was billed, Billing blocks
+     * the close until the linked full credit note is decided). Also the owner integrity report's "tanpa tagihan" base (IntegrityFactsService).
      */
     public static function completedProcedures()
     {
         $selesai = fn ($q) => $q->whereIn('state', ['draft', 'final'])->where('status', ProcedureStatus::BILLABLE);
 
         return ProcedureRecord::where($selesai)->whereNotNull('procedure_code')
-            ->where(fn ($q) => $q->whereNull('supersedes_id')->orWhereNotIn('supersedes_id', ProcedureRecord::where($selesai)->select('id')));
+            ->where(fn ($q) => $q->whereNull('supersedes_id')->orWhereNotIn('supersedes_id', ProcedureRecord::where($selesai)->select('id')))
+            ->whereNotIn('id', self::notDoneChainIds());
+    }
+
+    /**
+     * Rows of correction chains that end in `tidak_dikerjakan`.
+     * shortcut: loads every tidak_dikerjakan row of the tenant and walks back in PHP; fine while they are rare, move to a stored chain root when not.
+     *
+     * @return list<string>
+     */
+    private static function notDoneChainIds(): array
+    {
+        $ids = [];
+        foreach (ProcedureRecord::where('state', 'final')->where('status', ProcedureStatus::NOT_DONE)->get() as $p) {
+            $ids = [...$ids, ...array_map(fn ($r) => $r->id, $p->correctionChain())];
+        }
+
+        return $ids;
     }
 
     /** @return list<string> */

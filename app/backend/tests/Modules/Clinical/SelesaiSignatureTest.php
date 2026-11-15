@@ -17,7 +17,7 @@ use App\Shared\Tenancy\Ctx;
 use Database\Seeders\DatabaseSeeder;
 use Tests\TestCase;
 
-// DEVIATIONS #54 (Yohanes, 15 Nov 2026): Selesai = tanda tangan elektronik (tidak tersertifikasi) + tutup kunjungan, one idempotent action.
+// DEVIATIONS #55 (Yohanes, 15 Nov 2026): Selesai = tanda tangan elektronik (tidak tersertifikasi) + tutup kunjungan, one idempotent action.
 class SelesaiSignatureTest extends TestCase
 {
     private const DOC = 'dokter@senyum.test';

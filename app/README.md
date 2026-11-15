@@ -82,3 +82,9 @@ Kode saat ini: `cd app/backend && php artisan dev:totp <email>` (menolak jalan b
 React 19 + Vite + TypeScript. Kode per modul di `frontend/src/modules/<m>` (`auth`, `patients`, `scheduling`, `clinical`, `billing`; masing-masing `api.ts` + layar + `index.ts` publik) di atas satu klien HTTP `src/shared/api/http.ts` (cookie + XSRF). Modul lain hanya boleh diimpor lewat `index.ts`-nya; `src/shared` tidak mengimpor modul (dicek `src/boundaries.test.ts`). Cangkang A (sidebar, bilah atas dengan pil "Pasien aktif", kartu putih di latar berwarna) di `src/shared/layout/Shell.tsx`; token `src/shared/ui/tokens.css` dibuat dari `design/tokens.json` lewat `npm run tokens` (hasil di-commit agar build Docker tidak butuh folder design). Bilah atas + pita peringatan medis menempel (sticky) saat halaman digulir; sidebar menjadi rel ikon pada lebar ≤1100px. Pasien aktif hanya di memori. Selama ada pasien aktif, pita peringatan (`modules/patients/AlertRibbon.tsx`, dari `GET /api/patients/{id}/alerts`) tampil di semua layar: premedikasi dan catatan penting di depan dan ditonjolkan, lalu alergi, kondisi, obat. Rute hash (`#/pasien`, `#/jadwal`, …) agar tidak bentrok dengan rute Laravel di proxy.
 Tidak ada data pasien di `localStorage`/`sessionStorage`, tidak ada service worker; semua data hanya di memori dan respons API `no-store`.
 Waktu ditampilkan `id-ID`, zona `Asia/Jakarta` (WIB).
+
+## Koreksi tindakan & tagihan (ringkas)
+
+Salah catat tindakan diperbaiki lewat koreksi (baris baru + jejak audit), bukan tagihan Rp0 atau diskon 100%. Uangnya lewat
+nota kredit, void, atau refund yang terpisah dan butuh pemilik untuk pembalikan penuh; laporan pemilik (`#/laporan`) memisahkan
+setiap jenisnya. Ringkasan alur A–D: `backend/app/Modules/Billing/README.md`; rincian: `DEVIATIONS.md` #53, #56, #57, #58.

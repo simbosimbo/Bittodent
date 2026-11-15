@@ -67,7 +67,7 @@ class ChartController extends Controller
             'notes' => $notes->where('visit_id', $v->id)->values()->map(fn ($n) => self::note($n, $names, $requests->get($n->id))),
             'draft_findings' => $findings->where('visit_id', $v->id)->where('state', 'draft')->values()->map(self::finding(...)),
             'draft_procedures' => $procedures->where('visit_id', $v->id)->where('state', 'draft')->values()->map($proc),
-            // open visits only (#54): unsigned clinical work closes through Selesai; cancelled attendance may close via /close
+            // open visits only (#55): unsigned clinical work closes through Selesai; cancelled attendance may close via /close
             ...($v->status === 'berlangsung' ? ['needs_selesai' => VisitCloser::needsSelesai($v), 'attendance_cancelled' => $closer->attendanceCancelled($v)] : []),
         ]);
 

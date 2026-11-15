@@ -111,7 +111,7 @@ class PaymentTest extends TestCase
             'reason' => 'Diskon penuh uji'])->assertStatus(202)->json('adjustments.1.id');
         $this->as(self::OWNER)->postJson("/api/invoice-adjustments/$id/approve")->assertOk()->assertJsonPath('status', 'lunas');
         $this->as(self::KASIR)->postJson("/api/invoices/$inv/adjustments", ['kind' => 'correction', 'amount_rp' => -5000,
-            'reason' => 'Koreksi uji naik'])->assertCreated()->assertJsonPath('balance_rp', 5000)->assertJsonPath('status', 'terbuka');
+            'reason' => 'Koreksi uji naik', 'invoice_line_id' => $this->as(self::KASIR)->getJson("/api/invoices/$inv")->json('lines.0.id')])->assertCreated()->assertJsonPath('balance_rp', 5000)->assertJsonPath('status', 'terbuka');
     }
 
     public function test_payments_are_append_only_and_accounts_are_never_deleted(): void

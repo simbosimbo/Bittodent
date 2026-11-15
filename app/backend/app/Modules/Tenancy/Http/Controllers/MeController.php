@@ -33,7 +33,7 @@ class MeController extends Controller
                 'timezone' => $active?->timezone,
             ],
             'branches' => $branches,
-            // Selesai (#54): whether this clinic asks for a PIN and whether I have one; never the hash
+            // Selesai (#55): whether this clinic asks for a PIN and whether I have one; never the hash
             'selesai' => ['pin_required' => (bool) Tenant::whereKey($ctx->tenantId)->value('selesai_pin_required'),
                 'has_pin' => $user->selesai_pin_hash !== null],
             'memberships' => $ctx->memberships->map(fn ($m) => [

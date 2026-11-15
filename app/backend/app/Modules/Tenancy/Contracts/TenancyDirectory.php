@@ -22,7 +22,7 @@ interface TenancyDirectory
     /** Free-edit window for procedure corrections in hours (tenant setting, default 48; DEVIATIONS #53). */
     public function correctionWindowHours(): int;
 
-    /** Selesai needs the dentist's PIN (tenant setting, default false; DEVIATIONS #54). */
+    /** Selesai needs the dentist's PIN (tenant setting, default false; DEVIATIONS #55). */
     public function selesaiPinRequired(): bool;
 
     /** @return list<string> user ids of active dentists who may work in this branch */

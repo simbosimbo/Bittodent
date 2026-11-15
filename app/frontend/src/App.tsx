@@ -30,7 +30,7 @@ const NAV: (NavItem & { perm: string | null })[] = [
   { path: '/keluarga', label: 'Keluarga', perm: 'patient.read', icon: ICONS.users, group: 'pasien' },
   { path: '/riwayat-medis', label: 'Riwayat Medis', perm: 'note.read', icon: ICONS.heart, group: 'pasien' },
   { path: '/laporan', label: 'Laporan', perm: 'reporting.read', icon: ICONS.chart }, // unit 6: owner only
-  { path: '/pengaturan-rm', label: 'Pengaturan RM', perm: 'note.sign|settings.manage', icon: ICONS.user }, // #54: PIN Selesai
+  { path: '/pengaturan-rm', label: 'Pengaturan RM', perm: 'note.sign|settings.manage', icon: ICONS.user }, // #55: PIN Selesai
 ]
 
 export default function App() {

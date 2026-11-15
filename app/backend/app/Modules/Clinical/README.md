@@ -6,7 +6,7 @@ Akses (U0d): pemilik hanya **membaca** (`note.read`); tidak pernah menulis draf,
 
 `GET /api/coding-suggestions?condition=&tooth=&surface=&visit_id=` (izin `note.write`) mengembalikan 1–3 kode ICD-10 (+ ICD-9-CM) dari `coding_rule`. Pemetaan di `Domain/CodingTemplate.php` adalah **usulan/contoh**, bukan standar nasional; perlu ditinjau dokter gigi atau petugas rekam medis. Teks DISPLAY = teks resmi bahasa Inggris dari tabel ICD. Dokter tetap memilih kode; sistem tidak mengisi `diagnosis_code` sendiri. Lihat DEVIATIONS #42.
 
-## Selesai = tanda tangan elektronik + tutup kunjungan (DEVIATIONS #54)
+## Selesai = tanda tangan elektronik + tutup kunjungan (DEVIATIONS #55)
 
 Tidak ada lagi langkah tanda tangan terpisah (`POST /api/visits/{id}/sign` dihapus). `POST /api/visits/{id}/selesai {revision, confirm: true, pin?, accept_warnings?, reason?}` (izin `note.sign`, throttle 10/menit) hanya untuk dokter penanggung jawab (DPJP = `visit.dentist_id` = penulis catatan). Urutan: DPJP (403) → `confirm === true` (403) → PIN bila klinik mewajibkan (403 salah/terkunci, 422 `pin_not_set`) → revisi (409 `stale`) → draf agen belum disetujui (422 `unapproved_drafts` + id) → SignCheck (422) → kunci + tagih + tanda tangan + tutup dalam satu savepoint. Bila tutup ditolak (409 `invoice_required`, 422 alasan batal hadir) semuanya dibatalkan: catatan tetap draf, tidak ada baris tagihan. Tekan kedua setelah Selesai = 200 dengan tanda tangan yang sama (tanpa kunci/tagih/outbox ulang). Catatan sudah bertanda tangan tapi kunjungan masih terbuka (data lama) = hanya ditutup, tetap lewat penjaga tagihan.
 
@@ -57,7 +57,10 @@ Tidak ada lagi langkah tanda tangan terpisah (`POST /api/visits/{id}/sign` dihap
 - Dalam tenggat: langsung diterapkan (201). Di luar: 202 `pending`; pemilik `GET /api/procedure-corrections/pending`, `POST .../{id}/approve|reject` (`correction.approve`). Konflik kepentingan seperti unit 4 (`self_approved_sole_owner`).
 - `procedure_correction` + `procedure_correction_decision` append-only (trigger + grant SELECT, INSERT). Tabel baru, bukan `correction_request` (tabel itu khusus SOAP dan statusnya di-UPDATE).
 - `tidak_dikerjakan`: status terminal, hanya lewat koreksi (bukan `POST /status`), tidak digambar di chart kini, tetap di riwayat dan `as_of`.
-- Tidak pernah membuat `invoice_line`. Event `ProcedureCorrected` untuk Billing (unit B); belum ada listener.
+- Tidak pernah membuat `invoice_line`. Event `ProcedureCorrected` (kini juga `chainProcedureIds` = rantai koreksi dari akar, dan `newBilling` =
+  data tagih baris baru bila `selesai` berkode, tidak pernah di-dispatch) didengar Billing (unit B, DEVIATIONS #56): `tidak_dikerjakan` →
+  nota kredit penuh menunggu pemilik; `salah_*` → baris tagihan ditandai "perlu tinjau koreksi". Penjaga tutup kunjungan: tindakan yang
+  rantainya berakhir `tidak_dikerjakan` bukan pekerjaan selesai (tidak butuh tagihan).
 - Dasar hukum tenggat untuk data **klinis** (Pasal 30 ayat 6–7): perlu dicek.
 
 ## Tutup kunjungan (unit 4, DEVIATIONS #50)

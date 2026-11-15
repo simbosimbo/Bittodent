@@ -8,7 +8,7 @@ use App\Modules\Clinical\Models\ProcedureRecord;
 use App\Modules\Clinical\Models\ToothFinding;
 use Carbon\CarbonInterface;
 
-// Selesai = tanda tangan elektronik tidak tersertifikasi (DEVIATIONS #54). signature_hash = SHA-256 of canonical() over the encounter:
+// Selesai = tanda tangan elektronik tidak tersertifikasi (DEVIATIONS #55). signature_hash = SHA-256 of canonical() over the encounter:
 // SOAP + procedures + diagnoses. content_hash stays SOAP-only (#23).
 final class SelesaiSignature
 {
@@ -73,7 +73,7 @@ final class SelesaiSignature
         return $note->versions->where('state', 'signed')->sortBy('version')->first();
     }
 
-    /** GET /visits/{id}/signature and the Selesai response. valid = stored hash equals a fresh recompute (null for pre-#54 signatures). */
+    /** GET /visits/{id}/signature and the Selesai response. valid = stored hash equals a fresh recompute (null for pre-#55 signatures). */
     public static function payload(ClinicalNoteVersion $v, string $visitId): array
     {
         $valid = $v->signature_hash === null ? null : hash_equals($v->signature_hash, self::recompute($visitId, $v->soap(), $v->signed_at));

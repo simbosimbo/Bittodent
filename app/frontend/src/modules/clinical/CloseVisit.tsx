@@ -4,7 +4,7 @@ import { cancelAttendance, closeVisit } from './api'
 
 // Unit 4: close the active visit. Completed work needs an invoice line (server says invoice_required). Only when attendance was
 // cancelled (appointment batal/tidak datang, or walk-in "Batalkan kehadiran") may it close without one, with a reason.
-// #54: unsigned clinical work closes only through the DPJP's Selesai, so "Tutup kunjungan" is hidden then (server: 409 use_selesai).
+// #55: unsigned clinical work closes only through the DPJP's Selesai, so "Tutup kunjungan" is hidden then (server: 409 use_selesai).
 export function CloseVisit({ visit, needsSelesai = false, canBilling, onDone }: {
   visit: { id: string; appointment_id: string | null; attendance_cancelled_at?: string | null }; needsSelesai?: boolean; canBilling: boolean; onDone: () => void
 }) {

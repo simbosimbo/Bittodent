@@ -1,6 +1,6 @@
 <?php
 
-// Selesai = tanda tangan elektronik (DEVIATIONS #54). Owning modules: Clinical (signature + approval columns), Tenancy
+// Selesai = tanda tangan elektronik (DEVIATIONS #55). Owning modules: Clinical (signature + approval columns), Tenancy
 // (tenant.selesai_pin_required), Identity (users.selesai_pin_*: the PIN belongs to the person, so it lives on the global users row).
 // Signature on the signed clinical_note_version row itself (not a separate table): it is written once in the same UPDATE that
 // moves draft -> signed, after which the existing cnv_no_update_signed trigger freezes it. content_hash stays SOAP-only (#23).

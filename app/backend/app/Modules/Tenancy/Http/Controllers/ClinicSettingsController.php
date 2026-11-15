@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 // Per-clinic settings (owner only, perm settings.manage). Unit A koreksi: correction window in hours (DEVIATIONS #53);
-// Selesai: PIN required at Selesai, default off (DEVIATIONS #54).
+// Selesai: PIN required at Selesai, default off (DEVIATIONS #55).
 class ClinicSettingsController extends Controller
 {
     public const WINDOW_MIN = 1;

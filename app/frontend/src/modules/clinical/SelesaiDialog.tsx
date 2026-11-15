@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ATTESTATION } from './api'
 
-// Selesai = tanda tangan elektronik + tutup kunjungan (DEVIATIONS #54): what will be locked + the attestation + a PIN only when the
+// Selesai = tanda tangan elektronik + tutup kunjungan (DEVIATIONS #55): what will be locked + the attestation + a PIN only when the
 // clinic requires one. The server re-checks everything and stores its own copy of the attestation text.
 export function SelesaiDialog({ lines, pinRequired, hasPin, busy, error, onConfirm, onClose }: {
   lines: string[]; pinRequired: boolean; hasPin: boolean; busy: boolean; error: string; onConfirm: (pin?: string) => void; onClose: () => void

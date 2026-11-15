@@ -1,6 +1,6 @@
 <?php
 
-// Owning module: Clinical. MySQL only. Selesai (#54): approved_by/approved_at join the frozen list of the procedure_record trigger
+// Owning module: Clinical. MySQL only. Selesai (#55): approved_by/approved_at join the frozen list of the procedure_record trigger
 // (same reason as unit 3: the one-time external confirmation update must not be able to change them on a final row).
 
 use Illuminate\Database\Migrations\Migration;

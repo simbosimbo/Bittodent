@@ -75,7 +75,7 @@ class ProcedureController extends Controller
             if (! is_array($attrs)) {
                 return $attrs;
             }
-            $p->update([...$attrs, 'source' => $d['source'] ?? $p->source, 'approved_by' => null, 'approved_at' => null]); // edited draft: Setujui again (#54)
+            $p->update([...$attrs, 'source' => $d['source'] ?? $p->source, 'approved_by' => null, 'approved_at' => null]); // edited draft: Setujui again (#55)
             Audit::log('ubah', 'procedure_record', $p->id, self::externalAudit($p));
 
             return response()->json(self::out($p));
@@ -306,7 +306,9 @@ class ProcedureController extends Controller
             'created_by' => $author ?? $ctx->userId, 'finalized_by' => $ctx->userId, 'finalized_at' => now()]);
         Audit::log('koreksi_tindakan.diterapkan', 'procedure_record', $new->id, ['supersedes' => $p->id, 'correction_id' => $c->id,
             'reason_type' => $c->reason_type, 'fields' => array_values(array_filter([...self::CORRECTABLE, 'status'], fn ($f) => (string) $new->$f !== (string) $p->$f))]);
-        event(new ProcedureCorrected($ctx->tenant(), $c->id, $p->id, $new->id, $c->reason_type));
+        $billable = $new->status === ProcedureStatus::BILLABLE && $new->procedure_code !== null ? self::billingEvent($new) : null;
+        event(new ProcedureCorrected($ctx->tenant(), $c->id, $p->id, $new->id, $c->reason_type,
+            array_map(fn ($r) => $r->id, $p->correctionChain()), $billable));
 
         return $new;
     }
@@ -318,11 +320,9 @@ class ProcedureController extends Controller
      */
     private static function anchor(ProcedureRecord $p): CarbonImmutable
     {
-        while ($p->supersedes_id !== null && $p->reason !== null && $p->status !== ProcedureStatus::SUPERSEDED) {
-            $p = ProcedureRecord::findOrFail($p->supersedes_id);
-        }
+        $root = $p->correctionChain()[0];
 
-        return CarbonImmutable::parse($p->finalized_at ?? $p->created_at);
+        return CarbonImmutable::parse($root->finalized_at ?? $root->created_at);
     }
 
     /** GET /api/procedures/pending-external: external entries of the active branch waiting for confirmation (front desk / assistant). */
@@ -384,9 +384,15 @@ class ProcedureController extends Controller
         if ($p->state !== 'final' || $p->status !== ProcedureStatus::BILLABLE || $p->procedure_code === null) {
             return;
         }
+        event(self::billingEvent($p));
+    }
+
+    private static function billingEvent(ProcedureRecord $p): ProcedureRecorded
+    {
         $profile = app(DentistProfileDirectory::class)->of($p->provider_id);
-        event(new ProcedureRecorded(Ctx::current()->tenant(), $p->visit_id, $p->procedure_code, $p->variant,
-            $p->tooth === null ? null : (string) $p->tooth, $p->id, $p->provider_id, $profile['category'], $profile['field'], $p->surfaces));
+
+        return new ProcedureRecorded(Ctx::current()->tenant(), $p->visit_id, $p->procedure_code, $p->variant,
+            $p->tooth === null ? null : (string) $p->tooth, $p->id, $p->provider_id, $profile['category'], $profile['field'], $p->surfaces);
     }
 
     /** Chart / API shape. $defs = catalog rows keyed by code (pass for lists to avoid one query per row). */

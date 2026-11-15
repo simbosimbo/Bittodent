@@ -14,7 +14,7 @@ interface UserDirectory
     public function hasSelesaiPin(string $userId): bool;
 
     /**
-     * Checks the user's Selesai PIN (DEVIATIONS #54). Counts consecutive failures; the 5th locks for 15 minutes (even a correct PIN
+     * Checks the user's Selesai PIN (DEVIATIONS #55). Counts consecutive failures; the 5th locks for 15 minutes (even a correct PIN
      * is refused while locked). Success resets the counter. Failures and lockouts are audited (`pin_gagal`, `pin_terkunci`, never the
      * PIN). Call inside a transaction that commits on failure too (return a response, do not throw).
      *

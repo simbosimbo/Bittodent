@@ -13,11 +13,22 @@ use Carbon\CarbonImmutable;
 // Owner integrity report (unit 6, DEVIATIONS #52). Read only, assembled from other modules' Contracts (never their Models).
 // Who is "the dentist" of a row: clinical work (external, tanpa tagihan) = procedure provider_id; Rp0 tariff lines = invoice_line.doctor_id;
 // invoice-level adjustments (discount, write-off, Rp0) = visit dentist (an adjustment has no line); batal = appointment/visit dentist.
+// Correction metrics (unit D, DEVIATIONS #58): clinical correction = provider_id of the corrected (original) row; credit note / refund =
+// invoice_line.doctor_id of the credited line (fallback visit dentist); void = visit dentist. Each correction kind stays its own column:
+// a credit note or void is never a "Rp0" (rp0 = approved 100% discount only; Rp0 tariff lines = tariff_zero, "anomali tarif").
 final class IntegrityReport
 {
+    /** Alert: "perlu tinjau koreksi" still open after this many days. */
+    public const REVIEW_STALE_DAYS = 2;
+
     private const ZERO_DENTIST = ['external' => 0, 'external_pending' => 0, 'external_rejected' => 0, 'rp0' => 0, 'rp0_pending' => 0,
-        'discounts' => 0, 'discount_total_rp' => 0, 'full_discounts' => 0, 'self_approved' => 0, 'unbilled_visits' => 0,
-        'batal' => 0, 'closed_without_invoice' => 0];
+        'full_discount_rp' => 0, 'discounts' => 0, 'discount_total_rp' => 0, 'full_discounts' => 0, 'self_approved' => 0,
+        'tariff_zero' => 0, 'tariff_zero_pending' => 0, 'unbilled_visits' => 0, 'batal' => 0, 'closed_without_invoice' => 0,
+        'corr_salah_kode' => 0, 'corr_salah_situs' => 0, 'corr_salah_provider' => 0, 'corr_tidak_dikerjakan' => 0, 'corr_total_rp' => 0,
+        'corr_pending' => 0, 'corr_rejected' => 0, 'corr_outside_window' => 0, 'corr_owner_approved' => 0, 'corr_self_approved' => 0,
+        'cn_partial' => 0, 'cn_partial_rp' => 0, 'cn_full' => 0, 'cn_full_rp' => 0, 'cn_pending' => 0, 'cn_pending_rp' => 0, 'cn_approved' => 0,
+        'refunds' => 0, 'refund_rp' => 0, 'refund_pending' => 0, 'refund_pending_rp' => 0,
+        'voids' => 0, 'void_rp' => 0, 'void_pending' => 0, 'void_pending_rp' => 0, 'reversal_self_approved' => 0];
 
     public function __construct(private ClinicalFacts $clinical, private BillingFacts $billing, private AppointmentDirectory $appointments,
         private UserDirectory $users, private PatientDirectory $patients, private TenancyDirectory $tenancy) {}
@@ -75,6 +86,7 @@ final class IntegrityReport
             if ($a['zero']) {
                 $add($dentist, 'full_discounts'); // 100% asked, whatever the decision
                 $add($dentist, 'rp0', (int) ($a['status'] === 'approved'));
+                $add($dentist, 'full_discount_rp', $a['status'] === 'approved' ? $a['amount_rp'] : 0);
                 $add($dentist, 'rp0_pending', (int) ($a['status'] === 'pending'));
             }
             if ($a['status'] === 'pending') {
@@ -87,9 +99,18 @@ final class IntegrityReport
                     ['invoice_id' => $a['invoice_id'], 'kind' => $a['kind'], 'amount_rp' => $a['amount_rp']]);
             }
         }
+        // Anomali tarif: lines priced Rp0 by the tariff master. Not a discount, not a correction.
         foreach ($zeroLines as $l) {
-            $add($l['doctor_id'] ?? $dentistOf[$l['visit_id']] ?? null, 'rp0');
+            $dentist = $l['doctor_id'] ?? $dentistOf[$l['visit_id']] ?? null;
+            $add($dentist, 'tariff_zero');
+            if ($l['tariff_status'] === 'pending') {
+                $add($dentist, 'tariff_zero_pending');
+                $alerts[] = self::alert('tarif_nol', $l['created_at'], $dentist, $l['patient_id'], $l['visit_id'], $l['id'],
+                    ['invoice_id' => $l['invoice_id'], 'procedure_code' => $l['procedure_code']]);
+            }
         }
+
+        $this->corrections($from, $to, $branchIds, $add, $alerts);
 
         // Batal: cancelled / no-show appointments + walk-in "batalkan kehadiran"; visits closed without invoice listed as exceptions.
         foreach ($this->appointments->cancelledStartingBetween($from, $to, $branchIds) as $ap) {
@@ -108,6 +129,67 @@ final class IntegrityReport
         }
 
         return $this->present($rows, $alerts);
+    }
+
+    /** Unit D: clinical corrections, credit notes, voids, refunds, "perlu tinjau" flags. Counts = in force; pending kept apart. */
+    private function corrections(\DateTimeInterface $from, \DateTimeInterface $to, ?array $branchIds, callable $add, array &$alerts): void
+    {
+        $corr = $this->clinical->procedureCorrections($from, $to, $branchIds);
+        $prices = $this->billing->linePricesByProcedure(array_values(array_unique(array_merge(...array_column($corr, 'chain_procedure_ids') ?: [[]]))));
+        foreach ($corr as $c) {
+            $d = $c['provider_id'];
+            $add($d, 'corr_outside_window', (int) ! $c['within_window']);
+            match ($c['status']) {
+                'pending' => $add($d, 'corr_pending'),
+                'ditolak' => $add($d, 'corr_rejected'),
+                default => null,
+            };
+            if (in_array($c['status'], ['diterapkan', 'disetujui'], true)) {
+                $add($d, 'corr_'.$c['reason_type']);
+                $add($d, 'corr_total_rp', array_sum(array_intersect_key($prices, array_flip($c['chain_procedure_ids']))));
+                $add($d, 'corr_owner_approved', (int) ($c['status'] === 'disetujui'));
+                $add($d, 'corr_self_approved', (int) $c['self_approved_sole_owner']);
+            }
+            if ($c['status'] === 'pending') {
+                $alerts[] = self::alert('koreksi_menunggu', $c['created_at'], $d, $c['patient_id'], $c['visit_id'], $c['id'],
+                    ['reason_type' => $c['reason_type'], 'procedure_id' => $c['procedure_id']]);
+            }
+        }
+
+        $rev = $this->billing->reversals($from, $to, $branchIds);
+        $flags = $this->billing->lineCorrections($from, $to, $branchIds);
+        $dentistOf = $this->clinical->dentistsOfVisits(array_values(array_unique(array_column([...array_merge(...array_values($rev)), ...$flags], 'visit_id'))));
+        foreach (array_merge(...array_values($rev)) as $r) {
+            $d = $r['doctor_id'] ?? $dentistOf[$r['visit_id']] ?? null;
+            $live = in_array($r['status'], ['applied', 'approved'], true);
+            $pending = $r['status'] === 'pending';
+            [$n, $rp, $pn, $prp] = match ($r['kind']) {
+                'nota_kredit' => [$r['is_full'] ? 'cn_full' : 'cn_partial', ($r['is_full'] ? 'cn_full' : 'cn_partial').'_rp', 'cn_pending', 'cn_pending_rp'],
+                'void' => ['voids', 'void_rp', 'void_pending', 'void_pending_rp'],
+                'refund' => ['refunds', 'refund_rp', 'refund_pending', 'refund_pending_rp'],
+            };
+            $add($d, $n, (int) $live);
+            $add($d, $rp, $live ? $r['amount_rp'] : 0);
+            $add($d, $pn, (int) $pending);
+            $add($d, $prp, $pending ? $r['amount_rp'] : 0);
+            $add($d, 'cn_approved', (int) ($r['kind'] === 'nota_kredit' && $r['status'] === 'approved'));
+            $detail = ['type' => $r['kind'], 'invoice_id' => $r['invoice_id'], 'amount_rp' => $r['amount_rp'], 'number' => $r['number']];
+            if ($pending) {
+                $alerts[] = self::alert('pembalikan_menunggu', $r['created_at'], $d, $r['patient_id'], $r['visit_id'], $r['id'], $detail);
+            }
+            if ($r['self_approved_sole_owner']) {
+                $add($d, 'reversal_self_approved');
+                $alerts[] = self::alert('pembalikan_disetujui_sendiri', $r['decided_at'], $d, $r['patient_id'], $r['visit_id'], $r['id'], $detail);
+            }
+        }
+
+        $stale = CarbonImmutable::now()->subDays(self::REVIEW_STALE_DAYS);
+        foreach ($flags as $f) {
+            if (! $f['handled'] && CarbonImmutable::parse($f['created_at'])->lt($stale)) {
+                $alerts[] = self::alert('tinjau_koreksi_lama', $f['created_at'], $f['doctor_id'] ?? $dentistOf[$f['visit_id']] ?? null,
+                    $f['patient_id'], $f['visit_id'], $f['id'], ['invoice_id' => $f['invoice_id'], 'reason_type' => $f['reason_type']]);
+            }
+        }
     }
 
     private function present(array $rows, array $alerts): array

@@ -3,7 +3,7 @@ import { ApiError, errorText } from '../../shared/api/http'
 import type { Me } from '../../shared/session'
 import { getClinicSettings, saveClinicSettings, setSelesaiPin } from './api'
 
-// Pengaturan RM (#54), minimal: owner toggles "PIN saat Selesai" (default off); whoever may press Selesai sets / changes their own PIN.
+// Pengaturan RM (#55), minimal: owner toggles "PIN saat Selesai" (default off); whoever may press Selesai sets / changes their own PIN.
 // The correction window (tenggat koreksi) stays on #/laporan for now.
 export default function SettingsRmPage({ me, onChanged }: { me: Me; onChanged: () => void }) {
   const canManage = me.permissions.includes('settings.manage')

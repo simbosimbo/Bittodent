@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\DB;
 // are frozen by DB trigger). Treatments (code / treatment status) are ProcedureController's; FindingRequest rejects them with 422.
 class FindingController extends Controller
 {
-    private const UNAPPROVED = ['approved_by' => null, 'approved_at' => null]; // an edited agent draft needs a new Setujui (#54)
+    private const UNAPPROVED = ['approved_by' => null, 'approved_at' => null]; // an edited agent draft needs a new Setujui (#55)
 
     /** POST /api/visits/{id}/findings: one draft per author+tooth+surface in a visit (re-picking a condition updates it). */
     public function store(FindingRequest $request, string $id)
