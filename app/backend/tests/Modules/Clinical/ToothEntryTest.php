@@ -34,7 +34,9 @@ class ToothEntryTest extends TestCase
         $this->assertSame('B', OdontogramTaxonomy::storedSurface('V'));
         $this->assertSame('direncanakan', OdontogramTaxonomy::procedureStatus('rencana'));
         $this->assertContains(55, OdontogramTaxonomy::teeth());
-        $this->assertSame(['meb', 'pob'], OdontogramTaxonomy::materials());
+        $this->assertSame(['acr', 'frm'], OdontogramTaxonomy::materials()); // protesa materials; meb/pob are span conditions
+        $this->assertCount(31, $c); // 30 official conditions + sou (design/odontogram-kondisi.md)
+        $this->assertSame(['cof', 'rct', 'pob'], [$c['tambalan_komposit']['code'], $c['psa']['code'], $c['jembatan_porselen']['code']]);
         // the frontend copy is generated from the same file (npm run taxonomy)
         $front = base_path('../frontend/src/modules/clinical/odontogram/taxonomy.json');
         if (is_file($front)) {
@@ -62,12 +64,14 @@ class ToothEntryTest extends TestCase
     public function test_bridge_span_with_roles_and_material(): void
     {
         $v = $this->visit();
-        $this->as(self::DOC)->postJson("/api/visits/{$v->id}/tooth-entries", ['tooth' => 34, 'span_to' => 36, 'condition' => 'bridge',
-            'status' => 'rencana', 'span_roles' => ['34' => 'abutment', '35' => 'pontic', '36' => 'abutment'], 'material' => 'pob'])
-            ->assertCreated()->assertJsonPath('tooth_range', '34-36')->assertJsonPath('material', 'pob')->assertJsonPath('span_roles.35', 'pontic');
-        $this->as(self::DOC)->postJson("/api/visits/{$v->id}/tooth-entries", ['tooth' => 34, 'condition' => 'bridge', 'status' => 'rencana'])
+        $this->as(self::DOC)->postJson("/api/visits/{$v->id}/tooth-entries", ['tooth' => 34, 'span_to' => 36, 'condition' => 'jembatan_porselen',
+            'status' => 'rencana', 'span_roles' => ['34' => 'abutment', '35' => 'pontic', '36' => 'abutment']])
+            ->assertCreated()->assertJsonPath('tooth_range', '34-36')->assertJsonPath('condition', 'jembatan_porselen')->assertJsonPath('span_roles.35', 'pontic');
+        $this->as(self::DOC)->postJson("/api/visits/{$v->id}/tooth-entries", ['tooth' => 14, 'span_to' => 16, 'condition' => 'gts', 'status' => 'rencana', 'material' => 'acr'])
+            ->assertCreated()->assertJsonPath('material', 'acr');
+        $this->as(self::DOC)->postJson("/api/visits/{$v->id}/tooth-entries", ['tooth' => 34, 'condition' => 'jembatan_logam', 'status' => 'rencana'])
             ->assertUnprocessable()->assertJsonValidationErrors('span_to');
-        $this->as(self::DOC)->postJson("/api/visits/{$v->id}/tooth-entries", ['tooth' => 14, 'span_to' => 44, 'condition' => 'bridge', 'status' => 'rencana'])
+        $this->as(self::DOC)->postJson("/api/visits/{$v->id}/tooth-entries", ['tooth' => 14, 'span_to' => 44, 'condition' => 'jembatan_logam', 'status' => 'rencana'])
             ->assertUnprocessable()->assertJsonValidationErrors('span_to'); // across jaws
         $this->as(self::DOC)->postJson("/api/visits/{$v->id}/tooth-entries", ['tooth' => 34, 'span_to' => 36, 'condition' => 'karies', 'status' => 'rencana'])
             ->assertUnprocessable();

@@ -1,5 +1,5 @@
 {
-  "$comment": "Odontogram v2 taxonomy: the ONE table read by the backend (Domain/OdontogramTaxonomy) and the frontend (npm run taxonomy -> src/modules/clinical/odontogram/taxonomy.json). Codes follow Panduan Rekam Medis Kedokteran Gigi (Kemenkes + PB PDGI 2015): surface letters MODVL in capitals, condition codes lowercase. HOLD: the condition list, icons and colours wait for the revised designer board; `conditions` below are the existing legend keys only (placeholders), each with its official code where one exists. No ICD mapping lives here (design ICD codes are examples only).",
+  "$comment": "Odontogram v2 taxonomy: the ONE table read by the backend (Domain/OdontogramTaxonomy) and the frontend (npm run taxonomy -> src/modules/clinical/odontogram/taxonomy.json). Conditions, codes and symbols follow Panduan Rekam Medis Kedokteran Gigi (Kemenkes + PB PDGI 2015) as listed in design/odontogram-kondisi.md (design/design-system): surface letters MODVL capitals, condition codes lowercase, joined with '-'. `symbol` is the drawing hint (black-and-white by default, status is shown by line shape, never colour). No ICD-9-CM code lives here: a finished entry is billed through the clinic's own tariff items mapped to a condition code (Pengaturan > Harga).",
   "version": 2,
   "surfaces": [
     {
@@ -39,22 +39,26 @@
     {
       "key": "ada_sebelumnya",
       "label": "Ada sebelumnya",
-      "procedure_status": "ada_di_klinik_ini"
+      "procedure_status": "ada_di_klinik_ini",
+      "mark": "solid"
     },
     {
       "key": "klinik_lain",
       "label": "Klinik lain",
-      "procedure_status": "ada_di_tempat_lain"
+      "procedure_status": "ada_di_tempat_lain",
+      "mark": "solid_badge_L"
     },
     {
       "key": "rencana",
       "label": "Rencana",
-      "procedure_status": "direncanakan"
+      "procedure_status": "direncanakan",
+      "mark": "dashed"
     },
     {
       "key": "selesai",
       "label": "Selesai",
-      "procedure_status": "selesai"
+      "procedure_status": "selesai",
+      "mark": "solid_check"
     }
   ],
   "groups": [
@@ -93,12 +97,12 @@
   ],
   "span_materials": [
     {
-      "key": "meb",
-      "label": "Logam"
+      "key": "acr",
+      "label": "Akrilik"
     },
     {
-      "key": "pob",
-      "label": "Porselen"
+      "key": "frm",
+      "label": "Frame"
     }
   ],
   "dentitions": {
@@ -176,35 +180,144 @@
       "key": "sehat",
       "label": "Sehat",
       "code": "sou",
-      "group": "surface",
+      "group": "tooth",
+      "symbol": "none",
       "official": true
     },
     {
       "key": "karies",
-      "label": "Karies",
+      "label": "Karies (juga tambalan sementara)",
       "code": "car",
       "group": "surface",
+      "symbol": "outline",
+      "official": true,
+      "top": true
+    },
+    {
+      "key": "tambalan_amalgam",
+      "label": "Tambalan amalgam",
+      "code": "amf",
+      "group": "surface",
+      "symbol": "fill",
+      "official": true,
+      "top": true
+    },
+    {
+      "key": "tambalan_komposit",
+      "label": "Tambalan komposit",
+      "code": "cof",
+      "group": "surface",
+      "symbol": "hatch",
+      "official": true,
+      "top": true
+    },
+    {
+      "key": "tambalan_gic",
+      "label": "Tambalan GIC",
+      "code": "gif",
+      "group": "surface",
+      "symbol": "hatch",
+      "official": true,
+      "top": true
+    },
+    {
+      "key": "sealant",
+      "label": "Pit dan fissure sealant",
+      "code": "fis",
+      "group": "surface",
+      "symbol": "crosshatch",
+      "official": true,
+      "top": true
+    },
+    {
+      "key": "inlay",
+      "label": "Inlay",
+      "code": "inl",
+      "group": "surface",
+      "symbol": "hatch",
       "official": true
     },
     {
-      "key": "tambalan",
-      "label": "Tambalan",
-      "code": null,
+      "key": "onlay",
+      "label": "Onlay",
+      "code": "onl",
       "group": "surface",
-      "official": false
+      "symbol": "hatch",
+      "official": true
     },
     {
-      "key": "mahkota",
-      "label": "Mahkota",
-      "code": null,
-      "group": "tooth",
-      "official": false
+      "key": "fraktur",
+      "label": "Fraktur mahkota",
+      "code": "cfr",
+      "group": "surface",
+      "symbol": "hash",
+      "official": true
     },
     {
-      "key": "hilang",
-      "label": "Hilang",
-      "code": "mis",
+      "key": "abrasi",
+      "label": "Abrasi",
+      "code": "abr",
+      "group": "surface",
+      "symbol": "text",
+      "official": true
+    },
+    {
+      "key": "atrisi",
+      "label": "Atrisi",
+      "code": "att",
+      "group": "surface",
+      "symbol": "text",
+      "official": true
+    },
+    {
+      "key": "non_vital",
+      "label": "Gigi non-vital",
+      "code": "nvt",
       "group": "tooth",
+      "symbol": "root_open",
+      "official": true
+    },
+    {
+      "key": "psa",
+      "label": "Perawatan saluran akar",
+      "code": "rct",
+      "group": "tooth",
+      "symbol": "root_fill",
+      "official": true,
+      "top": true
+    },
+    {
+      "key": "mahkota_logam",
+      "label": "Mahkota logam",
+      "code": "fmc",
+      "group": "tooth",
+      "symbol": "frame",
+      "official": true,
+      "top": true
+    },
+    {
+      "key": "mahkota_porselen",
+      "label": "Mahkota porselen",
+      "code": "poc",
+      "group": "tooth",
+      "symbol": "frame_hatch",
+      "official": true,
+      "top": true
+    },
+    {
+      "key": "mahkota_metal_porselen",
+      "label": "Mahkota metal porselen",
+      "code": "mpc",
+      "group": "tooth",
+      "symbol": "frame_hatch",
+      "official": true
+    },
+    {
+      "key": "mahkota_emas",
+      "label": "Mahkota emas",
+      "code": "gmc",
+      "group": "tooth",
+      "symbol": "frame",
       "official": true
     },
     {
@@ -212,28 +325,119 @@
       "label": "Sisa akar",
       "code": "rrx",
       "group": "tooth",
+      "symbol": "v",
+      "official": true,
+      "top": true
+    },
+    {
+      "key": "hilang",
+      "label": "Gigi hilang",
+      "code": "mis",
+      "group": "tooth",
+      "symbol": "x",
+      "official": true,
+      "top": true
+    },
+    {
+      "key": "tidak_diketahui",
+      "label": "Tidak ada, tidak diketahui",
+      "code": "non",
+      "group": "tooth",
+      "symbol": "text",
       "official": true
     },
     {
-      "key": "perlu_dicabut",
-      "label": "Perlu dicabut",
+      "key": "belum_erupsi",
+      "label": "Belum erupsi",
+      "code": "une",
+      "group": "tooth",
+      "symbol": "text",
+      "official": true
+    },
+    {
+      "key": "erupsi_sebagian",
+      "label": "Erupsi sebagian",
+      "code": "pre",
+      "group": "tooth",
+      "symbol": "text",
+      "official": true
+    },
+    {
+      "key": "impaksi",
+      "label": "Impaksi visible",
+      "code": "imv",
+      "group": "tooth",
+      "symbol": "text",
+      "official": true
+    },
+    {
+      "key": "anomali",
+      "label": "Anomali (peg shape, mikro, fusi)",
+      "code": "ano",
+      "group": "tooth",
+      "symbol": "text",
+      "official": true
+    },
+    {
+      "key": "diastema",
+      "label": "Diastema",
+      "code": "dia",
+      "group": "tooth",
+      "symbol": "text",
+      "official": true
+    },
+    {
+      "key": "migrasi",
+      "label": "Migrasi, versi, rotasi",
       "code": null,
       "group": "tooth",
-      "official": false
+      "symbol": "arrow",
+      "official": true
+    },
+    {
+      "key": "jembatan_logam",
+      "label": "Jembatan logam",
+      "code": "meb",
+      "group": "span",
+      "symbol": "bar",
+      "official": true,
+      "top": true
+    },
+    {
+      "key": "jembatan_porselen",
+      "label": "Jembatan porselen",
+      "code": "pob",
+      "group": "span",
+      "symbol": "bar_frame",
+      "official": true,
+      "top": true
+    },
+    {
+      "key": "gts",
+      "label": "Gigi tiruan sebagian",
+      "code": "prd",
+      "group": "span",
+      "symbol": "x_code",
+      "official": true,
+      "top": true
+    },
+    {
+      "key": "gtl",
+      "label": "Gigi tiruan lengkap",
+      "code": "fld",
+      "group": "span",
+      "symbol": "x_code",
+      "official": true,
+      "top": true
     },
     {
       "key": "implan",
       "label": "Implan",
       "code": "ipx",
       "group": "implant",
-      "official": true
-    },
-    {
-      "key": "bridge",
-      "label": "Bridge",
-      "code": null,
-      "group": "span",
-      "official": false
+      "symbol": "frame_code",
+      "official": true,
+      "top": true
     }
   ]
 }

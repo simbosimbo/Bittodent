@@ -1,7 +1,7 @@
 // Odontogram v2 types over the ONE data table (taxonomy.json, generated from the backend copy by `npm run taxonomy`).
 // Components read conditions, statuses, surfaces and span roles from here; nothing clinical is hardcoded in a component.
-// HOLD (10:58 brief): condition list, icons and status colours wait for the revised designer board; the table holds the
-// current legend keys as placeholders. Codes are the official Kemenkes/PDGI 2015 lowercase codes; no ICD mapping here.
+// Conditions/codes/symbols = design/odontogram-kondisi.md (Kemenkes + PDGI 2015). Status is a line shape, never a colour.
+// No ICD-9-CM mapping here: a finished entry bills through the clinic's tariff items mapped to a condition code.
 import data from './taxonomy.json'
 import { isAnterior, isUpper } from '../legend'
 import type { ProcStatus, Surface } from '../api'
@@ -12,17 +12,20 @@ export type EntryStatus = 'ada_sebelumnya' | 'klinik_lain' | 'rencana' | 'selesa
 /** Where a condition is entered: per surface, whole tooth, a span of teeth (bridge) or an implant. */
 export type ConditionGroup = 'surface' | 'tooth' | 'span' | 'implant'
 export type SpanRole = 'abutment' | 'pontic'
-/** Bridge material code (meb/pob, PDGI 2015). */
-export type Material = 'meb' | 'pob'
+/** Protesa material code (acr akrilik, frm frame), e.g. prd-acr. Bridges are their own conditions (meb, pob). */
+export type Material = 'acr' | 'frm'
 /** perawatan = tooth first (board 09); periksa = palette first, for the initial exam (condition, then tap many teeth). */
 export type Mode = 'perawatan' | 'periksa'
 export type Dentition = 'permanent' | 'primary'
-export type Condition = { key: string; label: string; code: string | null; group: ConditionGroup; official: boolean }
+/** Drawing hint for the official black-and-white symbol (OVv2-04). */
+export type Symbol = 'none' | 'outline' | 'fill' | 'hatch' | 'crosshatch' | 'hash' | 'text' | 'root_open' | 'root_fill' | 'frame' | 'frame_hatch'
+  | 'v' | 'x' | 'arrow' | 'bar' | 'bar_frame' | 'x_code' | 'frame_code'
+export type Condition = { key: string; label: string; code: string | null; group: ConditionGroup; symbol: Symbol; official: boolean; top?: boolean }
 
 export type Taxonomy = {
   version: number
   surfaces: { key: SurfaceKey; label: string; stored: Surface; teeth?: 'anterior' | 'posterior' }[]
-  statuses: { key: EntryStatus; label: string; procedure_status: ProcStatus }[]
+  statuses: { key: EntryStatus; label: string; procedure_status: ProcStatus; mark: 'solid' | 'solid_badge_L' | 'dashed' | 'solid_check' }[]
   groups: { key: ConditionGroup; label: string; area: 'surface' | 'tooth' | 'range' }[]
   span_roles: { key: SpanRole; code: string; label: string }[]
   span_materials: { key: Material; label: string }[]
