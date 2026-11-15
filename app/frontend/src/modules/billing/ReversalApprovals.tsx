@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ApiError, errorText } from '../../shared/api/http'
 import { fmtDateTime } from '../../shared/format'
-import { decideCreditNote, decideVoid, pendingReversals, type PendingReversals } from './api'
+import { decideCreditNote, decideRefund, decideVoid, pendingReversals, type PendingReversals } from './api'
 
 const rp = (n: number) => 'Rp' + n.toLocaleString('id-ID')
 
-/** Owner (billing.approve_reversal): full credit notes and voids waiting for approval. Minimal; UI unit polishes. */
+/** Owner (billing.approve_reversal): full credit notes, voids and refunds waiting for approval. Minimal; UI unit polishes. */
 export function ReversalApprovals() {
   const [data, setData] = useState<PendingReversals | null>(null)
   const [msg, setMsg] = useState('')
@@ -19,10 +19,10 @@ export function ReversalApprovals() {
     }
   }
 
-  const empty = data && data.credit_notes.length === 0 && data.voids.length === 0
+  const empty = data && data.credit_notes.length === 0 && data.voids.length === 0 && (data.refunds ?? []).length === 0
   return (
     <div className="card">
-      <h2>Nota kredit & pembatalan tagihan menunggu persetujuan</h2>
+      <h2>Nota kredit, pembatalan tagihan & refund menunggu persetujuan</h2>
       {error && <p className="form-error" role="alert">{error}</p>}
       {msg && <p className="small" role="status">{msg}</p>}
       {empty && <p className="muted">Tidak ada yang menunggu.</p>}
@@ -40,6 +40,14 @@ export function ReversalApprovals() {
             <strong>Void tagihan</strong> · {v.reason} · {fmtDateTime(v.created_at)} WIB · <a href={`#/tagihan/${v.visit_id}`}>Buka tagihan</a>
             {' '}<button className="btn btn-xs" onClick={() => decide(() => decideVoid(v.id, 'approve'), 'Tagihan dibatalkan (void).')}>Setujui</button>
             {' '}<button className="btn btn-xs btn-ghost" onClick={() => decide(() => decideVoid(v.id, 'reject'), 'Pembatalan ditolak.')}>Tolak</button>
+          </li>
+        ))}
+        {data?.refunds?.map((r) => (
+          <li key={r.id}>
+            <strong>Refund</strong> {rp(r.amount_rp)} ke {r.account?.name ?? 'akun asal'}{r.credit_note_number ? ` · ${r.credit_note_number}` : ''} · {r.reason}
+            {' '}· {fmtDateTime(r.created_at)} WIB · <a href={`#/tagihan/${r.visit_id}`}>Buka tagihan</a>
+            {' '}<button className="btn btn-xs" onClick={() => decide(() => decideRefund(r.id, 'approve'), 'Refund disetujui.')}>Setujui</button>
+            {' '}<button className="btn btn-xs btn-ghost" onClick={() => decide(() => decideRefund(r.id, 'reject'), 'Refund ditolak.')}>Tolak</button>
           </li>
         ))}
       </ul>

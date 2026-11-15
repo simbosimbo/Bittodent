@@ -5,7 +5,7 @@
 (diskon/penghapusan/koreksi, alasan wajib, front desk/pemilik, append-only). Saldo = baris − penyesuaian, dihitung (tidak disimpan).
 API: `GET /api/visits/{id}/invoice`, `GET /api/invoices/{id}`, `POST /api/invoices/{id}/adjustments`,
 `POST /api/invoice-adjustments/{id}/approve|reject` (unit 4), `POST /api/invoices/{id}/payments`, `GET|POST /api/payment-accounts`,
-`PATCH /api/payment-accounts/{id}` (unit 5), nota kredit / void / koreksi baris (unit B, di bawah). Belum: refund (unit C), tagihan final, `FinalizedRevenue`.
+`PATCH /api/payment-accounts/{id}` (unit 5), nota kredit / void / koreksi baris (unit B), refund (unit C, di bawah). Belum: tagihan final, `FinalizedRevenue`.
 
 ## Penjaga tagihan kunjungan (unit 4, DEVIATIONS #50)
 - **Letak modul.** Tutup kunjungan ada di Clinical (`POST /api/visits/{id}/close`, `Services\VisitCloser`). Sebelum menutup, Clinical
@@ -40,7 +40,7 @@ Baris tagihan asli (kode, nama, harga), penyesuaian, dan pembayaran tidak pernah
   ikut memesan jumlahnya); `reason_type` (`tidak_dikerjakan`, `salah_kode`, `salah_situs`, `salah_provider`, `salah_tarif`, `lainnya`) +
   alasan wajib. Nomor `NK-YYYY-000001` berurutan per tenant per tahun (`credit_note_seq`, kunci baris). **Sebagian** (`billing.adjust`:
   front desk, kasir, pemilik) langsung berlaku. **Penuh** (= sisa baris) menunggu pemilik (`billing.approve_reversal`, izin baru, pemilik
-  saja; konflik kepentingan sama dengan unit 4). Tidak boleh melebihi saldo (sudah dibayar = 422 `refund_required`; refund = unit C).
+  saja; konflik kepentingan sama dengan unit 4). Sudah dibayar: boleh (unit C), saldo menjadi negatif = kelebihan bayar, diselesaikan dengan refund.
   `POST /api/invoices/{id}/credit-notes`, `POST /api/credit-notes/{id}/approve|reject`.
 - **Tampilan kasir**: baris tetap dengan harga asli + `credit_note_numbers`/`credited_rp` ("Dikoreksi — lihat NK-…"), tidak pernah Rp0.
   Tagihan yang seluruhnya dikredit tidak menjadi "lunas".
@@ -65,6 +65,20 @@ Baris tagihan asli (kode, nama, harga), penyesuaian, dan pembayaran tidak pernah
   sama). Tidak memblok tutup kunjungan. Tidak bisa dikredit (nilai 0).
 - Keputusan pemilik / tinjau kasir: `billing_decision` (satu per subjek, append-only). Audit: `nota_kredit.dibuat|menunggu|disetujui|ditolak|konflik`,
   `void.dibuat|menunggu|disetujui|ditolak|konflik`, `koreksi_tagihan.perlu_tinjau|ditagih|ditinjau`, `tarif_nol`, `tarif_nol.disetujui|konflik`.
+
+## Refund (unit C, DEVIATIONS #57)
+- **Refund** (`invoice_refund`, append-only, keluarga pembayaran): pembayaran asal (`payment_id`) **tidak pernah diubah atau dihapus**.
+  Selalu ke **akun klinik yang sama** dengan pembayaran asal (akun lain = 422; field rekening bebas = 422 `unknown_fields`), metode = jenis
+  akun itu (metode lain tidak diizinkan). Wajib `credit_note_id` (nota kredit yang berlaku) + alasan ≥10. Jumlah ≤ min(sisa nota kredit,
+  sisa pembayaran asal, kelebihan bayar yang belum dipesan refund lain) — lebih = 422 `refund_exceeds`.
+- **Persetujuan:** kasir/front desk/pemilik mengajukan (`billing.adjust`, 202 menunggu); pemilik memutus (`billing.approve_reversal`,
+  `POST /api/refunds/{id}/approve|reject`), konflik kepentingan sama dengan nota kredit. Muncul di `GET /api/billing/reversals/pending` (`refunds`).
+- **Saldo** = baris − penyesuaian − nota kredit − pembayaran + refund disetujui. Saldo negatif = `overpaid_rp` ("Kelebihan bayar Rp X —
+  buat refund"). Refund menunggu tidak menggerakkan saldo, tetapi memesan jumlahnya.
+- **Alur "sudah dibayar, ternyata tidak dikerjakan":** koreksi `tidak_dikerjakan` → nota kredit penuh menunggu (memblok tutup kunjungan) →
+  pemilik setuju (saldo −harga, kunjungan boleh ditutup) → kasir ajukan refund → pemilik setuju (saldo 0).
+- **Laporan:** belum ada laporan yang menjumlah pembayaran; laporan kas berikutnya mengurangkan refund pada tanggal persetujuan.
+- Audit: `refund.diajukan|disetujui|ditolak|konflik`.
 
 Cakupan: Tagihan, pembayaran, klaim penjamin (umum, asuransi swasta; siap BPJS: jenis penjamin, no./kelas kepesertaan, status klaim).
 

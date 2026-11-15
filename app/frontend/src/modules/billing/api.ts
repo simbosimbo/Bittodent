@@ -5,25 +5,30 @@ export type Adjustment = { id: string; kind: string; amount_rp: number; reason: 
 /** Clinic-owned payment destination (unit 5): the only payment methods; owner manages them. */
 export type PaymentAccount = { id: string; branch_id: string | null; name: string; kind: 'tunai' | 'qris' | 'edc' | 'transfer'
   bank_name: string | null; account_last4: string | null; is_active: boolean }
-export type Payment = { id: string; payment_account_id: string; amount_rp: number; paid_at: string
+export type Payment = { id: string; payment_account_id: string; amount_rp: number; paid_at: string; refunded_rp: number
   account: Pick<PaymentAccount, 'name' | 'kind' | 'bank_name' | 'account_last4'> }
 export type DocStatus = 'applied' | 'pending' | 'approved' | 'rejected'
 /** Nota Kredit (unit B): own document per line, numbered NK-YYYY-000001; full = waits for an owner. */
 export type CreditNote = { id: string; number: string; invoice_line_id: string; procedure_correction_id: string | null; amount_rp: number
-  is_full: boolean; reason_type: string; reason: string; created_at: string; status: DocStatus; self_approved_sole_owner: boolean }
+  is_full: boolean; reason_type: string; reason: string; created_at: string; status: DocStatus; self_approved_sole_owner: boolean; refunded_rp: number }
+/** Refund (unit C): back to the original payment's clinic account, allocated to a credit note; always waits for an owner. */
+export type Refund = { id: string; credit_note_id: string; payment_id: string; payment_account_id: string; method: PaymentAccount['kind']
+  amount_rp: number; reason: string; created_at: string; status: 'pending' | 'approved' | 'rejected'; self_approved_sole_owner: boolean }
 /** A clinical correction (salah_kode/situs/provider) touched this billed line: the cashier decides (credit note, bill corrected code, reviewed). */
 export type CorrectionReview = { id: string; procedure_correction_id: string; reason_type: string; new_procedure_id: string
   billable_code: string | null; status: 'perlu_tinjau' | 'selesai' }
 export type InvoiceLine = { id: string; procedure_code: string; procedure_name: string; tooth: number | null; price_rp: number
   credited_rp: number; credit_note_numbers: string[]; tariff_zero: 'pending' | 'approved' | null; correction_reviews: CorrectionReview[] }
 export type Invoice = { id: string; visit_id: string; branch_id: string; status: 'terbuka' | 'lunas' | 'void'
-  lines_rp: number; adjustments_rp: number; credit_notes_rp: number; payments_rp: number; balance_rp: number
+  lines_rp: number; adjustments_rp: number; credit_notes_rp: number; payments_rp: number; refunds_rp: number; balance_rp: number; overpaid_rp: number
   lines: InvoiceLine[]; credit_notes: CreditNote[]; voids: { id: string; reason: string; created_at: string; status: DocStatus }[]
-  adjustments: Adjustment[]; payments: Payment[] }
+  adjustments: Adjustment[]; payments: Payment[]; refunds: Refund[] }
 export type PendingReversals = {
   credit_notes: { id: string; number: string; invoice_id: string; visit_id: string; amount_rp: number; reason_type: string; reason: string
     created_at: string; line: { procedure_code: string; procedure_name: string; tooth: number | null; price_rp: number } }[]
-  voids: { id: string; invoice_id: string; visit_id: string; reason: string; created_at: string }[] }
+  voids: { id: string; invoice_id: string; visit_id: string; reason: string; created_at: string }[]
+  refunds: { id: string; invoice_id: string; visit_id: string; amount_rp: number; reason: string; created_at: string; credit_note_number: string | null
+    account: Pick<PaymentAccount, 'name' | 'kind' | 'bank_name' | 'account_last4'> }[] }
 
 export const invoiceForVisit = (visitId: string) => api<Invoice>(`/api/visits/${visitId}/invoice`)
 /** 201 = applied; 202 = brings the balance to Rp0, waits for an owner (unit 4). */
@@ -51,3 +56,8 @@ export const billFromCorrection = (invoiceId: string, correctionId: string) =>
 export const reviewCorrection = (id: string, reason: string) => api<Invoice>(`/api/line-corrections/${id}/review`, { method: 'POST', body: { reason } })
 /** Owner (billing.approve_zero): a Rp0 tariff line is a tariff anomaly, not a correction. */
 export const approveZeroTariff = (lineId: string) => api<Invoice>(`/api/invoice-lines/${lineId}/approve-zero-tariff`, { method: 'POST', body: {} })
+/** Refund (202, pending): account = the original payment's account (server-checked); amount <= credit note, payment and overpayment left. */
+export const addRefund = (invoiceId: string, body: { payment_id: string; credit_note_id: string; amount_rp: number; reason: string }) =>
+  api<Invoice>(`/api/invoices/${invoiceId}/refunds`, { method: 'POST', body })
+/** Owner (billing.approve_reversal); same conflict-of-interest rule as credit notes. */
+export const decideRefund = (id: string, decision: 'approve' | 'reject') => api<Invoice>(`/api/refunds/${id}/${decision}`, { method: 'POST', body: {} })

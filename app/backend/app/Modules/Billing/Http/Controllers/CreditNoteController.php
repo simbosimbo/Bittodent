@@ -9,8 +9,10 @@ use App\Modules\Billing\Models\CreditNote;
 use App\Modules\Billing\Models\Invoice;
 use App\Modules\Billing\Models\InvoiceLine;
 use App\Modules\Billing\Models\InvoicePayment;
+use App\Modules\Billing\Models\InvoiceRefund;
 use App\Modules\Billing\Models\InvoiceVoid;
 use App\Modules\Billing\Models\LineCorrection;
+use App\Modules\Billing\Models\PaymentAccount;
 use App\Modules\Billing\Services\Ledger;
 use App\Modules\Clinical\Events\ProcedureRecorded;
 use App\Shared\Audit\Audit;
@@ -49,10 +51,7 @@ class CreditNoteController extends Controller
                 return response()->json(['message' => 'Jumlah melebihi nilai baris yang masih bisa dikredit.',
                     'errors' => ['amount_rp' => ['Maksimal Rp'.Ledger::creditable($line).'.']]], 422);
             }
-            $full = $d['amount_rp'] === Ledger::creditable($line);
-            if (! $full && $d['amount_rp'] > Ledger::totals($inv)['balance_rp']) {
-                return self::refundRequired();
-            }
+            // unit C: may exceed the balance (already paid) => kelebihan bayar, settled by a refund
             $note = self::issue($inv, $line, $d['amount_rp'], $d['reason_type'], $d['reason'], $d['procedure_correction_id'] ?? null);
             Ledger::syncStatus($inv);
 
@@ -92,9 +91,6 @@ class CreditNoteController extends Controller
             if ($decision === 'approved') {
                 if ($e = InvoiceController::voided($inv)) {
                     return $e;
-                }
-                if ($note->amount_rp > Ledger::totals($inv)['balance_rp']) {
-                    return self::refundRequired();
                 }
                 $self = Ledger::ownerCheck($inv, [InvoiceLine::findOrFail($note->invoice_line_id)->doctor_id], 'nota_kredit.konflik',
                     ['credit_note_id' => $note->id], 'Anda menangani tindakan ini. Nota kredit penuh harus disetujui pemilik lain.');
@@ -177,13 +173,17 @@ class CreditNoteController extends Controller
         });
     }
 
-    /** GET /api/billing/reversals/pending: owner (billing.approve_reversal). Pending full credit notes and voids in the owner's branches. */
+    /** GET /api/billing/reversals/pending: owner (billing.approve_reversal). Pending full credit notes, voids and refunds in the owner's branches. */
     public function pending()
     {
         $ctx = Ctx::current();
         $notes = Ledger::pending(CreditNote::query(), 'credit_note_id')->orderBy('created_at')->get();
         $voids = Ledger::pending(InvoiceVoid::query(), 'invoice_void_id')->orderBy('created_at')->get();
-        $inv = Invoice::whereIn('id', $notes->pluck('invoice_id')->merge($voids->pluck('invoice_id'))->unique())->get()->keyBy('id');
+        $refunds = InvoiceRefund::whereNotIn('id', BillingDecision::whereNotNull('refund_id')->select('refund_id'))->orderBy('created_at')->get();
+        $nkNumbers = CreditNote::whereIn('id', $refunds->pluck('credit_note_id'))->pluck('number', 'id');
+        $accounts = PaymentAccount::whereIn('id', $refunds->pluck('payment_account_id'))->get()->keyBy('id');
+        $inv = Invoice::whereIn('id', $notes->pluck('invoice_id')->merge($voids->pluck('invoice_id'))->merge($refunds->pluck('invoice_id'))->unique())
+            ->get()->keyBy('id');
         $lines = InvoiceLine::whereIn('id', $notes->pluck('invoice_line_id'))->get()->keyBy('id');
         $mine = fn ($r) => $ctx->coversBranch($inv[$r->invoice_id]->branch_id);
         $base = fn ($r) => ['invoice_id' => $r->invoice_id, 'visit_id' => $inv[$r->invoice_id]->visit_id, 'created_by' => $r->created_by,
@@ -194,6 +194,9 @@ class CreditNoteController extends Controller
                 'procedure_correction_id', 'invoice_line_id']) + ['line' => $lines[$n->invoice_line_id]->only(['procedure_code', 'procedure_name',
                     'tooth', 'price_rp'])])->values(),
             'voids' => $voids->filter($mine)->map(fn ($v) => $base($v) + ['id' => $v->id])->values(),
+            'refunds' => $refunds->filter($mine)->map(fn ($r) => $base($r) + $r->only(['id', 'credit_note_id', 'payment_id', 'payment_account_id',
+                'method', 'amount_rp']) + ['credit_note_number' => $nkNumbers[$r->credit_note_id] ?? null,
+                    'account' => $accounts[$r->payment_account_id]?->only(['name', 'kind', 'bank_name', 'account_last4'])])->values(),
         ]);
     }
 
@@ -297,7 +300,7 @@ class CreditNoteController extends Controller
         return null;
     }
 
-    private static function decision(array $subject, string $decision, ?string $reason, bool $self): void
+    public static function decision(array $subject, string $decision, ?string $reason, bool $self): void
     {
         BillingDecision::create([...$subject, 'decision' => $decision, 'reason' => $reason, 'decided_by' => Ctx::current()->userId,
             'self_approved_sole_owner' => $self]);
@@ -306,13 +309,7 @@ class CreditNoteController extends Controller
     private static function paid(Invoice $inv): ?JsonResponse
     {
         return InvoicePayment::where('invoice_id', $inv->id)->exists()
-            ? response()->json(['error' => 'has_payments', 'message' => 'Tagihan sudah ada pembayaran: tidak bisa dibatalkan. Pakai nota kredit (dan refund bila perlu).'], 422)
+            ? response()->json(['error' => 'has_payments', 'message' => 'Tagihan sudah ada pembayaran: tidak bisa dibatalkan. Pakai nota kredit lalu refund.'], 422)
             : null;
-    }
-
-    private static function refundRequired(): JsonResponse
-    {
-        return response()->json(['error' => 'refund_required',
-            'message' => 'Nota kredit melebihi sisa tagihan (sudah dibayar). Pengembalian dana (refund) belum tersedia.'], 422);
     }
 }

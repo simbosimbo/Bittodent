@@ -11,6 +11,7 @@ use App\Modules\Billing\Models\InvoiceAdjustment;
 use App\Modules\Billing\Models\InvoiceAdjustmentDecision;
 use App\Modules\Billing\Models\InvoiceLine;
 use App\Modules\Billing\Models\InvoicePayment;
+use App\Modules\Billing\Models\InvoiceRefund;
 use App\Modules\Billing\Models\InvoiceVoid;
 use App\Modules\Billing\Models\LineCorrection;
 use App\Modules\Billing\Models\PaymentAccount;
@@ -21,7 +22,8 @@ use App\Shared\Tenancy\Ctx;
 use Illuminate\Http\JsonResponse;
 
 // Invoice arithmetic + shape, shared by the Billing controllers and listeners. Everything computed, nothing stored.
-// balance = lines - applied adjustments - applied credit notes - payments; a void invoice owes Rp0.
+// balance = lines - applied adjustments - applied credit notes - payments + approved refunds; a void invoice owes Rp0.
+// Negative balance = kelebihan bayar (credit note after payment): settled by a refund (unit C).
 final class Ledger
 {
     public static function totals(Invoice $inv): array
@@ -30,9 +32,37 @@ final class Ledger
         $adj = (int) self::applied(InvoiceAdjustment::where('invoice_id', $inv->id), InvoiceAdjustmentDecision::class, 'adjustment_id')->sum('amount_rp');
         $credit = (int) self::applied(CreditNote::where('invoice_id', $inv->id), BillingDecision::class, 'credit_note_id')->sum('amount_rp');
         $paid = (int) InvoicePayment::where('invoice_id', $inv->id)->sum('amount_rp');
+        $refunded = (int) self::approvedRefunds(InvoiceRefund::where('invoice_id', $inv->id))->sum('amount_rp');
+        $balance = $inv->status === 'void' ? 0 : $lines - $adj - $credit - $paid + $refunded;
 
         return ['lines_rp' => $lines, 'adjustments_rp' => $adj, 'credit_notes_rp' => $credit, 'payments_rp' => $paid,
-            'balance_rp' => $inv->status === 'void' ? 0 : $lines - $adj - $credit - $paid];
+            'refunds_rp' => $refunded, 'balance_rp' => $balance, 'overpaid_rp' => max(0, -$balance)];
+    }
+
+    /** Refunds always wait for an owner: only approved ones move money. */
+    public static function approvedRefunds($query)
+    {
+        return $query->whereIn('id', BillingDecision::where('decision', 'approved')->whereNotNull('refund_id')->select('refund_id'));
+    }
+
+    /** Refunds not rejected (pending ones reserve their amount, like credit notes). */
+    public static function liveRefunds($query)
+    {
+        return $query->whereNotIn('id', BillingDecision::where('decision', 'rejected')->whereNotNull('refund_id')->select('refund_id'));
+    }
+
+    /**
+     * Most that may still be refunded from $payment against $note: min(credit note not yet refunded, payment not yet refunded,
+     * overpayment not yet reserved by pending refunds). $except = refund being approved (re-check without itself).
+     */
+    public static function refundable(Invoice $inv, CreditNote $note, InvoicePayment $payment, ?string $except = null): int
+    {
+        $live = fn (string $col, string $id) => (int) self::liveRefunds(InvoiceRefund::where($col, $id))->where('id', '!=', $except ?? '')->sum('amount_rp');
+        $pending = (int) InvoiceRefund::where('invoice_id', $inv->id)->where('id', '!=', $except ?? '')
+            ->whereNotIn('id', BillingDecision::whereNotNull('refund_id')->select('refund_id'))->sum('amount_rp');
+
+        return max(0, min($note->amount_rp - $live('credit_note_id', $note->id), $payment->amount_rp - $live('payment_id', $payment->id),
+            self::totals($inv)['overpaid_rp'] - $pending));
     }
 
     /** Rows that count: no approval needed, or approved by an owner. */
@@ -103,12 +133,16 @@ final class Ledger
         $lines = InvoiceLine::where('invoice_id', $inv->id)->orderBy('created_at')->get();
         $reviews = LineCorrection::where('invoice_id', $inv->id)->orderBy('created_at')->get();
         $bd = BillingDecision::where(fn ($q) => $q->whereIn('credit_note_id', $notes->pluck('id'))->orWhereIn('invoice_void_id', $voids->pluck('id'))
-            ->orWhereIn('invoice_line_id', $lines->pluck('id'))->orWhereIn('line_correction_id', $reviews->pluck('id')))->get();
+            ->orWhereIn('invoice_line_id', $lines->pluck('id'))->orWhereIn('line_correction_id', $reviews->pluck('id'))
+            ->orWhereIn('refund_id', InvoiceRefund::where('invoice_id', $inv->id)->select('id')))->get();
+        $refunds = InvoiceRefund::where('invoice_id', $inv->id)->orderBy('created_at')->get();
+        $live = $refunds->reject(fn ($r) => $bd->firstWhere('refund_id', $r->id)?->decision === 'rejected');
         $status = fn ($row, string $fk) => ! $row->requires_approval ? 'applied' : ($bd->firstWhere($fk, $row->id)->decision ?? 'pending');
         $billedProcs = $lines->pluck('procedure_id')->all();
         $noteOut = fn ($n) => [...$n->only(['id', 'number', 'invoice_line_id', 'procedure_correction_id', 'amount_rp', 'is_full', 'reason_type',
             'reason', 'created_by', 'created_at']), 'status' => $status($n, 'credit_note_id'),
-            'self_approved_sole_owner' => (bool) ($bd->firstWhere('credit_note_id', $n->id)?->self_approved_sole_owner)];
+            'self_approved_sole_owner' => (bool) ($bd->firstWhere('credit_note_id', $n->id)?->self_approved_sole_owner),
+            'refunded_rp' => (int) $live->where('credit_note_id', $n->id)->sum('amount_rp')]; // pending + approved
 
         return [...$inv->only(['id', 'visit_id', 'patient_id', 'payer_patient_id', 'branch_id', 'status', 'created_at']), ...self::totals($inv),
             'lines' => $lines->map(function ($l) use ($notes, $reviews, $bd, $status, $billedProcs) {
@@ -135,7 +169,12 @@ final class Ledger
                     'self_approved_sole_owner' => (bool) ($decisions[$a->id]->self_approved_sole_owner ?? false)]),
             'payments' => InvoicePayment::where('invoice_id', $inv->id)->orderBy('created_at')->get()->map(fn ($p) => [
                 ...$p->only(['id', 'payment_account_id', 'amount_rp', 'paid_at', 'created_by']),
-                'account' => $accounts[$p->payment_account_id]?->only(['name', 'kind', 'bank_name', 'account_last4'])])];
+                'refunded_rp' => (int) $live->where('payment_id', $p->id)->sum('amount_rp'), // pending + approved; the payment row never changes
+                'account' => $accounts[$p->payment_account_id]?->only(['name', 'kind', 'bank_name', 'account_last4'])]),
+            'refunds' => $refunds->map(fn ($r) => [...$r->only(['id', 'credit_note_id', 'payment_id', 'payment_account_id', 'method', 'amount_rp',
+                'reason', 'created_by', 'created_at']), 'status' => $bd->firstWhere('refund_id', $r->id)->decision ?? 'pending',
+                'decided_at' => $bd->firstWhere('refund_id', $r->id)?->created_at,
+                'self_approved_sole_owner' => (bool) ($bd->firstWhere('refund_id', $r->id)?->self_approved_sole_owner)])->values()];
     }
 
     /** A flagged line is handled by: a credit note for that correction, a line billed for the corrected procedure, or a cashier review. */

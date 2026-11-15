@@ -3,6 +3,7 @@
 use App\Modules\Billing\Http\Controllers\CreditNoteController;
 use App\Modules\Billing\Http\Controllers\InvoiceController;
 use App\Modules\Billing\Http\Controllers\PaymentAccountController;
+use App\Modules\Billing\Http\Controllers\RefundController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth:sanctum', '2fa', 'tenant'])->group(function () {
@@ -28,4 +29,8 @@ Route::middleware(['auth:sanctum', '2fa', 'tenant'])->group(function () {
     Route::post('/invoices/{id}/lines/from-correction/{correctionId}', [CreditNoteController::class, 'lineFromCorrection'])->middleware('perm:billing.adjust');
     Route::post('/line-corrections/{id}/review', [CreditNoteController::class, 'review'])->middleware('perm:billing.adjust');
     Route::post('/invoice-lines/{id}/approve-zero-tariff', [CreditNoteController::class, 'approveZeroTariff'])->middleware('perm:billing.approve_zero');
+    // unit C koreksi: refund to the original payment's clinic account, allocated to a credit note, owner approval (DEVIATIONS #57)
+    Route::post('/invoices/{id}/refunds', [RefundController::class, 'store'])->middleware('perm:billing.adjust');
+    Route::post('/refunds/{id}/approve', [RefundController::class, 'decide'])->defaults('decision', 'approved')->middleware('perm:billing.approve_reversal');
+    Route::post('/refunds/{id}/reject', [RefundController::class, 'decide'])->defaults('decision', 'rejected')->middleware('perm:billing.approve_reversal');
 });
