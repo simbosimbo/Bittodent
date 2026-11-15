@@ -29,3 +29,12 @@ test('arch: only that jaw, tight viewBox; campuran keeps the jaw’s primary row
   // Lower row sits at the top of its own SVG (no empty upper row above it).
   expect(low.querySelector('#t48')).toHaveAttribute('transform', 'translate(12,22)')
 })
+
+test('#70 phone (arch set): the centre surface is larger (28 of 44 units) than on desktop (20 of 44)', () => {
+  const centre = (el: HTMLElement) => Number(el.querySelector('#t26-O rect')!.getAttribute('width'))
+  const desk = render(<Odontogram marks={{}} />)
+  expect(centre(desk.container)).toBe(20)
+  desk.unmount()
+  const phone = render(<Odontogram marks={{}} arch="upper" />)
+  expect(centre(phone.container)).toBe(28)
+})
