@@ -14,5 +14,6 @@ final readonly class AgentCall
         public array $inputRefs = [],
         public ?string $patientId = null,
         public bool $crossBranch = false,   // D-027: reading another branch's data (audited)
+        public ?int $redactions = null,     // PII replacements made before sending (count only)
     ) {}
 }

@@ -45,6 +45,8 @@ final class AgentRunRecorder implements AgentRuns
             'model_id' => $model->modelId,
             'region' => $model->region,
             'prompt_version' => $call->promptVersion,
+            'generator' => 'llm',
+            'redactions' => $call->redactions,
             'input_refs' => self::refsOnly($call->inputRefs),
             'input_hash' => $call->request->sha256(),
             'outcome' => RunOutcome::Berjalan->value,
