@@ -23,7 +23,7 @@ class PermissionMatrixTest extends TestCase
             'dokter@senyum.test' => ['patient.read', 'patient.create', 'note.read', 'appointment.read', 'appointment.create', 'appointment.transition', 'appointment.confirm'],
             'asisten@senyum.test' => ['patient.read', 'note.read', 'appointment.read', 'appointment.transition'],
             'depan@senyum.test' => ['patient.read', 'patient.create', 'appointment.read', 'appointment.create', 'appointment.transition', 'billing.read', 'appointment.confirm'],
-            'kasir@senyum.test' => ['patient.read', 'appointment.read', 'billing.read'],
+            'kasir@senyum.test' => ['patient.read', 'patient.create', 'appointment.read', 'appointment.create', 'appointment.transition', 'billing.read', 'appointment.confirm'], // #67
         ];
         foreach ($allowed as $email => $perms) {
             foreach ($routes as $perm => $route) {

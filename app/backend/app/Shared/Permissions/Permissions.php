@@ -22,7 +22,10 @@ final class Permissions
             'procedure.confirm_external'],
         'front_desk' => ['patient.read', 'patient.create', 'appointment.read', 'appointment.create', 'appointment.transition', 'appointment.confirm',
             'patient.update', 'billing.read', 'billing.adjust', 'procedure.confirm_external'],
-        'kasir' => ['patient.read', 'appointment.read', 'billing.read', 'billing.adjust'],
+        // kasir = kasir + manajemen booking (DEVIATIONS #67): buat/konfirmasi/check-in/ubah jadwal janji dan daftarkan pasien baru.
+        // Tetap tanpa klinis (note.*, appointment.plan) dan tanpa patient.update / read_nik.
+        'kasir' => ['patient.read', 'patient.create', 'appointment.read', 'appointment.create', 'appointment.transition', 'appointment.confirm',
+            'billing.read', 'billing.adjust'],
     ];
 
     public const LABELS = [
