@@ -11,6 +11,7 @@ final class Permissions
             'appointment.transition', 'note.read', 'audit.read', 'correction.approve', 'patient.update', 'billing.read', 'billing.adjust', 'tariff.manage',
             'billing.approve_zero', // unit 4: approve a Rp0 / 100% discount; owner ONLY (not front desk, kasir, dentist)
             'billing.accounts', // unit 5: manage clinic payment accounts; owner ONLY
+            'settings.manage', // unit A koreksi: clinic settings (procedure correction window); owner ONLY
             'reporting.read'], // unit 6: clinic-wide integrity report per dentist + alerts; owner ONLY (D-039 dentist = own pay only)
         'dentist' => ['patient.read', 'patient.read_nik', 'patient.create', 'appointment.read', 'appointment.create',
             'appointment.transition', 'note.read', 'note.write', 'note.sign', 'patient.update', 'appointment.plan'],

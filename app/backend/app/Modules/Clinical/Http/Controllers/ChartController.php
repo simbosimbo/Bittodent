@@ -81,7 +81,9 @@ class ChartController extends Controller
             'drafts' => $cut ? [] : $findings->where('state', 'draft')->where('created_by', $me)->values()->map(self::finding(...)),
             // treatments: every current (final, not superseded, not a `superseded` marker) procedure, several per tooth allowed;
             // findings stay the visual layer
-            'procedures' => $history->reject(fn ($p) => $successor->has($p->id) || $p->status === ProcedureStatus::SUPERSEDED)->values()->map($proc),
+            // (`tidak_dikerjakan` = invalidated by a correction: history / as_of only, never drawn)
+            'procedures' => $history->reject(fn ($p) => $successor->has($p->id)
+                || in_array($p->status, [ProcedureStatus::SUPERSEDED, ProcedureStatus::NOT_DONE], true))->values()->map($proc),
             // every final row in force, oldest first; superseded_by: the row that replaced/corrected/moved it (as of the cut)
             'procedure_history' => $history->map(fn ($p) => $proc($p) + ['effective_at' => self::effectiveAt($p)->toIso8601String(),
                 'superseded_by' => $successor->get($p->id)?->id, 'change' => self::change($successor->get($p->id))]),

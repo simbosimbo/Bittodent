@@ -7,15 +7,20 @@ use App\Modules\Clinical\Domain\ProcedureCatalog;
 use App\Modules\Clinical\Domain\ProcedureLocation;
 use App\Modules\Clinical\Domain\ProcedureSite;
 use App\Modules\Clinical\Domain\ProcedureStatus;
+use App\Modules\Clinical\Events\ProcedureCorrected;
 use App\Modules\Clinical\Events\ProcedureRecorded;
 use App\Modules\Clinical\Http\Requests\ProcedureHistoryRequest;
 use App\Modules\Clinical\Http\Requests\ProcedureRequest;
+use App\Modules\Clinical\Models\ProcedureCorrection;
+use App\Modules\Clinical\Models\ProcedureCorrectionDecision;
 use App\Modules\Clinical\Models\ProcedureDefinition;
 use App\Modules\Clinical\Models\ProcedureRecord;
 use App\Modules\Clinical\Models\Visit;
+use App\Modules\Identity\Contracts\UserDirectory;
 use App\Modules\Tenancy\Contracts\DentistProfileDirectory;
 use App\Modules\Tenancy\Contracts\TenancyDirectory;
 use App\Shared\Audit\Audit;
+use App\Shared\Crypto\Crypto;
 use App\Shared\Http\Controller;
 use App\Shared\Tenancy\Ctx;
 use Carbon\CarbonImmutable;
@@ -158,15 +163,18 @@ class ProcedureController extends Controller
     }
 
     /**
-     * POST /api/procedures/{id}/corrections {reason, code/site/diagnosis/variant/provider/external fields}: dentist only (note.sign).
-     * New final row superseding the old one with the same status; the old row stays readable. Never bills: an already billed
-     * line stays on the old procedure (billing correction = Billing's job). Not hooked to correction_request yet (DEVIATIONS #49).
+     * POST /api/procedures/{id}/corrections {reason_type, reason, code/site/diagnosis/variant/provider/external fields}: dentist only
+     * (note.sign). DEVIATIONS #53. Always writes a procedure_correction. Within the tenant window (hours since the correction chain's
+     * finalized_at, see anchor()) it is applied at once: new final row superseding the old one (same status, or `tidak_dikerjakan`),
+     * 201 + the new row. Outside: 202 pending, the owner decides (decideCorrection). Never bills: the old invoice_line stays on the
+     * old procedure; ProcedureCorrected is for Billing (unit B). Genuine re-work is /replace, not this.
      */
     public function correct(ProcedureHistoryRequest $request, string $id, TenancyDirectory $tenancy)
     {
+        $d = $request->validated();
         $ctx = Ctx::current();
 
-        return DB::transaction(function () use ($request, $id, $ctx, $tenancy) {
+        return DB::transaction(function () use ($d, $id, $ctx, $tenancy) {
             $p = ProcedureRecord::lockForUpdate()->where('state', 'final')->findOrFail($id);
             if ($e = self::notCurrent($p)) {
                 return $e;
@@ -175,22 +183,146 @@ class ProcedureController extends Controller
             if (! $ctx->coversBranch($visit->branch_id)) {
                 return Audit::denied('branch:'.$visit->branch_id);
             }
-            $d = self::merged($request->validated(), $p);
-            $attrs = self::attributes($d, $visit, $tenancy, $p->id);
+            if ($p->status === ProcedureStatus::NOT_DONE) {
+                return response()->json(['error' => 'not_correctable', 'message' => 'Tindakan yang sudah dinyatakan tidak dikerjakan tidak bisa dikoreksi lagi.'], 409);
+            }
+            if ($d['reason_type'] === ProcedureStatus::NOT_DONE && $p->status !== ProcedureStatus::BILLABLE) {
+                return response()->json(['error' => 'not_done_requires_selesai', 'message' => 'Hanya tindakan berstatus selesai yang bisa dinyatakan tidak dikerjakan.'], 409);
+            }
+            if (ProcedureCorrection::where('procedure_id', $p->id)->whereDoesntHave('decision')->exists()) {
+                return response()->json(['error' => 'correction_pending', 'message' => 'Masih ada koreksi tindakan ini yang menunggu persetujuan pemilik.'], 409);
+            }
+            $proposed = $d['reason_type'] === ProcedureStatus::NOT_DONE ? null : array_diff_key($d, array_flip(['reason', 'reason_type']));
+            $attrs = self::correctedAttributes($p, $d['reason_type'], $proposed, $visit, $tenancy);
             if (! is_array($attrs)) {
                 return $attrs;
             }
-            if ($p->status === ProcedureStatus::EXTERNAL) { // already confirmed or never needed it: a correction does not re-open that
-                $attrs = [...$attrs, ...$p->only(['external_confirmation', 'external_confirmed_by', 'external_confirmed_at', 'external_confirmation_reason'])];
+            $hours = $tenancy->correctionWindowHours();
+            $within = now()->lessThanOrEqualTo(self::anchor($p)->addHours($hours));
+            $c = ProcedureCorrection::create(['procedure_id' => $p->id, 'reason_type' => $d['reason_type'], 'proposed' => $proposed,
+                'reason_enc' => Crypto::encrypt($d['reason']), 'requested_by' => $ctx->userId, 'within_window' => $within]);
+            Audit::log('koreksi_tindakan.diajukan', 'procedure_correction', $c->id, ['procedure_id' => $p->id, 'reason_type' => $c->reason_type,
+                'within_window' => $within, 'window_hours' => $hours]);
+            if (! $within) {
+                return response()->json(['approval' => 'pending', 'correction_id' => $c->id, 'window_hours' => $hours], 202);
             }
-            $new = ProcedureRecord::create([...$attrs, 'patient_id' => $p->patient_id, 'visit_id' => $p->visit_id, 'state' => 'final',
-                'source' => 'manual', 'supersedes_id' => $p->id, 'replaces_id' => $p->replaces_id, 'reason' => $d['reason'],
-                'created_by' => $ctx->userId, 'finalized_by' => $ctx->userId, 'finalized_at' => now()]);
-            Audit::log('koreksi_tindakan', 'procedure_record', $new->id, ['supersedes' => $p->id,
-                'fields' => array_values(array_filter(self::CORRECTABLE, fn ($c) => (string) $new->$c !== (string) $p->$c))]);
+            $new = self::applyCorrection($c, $p, $attrs, $d['reason']);
+            ProcedureCorrectionDecision::create(['correction_id' => $c->id, 'decision' => 'diterapkan', 'decided_by' => $ctx->userId,
+                'result_procedure_id' => $new->id]);
 
-            return response()->json(self::out($new), 201);
+            return response()->json(self::out($new) + ['approval' => 'not_needed', 'correction_id' => $c->id], 201);
         });
+    }
+
+    /**
+     * GET /api/procedure-corrections/pending: owner (correction.approve). Corrections waiting for a decision in the owner's branches,
+     * with the old row and the proposal. Read is audited (the reason may be clinical text).
+     */
+    public function pendingCorrections(UserDirectory $users)
+    {
+        $ctx = Ctx::current();
+        $rows = ProcedureCorrection::whereDoesntHave('decision')->orderBy('created_at')->orderBy('id')->get();
+        $procs = ProcedureRecord::whereIn('id', $rows->pluck('procedure_id'))->get()->keyBy('id');
+        $branch = Visit::whereIn('id', $procs->pluck('visit_id'))->pluck('branch_id', 'id');
+        $rows = $rows->filter(fn ($c) => $ctx->coversBranch($branch[$procs[$c->procedure_id]->visit_id]))->values();
+        $names = collect($users->namesByIds($rows->pluck('requested_by')->unique()->values()->all()))->pluck('name', 'id');
+        Audit::log('baca', 'procedure_correction', null, ['pending' => $rows->count()]);
+
+        return response()->json($rows->map(fn ($c) => ['id' => $c->id, 'reason_type' => $c->reason_type, 'reason' => $c->reason(),
+            'proposed' => $c->proposed, 'requested_by' => ['id' => $c->requested_by, 'name' => $names[$c->requested_by] ?? null],
+            'created_at' => $c->created_at, 'procedure' => self::out($procs[$c->procedure_id])]));
+    }
+
+    /**
+     * POST /api/procedure-corrections/{id}/approve|reject {reason?}: owner (correction.approve), once per pending correction.
+     * Approve re-checks the old row is still current and the proposal still valid (else 409/422, still pending), then applies it.
+     * Conflict of interest as unit 4: an owner who requested it or performed the work may approve only as sole active owner,
+     * flagged self_approved_sole_owner. Reject changes no procedure row.
+     */
+    public function decideCorrection(Request $request, string $id, string $decision, TenancyDirectory $tenancy)
+    {
+        $d = $request->validate(['reason' => ['nullable', 'string', 'max:500']]);
+        $me = Ctx::current()->userId;
+
+        return DB::transaction(function () use ($d, $id, $decision, $tenancy, $me) {
+            $c = ProcedureCorrection::findOrFail($id); // append-only (no UPDATE grant = no locking read); the procedure lock + unique decision serialize
+            $p = ProcedureRecord::lockForUpdate()->findOrFail($c->procedure_id);
+            $visit = Visit::lockForUpdate()->findOrFail($p->visit_id);
+            if (! Ctx::current()->coversBranch($visit->branch_id)) {
+                return Audit::denied('branch:'.$visit->branch_id);
+            }
+            if (ProcedureCorrectionDecision::where('correction_id', $c->id)->exists()) {
+                return response()->json(['error' => 'not_pending', 'message' => 'Koreksi ini sudah diputuskan.'], 409);
+            }
+            $new = null;
+            $self = false;
+            if ($decision === 'disetujui') {
+                if ($e = self::notCurrent($p)) {
+                    return $e;
+                }
+                $attrs = self::correctedAttributes($p, $c->reason_type, $c->proposed, $visit, $tenancy);
+                if (! is_array($attrs)) {
+                    return $attrs;
+                }
+                $self = in_array($me, [$c->requested_by, $p->provider_id, $attrs['provider_id']], true);
+                if ($self && array_diff($tenancy->activeUserIdsWithRole('owner'), [$me]) !== []) {
+                    Audit::log('koreksi_tindakan.konflik', 'procedure_correction', $c->id, ['procedure_id' => $p->id]);
+
+                    return response()->json(['error' => 'conflict_of_interest',
+                        'message' => 'Anda terlibat dalam tindakan atau koreksi ini. Persetujuan harus oleh pemilik lain.'], 403);
+                }
+                $new = self::applyCorrection($c, $p, $attrs, $c->reason(), $c->requested_by);
+            }
+            ProcedureCorrectionDecision::create(['correction_id' => $c->id, 'decision' => $decision, 'decided_by' => $me,
+                'reason' => $d['reason'] ?? null, 'result_procedure_id' => $new?->id, 'self_approved_sole_owner' => $self]);
+            Audit::log('koreksi_tindakan.'.$decision, 'procedure_correction', $c->id, ['procedure_id' => $p->id, 'reason_type' => $c->reason_type,
+                'result_procedure_id' => $new?->id, 'self_approved_sole_owner' => $self]);
+
+            return response()->json(['id' => $c->id, 'decision' => $decision, 'self_approved_sole_owner' => $self,
+                'procedure' => $new ? self::out($new) : null]);
+        });
+    }
+
+    /** Columns of the corrected row, or an error response. `tidak_dikerjakan` = copy of the old row with that status. */
+    private static function correctedAttributes(ProcedureRecord $p, string $type, ?array $proposed, Visit $visit, TenancyDirectory $tenancy): array|JsonResponse
+    {
+        if ($type === ProcedureStatus::NOT_DONE) {
+            return [...$p->only([...self::COPY, 'provider_id']), 'status' => ProcedureStatus::NOT_DONE];
+        }
+        $attrs = self::attributes(self::merged($proposed ?? [], $p), $visit, $tenancy, $p->id);
+        if (is_array($attrs) && $p->status === ProcedureStatus::EXTERNAL) { // already confirmed or never needed it: a correction does not re-open that
+            $attrs = [...$attrs, ...$p->only(['external_confirmation', 'external_confirmed_by', 'external_confirmed_at', 'external_confirmation_reason'])];
+        }
+
+        return $attrs;
+    }
+
+    /** New final row superseding $p (never billed: no recorded()), audit + ProcedureCorrected for Billing (unit B). */
+    private static function applyCorrection(ProcedureCorrection $c, ProcedureRecord $p, array $attrs, string $reason, ?string $author = null): ProcedureRecord
+    {
+        $ctx = Ctx::current();
+        $new = ProcedureRecord::create([...$attrs, 'patient_id' => $p->patient_id, 'visit_id' => $p->visit_id, 'state' => 'final',
+            'source' => 'manual', 'supersedes_id' => $p->id, 'replaces_id' => $p->replaces_id, 'reason' => $reason,
+            'created_by' => $author ?? $ctx->userId, 'finalized_by' => $ctx->userId, 'finalized_at' => now()]);
+        Audit::log('koreksi_tindakan.diterapkan', 'procedure_record', $new->id, ['supersedes' => $p->id, 'correction_id' => $c->id,
+            'reason_type' => $c->reason_type, 'fields' => array_values(array_filter([...self::CORRECTABLE, 'status'], fn ($f) => (string) $new->$f !== (string) $p->$f))]);
+        event(new ProcedureCorrected($ctx->tenant(), $c->id, $p->id, $new->id, $c->reason_type));
+
+        return $new;
+    }
+
+    /**
+     * Correction window anchor: finalized_at of the first row of $p's correction chain (walk back over rows written by a correction,
+     * i.e. with a reason and not a replace marker), so correcting a correction does not restart the window. A status change
+     * (e.g. direncanakan -> selesai) is a new act and starts its own window.
+     */
+    private static function anchor(ProcedureRecord $p): CarbonImmutable
+    {
+        while ($p->supersedes_id !== null && $p->reason !== null && $p->status !== ProcedureStatus::SUPERSEDED) {
+            $p = ProcedureRecord::findOrFail($p->supersedes_id);
+        }
+
+        return CarbonImmutable::parse($p->finalized_at ?? $p->created_at);
     }
 
     /** GET /api/procedures/pending-external: external entries of the active branch waiting for confirmation (front desk / assistant). */
