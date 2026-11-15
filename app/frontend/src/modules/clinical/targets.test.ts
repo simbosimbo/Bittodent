@@ -3,11 +3,16 @@ import { expect, test } from 'vitest'
 import { readFileSync } from 'node:fs'
 
 // #70 gloved hands (phone): the Selesai attestation checkbox itself is 48px, inside a 48px row; phone teeth are drawn wider.
-const css: string = readFileSync(new URL('clinical.css', import.meta.url), 'utf8')
+// vitest runs from app/frontend (jsdom's import.meta.url is not a file URL)
+const root: string = (globalThis as unknown as { process: { cwd(): string } }).process.cwd()
+const css: string = readFileSync(`${root}/src/modules/clinical/clinical.css`, 'utf8')
+const styles: string = readFileSync(`${root}/src/shared/ui/styles.css`, 'utf8')
 
-test('Selesai attestation checkbox is 48x48 on a phone', () => {
-  expect(css).toMatch(/\.dialog \.check input \{ width: 48px; height: 48px;/)
-  expect(css).toMatch(/\.dialog \.check \{ min-height: 48px;/)
+test('Selesai attestation: the whole row is a >=48px target with pressed/checked states; the 20px phone rule skips dialogs', () => {
+  expect(css).toMatch(/\.dialog \.check \{ min-height: 56px; width: 100%;/)
+  expect(css).toMatch(/\.dialog \.check:active \{/)
+  expect(css).toMatch(/\.dialog \.check:has\(input:checked\) \{/)
+  expect(styles).toMatch(/label\.check:not\(\.dialog \*\) input \{ width: 20px;/)
 })
 
 test('phone odontogram is wide enough for ~52px teeth', () => {

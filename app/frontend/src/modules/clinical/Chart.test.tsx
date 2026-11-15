@@ -631,6 +631,7 @@ test('Selesai offers "Lanjut ke tagihan" to billing readers; RM > Billing lists 
   fireEvent.click(within(dlg).getByRole('checkbox'))
   fireEvent.click(within(dlg).getByRole('button', { name: 'Selesai' }))
   expect(await screen.findByRole('link', { name: 'Lanjut ke tagihan' })).toHaveAttribute('href', '#/tagihan/v1')
+  expect(screen.getByRole('link', { name: 'Lanjut ke tagihan' })).toHaveClass('btn-primary') // review-2 P1: payment is the next step
 
   fireEvent.click(screen.getByRole('tab', { name: 'Billing' }))
   expect(screen.getByRole('heading', { name: 'Tagihan per kunjungan' })).toBeInTheDocument()

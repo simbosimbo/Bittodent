@@ -25,7 +25,9 @@ type LineForm = { line: InvoiceLine; mode: 'credit' | 'review'; amount: string; 
 // Unit B: Nota kredit per line, void (unpaid only), lines flagged by a clinical correction, Rp0 tariff anomaly. Discounts are not for fixing procedures.
 // Unit C: overpayment after a credit note ("kelebihan bayar") -> refund to the original payment account, owner approves.
 export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }) {
-  const [inv, setInv] = useState<Invoice | null>(null)
+  const [inv, setInvRaw] = useState<Invoice | null>(null)
+  // Mutation responses carry the ledger only: keep the patient's name (header + kwitansi "diterima dari …") and created_at.
+  const setInv = (i: Invoice) => setInvRaw((old) => ({ ...i, patient_name: i.patient_name ?? old?.patient_name, created_at: i.created_at ?? old?.created_at }))
   const [error, setError] = useState('')
   const [msg, setMsg] = useState('')
   const [form, setForm] = useState({ kind: 'discount', amount: '', reason: '' })
@@ -133,7 +135,7 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
           <h1 aria-label={inv.patient_name ? `Tagihan · ${inv.patient_name}` : 'Tagihan'}>{inv.patient_name ?? 'Tagihan'}</h1>
           <p className="inv-sum">
             <span className={`chip inv-chip inv-chip-${INV_CHIP[inv.status][1]}`}>{INV_CHIP[inv.status][0]}</span>
-            {inv.balance_rp > 0 ? <><span className="inv-big" aria-label={`Sisa ${rp(inv.balance_rp)}`}>{rp(inv.balance_rp)}</span>
+            {inv.balance_rp > 0 ? <><span className="muted">Sisa</span><span className="inv-big" aria-label={`Sisa ${rp(inv.balance_rp)}`}>{rp(inv.balance_rp)}</span>
               {inv.balance_rp !== inv.lines_rp && <span className="muted small">dari {rp(inv.lines_rp)}</span>}</>
               : <span className="inv-big" aria-label={`Total ${rp(inv.lines_rp)}`}>{rp(inv.lines_rp)}</span>}
           </p>

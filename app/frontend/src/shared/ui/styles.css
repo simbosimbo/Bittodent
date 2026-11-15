@@ -493,7 +493,7 @@ label.check input { min-height: 0; }
   input:where(:not([type='checkbox'], [type='radio'], [type='range'])), select, textarea { min-height: 44px; font-size: 16px; }
   label.check { min-height: 44px; }
   .picker-list button { min-height: 44px; align-items: center; }
-  label.check input { width: 20px; height: 20px; flex: none; }
+  label.check:not(.dialog *) input { width: 20px; height: 20px; flex: none; } /* the Selesai dialog row has its own 48px+ target (clinical.css) */
   /* Ribbon "Riwayat medis →" and back links: 44px tall target without making the ribbon taller. */
   .alert-link { display: inline-flex; align-items: center; min-height: 44px; margin-block: -14px; }
   .page-head a.small { display: inline-flex; align-items: center; min-height: 44px; }
