@@ -9,9 +9,12 @@ import { useScrollHints } from '../ui/scrollHint'
 import { useDialog } from '../ui/Sheet'
 import { useIsMobile } from '../useIsMobile'
 
-// Mobile bottom tabs: the first 4 of these the user may open, in order (no Rekam Medis -> Kasir: front desk / kasir);
-// every other nav item goes in the "Lainnya" sheet (with branch + Keluar).
+// Mobile bottom tabs: the first 4 of these the user may open, in order; every other nav item goes in the "Lainnya" sheet (with
+// branch + Keluar). Role-based: whoever takes payments but does not write the chart (kasir, front desk, pemilik) gets Kasir in
+// one tap instead of Rekam Medis (#71); dentists and assistants keep Rekam Medis.
 const TABS = ['/', '/jadwal', '/pasien', '/rekam-medis', '/kasir']
+const CASH_TABS = ['/', '/jadwal', '/pasien', '/kasir', '/rekam-medis']
+export const tabOrder = (perms: string[]) => perms.includes('billing.read') && !perms.includes('note.write') ? CASH_TABS : TABS
 export const SECTIONS = ['KLINIK', 'KLINIS', 'KEUANGAN'] as const
 
 // section = sidebar caption. group 'pasien' = screen of the active patient (href points at that patient; without one it leads to the patient list).
@@ -20,12 +23,8 @@ export type NavItem = { path: string; label: string; icon: string; section: type
 export const withActivePatientHref = <T extends NavItem>(nav: T[], patient: { id: string } | null): T[] =>
   nav.map((n) => n.group === 'pasien' ? { ...n, href: patient ? `${n.path}/${patient.id}` : '/pasien' } : n)
 
-// Prototype copy only, NOT real clinic addresses: /api/me has no address field. Unknown tenants get the branch name (never an invented street).
-const ADDRESSES: Record<string, string> = {
-  'Klinik Gigi Senyum Sehat': 'Jl. Tebet Raya No. 21, Jakarta Selatan',
-  'Klinik Gigi Ceria': 'Jl. Ir. H. Djuanda, Dago, Bandung',
-}
-export const clinicSubtitle = (me: Me) => ADDRESSES[me.active.tenant_name] ?? me.active.branch_name ?? ''
+// Clinic subtitle: the address from Pengaturan Klinik (/api/me active.address); the branch name until one is filled in.
+export const clinicSubtitle = (me: Me) => me.active.address || me.active.branch_name || ''
 
 // Top bar title: the nav label, except the patient area reads "Daftar Pasien" (and the new-patient form "Pasien Baru").
 export const pageTitle = (hash: string, active: NavItem | undefined) =>
@@ -73,7 +72,7 @@ export function Shell({ me, nav, active, title = '', ribbon, badges, onSwitchBra
     return () => ro.disconnect()
   }, [])
   const can = (p: string) => me.permissions.includes(p)
-  const tabs = TABS.flatMap((p) => nav.filter((n) => n.path === p)).slice(0, 4)
+  const tabs = tabOrder(me.permissions).flatMap((p) => nav.filter((n) => n.path === p)).slice(0, 4)
   const rest = nav.filter((n) => !tabs.includes(n))
   const role = me.roles.map((r) => ROLE_LABELS[r] ?? r).join(', ')
   const search = (e: FormEvent) => {

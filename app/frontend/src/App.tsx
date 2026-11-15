@@ -16,6 +16,7 @@ import { ChartPage, SettingsRmPage } from './modules/clinical'
 import { InvoicePage, KasirPage } from './modules/billing'
 import { ReportPage } from './modules/reporting'
 import { BookingPage, ManagePage } from './modules/booking'
+import { ClinicSettingsPage, SETTINGS_PERMS } from './modules/settings'
 
 const useHash = () => {
   const [hash, setHash] = useState(location.hash.slice(1) || '/')
@@ -39,6 +40,7 @@ export const NAV: (NavItem & { perm: string | null })[] = [
   { path: '/resep', label: 'Resep', perm: 'note.read', icon: ICONS.receipt, section: 'KLINIS' },
   { path: '/pengaturan-rm', label: 'Pengaturan RM', perm: 'note.sign|settings.manage', icon: ICONS.user, section: 'KLINIS' },
   { path: '/kasir', label: 'Kasir', perm: 'billing.read', icon: ICONS.card, section: 'KEUANGAN' },
+  { path: '/pengaturan-klinik', label: 'Pengaturan Klinik', perm: SETTINGS_PERMS, icon: ICONS.settings, section: 'KEUANGAN' },
   { path: '/laporan', label: 'Laporan', perm: 'reporting.read', icon: ICONS.chart, section: 'KEUANGAN' },
 ]
 
@@ -135,6 +137,7 @@ function StaffApp() {
   else if (hash === '/jadwal' && can('appointment.read')) page = <Schedule me={me} />
   else if (hash === '/kasir' && can('billing.read')) page = <KasirPage />
   else if (hash === '/laporan' && can('reporting.read')) page = <ReportPage />
+  else if (/^\/pengaturan-klinik(\/(harga|pembayaran))?$/.test(hash) && can(SETTINGS_PERMS)) page = <ClinicSettingsPage me={me} tab={hash.split('/')[2] ?? ''} onChanged={load} />
   else if (hash === '/pengaturan-rm' && can('note.sign|settings.manage')) page = <SettingsRmPage me={me} onChanged={load} />
   else if (soon) page = <ComingSoon title={soon.label} />
   else page = hash === '/' ? <Home me={me} /> : <ToHome />
