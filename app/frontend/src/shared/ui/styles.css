@@ -447,3 +447,7 @@ label.check input { min-height: 0; }
   .patient-head .avatar-lg { width: 40px; height: 40px; }
   .crumbs { display: none; } /* bottom nav + tabs cover it; saves header height */
 }
+/* Shared bottom sheet (shared/ui/Sheet.tsx): title + 44px "Tutup". */
+.sheet-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-2); }
+.sheet-head h2 { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.sheet-close { flex: none; min-height: 44px; }

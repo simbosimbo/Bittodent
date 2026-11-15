@@ -136,3 +136,86 @@ test('HP: hari kosong menampilkan pesan, grid tetap bisa diklik', async () => {
   fireEvent.click(container.querySelector('.sched-slot.clickable') as HTMLElement)
   expect(await screen.findByRole('dialog', { name: 'Buat Janji' })).toBeInTheDocument()
 })
+
+// ---- Mobile action sheet ----
+function mockOne(list: () => unknown[]) {
+  const posts: { url: string; body: any }[] = []
+  vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+    if (url === '/sanctum/csrf-cookie') { document.cookie = 'XSRF-TOKEN=abc'; return new Response(null, { status: 204 }) }
+    if (url.startsWith('/api/schedule')) return json(sched(list()))
+    if (url.startsWith('/api/planned-appointments')) return json({ data: [] })
+    if (init?.method === 'POST') { posts.push({ url, body: JSON.parse(init.body as string) }); return json({}) }
+    throw new Error('unexpected ' + url)
+  }))
+  return posts
+}
+const ME_CHART: Me = { ...ME, permissions: [...ME.permissions, 'note.read', 'note.write'] }
+
+test('desktop: kartu tetap punya tombol Check-in + Buka Rekam Medis inline, tanpa sheet', async () => {
+  viewport(1280)
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date('2030-01-07T01:00:00Z'))
+  mockOne(() => [appt('a2', 'booked', 'staff', 'Budi Contoh', '10:00')])
+  const { container } = render(<Schedule me={ME_CHART} />)
+  await screen.findByText('Budi Contoh')
+  const card = container.querySelector('div.appt-booked') as HTMLElement
+  expect(within(card).getByRole('button', { name: 'Check-in' })).toHaveClass('btn', 'btn-xs')
+  expect(within(card).getByRole('link', { name: 'Buka Rekam Medis' })).toHaveAttribute('href', '#/rekam-medis/p-a2/janji/a2')
+  expect(container.querySelector('button.appt')).toBeNull()
+})
+
+test('HP: ketuk kartu membuka sheet aksi; aksi memanggil transisi yang sama; Escape/Tutup menutup dan fokus kembali', async () => {
+  viewport(412)
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date('2030-01-07T01:00:00Z')) // 08:00 WIB
+  const posts = mockOne(() => [appt('a2', 'booked', 'staff', 'Budi Contoh', '10:00'), appt('a1', 'pending_confirmation', 'online', 'Sinta Contoh', '09:00')])
+  render(<Schedule me={ME_CHART} />)
+  const card = await screen.findByRole('button', { name: /Budi Contoh/ })
+  expect(within(card).queryByRole('button')).toBeNull() // card itself is the only control
+  expect(card).toHaveTextContent('Terjadwal')
+
+  card.focus()
+  fireEvent.click(card)
+  const dialog = screen.getByRole('dialog', { name: 'Budi Contoh' })
+  expect(dialog).toHaveAttribute('aria-modal', 'true')
+  expect(dialog.contains(document.activeElement)).toBe(true)
+  expect(document.body.style.overflow).toBe('hidden')
+  expect(within(dialog).getByRole('link', { name: 'Buka Rekam Medis' })).toHaveAttribute('href', '#/rekam-medis/p-a2/janji/a2')
+  fireEvent.keyDown(document, { key: 'Escape' })
+  expect(screen.queryByRole('dialog')).toBeNull()
+  expect(document.activeElement).toBe(card)
+  expect(document.body.style.overflow).toBe('')
+
+  fireEvent.click(card)
+  fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Check-in' }))
+  await vi.waitFor(() => expect(posts).toEqual([{ url: '/api/appointments/a2/transition', body: { to: 'checked_in' } }]))
+  expect(screen.queryByRole('dialog')).toBeNull()
+
+  // Online request: Konfirmasi / Tolak in the sheet, same transition as the "Perlu konfirmasi" list
+  fireEvent.click(screen.getByRole('button', { name: /Menunggu konfirmasi.*Sinta Contoh/ }))
+  const d2 = screen.getByRole('dialog', { name: 'Sinta Contoh' })
+  expect(within(d2).queryByRole('link', { name: 'Buka Rekam Medis' })).toBeNull()
+  fireEvent.click(within(d2).getByRole('button', { name: 'Konfirmasi' }))
+  await vi.waitFor(() => expect(posts[1]).toEqual({ url: '/api/appointments/a1/transition', body: { to: 'booked' } }))
+
+  fireEvent.click(card)
+  fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Tutup' }))
+  expect(screen.queryByRole('dialog')).toBeNull()
+})
+
+test('HP: Tab tetap di dalam sheet; klik latar menutup', async () => {
+  viewport(412)
+  mockOne(() => [appt('a2', 'booked', 'staff', 'Budi Contoh', '10:00')])
+  const { container } = render(<Schedule me={ME_CHART} />)
+  fireEvent.click(await screen.findByRole('button', { name: /Budi Contoh/ }))
+  const dialog = screen.getByRole('dialog')
+  const controls = [...dialog.querySelectorAll<HTMLElement>('a[href], button')]
+  expect(controls.length).toBeGreaterThan(1)
+  controls[controls.length - 1].focus()
+  fireEvent.keyDown(document, { key: 'Tab' })
+  expect(document.activeElement).toBe(controls[0])
+  fireEvent.keyDown(document, { key: 'Tab', shiftKey: true })
+  expect(document.activeElement).toBe(controls[controls.length - 1])
+  fireEvent.click(container.ownerDocument.querySelector('.sheet-backdrop') as HTMLElement)
+  expect(screen.queryByRole('dialog')).toBeNull()
+})

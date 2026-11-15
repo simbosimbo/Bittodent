@@ -3,6 +3,7 @@ import { ApiError, errorText } from '../../shared/api/http'
 import { fmtDate, fmtTime, todayWib } from '../../shared/format'
 import type { Me } from '../../shared/session'
 import { Icon, ICONS } from '../../shared/ui/Icon'
+import { Sheet } from '../../shared/ui/Sheet'
 import { useIsMobile } from '../../shared/useIsMobile'
 import { PatientPicker } from '../patients'
 import './scheduling.css'
@@ -64,6 +65,7 @@ export default function Schedule({ me }: { me: Me }) {
   const tz = data?.branch.timezone ?? 'Asia/Jakarta'
   const mobile = useIsMobile()
   const [chairPick, setChairPick] = useState<string | null>(null)
+  const [sheetId, setSheetId] = useState<string | null>(null) // mobile: tapped card -> action sheet
   const isToday = date === todayWib()
   const now = useNow(mobile && isToday)
   const shift = (days: number) => {
@@ -83,6 +85,18 @@ export default function Schedule({ me }: { me: Me }) {
         : e instanceof ApiError && e.status === 422 ? 'Status janji tidak bisa diubah.' : errorText(e))
     }
   }
+
+  // One action list for the desktop card buttons and the mobile action sheet (sheetOnly = not on the desktop card).
+  type Action = { label: string; run?: () => void; href?: string; primary?: boolean; sheetOnly?: boolean }
+  const actions = (a: Appointment): Action[] => ([
+    canMove && a.status === 'booked' && date === todayWib() && { label: 'Check-in', run: () => move(a, 'checked_in') },
+    canMove && a.status === 'in_treatment' && { label: 'Selesai', run: () => move(a, 'done') },
+    canChart && a.patient && !['cancelled', 'no_show', 'rejected', 'pending_confirmation'].includes(a.status) &&
+      { label: 'Buka Rekam Medis', href: `#/rekam-medis/${a.patient.id}${canVisit ? `/janji/${a.id}` : ''}` },
+    canConfirm && a.status === 'pending_confirmation' && a.source === 'online' && { label: 'Konfirmasi', run: () => move(a, 'booked'), primary: true, sheetOnly: true },
+    canConfirm && a.status === 'pending_confirmation' && a.source === 'online' && { label: 'Tolak', run: () => move(a, 'rejected'), sheetOnly: true },
+  ] as (Action | false | null | undefined)[]).filter((x): x is Action => !!x)
+  const sheetAppt = sheetId ? data?.chairs.flatMap((c) => c.appointments).find((a) => a.id === sheetId) : undefined
 
   if (!me.active.branch_id) return <div className="card state-card">Belum ada cabang aktif.</div>
   const count = data?.chairs.reduce((n, c) => n + c.appointments.length, 0) ?? 0
@@ -174,8 +188,20 @@ export default function Schedule({ me }: { me: Me }) {
                   {c.appointments.map((a) => {
                     const top = Math.max(0, minutesOfDay(a.starts_at, tz) - START)
                     const height = Math.max(STEP, (new Date(a.ends_at).getTime() - new Date(a.starts_at).getTime()) / 60000)
+                    const box = { top: (top / STEP) * ROW + 2, height: (height / STEP) * ROW - 4 }
+                    if (mobile) return (
+                      // Phone: time + name + status only; tapping opens the action sheet.
+                      <button key={a.id} type="button" className={`appt appt-${a.status}`} style={box} aria-haspopup="dialog" onClick={() => setSheetId(a.id)}>
+                        <span className="appt-top">
+                          <span className="appt-time">{fmtTime(a.starts_at, tz)}–{fmtTime(a.ends_at, tz)}</span>
+                          {a.source === 'online' && <span className="chip chip-online">Online</span>}
+                          <StatusChip status={a.status} />
+                        </span>
+                        <span className="appt-name">{a.patient?.name}</span>
+                      </button>
+                    )
                     return (
-                      <div key={a.id} className={`appt appt-${a.status}`} style={{ top: (top / STEP) * ROW + 2, height: (height / STEP) * ROW - 4 }}>
+                      <div key={a.id} className={`appt appt-${a.status}`} style={box}>
                         <div className="appt-top">
                           <span className="appt-time">{fmtTime(a.starts_at, tz)}–{fmtTime(a.ends_at, tz)}</span>
                           {a.source === 'online' && <span className="chip chip-online">Online</span>}
@@ -184,15 +210,9 @@ export default function Schedule({ me }: { me: Me }) {
                         <div className="appt-name">{a.patient?.name}</div>
                         <div className="appt-bottom">
                           <span className="appt-meta">{a.reason ?? a.dentist?.name}</span>
-                          {canMove && a.status === 'booked' && date === todayWib() && (
-                            <button className="btn btn-xs" onClick={() => move(a, 'checked_in')}>Check-in</button>
-                          )}
-                          {canMove && a.status === 'in_treatment' && (
-                            <button className="btn btn-xs" onClick={() => move(a, 'done')}>Selesai</button>
-                          )}
-                          {canChart && a.patient && !['cancelled', 'no_show', 'rejected', 'pending_confirmation'].includes(a.status) && (
-                            <a className="btn btn-xs" href={`#/rekam-medis/${a.patient.id}${canVisit ? `/janji/${a.id}` : ''}`}>Buka Rekam Medis</a>
-                          )}
+                          {actions(a).filter((x) => !x.sheetOnly).map((x) => x.href
+                            ? <a key={x.label} className="btn btn-xs" href={x.href}>{x.label}</a>
+                            : <button key={x.label} className="btn btn-xs" onClick={x.run}>{x.label}</button>)}
                         </div>
                       </div>
                     )
@@ -203,6 +223,22 @@ export default function Schedule({ me }: { me: Me }) {
           </div>
           </>
         )}
+      {mobile && sheetAppt && (
+        <Sheet title={sheetAppt.patient?.name ?? 'Janji'} onClose={() => setSheetId(null)} className="appt-sheet">
+          <p className="appt-sheet-meta">
+            <span>{fmtTime(sheetAppt.starts_at, tz)}–{fmtTime(sheetAppt.ends_at, tz)}</span>
+            {sheetAppt.source === 'online' && <span className="chip chip-online">Online</span>}
+            <StatusChip status={sheetAppt.status} />
+          </p>
+          {(sheetAppt.reason || sheetAppt.dentist) && <p className="muted">{[sheetAppt.reason, sheetAppt.dentist?.name].filter(Boolean).join(' · ')}</p>}
+          <div className="appt-sheet-actions">
+            {actions(sheetAppt).map((x) => x.href
+              ? <a key={x.label} className="btn" href={x.href} onClick={() => setSheetId(null)}>{x.label}</a>
+              : <button key={x.label} type="button" className={x.primary ? 'btn btn-primary' : 'btn'} onClick={() => { setSheetId(null); x.run?.() }}>{x.label}</button>)}
+            {actions(sheetAppt).length === 0 && <p className="muted">Tidak ada aksi untuk janji ini.</p>}
+          </div>
+        </Sheet>
+      )}
       {data && <PlannedList sched={data} date={date} canCreate={canCreate} onScheduled={reload} />}
       {dialog && data && (
         <BookDialog sched={data} date={date} me={me} initial={dialog} onClose={() => setDialog(null)} onSaved={() => { setDialog(null); reload() }} />
