@@ -12,7 +12,7 @@ const { default: KasirPage } = await import('./KasirPage')
 test('Kasir (#69): open invoices first with Bayar to their tagihan; today\'s paid ones open the kwitansi', async () => {
   list.mockResolvedValue({ date: '2026-11-15', branch_id: 'b1', invoices: [row('a', 'terbuka', 150000, 'Sari Contoh'), row('b', 'lunas', 0, 'Budi Contoh')] })
   render(<KasirPage />)
-  const open = await screen.findByRole('region', { name: 'Belum lunas (1)' })
+  const open = await screen.findByRole('region', { name: 'Belum bayar (1)' })
   expect(open).toHaveTextContent('Sari Contoh')
   expect(open).toHaveTextContent('Sisa Rp150.000')
   expect(within(open).getByRole('link', { name: 'Bayar' })).toHaveAttribute('href', '#/tagihan/v-a')

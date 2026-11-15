@@ -42,7 +42,7 @@ export default function KasirPage() {
         <button className="btn" onClick={load}>Muat ulang</button>
       </div>
       <section className="card" aria-labelledby="kasir-open">
-        <h2 id="kasir-open">Belum lunas ({open.length})</h2>
+        <h2 id="kasir-open">Belum bayar ({open.length})</h2>
         {open.length ? <ul className="kasir-list">{open.map((r) => <Row key={r.id} r={r} />)}</ul>
           : <p className="muted">Tidak ada tagihan terbuka. Tagihan muncul setelah dokter menekan Selesai pada kunjungan yang punya tindakan.</p>}
       </section>

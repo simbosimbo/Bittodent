@@ -526,3 +526,12 @@ label.check input { min-height: 0; }
 @media (max-width: 720px) {
   .btn-primary:not(.btn-xs) { min-height: 48px; }
 }
+
+/* #70 status chips use the status tokens (colour + the chip's text label; border keeps them apart in grey-scale too). */
+.chip-booked { background: var(--status-booked-bg); color: var(--status-booked-fg); box-shadow: inset 0 0 0 1px var(--status-booked-border); }
+.chip-checked_in { background: var(--status-wait-bg); color: var(--status-wait-fg); box-shadow: inset 0 0 0 1px var(--status-wait-border); }
+.chip-in_treatment { background: var(--status-treat-bg); color: var(--status-treat-fg); box-shadow: inset 0 0 0 1px var(--status-treat-border); }
+.chip-done { background: var(--status-done-bg); color: var(--status-done-fg); box-shadow: inset 0 0 0 1px var(--status-done-border); }
+.chip-pending_confirmation { background: var(--status-confirm-bg); color: var(--status-confirm-fg); box-shadow: inset 0 0 0 1px var(--status-confirm-border); }
+.chip-urgent { background: var(--status-confirm-bg); color: var(--status-confirm-fg); box-shadow: inset 0 0 0 2px var(--status-confirm-fg); }
+.chip-unpaid { background: var(--status-unpaid-bg); color: var(--status-unpaid-fg); box-shadow: inset 0 0 0 1px var(--status-unpaid-border); }

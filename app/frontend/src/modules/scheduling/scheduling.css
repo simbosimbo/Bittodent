@@ -72,7 +72,6 @@ a.tl-block:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px
 }
 /* Online booking: source badge + confirm/reject on pending requests */
 .chip-online { background: var(--accent-50); color: var(--accent-600); }
-.chip-pending_confirmation { background: var(--warn-50); color: var(--warn); }
 .chip-rejected { background: var(--danger-50); color: var(--danger); }
 .appt-pending_confirmation { border-style: dashed; border-color: var(--warn); }
 .appt-rejected { background: #f6f6f6; border-color: #c9c9c9; opacity: 0.75; }
@@ -211,7 +210,6 @@ a.tl-block:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px
   .agenda-meta { font-size: var(--font-size-base); color: var(--muted); overflow-wrap: anywhere; }
   .agenda-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
   .agenda-chips .chip { font-size: 13px; padding: 3px 10px; }
-  .chip-unpaid { background: var(--warn-50); color: var(--warn); }
   .agenda-more { flex: none; align-self: center; color: var(--muted); }
   .agenda-cta { flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 48px; padding: 0 var(--space-4); border-radius: 12px; white-space: nowrap; font-weight: 600; }
   .agenda-cta-outline { background: var(--surface); border-color: var(--color-primary-200); color: var(--color-primary-700); }
