@@ -2,13 +2,17 @@
 
 namespace App\Modules\Tariffs\Http\Controllers;
 
+use App\Modules\Tariffs\Domain\Derivation;
 use App\Modules\Tariffs\Models\Tariff;
 use App\Modules\Tariffs\Models\TariffRate;
 use App\Modules\Tenancy\Contracts\TenancyDirectory;
 use App\Shared\Audit\Audit;
 use App\Shared\Dentist\Specialty;
 use App\Shared\Http\Controller;
+use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
@@ -31,20 +35,106 @@ class TariffController extends Controller
 
         return DB::transaction(function () use ($d, $id) {
             $code = Tariff::findOrFail($id)->procedure_code;
-            $rows = Tariff::where('procedure_code', $code)->lockForUpdate()->get();
-            $latest = $rows->sortByDesc('valid_from')->first();
-            // shortcut: one version per day per procedure (a same-day fix needs the next day), revisit if owners need same-day edits.
-            if ($latest->valid_from->toDateString() >= $d['valid_from']) {
-                return response()->json(['error' => 'not_after_current', 'message' => 'Versi baru harus berlaku setelah versi terakhir.'], 409);
+            $new = $this->versionLevels($code, $d['valid_from'], $d['levels']);
+            if ($new instanceof JsonResponse) {
+                return $new;
             }
-            Tariff::where('procedure_code', $code)->whereNull('valid_to')->update(['valid_to' => $d['valid_from']]);
-            $new = collect($d['levels'])->values()->map(fn ($l, $i) => Tariff::create(['procedure_code' => $code, 'name' => $latest->name,
-                'variant' => $l['code'], 'level_label' => $l['label'], 'level_rank' => $i + 1, 'price_rp' => $l['price_rp'], 'valid_from' => $d['valid_from']]));
             Audit::log('tarif_diubah', 'tariff', $new[0]->id, ['procedure_code' => $code, 'valid_from' => $d['valid_from'], 'levels' => $new->count()]);
 
             return response()->json(['procedure_code' => $code, 'valid_from' => $d['valid_from'],
                 'levels' => $new->map->only(['id', 'variant', 'level_label', 'level_rank', 'price_rp'])->all()]);
         });
+    }
+
+    /**
+     * POST /api/tariffs/bulk {target: umum|specialist|field, field?, category?, procedure_codes?, kind, value, rounding, valid_from, dry_run}
+     * Manual helper, NOT a derivation rule: adds % or Rp to the EXISTING open prices of one band (Umum rows, or explicit Spesialis /
+     * one bidang cells), optionally narrowed to a category and/or a procedure list. Never creates cells. Applies as new versions exactly
+     * like levels()/rate() (Umum keeps the same level set; only price_rp changes). All-or-nothing: one conflict = 409, nothing written.
+     */
+    public function bulk(Request $request)
+    {
+        $d = $request->validate([
+            'target' => ['required', Rule::in(['umum', 'specialist', 'field'])],
+            'field' => ['nullable', 'required_if:target,field', 'prohibited_unless:target,field', Rule::in(array_keys(Specialty::FIELDS))],
+            'category' => ['nullable', 'regex:/^[a-z0-9_]{1,30}$/'],
+            'procedure_codes' => ['nullable', 'array', 'min:1', 'max:500'],
+            'procedure_codes.*' => ['string', 'max:10', 'distinct'],
+            'kind' => ['required', Rule::in(Derivation::KINDS)],
+            'value' => ['required', 'integer', $request->input('kind') === 'percent' ? 'between:-100,1000' : 'between:-1000000000,1000000000'],
+            'rounding' => ['required', Rule::in(array_keys(Derivation::ROUNDING))],
+            'valid_from' => ['required', 'date_format:Y-m-d', 'after_or_equal:today'],
+            'dry_run' => ['required', 'boolean'],
+        ]);
+        $scope = array_intersect_key($d, array_flip(['target', 'field', 'category', 'kind', 'value', 'rounding', 'valid_from']));
+
+        return DB::transaction(function () use ($d, $scope) {
+            $umum = Tariff::whereNull('valid_to')->when($d['category'] ?? null, fn ($q, $c) => $q->where('category', $c))
+                ->when($d['procedure_codes'] ?? null, fn ($q, $c) => $q->whereIn('procedure_code', $c))
+                ->orderBy('procedure_code')->orderBy('level_rank')->lockForUpdate()->get();
+            $items = $d['target'] === 'umum' ? $umum : TariffRate::whereNull('valid_to')->where('band', $d['target'])
+                ->when($d['field'] ?? null, fn ($q, $f) => $q->where('field', $f))
+                ->whereIn('procedure_code', $umum->pluck('procedure_code')->unique())->orderBy('procedure_code')->orderBy('variant')->get();
+            if ($items->contains(fn ($r) => Derivation::negative($r->price_rp, $d['kind'], $d['value']))) {
+                return response()->json(['error' => 'negative_result', 'message' => 'Perubahan ini membuat harga di bawah 0.'], 422);
+            }
+            $rows = $items->map(fn ($r) => ['procedure_code' => $r->procedure_code, 'variant' => $r->variant, 'band' => $d['target'],
+                'field' => $r->field ?? null, 'old_rp' => $r->price_rp, 'new_rp' => Derivation::apply($r->price_rp, $d['kind'], $d['value'], $d['rounding'])]);
+            if (! $d['dry_run']) {
+                if ($rows->isEmpty()) {
+                    return response()->json(['error' => 'no_rows', 'message' => 'Tidak ada harga yang cocok.'], 422);
+                }
+                $fail = fn ($res) => $res instanceof JsonResponse ? throw new HttpResponseException($res) : $res; // rolls back the whole bulk
+                if ($d['target'] === 'umum') {
+                    $umum->groupBy('procedure_code')->each(fn ($g, $code) => $fail($this->versionLevels($code, $d['valid_from'], $g->map(fn ($t) => [
+                        'code' => $t->variant, 'label' => $t->level_label, 'price_rp' => Derivation::apply($t->price_rp, $d['kind'], $d['value'], $d['rounding'])])->all())));
+                } else {
+                    $items->each(fn ($c, $i) => $fail($this->writeCell($c->only(['procedure_code', 'variant', 'band', 'field', 'dentist_id']),
+                        $rows[$i]['new_rp'], $d['valid_from'])));
+                }
+                Audit::log('tarif_massal_diubah', 'tariff', null, $scope + ['count' => $rows->count()]);
+            }
+
+            return response()->json(['dry_run' => (bool) $d['dry_run'], 'valid_from' => $d['valid_from'], 'count' => $rows->count(), 'rows' => $rows->values()]);
+        });
+    }
+
+    /** PUT /api/tariffs/category {procedure_code, category|null} (owner): clinic-defined grouping slug, not an official classification. */
+    public function category(Request $request)
+    {
+        $d = $request->validate(['procedure_code' => ['required', 'string', 'max:10'], 'category' => ['present', 'nullable', 'regex:/^[a-z0-9_]{1,30}$/']]);
+
+        return DB::transaction(function () use ($d) {
+            $rows = Tariff::where('procedure_code', $d['procedure_code'])->lockForUpdate()->get();
+            abort_if($rows->isEmpty(), 404);
+            $old = $rows->sortByDesc('valid_from')->first()->category;
+            // Metadata, not a price: set on every version so rules match by code regardless of date.
+            Tariff::where('procedure_code', $d['procedure_code'])->update(['category' => $d['category']]);
+            Audit::log('tarif_kategori_diubah', 'tariff', $rows->first()->id, ['procedure_code' => $d['procedure_code'], 'old' => $old, 'category' => $d['category']]);
+
+            return response()->json(['procedure_code' => $d['procedure_code'], 'category' => $d['category']]);
+        });
+    }
+
+    /** New version of one procedure's level set (caller holds the transaction). @param list<array{code, label, price_rp}> $levels */
+    private function versionLevels(string $code, string $validFrom, array $levels): Collection|JsonResponse
+    {
+        $rows = Tariff::where('procedure_code', $code)->lockForUpdate()->get();
+        $latest = $rows->sortByDesc('valid_from')->first();
+        // shortcut: one version per day per procedure (a same-day fix needs the next day), revisit if owners need same-day edits.
+        if ($latest->valid_from->toDateString() >= $validFrom) {
+            return $this->notAfterCurrent();
+        }
+        Tariff::where('procedure_code', $code)->whereNull('valid_to')->update(['valid_to' => $validFrom]);
+
+        return collect($levels)->values()->map(fn ($l, $i) => Tariff::create(['procedure_code' => $code, 'name' => $latest->name,
+            'category' => $latest->category, 'variant' => $l['code'], 'level_label' => $l['label'], 'level_rank' => $i + 1,
+            'price_rp' => $l['price_rp'], 'valid_from' => $validFrom]));
+    }
+
+    private function notAfterCurrent(): JsonResponse
+    {
+        return response()->json(['error' => 'not_after_current', 'message' => 'Versi baru harus berlaku setelah versi terakhir.'], 409);
     }
 
     /**
@@ -76,20 +166,31 @@ class TariffController extends Controller
             if ($key['dentist_id'] !== null && ! $tenancy->lockActiveDentist($key['dentist_id'])) {
                 abort(404);
             }
-            $rows = TariffRate::where($key)->get();
-            if ($rows->contains(fn ($r) => $r->valid_from->toDateString() >= $d['valid_from'])) {
-                return response()->json(['error' => 'not_after_current', 'message' => 'Versi baru harus berlaku setelah versi terakhir.'], 409);
+            $res = $this->writeCell($key, $d['price_rp'], $d['valid_from']);
+            if ($res instanceof JsonResponse) {
+                return $res;
             }
-            $open = $rows->firstWhere('valid_to', null);
-            if ($open === null && $d['price_rp'] === null) {
-                return response()->json(['error' => 'no_rate', 'message' => 'Tidak ada harga untuk dikosongkan.'], 404);
-            }
-            $open?->update(['valid_to' => $d['valid_from']]);
-            $new = $d['price_rp'] === null ? null : TariffRate::create($key + ['price_rp' => $d['price_rp'], 'valid_from' => $d['valid_from']]);
+            [$open, $new] = $res;
             Audit::log($key['band'] === 'dentist' ? 'tarif_override_diubah' : 'tarif_tingkat_diubah', 'tariff_rate', $new?->id ?? $open->id,
                 $key + ['closed_id' => $open?->id, 'old_price_rp' => $open?->price_rp, 'price_rp' => $d['price_rp'], 'valid_from' => $d['valid_from']]);
 
             return response()->json($key + ['id' => $new?->id, 'price_rp' => $d['price_rp'], 'valid_from' => $d['valid_from']]);
         });
+    }
+
+    /** Close the open cell for $key and add a new version (or just close it when $price is null). Caller holds the per-code lock. */
+    private function writeCell(array $key, ?int $price, string $validFrom): array|JsonResponse
+    {
+        $rows = TariffRate::where($key)->get();
+        if ($rows->contains(fn ($r) => $r->valid_from->toDateString() >= $validFrom)) {
+            return $this->notAfterCurrent();
+        }
+        $open = $rows->firstWhere('valid_to', null);
+        if ($open === null && $price === null) {
+            return response()->json(['error' => 'no_rate', 'message' => 'Tidak ada harga untuk dikosongkan.'], 404);
+        }
+        $open?->update(['valid_to' => $validFrom]);
+
+        return [$open, $price === null ? null : TariffRate::create($key + ['price_rp' => $price, 'valid_from' => $validFrom])];
     }
 }
