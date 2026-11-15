@@ -13,7 +13,7 @@ return [
     'Intake' => ['Patients'], // pushes medical alerts via Patients\Contracts\MedicalAlerts
     'Queue' => ['Scheduling'],
     'Prescriptions' => ['Patients', 'Clinical'],
-    'Tariffs' => [],
+    'Tariffs' => ['Tenancy'], // per-dentist price cells: dentist_id must be an active dentist of this tenant
     // Invoice lines are generated from Clinical procedures with a Tariffs price snapshot. Clinical never depends on Billing/Tariffs.
     'Billing' => ['Clinical', 'Tariffs', 'Patients'], // C3: payer = guarantor via Patients\Contracts\PatientDirectory
     'Compensation' => ['Billing', 'Identity'], // reads finalized revenue via Billing\Contracts only

@@ -27,6 +27,7 @@ use App\Modules\Scheduling\Models\PlannedAppointment;
 use App\Modules\Tariffs\Domain\DifficultyTemplate;
 use App\Modules\Tariffs\Models\Tariff;
 use App\Modules\Tenancy\Models\Branch;
+use App\Modules\Tenancy\Models\DentistProfile;
 use App\Modules\Tenancy\Models\Membership;
 use App\Modules\Tenancy\Models\Tenant;
 use App\Shared\Crypto\Crypto;
@@ -74,6 +75,7 @@ class DatabaseSeeder extends Seeder
             $b2 = $this->branch('Senyum Sehat Rawamangun (Jakarta)', ['Kursi 1', 'Kursi 2']);
             $this->member($users['pemilik@senyum.test'], 'owner');
             $this->member($users['dokter@senyum.test'], 'dentist');
+            DentistProfile::create(['user_id' => $users['dokter@senyum.test']->id, 'category' => 'general']);
             $this->member($users['asisten@senyum.test'], 'assistant', $b1->id);
             $this->member($users['depan@senyum.test'], 'front_desk', $b1->id);
             $this->member($users['kasir@senyum.test'], 'kasir', $b1->id);
@@ -87,6 +89,7 @@ class DatabaseSeeder extends Seeder
             $b1 = $this->branch('Ceria Dago (Bandung)', ['Kursi A', 'Kursi B']);
             $this->member($users['dokter@ceria.test'], 'owner');
             $this->member($users['dokter@ceria.test'], 'dentist');
+            DentistProfile::create(['user_id' => $users['dokter@ceria.test']->id, 'category' => 'general']);
             $this->member($users['kasir@ceria.test'], 'kasir', $b1->id);
             $patients = $this->patients(40, 2, [$b1->id]);
             $this->appointments([$b1], $users['dokter@ceria.test'], $patients);
