@@ -64,6 +64,10 @@ ICONS: dict[str, str] = {
     "spark": (
         '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/>'
     ),
+    "quote": (
+        '<path d="M3 10a5 5 0 0 1 5-5M3 10v4a3 3 0 0 0 3 3h1v-5H4a5 5 0 0 1-1-2z"/>'
+        '<path d="M15 10a5 5 0 0 1 5-5M15 10v4a3 3 0 0 0 3 3h1v-5h-3a5 5 0 0 1-1-2z"/>'
+    ),
     "settings": (
         '<circle cx="12" cy="12" r="3"/>'
         '<path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>'
@@ -180,9 +184,10 @@ h1.page{font-size:28px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px;colo
   background:#FFFAEB;color:#B54708;border:1px solid #F5C14A;font-size:10px;font-weight:700;letter-spacing:.04em}
 .chip{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;
   font-size:11px;font-weight:700;letter-spacing:.01em;white-space:nowrap}
-.st-draf{background:#FFF6E5;color:#9A6700}
+.st-draf{background:#FFF6E5;color:#7A5200}
 .st-ai{background:var(--color-appointment-checkin-bg);color:var(--color-appointment-checkin-fg)}
 .st-ok{background:var(--color-appointment-selesai-bg);color:var(--color-appointment-selesai-fg)}
+.st-tolak{background:var(--color-danger-bg);color:var(--color-danger-fg)}
 .st-warn{background:var(--color-warning-bg);color:var(--color-warning-fg)}
 .st-info{background:var(--color-info-bg);color:var(--color-info-fg)}
 .st-mute{background:var(--color-neutral-100);color:var(--color-neutral-600)}
@@ -267,11 +272,38 @@ h1.page{font-size:28px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px;colo
 .icode{display:flex;gap:10px;align-items:flex-start;padding:12px;border:1px solid var(--color-neutral-200);
   border-radius:14px;background:var(--color-neutral-0)}
 .icode.on{border-color:var(--color-primary-300);background:var(--color-primary-50);box-shadow:0 0 0 2px var(--color-primary-100)}
-.icode .code{font-size:14px;font-weight:800;color:var(--color-neutral-900);font-variant-numeric:tabular-nums}
-.icode .nm{font-size:13px;font-weight:600;color:var(--color-neutral-800)}
+.icode .code,.aitem .code{font-size:14px;font-weight:800;color:var(--color-neutral-900);font-variant-numeric:tabular-nums}
+.icode .nm,.aitem .nm{font-size:13px;font-weight:600;color:var(--color-neutral-800)}
 .checkb{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--color-neutral-300);flex:none;margin-top:2px;
   display:grid;place-items:center;color:#fff}
 .icode.on .checkb{background:var(--color-primary-700);border-color:var(--color-primary-700)}
+
+.aitem{border:1px solid var(--color-neutral-200);border-radius:14px;padding:12px;background:var(--color-neutral-0);
+  display:flex;flex-direction:column;gap:8px;border-left-width:4px;border-left-color:var(--color-neutral-300)}
+.aitem.st-draf{border-left-color:#7A5200}
+.aitem.st-ok{border-left-color:var(--color-appointment-selesai-fg)}
+.aitem.st-tolak{border-left-color:var(--color-danger-fg)}
+.aitem-top{display:flex;align-items:flex-start;gap:8px}
+.aitem-top .grow{flex:1;min-width:0}
+.iacts{display:flex;gap:8px}
+.iacts .btn{flex:1;padding:0 12px}
+.cite{display:inline-flex;align-items:center;justify-content:center;gap:4px;min-height:44px;min-width:44px;
+  padding:0 10px;border-radius:999px;border:1px solid var(--color-primary-200);background:var(--color-neutral-0);
+  color:var(--color-primary-800);font-size:12px;font-weight:700;flex:none}
+.cite.on{background:var(--color-primary-50);border-color:var(--color-primary-400);
+  box-shadow:0 0 0 2px var(--color-primary-100)}
+.cite .ic-sm{width:14px;height:14px}
+.pop{background:var(--color-neutral-0);border:1px solid var(--color-neutral-200);border-radius:16px;
+  box-shadow:0 8px 24px rgba(22,33,43,.12);padding:12px 14px}
+.pop .src{font-size:13px;font-weight:500;line-height:1.5;color:var(--color-neutral-700)}
+.hl{background:var(--color-primary-100);color:var(--color-primary-900);font-weight:700;padding:0 3px;border-radius:4px}
+.note .hl{font-weight:700}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:4;background:var(--color-neutral-0);
+  border-top:1px solid var(--color-neutral-200);border-radius:20px 20px 0 0;
+  box-shadow:0 -8px 24px rgba(22,33,43,.12);padding:8px 16px 20px}
+.sheet .grab{width:36px;height:4px;border-radius:999px;background:var(--color-neutral-300);margin:4px auto 12px}
+.sheet h3{margin:0 0 8px;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.sheet .src{font-size:13px;font-weight:500;line-height:1.5;color:var(--color-neutral-700)}
 
 .phrase{display:inline-flex;align-items:center;min-height:44px;padding:0 12px;border-radius:999px;
   border:1px solid var(--color-primary-200);background:var(--color-neutral-0);color:var(--color-primary-800);
@@ -410,6 +442,7 @@ def phone(
     back: bool = True,
     mic: bool = False,
     pad_bottom: int | None = None,
+    overlay: str = "",
 ) -> str:
     left = (
         f'<button class="icon-btn" type="button" aria-label="Kembali">{ico("chevron-left")}</button>'
@@ -430,6 +463,7 @@ def phone(
         {mic_btn}<button class="icon-btn" type="button" aria-label="Lainnya">{ico("more")}</button></header>
       <div class="ph-body" style="padding-bottom:{pb}px">{inner}</div>
       {bnav(nav)}
+      {overlay}
     </div>"""
 
 
@@ -460,63 +494,121 @@ def odonto(active: str = "26") -> str:
     </div>"""
 
 
-def icd_row(code: str, name: str, src: str, selected: bool = False, kind: str = "ICD-10") -> str:
-    on = " on" if selected else ""
-    mark = ico("check", "ic-sm") if selected else ""
+def hl(text: str) -> str:
+    return f'<mark class="hl">{text}</mark>'
+
+
+def cite_btn(label: str, on: bool = False) -> str:
+    cls = "cite on" if on else "cite"
+    return (
+        f'<button class="{cls}" type="button" aria-label="Sitasi {label}">'
+        f'{ico("quote", "ic-sm")}{label}</button>'
+    )
+
+
+def ai_item(
+    title: str,
+    subtitle: str,
+    status: str,
+    cite: str | None = None,
+    cite_on: bool = False,
+    popover: str = "",
+    kind: str = "",
+) -> str:
+    lab, kind_st = {
+        "draf": ("Draf", "draf"),
+        "ok": ("Disetujui", "ok"),
+        "tolak": ("Ditolak", "tolak"),
+    }[status]
+    acts = ""
+    if status == "draf":
+        acts = f'<div class="iacts">{btn("Tolak", "ghost")}{btn("Setujui", "pri", "check")}</div>'
+    cite_h = cite_btn(cite, cite_on) if cite else ""
+    pop = ""
+    if popover:
+        pop = (
+            '<div class="pop" role="dialog" aria-label="Kalimat sumber">'
+            f'<div class="kicker">Sumber</div><div class="src">{popover}</div></div>'
+        )
+    k = f' <span class="mu">{kind}</span>' if kind else ""
     return f"""
-    <div class="icode{on}">
-      <span class="checkb">{mark}</span>
-      <div>
-        <div class="code">{code} <span class="mu">{kind}</span></div>
-        <div class="nm">{name}</div>
-        <div class="mu">{src}</div>
+    <div class="aitem st-{kind_st}">
+      <div class="aitem-top">
+        <div class="code grow">{title}{k}</div>
+        {chip(lab, kind_st)}
+        {cite_h}
       </div>
+      <div class="nm">{subtitle}</div>
+      {acts}
+      {pop}
     </div>"""
 
 
-def soap_block() -> str:
-    return """
+def soap_block(highlight: str | None = "P") -> str:
+    s = "Nyeri gigit di rahang kiri atas sejak 3 hari. Tidak ada pembengkakan. Tidak alergi obat."
+    o = "Gigi 26 karies dentin permukaan O dan M. Gingiva sekitar sedikit meradang. Uji perkusi positif ringan."
+    a = "Karies dentin 26. Gingivitis ringan setempat."
+    p = "Restorasi komposit 26. Edukasi kebersihan. Kontrol 7 hari."
+    if highlight == "A":
+        a = a.replace("Karies dentin 26.", hl("Karies dentin 26."))
+    elif highlight == "O":
+        o = o.replace(
+            "Gigi 26 karies dentin permukaan O dan M.",
+            hl("Gigi 26 karies dentin permukaan O dan M."),
+        )
+    elif highlight == "P":
+        p = p.replace("Restorasi komposit 26.", hl("Restorasi komposit 26."))
+    return f"""
     <article class="card">
       <h3>SOAP hari ini</h3>
       <div class="field"><span class="lab">S</span>
-        <div class="note">Nyeri gigit di rahang kiri atas sejak 3 hari. Tidak ada pembengkakan. Tidak alergi obat.</div></div>
+        <div class="note">{s}</div></div>
       <div class="field"><span class="lab">O</span>
-        <div class="note">Gigi 26 karies dentin permukaan O dan M. Gingiva sekitar sedikit meradang. Uji perkusi positif ringan.</div></div>
+        <div class="note">{o}</div></div>
       <div class="field"><span class="lab">A</span>
-        <div class="note">Karies dentin 26. Gingivitis ringan setempat.</div></div>
+        <div class="note">{a}</div></div>
       <div class="field"><span class="lab">P</span>
-        <div class="note">Restorasi komposit 26. Edukasi kebersihan. Kontrol 7 hari.</div></div>
+        <div class="note">{p}</div></div>
     </article>"""
 
 
 # ---------- artboards ----------
 
 def ab01() -> str:
+    items = (
+        ai_item("K02.1", "Karies dentin", "ok", cite="A", kind="ICD-10")
+        + ai_item("K05.10", "Gingivitis kronis", "tolak", cite="O", kind="ICD-10")
+        + ai_item(
+            "23.2",
+            "Restorasi gigi",
+            "draf",
+            cite="P",
+            cite_on=True,
+            kind="ICD-9-CM",
+            popover=f'{hl("Restorasi komposit 26.")} Edukasi kebersihan. Kontrol 7 hari.',
+        )
+    )
     body = f"""
     <div class="desk-body">
       <div class="split-5" style="flex:1">
         <div class="scroll-col">
           <div class="kicker">Catatan disetujui</div>
-          {soap_block()}
+          {soap_block("P")}
         </div>
         <div class="scroll-col">
           <article class="card">
-            <h3>{ico("spark", "ic-sm")} Saran kode {chip("Draf AI", "ai")}</h3>
+            <h3>{ico("spark", "ic-sm")} Saran kode</h3>
             <div class="banner warn">{ico("alert", "ic-sm")}
-              Draf. Belum ke SATUSEHAT atau klaim. Dokter memilih, lalu Setujui.</div>
-            {icd_row("K02.1", "Karies dentin", "Dari asesmen · 26", True)}
-            {icd_row("K05.10", "Gingivitis kronis", "Dari objektif · rendah", False)}
-            {icd_row("23.2", "Restorasi gigi", "Dari rencana · ICD-9-CM", True, "ICD-9-CM")}
+              Draf tidak ke SATUSEHAT atau klaim.</div>
+            {items}
             <div class="actions">
-              {btn("Buang draf", "ghost", "trash")}
-              {btn("Setujui yang dipilih", "pri", "check")}
+              {btn("Setujui semua", "pri", "check")}
             </div>
-            <p class="mu" style="margin:10px 0 0">Selesai (tanda tangan) aktif setelah Setujui.</p>
+            <p class="mu" style="margin:10px 0 0">Selesai (tanda tangan) aktif setelah tidak ada draf.</p>
           </article>
         </div>
       </div>
     </div>"""
-    # Fix who label: desk() prefixes "drg." always. That's ok for Nadia.
     frame = desk(
         body,
         "Saran ICD",
@@ -527,58 +619,67 @@ def ab01() -> str:
     return ab(
         "01",
         "AI saran ICD dari catatan",
-        "Kode disarankan dari SOAP yang sudah ada, bukan diketik ulang. Hasil selalu Draf sampai dokter Setujui. Draf tidak masuk SATUSEHAT atau klaim.",
+        "Tiap kode punya status Draf, Disetujui, atau Ditolak. Setujui atau Tolak per item, atau Setujui semua. Ketuk sitasi untuk melihat kalimat sumber.",
         frame,
     )
 
 
 def ab02() -> str:
+    items = (
+        ai_item("S", "Nyeri gigit rahang kiri atas sejak 3 hari. Tidak alergi obat.", "ok", cite="Ucapan")
+        + ai_item("O", "Gigi 26 karies dentin. Perkusi ringan positif.", "ok", cite="Ucapan")
+        + ai_item("A", "Karies dentin 26.", "draf", cite="Ucapan")
+        + ai_item("P", "Restorasi komposit 26. Kontrol 7 hari.", "tolak", cite="Ucapan")
+    )
     inner = f"""
       <article class="card">
-        <h3>{ico("mic", "ic-sm")} Ucapan {chip("Draf AI", "ai")}</h3>
+        <h3>{ico("mic", "ic-sm")} Ucapan</h3>
         <p class="note">Nyeri gigit kiri atas tiga hari, gigi 26 karies dentin, tambal komposit, kontrol tujuh hari, tidak alergi.</p>
       </article>
-      <article class="card">
-        <div class="field"><span class="lab">S</span><div class="inp area">Nyeri gigit rahang kiri atas sejak 3 hari. Tidak alergi obat.</div></div>
-        <div class="field"><span class="lab">O</span><div class="inp area">Gigi 26 karies dentin. Perkusi ringan positif.</div></div>
-        <div class="field"><span class="lab">A</span><div class="inp area">Karies dentin 26.</div></div>
-        <div class="field"><span class="lab">P</span><div class="inp area">Restorasi komposit 26. Kontrol 7 hari.</div></div>
-      </article>
+      {items}
       <div class="actions">
-        {btn("Ubah", "ghost")}
-        {btn("Setujui draf", "pri", "check")}
+        {btn("Setujui semua", "pri", "check")}
       </div>
-      <p class="mu">AI hanya merapikan yang diucapkan. Tidak menambah diagnosis atau obat. Audio dihapus setelah Selesai.</p>
+      <p class="mu">AI hanya merapikan yang diucapkan. Audio dihapus setelah Selesai.</p>
     """
-    ph = phone(inner, "Draf SOAP", 920, "RM", mic=True, pad_bottom=120)
+    ph = phone(inner, "Draf SOAP", 1020, "RM", mic=True, pad_bottom=120)
     return ab(
         "02",
         "AI draf SOAP dari suara",
-        "Agen Scribe merapikan ucapan jadi SOAP. Mikrofon selalu ada untuk dokter. Hasil selalu Draf sampai Setujui, lalu Selesai. Audio dihapus setelah Selesai.",
+        "Setiap kolom SOAP adalah item draf. Setujui atau Tolak per item, atau Setujui semua. Sitasi membuka kalimat di transkrip (lihat artboard 11 untuk sheet).",
         ph,
     )
 
 
 def ab03() -> str:
+    items = (
+        ai_item(
+            "Restorasi komposit",
+            "Gigi 26 · permukaan O, M",
+            "ok",
+            cite="26",
+            kind="Tindakan",
+        )
+        + ai_item("Foto bitewing", "Rahang kiri atas", "tolak", cite="26", kind="Tindakan")
+        + ai_item("Kontrol", "7 hari", "draf", cite="P", kind="Jadwal")
+    )
     body = f"""
     <div class="desk-body">
       <div class="split-5" style="flex:1">
         <article class="card">
           <h3>Odontogram {chip("26 karies", "karies")}</h3>
           {odonto("26")}
-          <p class="mu" style="margin:10px 0 0">Temuan tercatat: 26 karies O, M. Perkusi ringan.</p>
+          <p class="mu" style="margin:10px 0 0">Temuan tercatat: {hl("26 karies O, M")}. Perkusi ringan.</p>
         </article>
         <article class="card">
-          <h3>{ico("spark", "ic-sm")} Saran tindakan {chip("Draf AI", "ai")}</h3>
+          <h3>{ico("spark", "ic-sm")} Saran tindakan</h3>
           <div class="banner info">{ico("alert", "ic-sm")}
-            Hanya dari temuan di chart. Bukan diagnosis baru.</div>
-          {icd_row("Restorasi komposit", "Gigi 26 · permukaan O, M", "Dari karies 26", True, "Tindakan")}
-          {icd_row("Foto bitewing", "Rahang kiri atas", "Opsional", False, "Tindakan")}
-          {icd_row("Kontrol", "7 hari", "Dari rencana", True, "Jadwal")}
+            Hanya dari temuan di chart.</div>
+          {items}
           <div class="actions">
-            {btn("Buang", "ghost")}
-            {btn("Setujui yang dipilih", "pri", "check")}
+            {btn("Setujui semua", "pri", "check")}
           </div>
+          <p class="mu" style="margin:10px 0 0">Selesai aktif setelah tidak ada draf.</p>
         </article>
       </div>
     </div>"""
@@ -586,8 +687,66 @@ def ab03() -> str:
     return ab(
         "03",
         "AI saran tindakan dari odontogram",
-        "Saran dari temuan di odontogram, selalu Draf sampai dokter Setujui, lalu Selesai. AI tidak menambah temuan yang tidak ada di chart.",
+        "Status per saran: Draf, Disetujui, atau Ditolak. Setujui atau Tolak per item, atau Setujui semua. Sitasi merujuk temuan di chart atau catatan.",
         frame,
+    )
+
+
+def ab11() -> str:
+    desk_item = ai_item(
+        "23.2",
+        "Restorasi gigi",
+        "draf",
+        cite="P",
+        cite_on=True,
+        kind="ICD-9-CM",
+        popover=f'{hl("Restorasi komposit 26.")} Edukasi kebersihan. Kontrol 7 hari.',
+    )
+    body = f"""
+    <div class="desk-body">
+      <div class="split-5" style="flex:1">
+        <div class="scroll-col">
+          <div class="kicker">Catatan · kalimat sumber</div>
+          {soap_block("P")}
+        </div>
+        <div class="scroll-col">
+          <article class="card">
+            <h3>Status dan sitasi</h3>
+            <div class="legend">{chip("Draf", "draf")} {chip("Disetujui", "ok")} {chip("Ditolak", "tolak")}</div>
+            {desk_item}
+            <p class="mu" style="margin:10px 0 0">Ketuk chip sitasi. Popover menampilkan kalimat yang ditandai di catatan.</p>
+          </article>
+        </div>
+      </div>
+    </div>"""
+    frame = desk(
+        body,
+        "Sitasi",
+        "Budi Santoso · Gigi 26",
+        "RM",
+        "Nadia Putri",
+        "dokter",
+    )
+    sheet = f"""
+    <div class="sheet" role="dialog" aria-label="Kalimat sumber">
+      <div class="grab" aria-hidden="true"></div>
+      <h3>Sumber · Ucapan <button class="icon-btn" type="button" aria-label="Tutup">{ico("x")}</button></h3>
+      <div class="src">Nyeri gigit kiri atas tiga hari, {hl("gigi 26 karies dentin")}, tambal komposit, kontrol tujuh hari, tidak alergi.</div>
+    </div>"""
+    inner = f"""
+      <article class="card">
+        <h3>{ico("mic", "ic-sm")} Ucapan</h3>
+        <p class="note">Nyeri gigit kiri atas tiga hari, gigi 26 karies dentin, tambal komposit, kontrol tujuh hari, tidak alergi.</p>
+      </article>
+      {ai_item("A", "Karies dentin 26.", "draf", cite="Ucapan", cite_on=True)}
+      {ai_item("P", "Restorasi komposit 26. Kontrol 7 hari.", "draf", cite="Ucapan")}
+    """
+    ph = phone(inner, "Draf SOAP", 760, "RM", mic=True, pad_bottom=200, overlay=sheet)
+    return ab(
+        "11",
+        "Status dan sitasi",
+        "Desktop: popover menampilkan kalimat sumber yang ditandai. HP: sheet dari bawah, kalimat yang sama ditandai di transkrip.",
+        f'<div class="row">{frame}{ph}</div>',
     )
 
 
@@ -952,6 +1111,7 @@ def build() -> str:
         ab08(),
         ab09(),
         ab10(),
+        ab11(),
     ]
     return f"""<!DOCTYPE html>
 <html lang="id">
