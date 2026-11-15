@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Modules\Billing\Models\Invoice;
 use App\Modules\Billing\Models\InvoiceAdjustment;
 use App\Modules\Billing\Models\InvoiceLine;
+use App\Modules\Billing\Models\PaymentAccount;
 use App\Modules\Clinical\Domain\CodingTemplate;
 use App\Modules\Clinical\Domain\ProcedureCatalog;
 use App\Modules\Clinical\Models\ClinicalNote;
@@ -85,6 +86,9 @@ class DatabaseSeeder extends Seeder
             $this->appointments([$b1, $b2], $users['dokter@senyum.test'], $patients);
             $this->clinicalDemo($b1, $users['dokter@senyum.test'], $patients[0]);
             $this->c3Demo($b1, $users['dokter@senyum.test'], $patients, 1);
+            $this->paymentAccounts($users['pemilik@senyum.test'], [
+                ['Kas Kemang', 'tunai', $b1->id], ['Kas Rawamangun', 'tunai', $b2->id], ['QRIS klinik', 'qris', null],
+                ['EDC BCA klinik', 'edc', null, 'BCA'], ['Transfer BCA klinik', 'transfer', null, 'BCA', '0123']]);
         }, $users['pemilik@senyum.test']->id);
 
         Ctx::runAs($b->id, function () use ($users) {
@@ -96,6 +100,7 @@ class DatabaseSeeder extends Seeder
             $patients = $this->patients(40, 2, [$b1->id]);
             $this->appointments([$b1], $users['dokter@ceria.test'], $patients);
             $this->c3Demo($b1, $users['dokter@ceria.test'], $patients, 2);
+            $this->paymentAccounts($users['dokter@ceria.test'], [['Kas Dago', 'tunai', $b1->id]]);
         }, $users['dokter@ceria.test']->id);
     }
 
@@ -111,6 +116,15 @@ class DatabaseSeeder extends Seeder
         }
 
         return $u;
+    }
+
+    /** Unit 5: synthetic clinic payment accounts (the only payment methods). New tenants start with none; the owner adds them. */
+    private function paymentAccounts(User $owner, array $rows): void
+    {
+        foreach ($rows as $r) {
+            PaymentAccount::create(['name' => $r[0], 'kind' => $r[1], 'branch_id' => $r[2], 'bank_name' => $r[3] ?? null,
+                'account_last4' => $r[4] ?? null, 'created_by' => $owner->id]);
+        }
     }
 
     private function branch(string $name, array $chairs): Branch

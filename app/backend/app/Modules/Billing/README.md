@@ -4,7 +4,8 @@
 `Listeners\InvoiceFromProcedure` dari `Clinical\Events\ProcedureRecorded`, harga snapshot `PriceLookup`, append-only), `invoice_adjustment`
 (diskon/penghapusan/koreksi, alasan wajib, front desk/pemilik, append-only). Saldo = baris − penyesuaian, dihitung (tidak disimpan).
 API: `GET /api/visits/{id}/invoice`, `GET /api/invoices/{id}`, `POST /api/invoices/{id}/adjustments`,
-`POST /api/invoice-adjustments/{id}/approve|reject` (unit 4). Belum: pembayaran, tagihan final, `FinalizedRevenue`.
+`POST /api/invoice-adjustments/{id}/approve|reject` (unit 4), `POST /api/invoices/{id}/payments`, `GET|POST /api/payment-accounts`,
+`PATCH /api/payment-accounts/{id}` (unit 5). Belum: refund, tagihan final, `FinalizedRevenue`.
 
 ## Penjaga tagihan kunjungan (unit 4, DEVIATIONS #50)
 - **Letak modul.** Tutup kunjungan ada di Clinical (`POST /api/visits/{id}/close`, `Services\VisitCloser`). Sebelum menutup, Clinical
@@ -20,6 +21,16 @@ API: `GET /api/visits/{id}/invoice`, `GET /api/invoices/{id}`, `POST /api/invoic
   saldo sampai pemilik memutuskan (`invoice_adjustment_decision`, append-only, sekali per penyesuaian). Izin baru `billing.approve_zero`
   = **pemilik saja**. Pemilik yang menangani tindakannya sendiri (dokter baris tagihan / dokter kunjungan) ditolak 403
   `conflict_of_interest` bila ada pemilik aktif lain; pemilik tunggal boleh, ditandai `self_approved_sole_owner` (laporan pemilik, unit 6).
+
+## Pembayaran hanya ke akun klinik (unit 5, DEVIATIONS #51)
+- **Akun bayar** (`payment_account`): data master milik tenant, opsional per cabang (`branch_id` NULL = semua cabang), jenis
+  `tunai | qris | edc | transfer`, `bank_name` + `account_last4` (nomor lengkap tidak disimpan). Dikelola pemilik saja
+  (`billing.accounts`); tidak dihapus, dinonaktifkan. Jenis/cabang/bank tetap setelah dibuat. Tenant baru mulai tanpa akun.
+- **Pembayaran** (`invoice_payment`, append-only): selalu menunjuk akun klinik aktif di tenant yang sama dan berlaku untuk cabang
+  tagihan. **Tidak ada field rekening tujuan**; field tak dikenal = 422. Tidak boleh melebihi sisa (`overpay`). Split = beberapa
+  pembayaran. `request_key` opsional mencegah bayar dua kali saat kirim ulang.
+- **Saldo** = baris − penyesuaian berlaku − pembayaran (dihitung). `invoice.status`: `terbuka` | `lunas` (saldo 0 dan ada baris).
+  Diskon 100% yang menunggu pemilik tidak mengurangi saldo.
 
 Cakupan: Tagihan, pembayaran, klaim penjamin (umum, asuransi swasta; siap BPJS: jenis penjamin, no./kelas kepesertaan, status klaim).
 
