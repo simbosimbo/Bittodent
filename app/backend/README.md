@@ -1,4 +1,4 @@
-# EHR Gigi — backend (Laravel 13 API, MySQL 8.4 mode)
+# Bittodent — backend (Laravel 13 API, MySQL 8.4 mode)
 
 Prototipe. **Hanya data palsu.** MySQL tidak punya RLS, jadi data pasien asli dilarang di mode ini (D-030);
 target sebelum data asli = PostgreSQL + RLS (lihat "Pindah ke PostgreSQL").

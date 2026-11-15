@@ -1,4 +1,4 @@
-# EHR Gigi — prototipe (Laravel API + React SPA)
+# Bittodent — prototipe (Laravel API + React SPA)
 
 **Hanya data sintetis.** Mode MySQL tanpa RLS (D-030): data pasien asli dilarang. Detail backend: `backend/README.md`; penyimpangan: `DEVIATIONS.md`.
 
