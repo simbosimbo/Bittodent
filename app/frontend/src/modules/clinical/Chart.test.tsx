@@ -88,11 +88,11 @@ test('Tampilan: default 2D without 3D mount; 3D mounts and 2D unmounts it again'
 test('Legenda: open in 2D, collapsed on 3D, reopens on 2D, toggles manually', async () => {
   renderChart()
   await screen.findByRole('radiogroup', { name: 'Tampilan' })
-  const legends = () => screen.queryByRole('list', { name: 'Legenda status' })
+  const legends = () => screen.queryByRole('list', { name: 'Status' }) // official legend (OVv2-04): status as line shape
   expect(legends()).not.toBeNull()
   await show3d()
   expect(legends()).toBeNull()
-  expect(screen.queryByRole('list', { name: 'Legenda internal (bukan formulir resmi)' })).toBeNull()
+  expect(screen.queryByLabelText('Legenda simbol resmi (PDGI 2015)')).toBeNull()
   const btn = screen.getByRole('button', { name: 'Tampilkan legenda' })
   expect(btn).toHaveAttribute('aria-expanded', 'false')
   fireEvent.click(btn)
@@ -183,7 +183,7 @@ test('findings table: Tanggal/Gigi/Permukaan/Kondisi/Dokter/Status, P on upper, 
   expect(row(11)).not.toHaveTextContent('O (Oklusal)')
   expect(row(16)).toHaveTextContent('O (Oklusal)')
   expect(table).not.toHaveTextContent(/Biaya|Prioritas|Total/)
-  expect(screen.getByRole('list', { name: 'Legenda status' })).toHaveTextContent('Sudah ada (tempat lain)')
+  expect(screen.getByRole('list', { name: 'Status' })).toHaveTextContent('Klinik lain')
 })
 
 test('findings table: dentist from the finding\'s visit, drafts show "Draf" and sort first, then newest date, then tooth', async () => {

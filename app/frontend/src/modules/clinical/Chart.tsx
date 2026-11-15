@@ -8,6 +8,7 @@ import { setActivePatient } from '../../shared/activePatient'
 import { fmtDateTime, fmtDay, fmtTime } from '../../shared/format'
 import type { Me } from '../../shared/session'
 import { ToothSheet as EntrySheet } from './odontogram/ToothSheet'
+import { OfficialLegend } from './odontogram/OfficialLegend'
 import { conditionByKey, spanTeeth, type SurfaceKey } from './odontogram/taxonomy'
 // procedure status -> v2 entry status (line shape on the chart)
 const ENTRY: Partial<Record<string, Mark['entry']>> = { ada_di_klinik_ini: 'ada_sebelumnya', ada_di_tempat_lain: 'klinik_lain', direncanakan: 'rencana', selesai: 'selesai' }
@@ -16,13 +17,13 @@ import { PatientPage } from '../patients'
 import type { PatientFull } from '../patients'
 import {
   approveCorrection, approveDrafts, changeStatus, confirmExternal, correctNote, correctProcedure, discardProcedure, getChart, getDentists,
-  replaceProcedure, saveBaseline, saveNote, selesaiVisit, startWalkInVisit, visitFromAppointment, appointmentDone,
+  replaceProcedure, saveBaseline, saveNote, saveProcedure, selesaiVisit, getCatalog, type CatalogRow, startWalkInVisit, visitFromAppointment, appointmentDone,
   type Baseline, type Chart, type ChartVisit, type CorrectionType, type Finding, type Note, type ProcStatus, type Procedure, type ProcedureHistoryRow,
   type Soap, type Surface, type ToothPresence, type Version,
 } from './api'
 import { AI_BADGE, CONDITIONS, conditionOf, CORRECTION_LABEL, findingText, isAnterior, paintCondition, PRESENCE, procedureText, statusOf,
   surfaceLabel, surfaceName, toothAnatomicalName } from './legend'
-import { Legend, Odontogram, StatusLegend, type Mark } from './Odontogram'
+import { Odontogram, type Mark } from './Odontogram'
 import { dentitionFromDob, Odontogram3D } from './Odontogram3D'
 import { SelesaiDialog } from './SelesaiDialog'
 import { CloseVisit } from './CloseVisit'
@@ -407,6 +408,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const [allFor, setAllFor] = useState<number | null>(null)
   const [view, setView] = useState<'2d' | '3d'>('2d') // not persisted: 2D every time
   const mobile = useIsMobile()
+  const [mouthProcs, setMouthProcs] = useState<CatalogRow[]>([]) // e.g. Scaling: billed work without a tooth
   const phone = useMedia(PHONE_QUERY)
   const [legendOpen, setLegendOpen] = useState(!mobile) // phone: chart first, legend on demand
   const [tab, setTab] = useState<(typeof INNER)[number][0]>('odo')
@@ -464,6 +466,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
     setMsg('')
   }, [patientId, appointmentId])
   useEffect(() => { load() }, [load])
+  useEffect(() => { if (can('note.write')) getCatalog().then((c) => setMouthProcs(c.filter((x) => x.treat_area === 'mouth')), () => setMouthProcs([])) }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const visit = chart?.visits.find((v) => v.id === visitId) ?? null
   const note = visit?.notes[0] ?? null
@@ -646,8 +649,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
         </button>
         {legendOpen && (
           <div className="odo-legends" id="odo-legends">
-            <StatusLegend />
-            <Legend />
+            <OfficialLegend />
           </div>
         )}
         {can('note.write') && (
@@ -683,6 +685,16 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
             </div>
             {chart.as_of && <p className="notice notice-warn small" role="status">Tampilan riwayat: keadaan pada akhir {chart.as_of} (WIB). Hanya baca.</p>}
             <p className={summary ? 'odo-summary' : 'odo-summary muted'} role="note" aria-label="Ringkasan temuan">{summary || 'Belum ada temuan.'}</p>
+            {editable && mouthProcs.length > 0 && (
+              // work without a tooth (Scaling ...): done today = Selesai, billed like a tooth entry
+              <div className="mouth-procs" role="group" aria-label="Tindakan seluruh mulut">
+                <span className="muted small">Tindakan seluruh mulut:</span>
+                {mouthProcs.map((x) => (
+                  <button key={x.procedure_code} type="button" className="btn" onClick={() => run(() => saveProcedure(visit!.id, { tooth: null, surfaces: null, status: 'selesai',
+                    procedure_code: x.procedure_code }), `${x.name} tersimpan (masuk tagihan saat Selesai).`)}>{x.name} <code>{x.procedure_code}</code></button>
+                ))}
+              </div>
+            )}
             {mobile ? (
               <details className="odo-more">
                 <summary>Tampilan, legenda &amp; keadaan awal</summary>
