@@ -2,6 +2,7 @@
 
 // Owning module: Prescriptions (prescription, prescription_item, prescription_void). MySQL only.
 
+use App\Shared\Database\MysqlGrants;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 
@@ -13,11 +14,9 @@ return new class extends Migration
 {
     public function up(): void
     {
-        $db = DB::connection()->getDatabaseName();
-        $grantee = sprintf("'%s'@'%s'", config('database.connections.mysql.username'), env('DB_APP_GRANT_HOST', '127.0.0.1'));
-        DB::statement("GRANT SELECT, INSERT, UPDATE ON `$db`.`prescription` TO $grantee");
-        DB::statement("GRANT SELECT, INSERT, UPDATE ON `$db`.`prescription_item` TO $grantee");
-        DB::statement("GRANT SELECT, INSERT ON `$db`.`prescription_void` TO $grantee");
+        MysqlGrants::grant('SELECT, INSERT, UPDATE', 'prescription');
+        MysqlGrants::grant('SELECT, INSERT, UPDATE', 'prescription_item');
+        MysqlGrants::grant('SELECT, INSERT', 'prescription_void');
 
         $parentNotDraft = fn (string $row) => "(SELECT state FROM prescription p WHERE p.tenant_id = $row.tenant_id AND p.id = $row.prescription_id) <> 'draft'";
         $sql = [
