@@ -10,40 +10,34 @@ use App\Modules\Integrations\Contracts\ModelRequest;
 use App\Modules\Integrations\Contracts\ModelUnavailable;
 
 // Skeleton for Amazon Bedrock Jakarta (D-009): region ap-southeast-3 and an IN-REGION model ID only.
-// Cross-region inference profiles (Geo/Global, model IDs prefixed us./eu./apac./global. or an inference-profile ARN)
-// are refused at construction, so a bad config fails at boot, not at the first patient. complete() is not wired to
-// AWS yet (no SDK, no credentials, stays off until the D-030 real-data gate): it always throws not_configured.
+// A0.1: ALLOWLIST, not a prefix blocklist. The model ID must equal one entry of config('ai.allowed_model_ids') exactly
+// (source: docs/ai/arsitektur-ai.md, PR #56). Everything else is refused at construction, so a bad config fails at boot,
+// not at the first patient: every cross-region inference profile (us., eu., apac., global., ca., us-gov., jp., ...),
+// any ARN (foundation-model or inference-profile), other casing or surrounding spaces. complete() is not wired to AWS
+// yet (no SDK, no credentials, stays off until the D-030 real-data gate): it always throws not_configured.
 final class BedrockJakartaModelClient implements ModelClient
 {
     public const REGION = 'ap-southeast-3';
 
-    // Inference profile prefixes named in the task/D-009. Other geo prefixes AWS may add: perlu dicek before go-live.
-    public const FORBIDDEN_PREFIXES = ['us.', 'eu.', 'apac.', 'global.'];
-
-    public function __construct(private string $region, private string $modelId)
+    /** @param list<string>|null $allowedModelIds null = config('ai.allowed_model_ids') */
+    public function __construct(private string $region, private string $modelId, ?array $allowedModelIds = null)
     {
-        self::assertAllowed($region, $modelId);
+        self::assertAllowed($region, $modelId, $allowedModelIds);
     }
 
-    public static function assertAllowed(string $region, string $modelId): void
+    /** @param list<string>|null $allowedModelIds */
+    public static function assertAllowed(string $region, string $modelId, ?array $allowedModelIds = null): void
     {
         if ($region !== self::REGION) {
             throw new ModelNotAllowed('Region AI harus '.self::REGION." (D-009), bukan '$region'.");
         }
-        $id = strtolower(trim($modelId));
-        if ($id === '') {
+        if ($modelId === '') {
             throw new ModelNotAllowed('Model ID Bedrock belum di-set.');
         }
-        foreach (self::FORBIDDEN_PREFIXES as $prefix) {
-            if (str_starts_with($id, $prefix)) {
-                throw new ModelNotAllowed("Profil inferensi lintas region ('$prefix') dilarang (D-009). Pakai model ID in-region.");
-            }
-        }
-        if (str_starts_with($id, 'arn:') && ! str_contains($id, ':'.self::REGION.':')) {
-            throw new ModelNotAllowed('ARN model harus di region '.self::REGION.' (D-009).');
-        }
-        if (str_contains($id, 'inference-profile/')) {
-            throw new ModelNotAllowed('ARN profil inferensi dilarang (D-009). Pakai model ID in-region.');
+        $allowed = $allowedModelIds ?? (array) config('ai.allowed_model_ids', []);
+        if (! in_array($modelId, $allowed, true)) {
+            throw new ModelNotAllowed('Model ID Bedrock tidak ada di daftar izin (config/ai.php allowed_model_ids). '
+                .'Profil inferensi lintas region dan ARN tidak diizinkan (D-009).');
         }
     }
 
