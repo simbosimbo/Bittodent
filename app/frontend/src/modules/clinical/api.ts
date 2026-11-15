@@ -96,7 +96,7 @@ export const visitFromAppointment = (appointmentId: string) => api<{ id: string 
 /** Visual condition only (karies, hilang, ...). Treatments go through saveProcedure. */
 export const saveFinding = (visitId: string, body: { tooth: number; surface: Surface | null; condition: string }) =>
   api<Finding>(`/api/visits/${visitId}/findings`, { method: 'POST', body })
-export const saveProcedure = (visitId: string, body: { tooth: number; surfaces: string | null; status: ProcStatus; procedure_code: string | null; treat_area?: TreatArea
+export const saveProcedure = (visitId: string, body: { tooth: number; surfaces: string | null; status: ProcStatus; procedure_code: string | null; diagnosis_code?: string | null; treat_area?: TreatArea
   external_clinic_name?: string; external_date?: string }) =>
   api<Procedure>(`/api/visits/${visitId}/procedures`, { method: 'POST', body })
 /** Signed procedure: the server appends a new final row superseding it (only along the allowed transitions). */

@@ -644,3 +644,72 @@ test('RM > Billing without billing.read stays "Belum tersedia"', async () => {
   expect(document.body).toHaveTextContent('Belum tersedia')
   expect(screen.queryByRole('link', { name: 'Buka tagihan' })).toBeNull()
 })
+
+// --- #70 Dokter mode: one-tap procedure, SOAP template, Selesai saves first, phone sticky bar (synthetic data) ---
+function dokterChart(w: number) {
+  localStorage.clear()
+  vi.stubGlobal('matchMedia', (q: string) => ({ media: q, matches: w <= Number(q.match(/(\d+)px/)?.[1] ?? 0), addEventListener() {}, removeEventListener() {} }))
+  const calls: { url: string; method: string; body: any }[] = []
+  let noteSaved = false
+  vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+    const method = init?.method ?? 'GET'
+    if (method !== 'GET') calls.push({ url, method, body: init?.body ? JSON.parse(init.body as string) : null })
+    if (url.endsWith('/procedures') && method === 'POST') return new Response(JSON.stringify({ id: 'x1' }), { status: 201 })
+    if (url.endsWith('/note') && method === 'PUT') { noteSaved = true; return new Response(JSON.stringify({ revision: 1 }), { status: 200 }) }
+    const draftNote = { id: 'n1', author_id: 'u1', created_at: '', pending_correction: null, versions: [{ id: 'nv1', version: 1, revision: 1, supersedes_id: null,
+      status: 'draf', source: 'manual', signed_by: null, signed_by_name: null, signed_at: null, reason: null, correction_request_id: null, content_hash: 'h',
+      soap: { S: 'Gigi berlubang, ngilu saat makan/minum dingin.', O: '', A: { codes: [], text: '' }, P: { codes: [], text: '' } } }] }
+    const older = { ...visit, id: 'v0', status: 'selesai', started_at: '2025-12-01T03:00:00Z', notes: [{ ...draftNote, id: 'n0', versions: [{ ...draftNote.versions[0],
+      id: 'nv0', status: 'berlaku', signed_at: '2025-12-01T04:00:00Z', soap: { S: 'Kontrol lama.', O: 'Baik.', A: { codes: ['Z01.2'], text: '' }, P: { codes: [], text: '' } } }] }] }
+    const v = { ...visit, notes: noteSaved ? [draftNote] : [] }
+    return new Response(JSON.stringify(url.endsWith('manifest.json') ? manifest : url.endsWith('/chart') ? { ...chart, findings, visits: [v, older] }
+      : url.endsWith('/alerts') ? alerts : full), { status: 200 })
+  }))
+  window.Tooth3D = mockTooth3D
+  render(<ChartPage patientId="p1" me={me} />)
+  return calls
+}
+
+test('#70 tooth panel: one tap "Tambal 23.2" saves procedure + diagnosis (no typing) and becomes this dentist\'s favourite', async () => {
+  const calls = dokterChart(1280)
+  await screen.findByRole('region', { name: 'Odontogram' })
+  fireEvent.click(document.getElementById('t26-O')!)
+  const quick = within(screen.getByRole('group', { name: 'Tindakan cepat' }))
+  fireEvent.click(quick.getByRole('button', { name: 'Tambal (23.2, diagnosis K02.1) di gigi 26' }))
+  await waitFor(() => expect(calls.find((c) => c.url.endsWith('/procedures'))).toBeTruthy())
+  expect(calls.find((c) => c.url.endsWith('/procedures'))!.body).toMatchObject({ tooth: 26, surfaces: 'O', status: 'selesai', procedure_code: '23.2', diagnosis_code: 'K02.1' })
+  expect(JSON.parse(localStorage.getItem('bt.quick-proc.u1')!)[0]).toMatchObject({ code: '23.2', dx: 'K02.1', n: 1 })
+})
+
+test('#70 Catatan: template fills only empty fields; "Ulangi kunjungan terakhir" copies the last signed SOAP; Selesai saves the draft first', async () => {
+  const calls = dokterChart(1280)
+  await screen.findByRole('region', { name: 'Odontogram' })
+  fireEvent.click(screen.getByRole('tab', { name: 'Catatan Klinis' }))
+  const tpl = within(screen.getByRole('group', { name: 'Template catatan' }))
+  fireEvent.change(screen.getByLabelText('S'), { target: { value: 'Keluhan saya sendiri.' } })
+  fireEvent.click(tpl.getByRole('button', { name: 'Tambal' }))
+  expect(screen.getByLabelText('S')).toHaveValue('Keluhan saya sendiri.') // typed text kept
+  fireEvent.click(screen.getByRole('tab', { name: 'O — Objektif' }))
+  expect(screen.getByLabelText('O')).toHaveValue('Karies dentin, tes dingin (+), perkusi (-).')
+  expect(tpl.getByRole('button', { name: 'Ulangi kunjungan terakhir' })).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Selesai' })) // dirty: saves, then opens the dialog
+  await waitFor(() => expect(calls.some((c) => c.url.endsWith('/note') && c.method === 'PUT')).toBe(true))
+  expect(calls.find((c) => c.url.endsWith('/note'))!.body.soap).toMatchObject({ S: 'Keluhan saya sendiri.', A: { codes: ['K02.1'] }, P: { codes: ['23.2'] } })
+  expect(await screen.findByRole('dialog')).toHaveTextContent('Selesai: kunci rekam medis')
+})
+
+test('#70 phone: SOAP stacked (no sub-tabs), sticky Selesai bar, Rencana/Resep tabs hidden, details folded', async () => {
+  dokterChart(412)
+  await screen.findByRole('region', { name: 'Odontogram' })
+  expect(screen.queryByRole('tab', { name: 'Resep' })).toBeNull()
+  expect(screen.queryByRole('tab', { name: 'Rencana Perawatan' })).toBeNull()
+  expect(document.querySelector('.rm-actionbar')).toHaveTextContent('Selesai')
+  expect(screen.queryByRole('button', { name: 'Semua gigi' })).toBeNull() // Temuan & tindakan folded
+  expect(screen.getByRole('button', { name: /^Lihat \(\d+\)$/ })).toHaveAttribute('aria-expanded', 'false')
+  fireEvent.click(screen.getByRole('tab', { name: 'Catatan Klinis' }))
+  expect(screen.queryByRole('tab', { name: 'O — Objektif' })).toBeNull()
+  for (const f of ['S', 'O', 'Kode ICD-10', 'Kode ICD-9-CM']) expect(screen.getByLabelText(f)).toBeInTheDocument()
+  expect(screen.queryByRole('heading', { name: 'Riwayat kunjungan' })).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: 'Tutup kunjungan & riwayat' }))
+  expect(screen.getByRole('heading', { name: 'Riwayat kunjungan' })).toBeInTheDocument()
+})
