@@ -11,6 +11,7 @@ use App\Shared\Audit\Audit;
 use App\Shared\Crypto\Crypto;
 use App\Shared\Http\Controller;
 use App\Shared\Tenancy\Ctx;
+use App\Shared\Terminology\OfficialIcdCode;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -24,7 +25,7 @@ class PlannedAppointmentController extends Controller
     {
         $d = $request->validate([
             'procedure' => ['required', 'string', 'max:200'],
-            'procedure_code' => ['nullable', 'string', 'regex:/^[0-9]{2}(\.[0-9]{1,2})?$/'], // ICD-9-CM
+            'procedure_code' => ['bail', 'nullable', 'string', 'regex:/^[0-9]{2}(\.[0-9]{1,2})?$/', OfficialIcdCode::icd9cm()], // ICD-9-CM 2010
             'est_minutes' => ['required', 'integer', 'min:10', 'max:480'],
             'priority' => ['nullable', 'in:normal,segera'],
             'note' => ['nullable', 'string', 'max:500'],

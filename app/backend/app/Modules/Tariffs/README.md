@@ -4,8 +4,10 @@
 + harga palsu (rupiah bulat) + periode `valid_from` ≤ tanggal < `valid_to` (NULL = terbuka). Satu **versi** = semua tingkat satu kode dengan `valid_from` yang sama.
 
 **Templat tingkat (D-035)** `Domain\DifficultyTemplate`, di-seed per tenant: tambalan 1 / 2 / 3+ permukaan, scaling ringan/sedang/berat,
-pencabutan biasa/sulit/bedah. Templat = titik awal pengaturan, **bukan panduan klinis**; klinik boleh mengubah/menambah/menghapus tingkat.
-Kode tingkat 1 selalu `standar` (= default `tooth_finding.variant`). Kode ICD-9-CM di templat = contoh, perlu dicek.
+pencabutan biasa/sulit (`23.09` Extraction of other tooth), pencabutan bedah (`23.19` Other surgical extraction of tooth, kode tersendiri,
+bukan tingkat dari 23.09), pencabutan gigi susu (`23.01` Extraction of deciduous tooth). Templat = titik awal pengaturan, **bukan panduan klinis**;
+harga palsu; klinik boleh mengubah/menambah/menghapus tingkat. Kode tingkat 1 selalu `standar` (= default `tooth_finding.variant`).
+Kode ICD-9-CM di templat sudah dicek ada di daftar resmi SATUSEHAT ICD9CM_2010; pembagian tingkat dan harga tidak.
 
 API: `PUT /api/tariffs/{id}/levels {valid_from, levels: [{code, label, price_rp}]}` — hanya pemilik (`tariff.manage`), diaudit (`tarif_diubah`).
 Membuat **versi baru** untuk kode tindakan baris `{id}`: baris terbuka ditutup (`valid_to = valid_from`), tingkat baru ditambahkan; urutan = peringkat.

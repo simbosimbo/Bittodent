@@ -12,8 +12,10 @@ use App\Modules\Scheduling\Models\Appointment;
 use App\Modules\Tenancy\Models\Membership;
 use App\Shared\Audit\AuditEvent;
 use App\Shared\Tenancy\Ctx;
+use App\Shared\Terminology\Icd10Code;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 use PragmaRX\Google2FA\Google2FA;
 use Tests\TestCase;
 
@@ -285,5 +287,51 @@ class ChartApiTest extends TestCase
         $c = $this->as(self::DOC)->getJson("/api/patients/$patient/chart")->assertOk();
         $this->assertCount(2, $c->json('drafts'));
         $this->assertCount(0, $this->as('asisten@senyum.test')->getJson("/api/patients/$patient/chart")->json('drafts'));
+    }
+
+    public function test_soap_codes_must_be_in_official_list(): void
+    {
+        // K02.0 invalidated, committed on a separate admin connection so ehr_app sees it; restored in finally.
+        // Done before any ehr_app read: its REPEATABLE READ snapshot starts at the first read of the test transaction.
+        config(['database.connections.icd_tmp' => config('database.connections.mysql_admin')]);
+        $tmp = DB::connection('icd_tmp');
+        $tmp->table('icd10_codes')->where('code', 'K02.0')->update(['valid' => false]);
+        try {
+            $visit = $this->draftVisit(); // K02.1 + 23.2 accepted
+            $put = fn (array $a, array $p = ['23.2']) => $this->as(self::DOC)->putJson("/api/visits/$visit/note",
+                ['revision' => 1, 'soap' => ['A' => ['codes' => $a, 'text' => 'x'], 'P' => ['codes' => $p, 'text' => 'y']] + self::SOAP]);
+            foreach (['K02.5', 'K02.7', 'K02.0', 'k02.1'] as $bad) { // not in 2010 list, well-formed unknown, invalidated, wrong case
+                $put(['K02.1', $bad])->assertUnprocessable()->assertJsonValidationErrors('soap.A.codes.1');
+            }
+            $put(['K02.5'])->assertJsonPath('errors', ['soap.A.codes.0' => ['Kode K02.5 tidak ada di daftar resmi SATUSEHAT ICD-10 2010.']]);
+            $put(['K02.1'], ['23.99'])->assertUnprocessable()->assertJsonValidationErrors('soap.P.codes.0');
+            $put(['K02.1'], ['23.19', '23.01'])->assertOk();
+
+            $this->sign($visit, ['revision' => 2])->assertOk();
+            $note = $this->noteOf($visit)->id;
+            $fix = fn (array $a) => $this->as(self::DOC)->postJson("/api/notes/$note/corrections",
+                ['reason' => 'Koreksi kode diagnosis (uji)', 'soap' => ['A' => ['codes' => $a, 'text' => 'x']] + self::SOAP]);
+            $fix(['K02.5'])->assertUnprocessable()->assertJsonValidationErrors('soap.A.codes.0');
+            $fix(['K02.0'])->assertUnprocessable()->assertJsonValidationErrors('soap.A.codes.0');
+            $fix(['K02.1'])->assertCreated();
+        } finally {
+            $tmp->table('icd10_codes')->where('code', 'K02.0')->update(['valid' => true]);
+            DB::purge('icd_tmp');
+        }
+        $this->assertTrue(Icd10Code::on('mysql_admin')->findOrFail('K02.0')->valid);
+    }
+
+    public function test_finding_procedure_code_must_be_in_official_list(): void
+    {
+        $visit = $this->draftVisit();
+        $post = fn (int $tooth, ?string $code) => $this->as(self::DOC)->postJson("/api/visits/$visit/findings",
+            ['tooth' => $tooth, 'surface' => null, 'condition' => 'perlu_dicabut', 'status' => 'direncanakan', 'procedure_code' => $code]);
+        $post(48, '23.19')->assertCreated()->assertJsonPath('procedure_code', '23.19');
+        $post(85, '23.01')->assertCreated()->assertJsonPath('procedure_code', '23.01');
+        $post(47, null)->assertCreated();
+        $post(46, '23.99')->assertUnprocessable()->assertJsonValidationErrors('procedure_code');
+        $f = $post(45, '23.09')->assertCreated()->json('id');
+        $this->as(self::DOC)->patchJson("/api/findings/$f", ['condition' => 'perlu_dicabut', 'procedure_code' => '23.8'])
+            ->assertUnprocessable()->assertJsonValidationErrors('procedure_code');
     }
 }

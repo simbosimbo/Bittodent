@@ -83,4 +83,17 @@ class PlannedAppointmentTest extends TestCase
         $r->postJson("/api/appointments/{$x->id}/transition", ['to' => 'cancelled'])->assertOk();
         $r->postJson("/api/appointments/{$x->id}/reschedule", ['starts_at' => '2030-03-02T02:00:00Z', 'ends_at' => '2030-03-02T02:45:00Z'])->assertConflict();
     }
+
+    public function test_procedure_code_must_be_in_official_icd9cm_list(): void
+    {
+        $p = $this->patientOf($this->tenantA())->id;
+        $post = fn (?string $code) => $this->as('dokter@senyum.test')->postJson("/api/patients/$p/planned-appointments",
+            ['procedure' => 'Cabut (uji)', 'procedure_code' => $code, 'est_minutes' => 30]);
+        $post('23.19')->assertCreated()->assertJsonPath('procedure_code', '23.19');
+        $post('23.01')->assertCreated()->assertJsonPath('procedure_code', '23.01');
+        $post(null)->assertCreated();
+        foreach (['23.99', '23.8', 'K02.1'] as $bad) { // well-formed but not in the list, ICD-10 code
+            $post($bad)->assertUnprocessable()->assertJsonValidationErrors('procedure_code');
+        }
+    }
 }
