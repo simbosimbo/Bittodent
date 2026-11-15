@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { errorText } from '../../shared/api/http'
 import { fmtDateTime, todayWib } from '../../shared/format'
+import { ReversalApprovals } from '../billing'
 import { CorrectionApprovals } from '../clinical'
 import { auditEvents, integrityReport, type Alert, type AuditPage, type IntegrityReport } from './api'
 
@@ -62,6 +63,8 @@ export default function ReportPage() {
       </div>
 
       <CorrectionApprovals />
+
+      <ReversalApprovals />
 
       <div className="card">
         <h2>Audit log</h2>
