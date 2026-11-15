@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bittodent · Perbaikan HP 2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* DIBUAT OTOMATIS dari design/tokens.json + odontogram/legend.json oleh scripts/gen-tokens.mjs. Jangan edit manual. */
+:root {
+  --color-primary-50: #EEF9F8;
+  --color-primary-100: #D3F0EC;
+  --color-primary-200: #A8E0D9;
+  --color-primary-300: #7DD0C6;
+  --color-primary-400: #3BB8AB;
+  --color-primary-500: #14A396;
+  --color-primary-600: #0E8579;
+  --color-primary-700: #0B6B62;
+  --color-primary-800: #0A5650;
+  --color-primary-900: #083F3B;
+  --color-neutral-0: #FFFFFF;
+  --color-neutral-25: #FAFAFC;
+  --color-neutral-50: #F2F4F8;
+  --color-neutral-100: #E6EBEF;
+  --color-neutral-200: #D4DBE1;
+  --color-neutral-300: #B5C0C9;
+  --color-neutral-400: #8A96A0;
+  --color-neutral-500: #5F6C77;
+  --color-neutral-600: #4D5A64;
+  --color-neutral-700: #3B4752;
+  --color-neutral-800: #243044;
+  --color-neutral-900: #16212B;
+  --color-success-bg: #ECFDF3;
+  --color-success-border: #4ADE80;
+  --color-success-fg: #15803D;
+  --color-success-solid: #15803D;
+  --color-warning-bg: #FFFAEB;
+  --color-warning-border: #F5C14A;
+  --color-warning-fg: #B54708;
+  --color-danger-bg: #FEF3F2;
+  --color-danger-border: #FDA29B;
+  --color-danger-fg: #B42318;
+  --color-danger-solid: #D92D20;
+  --color-info-bg: #EEF4FF;
+  --color-info-border: #93B4FD;
+  --color-info-fg: #2E5AAC;
+  --color-info-solid: #3B5BDB;
+  --color-draft-bg: #FFF8E1;
+  --color-draft-border: #D99A00;
+  --color-draft-fg: #704400;
+  --color-locked-bg: #EEF1F4;
+  --color-locked-border: #B5C0C9;
+  --color-locked-fg: #2E3A45;
+  --color-offline-bg: #2E3A45;
+  --color-offline-fg: #FFFFFF;
+  --color-appointment-terjadwal-bg: #E3EDFC;
+  --color-appointment-terjadwal-border: #5C8FE0;
+  --color-appointment-terjadwal-fg: #174E9E;
+  --color-appointment-checkin-bg: #F1E8FC;
+  --color-appointment-checkin-border: #9A6BD6;
+  --color-appointment-checkin-fg: #5B2F94;
+  --color-appointment-merawat-bg: #D3F0EC;
+  --color-appointment-merawat-border: #14A396;
+  --color-appointment-merawat-fg: #0A5650;
+  --color-appointment-selesai-bg: #E5F5EC;
+  --color-appointment-selesai-border: #4CA874;
+  --color-appointment-selesai-fg: #1B6E42;
+  --color-appointment-batal-bg: #F2F4F8;
+  --color-appointment-batal-border: #B5C0C9;
+  --color-appointment-batal-fg: #5F6C77;
+  --color-appointment-blok-bg: #F2F4F8;
+  --color-appointment-blok-stripe: #E1E6EA;
+  --color-appointment-blok-fg: #3B4752;
+  --color-chart-plan: #0B6B62;
+  --color-chart-changed: #F5B400;
+  --color-chart-enamel: #FFFFFF;
+  --color-brand: #0B6B62;
+  --color-brand-hover: #0A5650;
+  --color-canvas: #F2F4F8;
+  --color-border: #EAECF8;
+  --color-text: #243044;
+  --color-muted: #5C6573;
+  --color-sidebar: #FAFAFC;
+  --color-surface: #FFFFFF;
+  --color-surface-muted: #F4F6FA;
+  --font-family-sans: "Plus Jakarta Sans", Inter, "Segoe UI", system-ui, sans-serif;
+  --font-family-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-size-xs: 12px;
+  --font-size-sm: 13px;
+  --font-size-base: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+  --font-size-3xl: 30px;
+  --font-size-label: 12px;
+  --font-size-body: 14px;
+  --font-size-clinical: 16px;
+  --font-size-title: 18px;
+  --font-size-page: 28px;
+  --font-size-kpi: 32px;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-line-height-tight: 1.25;
+  --font-line-height-normal: 1.5;
+  --space-0: 0px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+  --radius-card: 16px;
+  --radius-control: 10px;
+  --radius-frame: 24px;
+  --shadow-sm: 0 1px 2px rgba(22,33,43,0.06), 0 1px 1px rgba(22,33,43,0.04);
+  --shadow-md: 0 4px 12px rgba(22,33,43,0.08);
+  --shadow-lg: 0 12px 32px rgba(22,33,43,0.14);
+  --shadow-focus: 0 0 0 3px rgba(11, 107, 98, 0.35);
+  --shadow-card: none;
+  --shadow-float: 0 16px 40px rgba(36, 48, 68, 0.08);
+  --size-touch: 44px;
+  --size-topbar: 64px;
+  --size-rail: 224px;
+  --size-rail-compact: 84px;
+  --size-sidebar: 264px;
+  --size-sidebar-compact: 72px;
+  --size-gutter: 20px;
+  --size-page-pad: 28px;
+  --size-page-pad-mobile: 16px;
+  --size-topbar-compact: 56px;
+  --shells-a-name: Zendenta-like;
+  --shells-a-color-bg: #EEF3F4;
+  --shells-a-color-surface: #FFFFFF;
+  --shells-a-color-sidebar: #F7FAFA;
+  --shells-a-color-sidebar-text: #3B4752;
+  --shells-a-color-sidebar-active-bg: #D3F0EC;
+  --shells-a-color-sidebar-active-text: #0B6B62;
+  --shells-a-color-border: #E6EBEF;
+  --shells-a-color-accent: #0B6B62;
+  --shells-a-color-text: #16212B;
+  --shells-a-color-muted: #5F6C77;
+  --shells-a-font-size: 14px;
+  --shells-a-font-title: 24px;
+  --shells-a-font-family: Inter, "Segoe UI", system-ui, sans-serif;
+  --shells-a-space-page: 24px;
+  --shells-a-space-card: 20px;
+  --shells-a-space-gap: 16px;
+  --shells-a-radius-card: 16px;
+  --shells-a-radius-item: 10px;
+  --shells-a-shadow-card: 0 1px 2px rgba(22,33,43,0.06), 0 1px 1px rgba(22,33,43,0.04);
+  --shells-a-size-sidebar: 248px;
+  --shells-a-size-sidebar-compact: 72px;
+  --shells-a-size-topbar: 64px;
+  --shells-a-size-touch: 44px;
+  --shells-b-name: Dense-calm Linear/Notion;
+  --shells-b-color-bg: #FAFAF9;
+  --shells-b-color-surface: #FFFFFF;
+  --shells-b-color-sidebar: #F4F4F3;
+  --shells-b-color-sidebar-text: #3F3F46;
+  --shells-b-color-sidebar-active-bg: #E8E8E6;
+  --shells-b-color-sidebar-active-text: #0B6B62;
+  --shells-b-color-border: #E4E4E7;
+  --shells-b-color-accent: #0B6B62;
+  --shells-b-color-text: #18181B;
+  --shells-b-color-muted: #71717A;
+  --shells-b-font-size: 13px;
+  --shells-b-font-title: 18px;
+  --shells-b-font-family: Inter, "Segoe UI", system-ui, sans-serif;
+  --shells-b-space-page: 16px;
+  --shells-b-space-card: 12px;
+  --shells-b-space-gap: 12px;
+  --shells-b-radius-card: 8px;
+  --shells-b-radius-item: 6px;
+  --shells-b-shadow-card: none;
+  --shells-b-size-sidebar: 200px;
+  --shells-b-size-sidebar-compact: 56px;
+  --shells-b-size-topbar: 48px;
+  --shells-b-size-touch: 36px;
+  --shells-b-size-touch-tablet: 44px;
+  --shells-c-name: Modern clinical EHR;
+  --shells-c-color-bg: #F3F6F7;
+  --shells-c-color-surface: #FFFFFF;
+  --shells-c-color-sidebar: #0A5650;
+  --shells-c-color-sidebar-text: #D3F0EC;
+  --shells-c-color-sidebar-active-bg: #0B6B62;
+  --shells-c-color-sidebar-active-text: #FFFFFF;
+  --shells-c-color-border: #D4DBE1;
+  --shells-c-color-accent: #0B6B62;
+  --shells-c-color-text: #16212B;
+  --shells-c-color-muted: #5F6C77;
+  --shells-c-color-strip: #FFFFFF;
+  --shells-c-color-strip-edge: #0B6B62;
+  --shells-c-font-size: 15px;
+  --shells-c-font-title: 20px;
+  --shells-c-font-family: Inter, "Segoe UI", system-ui, sans-serif;
+  --shells-c-space-page: 20px;
+  --shells-c-space-card: 16px;
+  --shells-c-space-gap: 16px;
+  --shells-c-radius-card: 12px;
+  --shells-c-radius-item: 8px;
+  --shells-c-shadow-card: 0 1px 2px rgba(22,33,43,0.05);
+  --shells-c-size-sidebar: 72px;
+  --shells-c-size-sidebar-compact: 72px;
+  --shells-c-size-topbar: 56px;
+  --shells-c-size-strip: 80px;
+  --shells-c-size-panel: 360px;
+  --shells-c-size-touch: 48px;
+  /* Warna kondisi & status odontogram — SUMBER: design/odontogram/legend.json */
+  --legend-condition-sehat: #0B7A45;
+  --color-tooth-sehat: #0B7A45;
+  --legend-condition-karies: #BE123C;
+  --color-tooth-karies: #BE123C;
+  --legend-condition-tambalan: #1E40AF;
+  --color-tooth-tambalan: #1E40AF;
+  --legend-condition-mahkota: #6D28D9;
+  --color-tooth-mahkota: #6D28D9;
+  --legend-condition-hilang: #3F3F46;
+  --color-tooth-hilang: #3F3F46;
+  --legend-condition-sisa-akar: #9A3412;
+  --color-tooth-sisa-akar: #9A3412;
+  --legend-condition-perlu-dicabut: #A15C00;
+  --color-tooth-perlu-dicabut: #A15C00;
+  --legend-condition-implan: #0F5F63;
+  --color-tooth-implan: #0F5F63;
+  --legend-status-kondisi: #374151;
+  --color-proc-status-kondisi: #374151;
+  --legend-status-sudah-ada-sini: #0B7A45;
+  --color-proc-status-sudah-ada-sini: #0B7A45;
+  --legend-status-sudah-ada-lain: #1E40AF;
+  --color-proc-status-sudah-ada-lain: #1E40AF;
+  --legend-status-direncanakan: #A15C00;
+  --color-proc-status-direncanakan: #A15C00;
+  --legend-status-selesai: #0F5F63;
+  --color-proc-status-selesai: #0F5F63;
+  --legend-status-dirujuk: #6D28D9;
+  --color-proc-status-dirujuk: #6D28D9;
+  --legend-state-draft: #6D28D9;
+  --legend-state-draft-wash: #F3EEFF;
+  --legend-state-draft-accent: #A15C00;
+  --legend-state-signed: #111827;
+  --legend-enamel: var(--color-chart-enamel);
+}
+
+
+:root{
+  --motion-fast:120ms;--motion-std:200ms;--motion-slow:280ms;
+  --motion-ease-standard:cubic-bezier(0.2, 0, 0, 1);
+  --focus:2px solid var(--color-primary-700);
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:#E8EEF0;color:var(--color-neutral-800);
+  font-family:var(--font-family-sans);-webkit-font-smoothing:antialiased}
+body{padding:48px 40px 80px}
+.wrap{max-width:1760px;margin:0 auto}
+h1.page{font-size:28px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px;color:var(--color-neutral-900)}
+.lede{margin:0 0 36px;color:var(--color-neutral-600);font-size:14px;font-weight:500;max-width:860px;line-height:1.5}
+.ab{margin:0 0 64px;width:max-content;max-width:none;padding:8px 8px 8px 16px}
+.ab-k{display:flex;align-items:baseline;gap:12px;margin:0 0 8px}
+.ab-n{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--color-primary-700);text-transform:uppercase}
+.ab-t{font-size:16px;font-weight:650;color:var(--color-neutral-800)}
+.ab-d{font-size:12px;font-weight:500;color:var(--color-neutral-500);margin:0 0 16px;max-width:860px;line-height:1.45}
+.row{display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap}
+.ph-col{display:flex;flex-direction:column;gap:8px;flex:none}
+.ph-cap{margin:0;font-size:12px;font-weight:600;color:var(--color-neutral-600);max-width:360px;line-height:1.4}
+
+.ic{width:20px;height:20px;flex:none}
+.ic-sm{width:16px;height:16px}
+.ic-btn{width:18px;height:18px}
+
+.syn{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;
+  background:#FFFAEB;color:#B54708;border:1px solid #F5C14A;font-size:10px;font-weight:700;letter-spacing:.04em}
+
+/* HeroUI v3 button: sm 40, md 44, lg 48. Radius full. Press scale 0.97. */
+.button{display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  min-height:48px;padding:0 24px;border-radius:999px;border:0;font-size:14px;font-weight:600;
+  background:transparent;color:var(--color-neutral-800);cursor:default;
+  transition:transform var(--motion-fast) var(--motion-ease-standard),background var(--motion-fast) var(--motion-ease-standard)}
+.button--sm{min-height:40px;padding:0 16px;font-size:13px}
+.button--md{min-height:44px;padding:0 20px;font-size:14px}
+.button--lg{min-height:48px;padding:0 24px}
+.button--primary{background:var(--color-primary-700);color:#fff}
+.button--primary:hover{background:var(--color-primary-800)}
+.button--secondary{background:var(--color-primary-50);color:var(--color-primary-800)}
+.button--outline{background:#fff;color:var(--color-primary-800);border:1px solid var(--color-primary-200)}
+.button--ghost{background:transparent;color:var(--color-neutral-700)}
+.button--danger-soft{background:var(--color-danger-bg);color:var(--color-danger-fg)}
+.button--icon{width:48px;height:48px;padding:0;border-radius:14px;min-height:48px}
+.button:active{transform:scale(.97)}
+.button:focus-visible,.chip:focus-visible,.tab:focus-visible,.litem:focus-visible,.radio:focus-visible,.surf b:focus-visible,.tth:focus-visible{
+  outline:var(--focus);outline-offset:2px}
+
+/* Chip: HeroUI sm/md/lg, radius full, variants solid/bordered/flat/dot */
+.chip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:999px;
+  font-size:12px;font-weight:600;border:1px solid transparent;background:var(--color-neutral-100);color:var(--color-neutral-700)}
+.chip--lg{height:32px;padding:0 12px}
+.chip--solid{background:var(--color-primary-700);color:#fff}
+.chip--bordered{background:#fff;border-color:var(--color-neutral-200)}
+.chip--flat{background:var(--color-primary-50);color:var(--color-primary-800)}
+.chip--dot::before{content:"";width:8px;height:8px;border-radius:99px;background:currentColor;flex:none}
+.chip.on{background:var(--color-primary-50);color:var(--color-primary-800);border-color:var(--color-primary-200)}
+
+.st-ada{background:#EEF0F4;color:#344054}
+.st-lain{background:#E8F0FE;color:#1D4ED8}
+.st-rencana{background:#FFFAEB;color:#B54708}
+.st-selesai{background:#ECFDF3;color:#0B7A45}
+
+.ph{width:360px;background:#fff;border:1px solid var(--color-neutral-200);
+  border-radius:28px;overflow:hidden;position:relative;display:flex;flex-direction:column;flex:none;
+  box-shadow:0 8px 24px rgba(22,33,43,.06)}
+.ph-bar{display:flex;align-items:center;justify-content:space-between;padding:8px 16px 0;min-height:28px}
+.ph-time{font-size:12px;font-weight:600}
+.hd{background:#fff;padding:0 8px;display:flex;align-items:center;gap:8px;min-height:56px;
+  border-bottom:1px solid var(--color-neutral-100)}
+.h-sm{margin:0;font-size:16px;font-weight:700;flex:1}
+.ph-body{flex:1;background:var(--color-canvas);padding:12px 16px;display:flex;flex-direction:column;gap:12px;min-height:0;overflow:hidden}
+.bnav{flex:none;min-height:80px;background:#fff;border-top:1px solid var(--color-neutral-200);display:flex;padding:4px 4px 12px}
+.navi{flex:1;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;font-size:10px;font-weight:700;color:var(--color-neutral-500);min-height:48px;border-radius:14px}
+.navi.on{color:var(--color-primary-700)}
+.mu{font-size:12px;font-weight:500;color:var(--color-neutral-500)}
+.kicker{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500)}
+
+.desk{width:1280px;background:#fff;border:1px solid var(--color-neutral-200);
+  border-radius:16px;overflow:hidden;display:flex;flex:none;box-shadow:0 8px 24px rgba(22,33,43,.06)}
+.rail{width:72px;background:#F4F7F7;border-right:1px solid var(--color-neutral-200);display:flex;flex-direction:column;
+  align-items:center;padding:16px 8px 12px;gap:4px;flex:none}
+.rail .logo{width:40px;height:40px;border-radius:14px;background:var(--color-primary-700);color:#fff;display:grid;place-items:center;margin-bottom:8px}
+.rbtn{width:48px;height:48px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;color:var(--color-neutral-500);font-size:9px;font-weight:700;border:0;background:transparent}
+.rbtn.on{background:var(--color-primary-700);color:#fff}
+.desk-col{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--color-canvas)}
+.top{display:flex;align-items:center;justify-content:space-between;min-height:56px;padding:0 16px 0 20px;
+  background:#fff;border-bottom:1px solid var(--color-neutral-200);gap:12px}
+.top h2{margin:0;font-size:16px;font-weight:700}
+.crumb{font-size:12px;font-weight:600;color:var(--color-neutral-500)}
+.desk-body{flex:1;padding:16px;display:flex;flex-direction:column;gap:16px;min-height:0}
+
+/* HeroUI tabs: muted track, selected pill */
+.tabs{display:flex;gap:4px;padding:4px;background:var(--color-neutral-100);border-radius:14px}
+.tab{flex:1;min-height:48px;border:0;border-radius:10px;background:transparent;color:var(--color-neutral-600);
+  font-size:13px;font-weight:600;display:grid;place-items:center;padding:0 8px}
+.tab.on{background:#fff;color:var(--color-neutral-900);box-shadow:0 1px 2px rgba(22,33,43,.08)}
+
+/* SearchField */
+.search{position:relative}
+.search .ic{position:absolute;left:12px;top:14px;color:var(--color-neutral-400)}
+.search input,.search .fake{width:100%;min-height:48px;padding:0 12px 0 40px;border-radius:14px;
+  border:1px solid var(--color-neutral-200);background:#fff;font-size:14px;font-weight:500;color:var(--color-neutral-800)}
+.search .fake{display:flex;align-items:center;color:var(--color-neutral-400)}
+.search .fake.has{color:var(--color-neutral-800)}
+
+.favs{display:flex;flex-wrap:wrap;gap:8px}
+
+/* Listbox */
+.litem{display:flex;align-items:center;gap:12px;min-height:48px;padding:0 12px;border-radius:10px;
+  background:transparent;border:0;width:100%;text-align:left;font-size:14px;font-weight:600;color:var(--color-neutral-800)}
+.litem .sub{margin-left:auto;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--color-neutral-500);text-transform:uppercase}
+.litem.on{background:var(--color-primary-50);color:var(--color-primary-900)}
+.litem:hover{background:var(--color-neutral-50)}
+.list{display:flex;flex-direction:column;gap:4px}
+
+/* RadioGroup status */
+.radios{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.radio{display:flex;align-items:center;gap:8px;min-height:48px;padding:0 12px;border-radius:14px;
+  border:1px solid var(--color-neutral-200);background:#fff;font-size:12px;font-weight:600;color:var(--color-neutral-800)}
+.radio .dot{width:16px;height:16px;border-radius:99px;border:1.5px solid var(--color-neutral-300);flex:none;display:grid;place-items:center;background:#fff}
+.radio .dot i{width:8px;height:8px;border-radius:99px;background:transparent;display:block}
+.radio.on{border-color:var(--color-primary-300);background:var(--color-primary-50)}
+.radio.on .dot{border-color:var(--color-primary-700)}
+.radio.on .dot i{background:var(--color-primary-700)}
+
+/* Drawer / bottom sheet, HeroUI placement bottom */
+.drawer{position:absolute;left:0;right:0;bottom:0;z-index:4;background:#fff;
+  border-radius:16px 16px 0 0;box-shadow:0 -8px 32px rgba(22,33,43,.14);
+  display:flex;flex-direction:column;max-height:62%;
+  animation:drawer-in var(--motion-slow) var(--motion-ease-standard)}
+@keyframes drawer-in{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}
+.drawer-handle{width:48px;height:4px;border-radius:999px;background:var(--color-neutral-300);margin:8px auto 0;flex:none}
+.drawer-hd{display:flex;align-items:center;gap:8px;min-height:48px;padding:0 8px 0 16px}
+.drawer-hd h3{margin:0;font-size:16px;font-weight:700;flex:1}
+.drawer-bd{padding:0 16px 8px;display:flex;flex-direction:column;gap:8px;overflow:auto;min-height:0}
+.drawer-ft{flex:none;padding:8px 16px 12px;border-top:1px solid var(--color-neutral-100);
+  display:flex;justify-content:stretch}
+.drawer-ft .button--primary{flex:1}
+
+.surf{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.surf b{min-height:56px;min-width:48px;border-radius:14px;border:1px solid var(--color-neutral-200);background:#fff;
+  display:grid;place-items:center;font-size:13px;font-weight:700;color:var(--color-neutral-600)}
+.surf b.on{background:var(--color-primary-700);color:#fff;border-color:var(--color-primary-700)}
+
+/* 2D odontogram */
+.od{background:#fff;border:1px solid var(--color-neutral-200);border-radius:16px;padding:8px}
+.od-hd{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.od-hd h3{margin:0;font-size:14px;font-weight:700}
+.toggle{display:flex;gap:4px;padding:4px;background:var(--color-neutral-100);border-radius:14px}
+.toggle .tab{flex:none;min-width:48px;padding:0 14px;min-height:40px}
+.od-lab{text-align:center;font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--color-neutral-500);margin:4px 0}
+.od-row{display:flex;gap:3px;justify-content:center}
+.tth{width:18px;height:28px;border-radius:6px;border:1px solid var(--color-neutral-200);background:#fff;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:0 0 2px;
+  font-size:7px;font-weight:800;color:var(--color-neutral-600);position:relative}
+.tth .face{width:12px;height:12px;border-radius:2px;border:1px solid var(--color-neutral-300);background:#fff;margin-bottom:1px}
+.tth.on{border-color:var(--color-primary-700);background:var(--color-primary-50);color:var(--color-primary-800)}
+.tth.on .face{background:#FDECEC;border-color:#BE123C}
+.tth.abu{border-color:#6D28D9;background:#F5F3FF;color:#6D28D9}
+.tth.abu .face{background:#EDE9FE;border-color:#6D28D9}
+.tth.pon{border-color:#344054;background:#EEF0F4;color:#344054}
+.tth.pon .face{background:#D4DBE1;border-color:#344054}
+.tth.span{box-shadow:0 0 0 2px rgba(109,40,217,.35)}
+.bridge-bar{height:4px;background:#6D28D9;border-radius:99px;margin:4px auto 0;width:58px}
+
+.note-ro{display:flex;align-items:center;gap:8px;min-height:40px;padding:0 12px;border-radius:14px;
+  background:#E8F0FE;color:#1D4ED8;font-size:12px;font-weight:600}
+
+/* Legend */
+.leg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.leg-card{background:#fff;border:1px solid var(--color-neutral-200);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:8px}
+.leg-card h3{margin:0;font-size:14px;font-weight:700}
+.leg-item{display:flex;align-items:center;gap:10px;min-height:32px;font-size:13px;font-weight:600}
+.sym{width:28px;height:28px;border-radius:8px;border:1px solid var(--color-neutral-200);background:#fff;
+  display:grid;place-items:center;flex:none;position:relative}
+.sym svg{width:18px;height:18px}
+.sym-lab{font-size:11px;font-weight:700;color:var(--color-neutral-500);margin-left:auto}
+
+.view-3d{width:100%;border-radius:16px;border:1px solid var(--color-neutral-200);background:#fff;object-fit:contain;max-height:420px}
+.view-3d.hp{max-height:280px}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none !important;transition:none !important}
+}
+
+.tabs--scroll{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}
+.tabs--scroll::-webkit-scrollbar{display:none}
+.tabs--scroll .tab{flex:0 0 auto;white-space:nowrap;padding:0 12px;min-width:max-content}
+
+.ph-body--flush{padding:0;gap:0;background:var(--color-canvas)}
+.ph-body--sheet{padding:8px 16px 0;overflow:hidden}
+
+.hd-title{display:flex;align-items:baseline;gap:8px;flex:1;min-width:0;padding-left:8px}
+.hd-title h1{margin:0;font-size:18px;font-weight:700;color:var(--color-neutral-900)}
+.hd-count{font-size:13px;font-weight:600;color:var(--color-neutral-500)}
+
+.hd-clinic{gap:8px;padding:0 8px 0 12px}
+.logo-sq{width:40px;height:40px;border-radius:12px;background:var(--color-primary-700);color:#fff;
+  display:grid;place-items:center;flex:none}
+.logo-sq .ic{width:20px;height:20px}
+.clinic-nm{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;line-height:1.15}
+.clinic-nm b{font-size:13px;font-weight:700;color:var(--color-neutral-900)}
+.clinic-nm span{font-size:12px;font-weight:600;color:var(--color-neutral-600)}
+.av{width:48px;height:48px;border-radius:999px;border:0;background:var(--color-primary-50);
+  color:var(--color-primary-800);font-size:13px;font-weight:700;display:grid;place-items:center;flex:none}
+
+.filt-row{display:flex;align-items:center;gap:8px;padding:8px 16px 0}
+.filt-row .search{flex:1;min-width:0}
+.doc-chip{flex:none;display:inline-flex;align-items:center;justify-content:center;gap:4px;
+  min-height:48px;padding:0 12px;border-radius:14px;border:1px solid var(--color-neutral-200);
+  background:#fff;font-size:13px;font-weight:600;color:var(--color-neutral-800);white-space:nowrap}
+.doc-chip .ic{width:16px;height:16px;color:var(--color-neutral-500)}
+
+.tab-wrap{padding:8px 16px 8px}
+
+.plist{flex:1;min-height:0;background:#fff;border-top:1px solid var(--color-neutral-100);display:flex;flex-direction:column}
+.prow{display:flex;align-items:center;gap:12px;min-height:64px;width:100%;padding:8px 16px;
+  border:0;border-bottom:1px solid var(--color-neutral-100);background:#fff;text-align:left;border-radius:0}
+.prow:active{transform:none;background:var(--color-neutral-50)}
+.av-sm{width:40px;height:40px;border-radius:999px;background:var(--color-neutral-100);
+  color:var(--color-neutral-700);font-size:12px;font-weight:700;display:grid;place-items:center;flex:none}
+.prow .who{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;justify-content:center}
+.prow .nm{font-size:14px;font-weight:700;color:var(--color-neutral-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prow .meta{font-size:12px;font-weight:500;color:var(--color-neutral-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip-st{display:inline-flex;align-items:center;height:24px;padding:0 8px;border-radius:999px;
+  font-size:11px;font-weight:700;flex:none;white-space:nowrap}
+.chip-st.dirawat{background:#ECFDF3;color:#0B7A45}
+.chip-st.kontrol{background:#FFFAEB;color:#B54708}
+
+.fab{position:absolute;right:16px;bottom:96px;z-index:3;width:56px;height:56px;border:0;
+  border-radius:999px;background:var(--color-primary-700);color:#fff;display:grid;place-items:center;
+  box-shadow:0 8px 20px rgba(11,107,98,.28)}
+.fab:active{transform:scale(.97)}
+.fab .ic{width:24px;height:24px}
+.fab-space{height:64px;flex:none}
+
+.pg-row{display:flex;align-items:center;justify-content:space-between;padding:8px 16px 0;gap:8px}
+.pg-row h2{margin:0;font-size:16px;font-weight:700;color:var(--color-neutral-900)}
+.mode{display:flex;gap:4px;padding:4px;background:var(--color-neutral-100);border-radius:14px;flex:none}
+.mode .tab{flex:none;min-height:48px;padding:0 12px;font-size:12px}
+.button--compact{padding:0 12px}
+
+.date-row{display:flex;align-items:center;gap:8px;padding:8px 16px;min-height:56px}
+.date-row .when{flex:1;text-align:center;font-size:14px;font-weight:700;color:var(--color-neutral-900);min-width:0}
+
+.sec{padding:8px 16px 0;display:flex;align-items:center;justify-content:space-between}
+.sec h3{margin:0;font-size:13px;font-weight:700;color:var(--color-neutral-700)}
+.sec .n{color:var(--color-neutral-500);font-weight:600}
+
+.tlist{display:flex;flex-direction:column;padding:0 16px 8px;gap:8px}
+.trow{display:flex;align-items:center;gap:12px;min-height:72px;padding:8px 12px;background:#fff;
+  border:1px solid var(--color-neutral-200);border-radius:16px}
+.trow .tm{width:44px;flex:none;font-size:13px;font-weight:700;color:var(--color-neutral-800);font-variant-numeric:tabular-nums}
+.trow .who{flex:1;min-width:0}
+.trow .nm{font-size:14px;font-weight:700;color:var(--color-neutral-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trow .svc{font-size:12px;font-weight:500;color:var(--color-neutral-600);display:-webkit-box;-webkit-line-clamp:2;
+  -webkit-box-orient:vertical;overflow:hidden;line-height:1.35;white-space:normal}
+.trow .side{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:none}
+
+.fold{display:flex;align-items:center;justify-content:space-between;margin:0 16px 8px;min-height:48px;
+  padding:0 12px;background:#fff;border:1px solid var(--color-neutral-200);border-radius:16px;
+  font-size:13px;font-weight:700;color:var(--color-neutral-700)}
+
+.scrim{position:absolute;inset:0;z-index:4;background:rgba(22,33,43,.4)}
+.drawer--profil{max-height:72%;z-index:5}
+.who-block{display:flex;align-items:center;gap:12px;padding:4px 0 8px}
+.who-block .av{width:56px;height:56px;font-size:16px}
+.who-block .nm{font-size:16px;font-weight:700;color:var(--color-neutral-900)}
+.who-block .role{font-size:13px;font-weight:500;color:var(--color-neutral-500)}
+.blist{display:flex;flex-direction:column;gap:4px}
+.brow{display:flex;align-items:center;gap:12px;min-height:48px;padding:0 12px;border-radius:10px;
+  border:1px solid var(--color-neutral-200);background:#fff;width:100%;text-align:left;
+  font-size:14px;font-weight:600;color:var(--color-neutral-800)}
+.brow.on{border-color:var(--color-primary-300);background:var(--color-primary-50);color:var(--color-primary-900)}
+.brow .ic{margin-left:auto;color:var(--color-primary-700)}
+
+.pt-strip{display:flex;align-items:baseline;gap:8px;padding:8px 16px;background:#fff;
+  border-bottom:1px solid var(--color-neutral-100);min-height:40px}
+.pt-strip b{font-size:14px;font-weight:700;color:var(--color-neutral-900)}
+.pt-strip span{font-size:12px;font-weight:500;color:var(--color-neutral-500);white-space:nowrap}
+
+.cond-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cond{display:flex;align-items:center;gap:8px;min-height:48px;padding:0 12px;border-radius:14px;
+  border:1px solid var(--color-neutral-200);background:#fff;font-size:13px;font-weight:600;
+  color:var(--color-neutral-800);text-align:left}
+.cond .dot{width:10px;height:10px;border-radius:99px;flex:none}
+.cond.on{border-color:var(--color-primary-300);background:var(--color-primary-50);color:var(--color-primary-900)}
+
+.od--tight{padding:6px 8px}
+.od--tight .od-hd{margin-bottom:4px}
+.od--tight .tth{width:16px;height:26px;font-size:6px}
+
+.before{width:360px;background:#fff;border:1px solid var(--color-neutral-200);
+  border-radius:28px;overflow:hidden;flex:none;box-shadow:0 8px 24px rgba(22,33,43,.06)}
+.before img{display:block;width:360px;height:auto}
+.compare{display:flex;gap:24px;align-items:flex-start}
+
+@media (prefers-reduced-motion:reduce){
+  .drawer,.fab,.button{animation:none;transition:none}
+}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 class="page">Perbaikan HP 2</h1>
+  <p class="lede">Tiga layar staging 360: daftar pasien, beranda dokter, dan sheet gigi.
+  Setiap artboard menampilkan cuplikan sebelum (data sintetis) di kiri, usulan HeroUI di kanan.
+  Teal hanya pada aksi primer. Satu aksi primer per layar. Target sentuh 48px. Grid 8pt.</p>
+  
+    <section class="ab" id="ab-01">
+      <div class="ab-k"><span class="ab-n">01</span><span class="ab-t">Pasien, daftar ringkas</span></div>
+      <p class="ab-d">Label Cari dan Dokter dihapus. Filter satu baris, bukan kartu besar. Hitungan 25 di judul. Tab HeroUI bisa digeser, Perlu kontrol utuh. Seluruh baris satu target. Tanpa tautan Rekam Medis dan tanpa chevron. Nama dokter tidak menggulung di baris. FAB tidak menutupi daftar.</p>
+      <div class="compare"><div class="ph-col"><div class="before"><img src="assets/perbaikan-hp-2/pasien-crop.jpg" alt="Pasien staging, sebelum perbaikan" width="360" height="auto"></div><p class="ph-cap">Sebelum, staging 360</p></div><div class="ph-col">
+    <div class="ph" style="height:800px">
+      <div class="ph-bar"><span class="syn">DATA SINTETIS</span><span class="ph-time">22.39</span></div>
+      <header class="hd"><div class="hd-title"><h1>Pasien</h1><span class="hd-count">25</span></div></header>
+      <div class="ph-body ph-body--flush"><div class="filt-row"><div class="search"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><div class="fake">Cari nama atau No. RM</div></div><button class="doc-chip" type="button" aria-label="Filter dokter"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3"/><path d="M1 14h6M9 8h6M17 16h6"/></svg>Semua</button></div><div class="tab-wrap"><div class="tabs tabs--scroll" role="tablist"><button class="tab on" type="button">Semua</button><button class="tab" type="button">Dalam perawatan</button><button class="tab" type="button">Perlu kontrol</button></div></div><div class="plist"><button class="prow" type="button"><span class="av-sm" aria-hidden="true">NA</span><span class="who"><span class="nm">Nadia Anak Contoh</span><span class="meta">BT-000041 · 9 th</span></span><span class="chip-st dirawat">Dirawat</span></button><button class="prow" type="button"><span class="av-sm" aria-hidden="true">SN</span><span class="who"><span class="nm">Sari Nugroho</span><span class="meta">BT-000040 · 13 th</span></span><span class="chip-st dirawat">Dirawat</span></button><button class="prow" type="button"><span class="av-sm" aria-hidden="true">HH</span><span class="who"><span class="nm">Hendra Hidayat</span><span class="meta">BT-000009 · 65 th</span></span><span class="chip-st dirawat">Dirawat</span></button><button class="prow" type="button"><span class="av-sm" aria-hidden="true">FH</span><span class="who"><span class="nm">Fajar Halim</span><span class="meta">BT-000022 · 31 th</span></span><span class="chip-st kontrol">Kontrol</span></button><button class="prow" type="button"><span class="av-sm" aria-hidden="true">BS</span><span class="who"><span class="nm">Budi Santoso</span><span class="meta">BT-000017 · 42 th</span></span><span class="chip-st kontrol">Kontrol</span></button><div class="fab-space"></div></div></div>
+      <nav class="bnav"><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><span>Beranda</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Jadwal</span></button><button class="navi on" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Pasien</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg><span>Rekam Medis</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg><span>Lainnya</span></button></nav>
+      <button class="fab" type="button" aria-label="Tambah pasien"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+    </div><p class="ph-cap">Sesudah. Lima baris terlihat. Satu ketukan per baris.</p></div></div>
+    </section>
+  
+    <section class="ab" id="ab-02">
+      <div class="ab-k"><span class="ab-n">02</span><span class="ab-t">Beranda dokter, header dan tanggal</span></div>
+      <p class="ab-d">Tanpa tombol + di header. Judul Pasien saya dan layanan tampil utuh, layanan boleh dua baris. Satu baris tanggal muat di 360. Pemilih cabang pindah ke lembar profil, bukan popover yang menimpa judul.</p>
+      <div class="compare"><div class="ph-col"><div class="before"><img src="assets/perbaikan-hp-2/beranda-crop.jpg" alt="Beranda staging, sebelum perbaikan" width="360" height="auto"></div><p class="ph-cap">Sebelum, staging 360</p></div><div class="ph-col">
+    <div class="ph" style="height:800px">
+      <div class="ph-bar"><span class="syn">DATA SINTETIS</span><span class="ph-time">22.39</span></div>
+      <header class="hd hd-clinic"><div class="logo-sq" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg></div><div class="clinic-nm"><b>Klinik Gigi</b><span>Senyum Sehat</span></div><button class="button button--ghost button--lg button--icon" type="button" aria-label="Notifikasi"><svg class="ic-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></button><button class="av" type="button" aria-label="Profil">PS</button></header>
+      <div class="ph-body ph-body--flush"><div class="pg-row"><h2>Pasien saya</h2><div class="mode" role="tablist" aria-label="Mode"><button class="tab" type="button">Meja depan</button><button class="tab on" type="button">Saya</button></div></div><div class="date-row"><button class="button button--ghost button--lg button--icon" type="button" aria-label="Hari sebelumnya"><svg class="ic-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button><span class="when">15 Nov 2026</span><button class="button button--ghost button--lg button--icon" type="button" aria-label="Hari berikutnya"><svg class="ic-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></button><button class="button button--ghost button--lg button--icon" type="button" aria-label="Pilih tanggal"><svg class="ic-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></button></div><div class="sec"><h3>Sedang dirawat <span class="n">· 2</span></h3></div><div class="tlist"><div class="trow"><span class="tm">12.20</span><span class="who"><span class="nm">Hendra Hidayat</span><span class="svc">Kontrol rutin</span></span><span class="side"><span class="chip-st dirawat">Merawat</span><button class="button button--outline button--lg button--compact" type="button">Buka RM</button></span></div><div class="trow"><span class="tm">19.30</span><span class="who"><span class="nm">Fajar Halim</span><span class="svc">Pembersihan karang</span></span><span class="side"><span class="chip-st dirawat">Merawat</span><button class="button button--outline button--lg button--compact" type="button">Buka RM</button></span></div></div><button class="fold" type="button">Selesai · 12<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div>
+      <nav class="bnav"><button class="navi on" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><span>Beranda</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Jadwal</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Pasien</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg><span>Rekam Medis</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg><span>Lainnya</span></button></nav>
+      
+    </div><p class="ph-cap">Sesudah. Header ringkas, tanpa tombol tambah. Tanggal muat.</p></div><div class="ph-col">
+    <div class="ph" style="height:800px">
+      <div class="ph-bar"><span class="syn">DATA SINTETIS</span><span class="ph-time">22.39</span></div>
+      <header class="hd hd-clinic"><div class="logo-sq" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg></div><div class="clinic-nm"><b>Klinik Gigi</b><span>Senyum Sehat</span></div><button class="button button--ghost button--lg button--icon" type="button" aria-label="Notifikasi"><svg class="ic-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></button><button class="av" type="button" aria-label="Profil">PS</button></header>
+      <div class="ph-body ph-body--flush"><div class="pg-row"><h2>Pasien saya</h2><div class="mode" role="tablist" aria-label="Mode"><button class="tab" type="button">Meja depan</button><button class="tab on" type="button">Saya</button></div></div><div class="date-row"><button class="button button--ghost button--lg button--icon" type="button" aria-label="Hari sebelumnya"><svg class="ic-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button><span class="when">15 Nov 2026</span><button class="button button--ghost button--lg button--icon" type="button" aria-label="Hari berikutnya"><svg class="ic-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></button><button class="button button--ghost button--lg button--icon" type="button" aria-label="Pilih tanggal"><svg class="ic-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></button></div><div class="sec"><h3>Sedang dirawat <span class="n">· 2</span></h3></div><div class="tlist"><div class="trow"><span class="tm">12.20</span><span class="who"><span class="nm">Hendra Hidayat</span><span class="svc">Kontrol rutin</span></span><span class="side"><span class="chip-st dirawat">Merawat</span><button class="button button--outline button--lg button--compact" type="button">Buka RM</button></span></div><div class="trow"><span class="tm">19.30</span><span class="who"><span class="nm">Fajar Halim</span><span class="svc">Pembersihan karang</span></span><span class="side"><span class="chip-st dirawat">Merawat</span><button class="button button--outline button--lg button--compact" type="button">Buka RM</button></span></div></div><button class="fold" type="button">Selesai · 12<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div>
+      <nav class="bnav"><button class="navi on" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><span>Beranda</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Jadwal</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Pasien</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg><span>Rekam Medis</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg><span>Lainnya</span></button></nav>
+      <div class="scrim" aria-hidden="true"></div>
+    <div class="drawer drawer--profil" role="dialog" aria-label="Profil">
+      <div class="drawer-handle" aria-hidden="true"></div>
+      <div class="drawer-hd"><h3>Profil</h3>
+        <button class="button button--ghost button--lg button--icon" type="button" aria-label="Tutup"><svg class="ic-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+      <div class="drawer-bd"><div class="who-block"><span class="av" aria-hidden="true">PS</span><div><div class="nm">Pemilik Senyum</div><div class="role">Pemilik, dokter gigi</div></div></div><p class="kicker">Cabang aktif</p><div class="blist"><button class="brow on" type="button">Senyum Sehat Kemang<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></button></div></div>
+    </div>
+    </div><p class="ph-cap">Profil dan cabang di lembar bawah. Nama cabang utuh.</p></div></div>
+    </section>
+  
+    <section class="ab" id="ab-03">
+      <div class="ab-k"><span class="ab-n">03</span><span class="ab-t">Sheet gigi, HeroUI v2</span></div>
+      <p class="ab-d">Identitas pasien hanya di chrome Rekam Medis, tidak diulang di lembar. Lima bantalan permukaan 56px dalam kisi, termasuk B. Tanpa teks Belum ada temuan, tanpa tab Tambal, tanpa chip bergaris kiri. Kondisi kisi dua kolom dengan titik warna. Satu aksi primer: Simpan.</p>
+      <div class="compare"><div class="ph-col"><div class="before"><img src="assets/perbaikan-hp-2/sheet-gigi-crop.jpg" alt="Sheet gigi staging, ToothSheet lama" width="360" height="auto"></div><p class="ph-cap">Sebelum, ToothSheet lama</p></div><div class="ph-col">
+    <div class="ph" style="height:800px">
+      <div class="ph-bar"><span class="syn">DATA SINTETIS</span><span class="ph-time">22.39</span></div>
+      <header class="hd"><button class="button button--ghost button--lg button--icon" type="button" aria-label="Kembali"><svg class="ic-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button><h1 class="h-sm">Rekam Medis</h1><button class="button button--ghost button--lg button--icon" type="button" aria-label="Lainnya"><svg class="ic-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg></button></header><div class="pt-strip"><b>Hendra Hidayat</b><span>65 th · Perempuan · BT-000009</span></div>
+      <div class="ph-body ph-body--sheet">
+    <div class="od od--tight">
+      <div class="od-hd"><h3>Odontogram</h3><div class="toggle" role="tablist" aria-label="Tampilan bagan"><button class="tab on" type="button">2D</button><button class="tab" type="button">3D</button></div></div>
+      <div class="od-lab">RAHANG ATAS</div><div class="od-row"><button class="tth" type="button" aria-label="Gigi 18"><span class="face"></span>18</button><button class="tth" type="button" aria-label="Gigi 17"><span class="face"></span>17</button><button class="tth" type="button" aria-label="Gigi 16"><span class="face"></span>16</button><button class="tth" type="button" aria-label="Gigi 15"><span class="face"></span>15</button><button class="tth" type="button" aria-label="Gigi 14"><span class="face"></span>14</button><button class="tth" type="button" aria-label="Gigi 13"><span class="face"></span>13</button><button class="tth" type="button" aria-label="Gigi 12"><span class="face"></span>12</button><button class="tth" type="button" aria-label="Gigi 11"><span class="face"></span>11</button><button class="tth" type="button" aria-label="Gigi 21"><span class="face"></span>21</button><button class="tth" type="button" aria-label="Gigi 22"><span class="face"></span>22</button><button class="tth" type="button" aria-label="Gigi 23"><span class="face"></span>23</button><button class="tth" type="button" aria-label="Gigi 24"><span class="face"></span>24</button><button class="tth" type="button" aria-label="Gigi 25"><span class="face"></span>25</button><button class="tth on" type="button" aria-label="Gigi 26"><span class="face"></span>26</button><button class="tth" type="button" aria-label="Gigi 27"><span class="face"></span>27</button><button class="tth" type="button" aria-label="Gigi 28"><span class="face"></span>28</button></div>
+      <div class="od-lab">RAHANG BAWAH</div><div class="od-row"><button class="tth" type="button" aria-label="Gigi 48"><span class="face"></span>48</button><button class="tth" type="button" aria-label="Gigi 47"><span class="face"></span>47</button><button class="tth" type="button" aria-label="Gigi 46"><span class="face"></span>46</button><button class="tth" type="button" aria-label="Gigi 45"><span class="face"></span>45</button><button class="tth" type="button" aria-label="Gigi 44"><span class="face"></span>44</button><button class="tth" type="button" aria-label="Gigi 43"><span class="face"></span>43</button><button class="tth" type="button" aria-label="Gigi 42"><span class="face"></span>42</button><button class="tth" type="button" aria-label="Gigi 41"><span class="face"></span>41</button><button class="tth" type="button" aria-label="Gigi 31"><span class="face"></span>31</button><button class="tth" type="button" aria-label="Gigi 32"><span class="face"></span>32</button><button class="tth" type="button" aria-label="Gigi 33"><span class="face"></span>33</button><button class="tth" type="button" aria-label="Gigi 34"><span class="face"></span>34</button><button class="tth" type="button" aria-label="Gigi 35"><span class="face"></span>35</button><button class="tth" type="button" aria-label="Gigi 36"><span class="face"></span>36</button><button class="tth" type="button" aria-label="Gigi 37"><span class="face"></span>37</button><button class="tth" type="button" aria-label="Gigi 38"><span class="face"></span>38</button></div>
+    </div></div>
+      <nav class="bnav"><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><span>Beranda</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Jadwal</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Pasien</span></button><button class="navi on" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg><span>Rekam Medis</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg><span>Lainnya</span></button></nav>
+      
+    <div class="drawer" role="dialog" aria-label="Gigi 26">
+      <div class="drawer-handle" aria-hidden="true"></div>
+      <div class="drawer-hd"><h3>Gigi 26</h3>
+        <button class="button button--ghost button--lg button--icon" type="button" aria-label="Tutup"><svg class="ic-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+      <div class="drawer-bd"><div class="surf"><b class="on">M</b><b class="on">O</b><b class="">D</b><b class="">B</b><b class="">L</b></div><div class="tabs" role="tablist"><button class="tab on" type="button">Permukaan</button><button class="tab" type="button">Seluruh gigi</button><button class="tab" type="button">Rentang</button></div><div class="favs"><span class="chip chip--flat on">Karies</span><span class="chip chip--bordered">Tambalan</span></div><div class="cond-grid"><button class="cond on" type="button"><span class="dot" style="background:#B42318" aria-hidden="true"></span>Karies</button><button class="cond" type="button"><span class="dot" style="background:#344054" aria-hidden="true"></span>Tambalan</button><button class="cond" type="button"><span class="dot" style="background:#0B7A45" aria-hidden="true"></span>Sehat</button><button class="cond" type="button"><span class="dot" style="background:#B54708" aria-hidden="true"></span>Fraktur</button></div><div class="radios" role="radiogroup" aria-label="Status kondisi"><button class="radio" type="button"><span class="dot" aria-hidden="true"><i></i></span>Ada sebelumnya</button><button class="radio" type="button"><span class="dot" aria-hidden="true"><i></i></span>Klinik lain</button><button class="radio on" type="button"><span class="dot" aria-hidden="true"><i></i></span>Rencana</button><button class="radio" type="button"><span class="dot" aria-hidden="true"><i></i></span>Selesai hari ini</button></div></div>
+      <div class="drawer-ft"><button class="button button--primary button--lg" type="button">Simpan</button></div>
+    </div>
+    </div><p class="ph-cap">Sesudah, mengikuti odontogram v2 artboard 01 dan papan 09.</p></div></div>
+    </section>
+</div>
+</body>
+</html>
