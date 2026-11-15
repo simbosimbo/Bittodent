@@ -269,7 +269,7 @@ a.tl-block:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px
 }
 /* 360px: date + Hari ini + week arrows fill the row; the day count is also on the "Semua" chip. */
 @media (max-width: 380px) {
-  .sched-bar:has(> .sched-today) .sched-count { display: none; }
+  .sched-bar .sched-count { display: none; } /* review-2: the count is on the "Semua" chip; no truncated "22…" */
   .sched-bar:has(> .sched-today) { justify-content: space-between; }
 }
 /* Phone: the day's content takes horizontal swipes (Schedule.tsx `swipe`); vertical scrolling stays native. */
@@ -326,7 +326,7 @@ a.tl-block:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px
   .agenda-open { padding: 8px 0 8px var(--space-3); }
   .agenda-main { flex-direction: row; flex-wrap: wrap; align-items: center; column-gap: 6px; row-gap: 2px; }
   .agenda-main .agenda-name { flex-basis: 100%; }
-  .agenda-main .agenda-meta { flex: 0 1 auto; min-width: 0; }
+  .agenda-main .agenda-meta { flex: 1 1 0; min-width: 0; } /* chip stays on the meta line: 2-line rows */
   .agenda-main .agenda-chips { flex: none; margin-top: 0; }
   .agenda-name { line-height: 1.3; }
   .agenda-meta { line-height: 1.3; }
