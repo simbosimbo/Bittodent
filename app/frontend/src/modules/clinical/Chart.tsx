@@ -289,6 +289,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
       </div>
       {msg && <p className="notice" role="status">{msg}</p>}
 
+      <div className="chart-split">
       <div className="card">
         <div className="card-head">
           <h2>Odontogram</h2>
@@ -333,11 +334,11 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
       </div>
 
       {visit && can('ai_draft.review') && (
-        <div className="card">
-          <div className="card-head"><h2>Saran tindakan</h2><span className="badge badge-draft">Draf sampai disetujui</span></div>
+        <div className="card chart-sg">
           <TreatmentSuggestions patientId={p.id} visitId={editable ? visit.id : null} onHighlight={setCited} onChanged={load} />
         </div>
       )}
+      </div>
 
       {visit && (
         <div className="card">

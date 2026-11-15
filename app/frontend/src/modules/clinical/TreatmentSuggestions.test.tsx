@@ -90,7 +90,7 @@ test('citation chip shows the source findings and highlights them on the odontog
   expect(onHighlight).toHaveBeenLastCalledWith([])
 })
 
-test('a signed visit is read-only (44px targets are measured in the real browser by scripts/a2-screenshots.mjs)', async () => {
+test('a signed visit is read-only (48px targets are measured in the real browser by scripts/a2-screenshots.mjs)', async () => {
   server([item('a')], true)
   render(<TreatmentSuggestions patientId="p1" visitId="v1" />)
   expect(await screen.findByText('Kunjungan sudah ditandatangani; saran hanya bisa dibaca.')).toBeInTheDocument()
@@ -102,4 +102,22 @@ test('empty state when there are no findings to act on', async () => {
   server([])
   render(<TreatmentSuggestions patientId="p1" visitId="v1" />)
   expect(await screen.findByText(/Tidak ada saran/)).toBeInTheDocument()
+})
+
+test('hides the ditolak chip when the count is 0, and the disclaimer is an info tooltip', async () => {
+  server([item('a')])
+  render(<TreatmentSuggestions patientId="p1" visitId="v1" />)
+  expect(await screen.findByText('✎ 1 draf')).toBeInTheDocument()
+  expect(screen.queryByText(/ditolak/)).not.toBeInTheDocument()
+  expect(screen.queryByText(/Hanya dari temuan/)).not.toBeInTheDocument()
+  expect(screen.queryByText(/aturan klinik, bukan AI/)).not.toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Dari temuan odontogram, aturan klinik, bukan AI' })).toBeInTheDocument()
+})
+
+test('approving shows a short toast, not a banner', async () => {
+  server([item('a')])
+  render(<TreatmentSuggestions patientId="p1" visitId="v1" />)
+  fireEvent.click(await screen.findByRole('button', { name: '✓ Setujui' }))
+  expect(await screen.findByRole('status')).toHaveTextContent('Disetujui')
+  expect(screen.queryByText(/masuk rencana/)).not.toBeInTheDocument()
 })

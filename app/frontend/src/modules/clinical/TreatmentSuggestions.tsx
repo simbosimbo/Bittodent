@@ -8,9 +8,11 @@ import { conditionOf, surfaceLabel } from './legend'
 import './suggestions.css'
 
 // A2 "Saran tindakan" (board klinikme-gigi AI03 + 11). Rule-based, no AI model: every item cites the odontogram findings it came
-// from and stays a draft until the dentist taps Setujui. Built for gloves/hurry: one tap per item, 44px+ targets, Setujui semua
-// sticks to the bottom. Approving only adds a DRAFT plan item to the visit (signed later with the visit), never a note.
+// from and stays a draft until the dentist taps Setujui. Built for gloves/hurry: one tap per item, 48px+ targets, Setujui semua
+// docks at the bottom on a phone and sits in the panel header on a wide screen. Approving only adds a DRAFT plan item to the
+// visit (signed later with the visit), never a note.
 // Mount points: Chart (main) and, for PR #52, the Dokter mode "Sedang dirawat" card / RM sheet (same props).
+// The global mobile header/nav is left alone — that change belongs to #52.
 type Props = {
   patientId: string
   visitId: string | null          // open visit; null => read-only preview for the patient
@@ -51,6 +53,11 @@ export default function TreatmentSuggestions({ patientId, visitId, onHighlight, 
     }
   }, [patientId, visitId])
   useEffect(() => { load() }, [load])
+  useEffect(() => {
+    if (!msg) return
+    const t = setTimeout(() => setMsg(''), 2400)
+    return () => clearTimeout(t)
+  }, [msg])
 
   const showSource = (s: Suggestion | null) => {
     const key = s ? s.id ?? `${s.tooth}|${s.rule.key}` : null
@@ -68,7 +75,7 @@ export default function TreatmentSuggestions({ patientId, visitId, onHighlight, 
       await load()
       onChanged?.()
     } catch (e) {
-      setMsg(e instanceof ApiError && [409, 422].includes(e.status) ? e.data?.message ?? 'Saran tidak bisa diproses.' : errorText(e))
+      setMsg(e instanceof ApiError && [409, 422].includes(e.status) ? e.data?.message ?? 'Tidak bisa diproses.' : errorText(e))
       await load()
     } finally {
       setBusy(null)
@@ -76,13 +83,14 @@ export default function TreatmentSuggestions({ patientId, visitId, onHighlight, 
   }
 
   if (error) return <div className="sg" role="alert"><p className="muted small">{error}</p></div>
-  if (!data) return <div className="sg"><p className="muted small">Memuat saran tindakan…</p></div>
+  if (!data) return <div className="sg"><p className="muted small">Memuat…</p></div>
 
   const open = data.items.filter((i) => i.state === 'draf')
   const reviewed = data.items.filter((i) => i.state !== 'draf')
   const ready = open.filter((i) => !i.stale && i.id)
   const readOnly = data.locked || !visitId
   const shown = filter === 'draf' ? open : filter === 'diulas' ? reviewed : open
+  const hasDock = !readOnly && ready.length > 0 && !!visitId
 
   const card = (s: Suggestion) => {
     const key = s.id ?? `${s.tooth}|${s.rule.key}`
@@ -98,6 +106,14 @@ export default function TreatmentSuggestions({ patientId, visitId, onHighlight, 
             aria-label={`Sumber: temuan ${citeText(s)}`} onClick={() => showSource(s)}>
             <span aria-hidden>❝</span> {citeText(s)}
           </button>
+          {s.state === 'draf' && !readOnly && s.id && (
+            <div className="sg-actions">
+              <button type="button" className="sg-btn sg-no" disabled={!!busy} onClick={() => act(s.id!, () => rejectSuggestion(s.id!), 'Ditolak')}>Tolak</button>
+              <button type="button" className="sg-btn sg-ok" disabled={!!busy || s.stale} onClick={() => act(s.id!, () => approveSuggestion(s.id!), 'Disetujui')}>
+                ✓ Setujui
+              </button>
+            </div>
+          )}
         </div>
         {cited === key && (
           <div className="sg-source" role="region" aria-label="Sumber saran">
@@ -112,61 +128,60 @@ export default function TreatmentSuggestions({ patientId, visitId, onHighlight, 
           </div>
         )}
         {s.stale && <p className="small sg-stale">Temuan sumber berubah. Muat ulang saran.</p>}
-        {s.state === 'draf' && !readOnly && s.id && (
-          <div className="sg-actions">
-            <button type="button" className="sg-btn sg-no" disabled={!!busy} onClick={() => act(s.id!, () => rejectSuggestion(s.id!), 'Saran ditolak (dicatat sebagai umpan balik).')}>Tolak</button>
-            <button type="button" className="sg-btn sg-ok" disabled={!!busy || s.stale} onClick={() => act(s.id!, () => approveSuggestion(s.id!), `Disetujui: ${s.procedure_name} gigi ${s.tooth} masuk rencana (draf).`)}>
-              ✓ Setujui
-            </button>
-          </div>
-        )}
       </li>
     )
   }
 
+  const dock = hasDock && visitId && (
+    <div className="sg-sticky">
+      <button type="button" className="sg-btn sg-all" disabled={!!busy}
+        onClick={() => act('all', () => approveAllSuggestions(visitId), `${ready.length} disetujui`)}>
+        ✓ Setujui semua ({ready.length})
+      </button>
+    </div>
+  )
+
   return (
-    <section className="sg" aria-label="Saran tindakan">
-      <div className="sg-chips" aria-label="Ringkasan status">
-        <span className="sg-chip sg-chip-draf">✎ {data.counts.draf} draf</span>
-        <span className="sg-chip sg-chip-ok">✓ {data.counts.disetujui} disetujui</span>
-        <span className="sg-chip sg-chip-no">✕ {data.counts.ditolak} ditolak</span>
+    <section className={`sg${hasDock ? ' sg-has-dock' : ''}`} aria-label="Saran tindakan">
+      <div className="sg-head">
+        <h2>Saran tindakan</h2>
+        <button type="button" className="sg-info" aria-label="Dari temuan odontogram, aturan klinik, bukan AI"
+          title="Dari temuan odontogram · aturan klinik, bukan AI">i</button>
       </div>
-      <div className="sg-bar">
-        <div className="sg-seg" role="radiogroup" aria-label="Tampilkan">
-          {(['semua', 'draf', 'diulas'] as Filter[]).map((f) => (
-            <button key={f} type="button" role="radio" aria-checked={filter === f} className={filter === f ? 'is-on' : ''} onClick={() => setFilter(f)}>
-              {f === 'semua' ? 'Semua' : f === 'draf' ? 'Draf' : 'Diulas'}
-            </button>
-          ))}
+      <div className="sg-body">
+        <div className="sg-chips" aria-label="Ringkasan status">
+          <span className="sg-chip sg-chip-draf">✎ {data.counts.draf} draf</span>
+          <span className="sg-chip sg-chip-ok">✓ {data.counts.disetujui} disetujui</span>
+          {data.counts.ditolak > 0 && <span className="sg-chip sg-chip-no">✕ {data.counts.ditolak} ditolak</span>}
         </div>
-        <span className="small muted">Hanya dari temuan di odontogram · aturan klinik, bukan AI</span>
+        <div className="sg-bar">
+          <div className="sg-seg" role="radiogroup" aria-label="Tampilkan">
+            {(['semua', 'draf', 'diulas'] as Filter[]).map((f) => (
+              <button key={f} type="button" role="radio" aria-checked={filter === f} className={filter === f ? 'is-on' : ''} onClick={() => setFilter(f)}>
+                {f === 'semua' ? 'Semua' : f === 'draf' ? 'Draf' : 'Diulas'}
+              </button>
+            ))}
+          </div>
+        </div>
+        {msg && <p className="sg-toast" role="status">{msg}</p>}
+        {readOnly && <p className="small muted">{visitId ? 'Kunjungan sudah ditandatangani; saran hanya bisa dibaca.' : 'Pratinjau: buka kunjungan untuk menyetujui.'}</p>}
+
+        {data.items.length === 0 ? (
+          <p className="sg-empty">Tidak ada saran. Saran muncul dari temuan odontogram yang sudah ditandatangani dan belum direncanakan.</p>
+        ) : (
+          <>
+            {shown.length > 0 && <ul className="sg-list">{shown.map(card)}</ul>}
+            {filter === 'semua' && reviewed.length > 0 && (
+              <details className="sg-done">
+                <summary>{reviewed.length} sudah diulas</summary>
+                <ul className="sg-list">{reviewed.map(card)}</ul>
+              </details>
+            )}
+            {filter !== 'semua' && shown.length === 0 && <p className="sg-empty">Tidak ada.</p>}
+          </>
+        )}
       </div>
-      {msg && <p className="notice" role="status">{msg}</p>}
-      {readOnly && <p className="small muted">{visitId ? 'Kunjungan sudah ditandatangani; saran hanya bisa dibaca.' : 'Pratinjau: buka kunjungan untuk menyetujui.'}</p>}
-
-      {data.items.length === 0 ? (
-        <p className="sg-empty">Tidak ada saran. Saran muncul dari temuan odontogram yang sudah ditandatangani dan belum direncanakan.</p>
-      ) : (
-        <>
-          {shown.length > 0 && <ul className="sg-list">{shown.map(card)}</ul>}
-          {filter === 'semua' && reviewed.length > 0 && (
-            <details className="sg-done">
-              <summary>{reviewed.length} sudah diulas</summary>
-              <ul className="sg-list">{reviewed.map(card)}</ul>
-            </details>
-          )}
-          {filter !== 'semua' && shown.length === 0 && <p className="sg-empty">Tidak ada.</p>}
-        </>
-      )}
-
-      {!readOnly && ready.length > 0 && visitId && (
-        <div className="sg-sticky">
-          <button type="button" className="sg-btn sg-all" disabled={!!busy}
-            onClick={() => act('all', () => approveAllSuggestions(visitId), `${ready.length} saran disetujui dan masuk rencana (draf).`)}>
-            ✓ Setujui semua ({ready.length})
-          </button>
-        </div>
-      )}
+      {dock}
     </section>
   )
 }
