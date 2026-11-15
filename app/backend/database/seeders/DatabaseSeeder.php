@@ -28,6 +28,7 @@ use App\Modules\Tariffs\Models\Tariff;
 use App\Modules\Tenancy\Models\Branch;
 use App\Modules\Tenancy\Models\Membership;
 use App\Modules\Tenancy\Models\Tenant;
+use App\Modules\TreatmentSuggestions\Domain\RuleTemplate;
 use App\Shared\Crypto\Crypto;
 use App\Shared\Tenancy\Ctx;
 use Carbon\CarbonImmutable;
@@ -211,6 +212,7 @@ class DatabaseSeeder extends Seeder
     private function c3Demo(Branch $branch, User $dentist, array $patients, int $seed): void
     {
         DifficultyTemplate::seed('2026-01-01');
+        RuleTemplate::seed(); // A2 starting rules (synthetic; codes from the template above)
         Tariff::create(['procedure_code' => '23.2', 'name' => 'Tumpatan (contoh)', 'variant' => 'standar', 'level_label' => '1 permukaan',
             'price_rp' => 200000, 'valid_from' => '2025-01-01', 'valid_to' => '2026-01-01']);
 

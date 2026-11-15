@@ -39,6 +39,7 @@ class DraftReviewController extends Controller
     {
         return match ($e->reason) {
             DraftReviewDenied::FORBIDDEN => response()->json(['error' => 'forbidden', 'message' => 'Anda tidak punya izin untuk tindakan ini.'], 403),
+            DraftReviewDenied::OWN_FLOW, DraftReviewDenied::WRONG_KIND => response()->json(['error' => $e->reason, 'message' => 'Draf ini ditinjau lewat fiturnya sendiri.'], 409),
             DraftReviewDenied::NOT_APPROVABLE => response()->json(['error' => 'not_approvable', 'message' => 'Ringkasan AI hanya alat baca dan tidak bisa disetujui menjadi rekam medis.'], 422),
             default => response()->json(['error' => 'wrong_state', 'message' => 'Draf ini sudah ditinjau.'], 409),
         };

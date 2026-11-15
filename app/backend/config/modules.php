@@ -22,5 +22,8 @@ return [
     'Integrations' => [],
     // A0 AI foundation: agent_run/agent_draft + run recorder; reaches models only via Integrations\Contracts\ModelClient.
     'Agents' => ['Integrations'],
+    // A2: rule-based treatment suggestions. Tariffs only for procedure names/existence (ProcedureCatalog, no prices);
+    // writes only draft plan items via Clinical\Contracts\TreatmentPlan. Clinical itself still never reaches Tariffs.
+    'TreatmentSuggestions' => ['Clinical', 'Tariffs', 'Agents'],
     'Reporting' => [],
 ];

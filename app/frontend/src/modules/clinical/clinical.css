@@ -81,3 +81,16 @@ label.check { flex-direction: row; gap: 8px; align-items: flex-start; font-weigh
 .st-selesai { color: #0B7A45; background: #ECFDF5; }
 .st-dirujuk { color: #6D28D9; background: #fff; border-style: dotted; }
 .baseline-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+
+/* A2: suggestions sit in a sticky right column beside the odontogram on a wide screen. Mobile header/nav unchanged (#52). */
+.chart-split { display: grid; gap: 16px; }
+@media (min-width: 1200px) {
+  .chart-split { grid-template-columns: minmax(0, 1fr) minmax(320px, 400px); align-items: start; }
+  .chart-sg {
+    position: sticky;
+    top: 160px; /* below the existing pinned shell header; do not change that header here */
+    max-height: calc(100vh - 172px);
+    overflow: auto;
+  }
+}
+
