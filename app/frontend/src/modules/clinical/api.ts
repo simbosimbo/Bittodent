@@ -31,6 +31,10 @@ export type Chart = {
 }
 
 export const getChart = (patientId: string) => api<Chart>(`/api/patients/${patientId}/chart`)
+// Walk-in: today's visit without an appointment at the active branch. 201 new, 200 = the open visit already there. dentist_id required for non-dentists.
+export const startWalkInVisit = (patientId: string, body: { dentist_id?: string } = {}) =>
+  api<{ id: string }>(`/api/patients/${patientId}/visits/walk-in`, { method: 'POST', body })
+export const getDentists = () => api<{ data: { id: string; name: string }[] }>('/api/dentists')
 export const visitFromAppointment = (appointmentId: string) => api<{ id: string }>(`/api/appointments/${appointmentId}/visit`, { method: 'POST' })
 export const saveFinding = (visitId: string, body: { tooth: number; surface: Surface | null; condition: string; status?: ProcStatus; procedure_code?: string | null }) =>
   api<Finding>(`/api/visits/${visitId}/findings`, { method: 'POST', body })

@@ -46,6 +46,7 @@ export default function Home({ me }: { me: Me }) {
   const queue = active.filter((a) => a.status === 'checked_in' || a.status === 'in_treatment')
   const shown = filter === 'open' ? active.filter((a) => a.status !== 'done') : active
   const patients = new Set(active.flatMap((a) => (a.patient ? [a.patient.id] : []))).size
+  const walkIns = data?.walk_in_patients ?? 0 // server already excludes patients who also have an active appointment
 
   const time = (a: Appointment) => fmtTime(a.starts_at, tz)
   const span = (a: Appointment) => `${time(a)}–${fmtTime(a.ends_at, tz)}`
@@ -71,7 +72,7 @@ export default function Home({ me }: { me: Me }) {
   if (orphan.length) lanes.push({ id: '-', name: 'Tanpa dokter', items: orphan })
 
   const kpis = [
-    { label: 'Pasien hari ini', icon: ICONS.user, value: patients, note: `${patients} dengan janji` },
+    { label: 'Pasien hari ini', icon: ICONS.user, value: patients + walkIns, note: `${patients} dengan janji${walkIns ? ` · ${walkIns} tanpa janji` : ''}` },
     { label: 'Janji temu', icon: ICONS.calendar, value: active.length, note: `${done} selesai · ${active.length - done} tersisa` },
     { label: 'Antrean', icon: ICONS.users, value: queue.length, note: `${treating} sedang dirawat · ${waiting} menunggu` },
   ]

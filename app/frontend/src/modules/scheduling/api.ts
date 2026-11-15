@@ -15,6 +15,7 @@ export type Schedule = {
   branch: { id: string; name: string; timezone: string }
   date: string
   chairs: { id: string; label: string; appointments: Appointment[] }[]
+  walk_in_patients?: number // patients with a visit without appointment that day and no active appointment (count only)
   dentists: { id: string; name: string }[]
 }
 

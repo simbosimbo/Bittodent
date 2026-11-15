@@ -48,8 +48,7 @@ test('chart sits inside the patient page (no outer tab bar; Profil/Keluarga/Riwa
   expect(document.body).not.toHaveTextContent('1 Jan 1960') // DOB + payer live on Profil, not the compact header
   expect(document.body).toHaveTextContent(/\d+ tahun · Laki-laki · No\. RM BT-000007/)
   expect(document.body).not.toHaveTextContent(/laki_laki|Penjamin| th\b/)
-  expect(screen.queryByRole('button', { name: /mulai kunjungan/i })).toBeNull()
-  expect(screen.queryByText(/mulai kunjungan/i)).toBeNull()
+  expect(screen.getByRole('button', { name: 'Mulai kunjungan' })).toBeEnabled() // dentist: walk-in without a booking
 })
 
 // --- 2D/3D toggle, dentition, selection sync, findings table (synthetic data; Tooth3D + manifest mocked) ---
@@ -249,10 +248,93 @@ test('Simpan ke kunjungan hari ini: disabled with an honest reason and no POST w
   fireEvent.click(document.getElementById('t16-O')!)
   const save = within(screen.getByRole('complementary', { name: 'Detail gigi' })).getByRole('button', { name: 'Simpan ke kunjungan hari ini' })
   expect(save).toBeDisabled()
-  expect(save).toHaveAccessibleDescription(/Belum ada kunjungan aktif\. Buka janji hari ini/)
+  expect(save).toHaveAccessibleDescription('Belum ada kunjungan aktif. Mulai kunjungan dulu.')
   fireEvent.click(save)
   expect(screen.getByText('Buka janji hari ini')).toHaveAttribute('href', '#/jadwal')
   expect(vi.mocked(fetch).mock.calls.some(([, i]) => (i as RequestInit | undefined)?.method === 'POST')).toBe(false)
+})
+
+// --- Walk-in: "Mulai kunjungan" without an appointment (synthetic data) ---
+function walkInFetch(post: { status: number; body: unknown } = { status: 201, body: { id: 'v1' } }) {
+  let started = false
+  window.Tooth3D = mockTooth3D
+  vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+    if (url.endsWith('/visits/walk-in')) { started = post.status < 300; return new Response(JSON.stringify(post.body), { status: post.status }) }
+    if (url.endsWith('/findings')) return new Response(JSON.stringify({ id: 'f9' }), { status: 201 })
+    const body = url.endsWith('/api/dentists') ? { data: [{ id: 'd1', name: 'drg. Sintetis Satu' }] } : url.endsWith('manifest.json') ? manifest
+      : url.endsWith('/chart') ? { ...chart, visits: started ? [visit] : [] } : url.endsWith('/alerts') ? alerts : full
+    return new Response(JSON.stringify(body), { status: 200 })
+  }))
+}
+const walkInPosts = () => vi.mocked(fetch).mock.calls.filter(([u]) => String(u).endsWith('/visits/walk-in'))
+
+test('Mulai kunjungan: dentist starts a walk-in, chart reloads onto the new visit, and a chosen condition can be saved', async () => {
+  walkInFetch()
+  render(<ChartPage patientId="p1" me={me} />)
+  const start = await screen.findByRole('button', { name: 'Mulai kunjungan' })
+  expect(screen.getByRole('link', { name: 'Buka janji hari ini' })).toHaveAttribute('href', '#/jadwal') // still there for booked patients
+  expect(screen.queryByRole('combobox', { name: /Dokter gigi/ })).toBeNull() // dentist defaults to themself
+  fireEvent.click(start)
+  expect(start).toBeDisabled()
+  expect(start).toHaveTextContent('Memulai…')
+  await waitFor(() => expect(screen.queryByRole('button', { name: /Mulai kunjungan|Memulai/ })).toBeNull())
+  const [url, init] = walkInPosts()[0]
+  expect(url).toBe('/api/patients/p1/visits/walk-in')
+  expect(init).toMatchObject({ method: 'POST' })
+  expect(JSON.parse(init!.body as string)).toEqual({})
+  expect(screen.getByText('Kunjungan hari ini dimulai.')).toBeInTheDocument()
+
+  fireEvent.click(document.getElementById('t16-O')!)
+  const panel = within(screen.getByRole('complementary', { name: 'Detail gigi' }))
+  fireEvent.click(panel.getByRole('button', { name: 'Karies' }))
+  const save = panel.getByRole('button', { name: 'Simpan ke kunjungan hari ini' })
+  expect(save).toBeEnabled()
+  fireEvent.click(save)
+  await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([u]) => u === '/api/visits/v1/findings')).toBe(true))
+})
+
+test('Mulai kunjungan: in the tooth panel next to Simpan when a tooth is picked; hidden with an active visit or without note.write', async () => {
+  walkInFetch()
+  const first = render(<ChartPage patientId="p1" me={me} />)
+  await screen.findByRole('region', { name: 'Odontogram' })
+  fireEvent.click(document.getElementById('t16-O')!)
+  expect(within(screen.getByRole('complementary', { name: 'Detail gigi' })).getByRole('button', { name: 'Mulai kunjungan' })).toBeEnabled()
+  expect(screen.getAllByRole('button', { name: 'Mulai kunjungan' })).toHaveLength(1)
+  first.unmount()
+
+  const second = renderChart({ visits: [visit] }) // berlangsung visit already selected
+  await screen.findByRole('region', { name: 'Odontogram' })
+  expect(screen.queryByRole('button', { name: 'Mulai kunjungan' })).toBeNull()
+  second.unmount()
+
+  walkInFetch()
+  render(<ChartPage patientId="p1" me={{ ...me, roles: ['owner'], permissions: ['patient.read', 'note.read', 'appointment.read'] }} />)
+  await screen.findByRole('region', { name: 'Odontogram' })
+  expect(screen.queryByRole('button', { name: 'Mulai kunjungan' })).toBeNull()
+})
+
+test('Mulai kunjungan: assistant must choose the dentist; dentist_id is sent', async () => {
+  walkInFetch()
+  render(<ChartPage patientId="p1" me={{ ...me, roles: ['assistant'], permissions: ['patient.read', 'note.read', 'note.write', 'appointment.read'] }} />)
+  const start = await screen.findByRole('button', { name: 'Mulai kunjungan' })
+  expect(start).toBeDisabled()
+  const pickDoc = screen.getByRole('combobox', { name: /Dokter gigi/ })
+  expect(pickDoc).toBeRequired()
+  await screen.findByRole('option', { name: 'drg. Sintetis Satu' })
+  fireEvent.change(pickDoc, { target: { value: 'd1' } })
+  expect(start).toBeEnabled()
+  fireEvent.click(start)
+  await waitFor(() => expect(walkInPosts()).toHaveLength(1))
+  expect(JSON.parse(walkInPosts()[0][1]!.body as string)).toEqual({ dentist_id: 'd1' })
+})
+
+test('Mulai kunjungan: an error is shown as is and no visit appears', async () => {
+  walkInFetch({ status: 422, body: { message: 'Dokter gigi tidak aktif di cabang ini.', errors: {} } })
+  render(<ChartPage patientId="p1" me={me} />)
+  fireEvent.click(await screen.findByRole('button', { name: 'Mulai kunjungan' }))
+  expect(await screen.findByText('Dokter gigi tidak aktif di cabang ini.')).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Mulai kunjungan' })).toBeEnabled()
+  expect(screen.queryByText('Kunjungan hari ini dimulai.')).toBeNull()
 })
 
 // --- Layout: compact header, inner tabs, odontogram 8 + tooth panel 4 (synthetic data) ---
