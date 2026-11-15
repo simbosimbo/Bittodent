@@ -10,14 +10,14 @@ use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
-// No. RM: BT-%06d, sequential per tenant (synthetic seed: tenant A has 41 patients => BT-000001..BT-000041).
+// No. RM: BT-%06d, sequential per tenant (synthetic seed: tenant A has 42 patients => BT-000001..BT-000042).
 class MrnTest extends TestCase
 {
     // Seeding starts with no patient_mrn_seq rows, so this also covers the generator's "create the tenant's row" path.
     public function test_seeded_patients_have_sequential_unique_mrns_per_tenant(): void
     {
         $a = Ctx::runAs($this->tenantA()->id, fn () => Patient::orderBy('mrn')->pluck('mrn')->all());
-        $this->assertSame(array_map(fn ($n) => sprintf('BT-%06d', $n), range(1, 41)), $a);
+        $this->assertSame(array_map(fn ($n) => sprintf('BT-%06d', $n), range(1, 42)), $a); // 40 + minor (C3) + online booking demo patient
         $b = Ctx::runAs($this->tenantB()->id, fn () => Patient::orderBy('mrn')->pluck('mrn')->all());
         $this->assertSame('BT-000001', $b[0]); // same number in the other tenant: unique per tenant only
     }
@@ -27,13 +27,13 @@ class MrnTest extends TestCase
         $r = $this->as('depan@senyum.test');
         $first = $r->postJson('/api/patients', ['name' => 'Rahmat Uji'])->assertCreated();
         $second = $r->postJson('/api/patients', ['name' => 'Rahmi Uji'])->assertCreated();
-        $this->assertSame('BT-000042', $first->json('mrn'));
-        $this->assertSame('BT-000043', $second->json('mrn'));
+        $this->assertSame('BT-000043', $first->json('mrn'));
+        $this->assertSame('BT-000044', $second->json('mrn'));
         $this->assertMatchesRegularExpression('/^BT-\d{6}$/', $first->json('mrn'));
 
-        $this->assertSame('BT-000042', $r->getJson('/api/patients/'.$first->json('id'))->assertOk()->json('mrn'));
+        $this->assertSame('BT-000043', $r->getJson('/api/patients/'.$first->json('id'))->assertOk()->json('mrn'));
         $row = collect($r->getJson('/api/patients?q=rahmat')->assertOk()->json('data'))->firstWhere('id', $first->json('id'));
-        $this->assertSame('BT-000042', $row['mrn']);
+        $this->assertSame('BT-000043', $row['mrn']);
         $this->assertSame([], array_intersect(array_keys($row), ['nik', 'nik_enc', 'phone', 'phone_enc', 'address', 'address_enc']));
 
         $bCount = Ctx::runAs($this->tenantB()->id, fn () => Patient::count());
@@ -60,12 +60,12 @@ class MrnTest extends TestCase
         Ctx::runAs($this->tenantA()->id, function () {
             DB::connection('mysql')->enableQueryLog();
             [$x, $y] = [MrnGenerator::next(), MrnGenerator::next()];
-            $this->assertSame(['BT-000042', 'BT-000043'], [$x, $y]);
+            $this->assertSame(['BT-000043', 'BT-000044'], [$x, $y]);
             $this->assertStringContainsString('for update', collect(DB::connection('mysql')->getQueryLog())->pluck('query')->implode("\n"));
 
             PatientMrnSeq::query()->first()->update(['next_n' => 40]); // counter behind the data (e.g. a manual fix)
-            $this->assertSame('BT-000042', MrnGenerator::next()); // BT-000040/41 are taken: skipped, not duplicated
-            $this->assertSame(43, PatientMrnSeq::query()->value('next_n'));
+            $this->assertSame('BT-000043', MrnGenerator::next()); // BT-000040..42 are taken: skipped, not duplicated
+            $this->assertSame(44, PatientMrnSeq::query()->value('next_n'));
         });
     }
 

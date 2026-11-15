@@ -40,7 +40,7 @@ export default function Home({ me }: { me: Me }) {
   const tz = data?.branch.timezone ?? TZ
   const all: Row[] = (data?.chairs.flatMap((c) => c.appointments.map((a) => ({ ...a, chair: c.label }))) ?? [])
     .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
-  const active = all.filter((a) => a.status !== 'cancelled' && a.status !== 'no_show')
+  const active = all.filter((a) => !['cancelled', 'no_show', 'rejected'].includes(a.status))
   const count = (s: string) => active.filter((a) => a.status === s).length
   const done = count('done'), treating = count('in_treatment'), waiting = count('checked_in')
   const queue = active.filter((a) => a.status === 'checked_in' || a.status === 'in_treatment')

@@ -17,7 +17,7 @@ final class PatientCareSync
     {
         // shortcut: "today" in Asia/Jakarta for every branch; use the branch timezone once WITA/WIT branches exist.
         $today = CarbonImmutable::now('Asia/Jakarta')->startOfDay()->utc();
-        $next = Appointment::where('patient_id', $patientId)->whereNotIn('status', ['cancelled', 'no_show'])
+        $next = Appointment::where('patient_id', $patientId)->whereNotIn('status', ['cancelled', 'no_show', 'rejected'])
             ->where('starts_at', '>=', $today)->min('starts_at');
         $this->care->recordScheduling($patientId, $next ? CarbonImmutable::parse($next, 'UTC') : null,
             PlannedAppointment::where('patient_id', $patientId)->where('status', 'perlu_dijadwalkan')->exists());

@@ -83,6 +83,14 @@ Kode saat ini: `cd app/backend && php artisan dev:totp <email>` (menolak jalan b
 | kasir@ceria.test | Kasir | Klinik Gigi Ceria, Bandung |
 | dokter@ceria.test | Pemilik, Dokter Gigi | Klinik Gigi Ceria, Bandung |
 
+## Booking online pasien (data sintetis)
+
+- Halaman publik tanpa login: `#/book/senyum` (Dokter → Layanan → Jadwal → Data → OTP → Kode booking), kelola: `#/book/senyum/manage/<token>` (batal, jadwal ulang). Contoh seed: `#/book/senyum/manage/demo-kelola-senyum`.
+- API: `/api/public/booking/{slug}` (`GET /`, `GET /slots`, `POST /start`, `/resend`, `/verify`, `GET|POST /manage/{token}[/cancel|/reschedule]`); throttle per IP + per nomor.
+- Hasilnya janji `pending_confirmation` (sumber `online`); staf melihat badge **Online** di Jadwal dan menekan **Konfirmasi**/**Tolak** (izin `appointment.confirm`).
+- OTP dev: `BOOKING_OTP_DRIVER=fake` lalu `php artisan booking:otp 0899xxxxxxxx`. Driver `log` hanya mencatat nomor tersamar, tidak pernah kodenya.
+- Seed: slug `senyum` (3 dokter, 4 layanan, 1 permintaan menunggu besok 18.00) dan `ceria`. Penyimpangan: `DEVIATIONS.md` #61–66.
+
 ## Frontend singkat
 
 React 19 + Vite + TypeScript. Kode per modul di `frontend/src/modules/<m>` (`auth`, `patients`, `scheduling`, `clinical`, `billing`; masing-masing `api.ts` + layar + `index.ts` publik) di atas satu klien HTTP `src/shared/api/http.ts` (cookie + XSRF). Modul lain hanya boleh diimpor lewat `index.ts`-nya; `src/shared` tidak mengimpor modul (dicek `src/boundaries.test.ts`). Cangkang A (sidebar, bilah atas dengan pil "Pasien aktif", kartu putih di latar berwarna) di `src/shared/layout/Shell.tsx`; token `src/shared/ui/tokens.css` dibuat dari `design/tokens.json` lewat `npm run tokens` (hasil di-commit agar build Docker tidak butuh folder design). Bilah atas + pita peringatan medis menempel (sticky) saat halaman digulir; sidebar menjadi rel ikon pada lebar ≤1100px. Pasien aktif hanya di memori. Selama ada pasien aktif, pita peringatan (`modules/patients/AlertRibbon.tsx`, dari `GET /api/patients/{id}/alerts`) tampil di semua layar: premedikasi dan catatan penting di depan dan ditonjolkan, lalu alergi, kondisi, obat. Rute hash (`#/pasien`, `#/jadwal`, …) agar tidak bentrok dengan rute Laravel di proxy.

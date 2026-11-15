@@ -6,6 +6,8 @@ export type Appointment = {
   starts_at: string
   ends_at: string
   status: string
+  source: 'staff' | 'online'
+  booking_code: string | null
   reason: string | null
   patient: { id: string; name: string } | null
   dentist: { id: string; name: string } | null
@@ -20,6 +22,8 @@ export type Schedule = {
 }
 
 export const STATUS: Record<string, string> = {
+  pending_confirmation: 'Menunggu konfirmasi',
+  rejected: 'Ditolak',
   booked: 'Terjadwal',
   checked_in: 'Sudah datang',
   in_treatment: 'Dalam perawatan',

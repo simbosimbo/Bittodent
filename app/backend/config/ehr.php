@@ -20,4 +20,6 @@ return [
     'staging_demo_password' => env('STAGING_DEMO_PASSWORD'),
     'staging_demo_totp_secret' => env('STAGING_DEMO_TOTP_SECRET'),
     'queue_via_scheduler' => (bool) env('QUEUE_VIA_SCHEDULER', false),
+    // Online booking OTP: log (masked number only) | fake (log + last code in cache for tests/dev; never in production).
+    'booking' => ['otp_driver' => env('BOOKING_OTP_DRIVER', 'log')],
 ];

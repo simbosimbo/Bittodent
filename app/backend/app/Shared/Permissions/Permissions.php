@@ -8,19 +8,19 @@ final class Permissions
     public const MATRIX = [
         // owner: clinical read-only (never note.write/note.sign/prescription sign); every chart/baseline/medical-history read is audited.
         'owner' => ['patient.read', 'patient.read_nik', 'patient.create', 'appointment.read', 'appointment.create',
-            'appointment.transition', 'note.read', 'audit.read', 'correction.approve', 'patient.update', 'billing.read', 'billing.adjust', 'tariff.manage',
+            'appointment.transition', 'appointment.confirm', 'note.read', 'audit.read', 'correction.approve', 'patient.update', 'billing.read', 'billing.adjust', 'tariff.manage',
             'billing.approve_zero', // unit 4: approve a Rp0 / 100% discount; owner ONLY (not front desk, kasir, dentist)
             'billing.approve_reversal', // unit B: approve a full credit note / void of a billed invoice; owner ONLY
             'billing.accounts', // unit 5: manage clinic payment accounts; owner ONLY
             'settings.manage', // unit A koreksi: clinic settings (procedure correction window); owner ONLY
             'reporting.read'], // unit 6: clinic-wide integrity report per dentist + alerts; owner ONLY (D-039 dentist = own pay only)
         'dentist' => ['patient.read', 'patient.read_nik', 'patient.create', 'appointment.read', 'appointment.create',
-            'appointment.transition', 'note.read', 'note.write', 'note.sign', 'patient.update', 'appointment.plan'],
+            'appointment.transition', 'appointment.confirm', 'note.read', 'note.write', 'note.sign', 'patient.update', 'appointment.plan'],
         // procedure.confirm_external: second pair of eyes on an external entry made on a visit with `selesai` work that day (unit 2).
         // Not the dentist (who records it), not kasir; owner is an open decision (DEVIATIONS #48).
         'assistant' => ['patient.read', 'appointment.read', 'appointment.transition', 'note.read', 'note.write', 'appointment.plan',
             'procedure.confirm_external'],
-        'front_desk' => ['patient.read', 'patient.create', 'appointment.read', 'appointment.create', 'appointment.transition',
+        'front_desk' => ['patient.read', 'patient.create', 'appointment.read', 'appointment.create', 'appointment.transition', 'appointment.confirm',
             'patient.update', 'billing.read', 'billing.adjust', 'procedure.confirm_external'],
         'kasir' => ['patient.read', 'appointment.read', 'billing.read', 'billing.adjust'],
     ];

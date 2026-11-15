@@ -48,7 +48,7 @@ class AppointmentController extends Controller
         $dentists = $names->only($dentistIds)->values(); // ordered by name
 
         // Beranda KPI: walk-in patients (visit without appointment) who have no active appointment that day. Count only, no ids/names.
-        $booked = $appts->whereNotIn('status', ['cancelled', 'no_show'])->pluck('patient_id')->all();
+        $booked = $appts->whereNotIn('status', ['cancelled', 'no_show', 'rejected'])->pluck('patient_id')->all();
         $walkIn = count(array_diff($walkIns->patientIds($branch['id'], $from, $from->addDay()), $booked));
 
         return response()->json(['branch' => $branch, 'date' => $d['date'], 'chairs' => $chairs, 'dentists' => $dentists, 'walk_in_patients' => $walkIn]);
@@ -149,6 +149,9 @@ class AppointmentController extends Controller
                 event(new AppointmentCompleting(Ctx::current()->tenant(), $a->id));
             }
             $from = $a->status;
+            if (in_array('pending_confirmation', [$from, $d['to']], true) && ! Ctx::current()->can('appointment.confirm')) {
+                return Audit::denied('appointment.confirm'); // confirm/reject an online booking
+            }
             $stamp = AppointmentStatus::STAMPS[$d['to']] ?? null;
             $a->update(['status' => $d['to']] + ($stamp ? [$stamp => now()] : []));
             Audit::log('ubah_status', 'appointment', $a->id, ['from' => $from, 'to' => $d['to']]);

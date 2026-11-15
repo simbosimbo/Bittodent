@@ -194,6 +194,8 @@ class ChartApiTest extends TestCase
 
     public function test_after_48h_solo_dentist_self_approves_with_reason(): void
     {
+        // the seed adds booking dentists to tenant A: revoke them so this is a solo practice again
+        $this->inA(fn () => Membership::where('role', 'dentist')->where('user_id', '!=', $this->user(self::DOC)->id)->update(['revoked_at' => now()]));
         $visit = $this->draftVisit();
         $this->sign($visit)->assertOk();
         $this->travel(49)->hours();

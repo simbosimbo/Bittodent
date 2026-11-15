@@ -41,7 +41,7 @@ class PatientListTest extends TestCase
     public function test_seeded_rows_carry_care_status_last_visit_dentist_and_allergies(): void
     {
         $rows = collect($this->all())->keyBy('mrn');
-        $this->assertCount(41, $rows);
+        $this->assertCount(42, $rows); // incl. the online booking demo patient
         $this->assertEqualsCanonicalizing(['dalam_perawatan', 'perlu_kontrol', 'tidak_aktif'], $rows->pluck('care_status')->unique()->values()->all());
 
         $p0 = $rows['BT-000001']; // open visit today + appointments
@@ -169,7 +169,9 @@ class PatientListTest extends TestCase
     public function test_dentists_endpoint_lists_this_tenant_only(): void
     {
         $this->as('depan@senyum.test')->getJson('/api/dentists')->assertOk()
-            ->assertExactJson(['data' => [['id' => $this->user('dokter@senyum.test')->id, 'name' => 'drg. Andi Contoh']]]);
+            ->assertExactJson(['data' => [['id' => $this->user('dokter@senyum.test')->id, 'name' => 'drg. Andi Contoh'],
+                ['id' => $this->user('dokter.bunga@senyum.test')->id, 'name' => 'drg. Bunga Contoh'],
+                ['id' => $this->user('dokter.raka@senyum.test')->id, 'name' => 'drg. Raka Contoh']]]); // + booking demo dentists
         $this->as('kasir@ceria.test')->getJson('/api/dentists')->assertOk()
             ->assertExactJson(['data' => [['id' => $this->user('dokter@ceria.test')->id, 'name' => 'drg. Citra Contoh']]]);
     }

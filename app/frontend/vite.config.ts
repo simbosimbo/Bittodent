@@ -2,7 +2,8 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-const backend = 'http://127.0.0.1:8000'
+declare const process: { env: Record<string, string | undefined> } // no @types/node in this project
+const backend = process.env.BACKEND_URL ?? 'http://127.0.0.1:8000' // override for a second checkout, e.g. BACKEND_URL=http://127.0.0.1:8010
 // Same-origin proxy so Sanctum session + XSRF cookies stay first-party.
 const proxy = Object.fromEntries(
   ['/api', '/login', '/logout', '/two-factor-challenge', '/sanctum', '/user', '/dev/quick-login'].map((p) => [p, { target: backend }]),
