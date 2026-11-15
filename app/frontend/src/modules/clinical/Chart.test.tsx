@@ -546,3 +546,52 @@ test('390px: selecting a tooth opens a bottom sheet named for the tooth; keypad 
   expect(screen.queryByRole('dialog')).toBeNull()
   style.remove()
 })
+
+test('≤480px: one labelled, independent scroller per jaw; 1280px: one combined SVG without jaw labels', async () => {
+  vi.stubGlobal('matchMedia', (q: string) => ({ media: q, matches: true, addEventListener() {}, removeEventListener() {} }))
+  const style = document.head.appendChild(document.createElement('style'))
+  style.textContent = cssAt(baseCss + css, 390)
+  const { unmount } = renderChart({ visits: [visit] })
+  const card = await screen.findByRole('region', { name: 'Odontogram' })
+  const upper = within(card).getByRole('group', { name: 'Rahang atas' })
+  const lower = within(card).getByRole('group', { name: 'Rahang bawah' })
+  expect(upper).not.toBe(lower)
+  expect(upper).not.toContainElement(lower)
+  for (const el of [upper, lower]) {
+    expect(getComputedStyle(el).overflowX).toBe('auto')
+    expect(getComputedStyle(el).overscrollBehaviorX).toBe('contain')
+    expect(el.querySelectorAll('svg.odontogram')).toHaveLength(1)
+  }
+  expect(upper.querySelector('#t11')).not.toBeNull()
+  expect(upper.querySelector('#t21')).not.toBeNull()
+  expect(upper.querySelector('#t41')).toBeNull()
+  expect(lower.querySelector('#t41')).not.toBeNull()
+  expect(lower.querySelector('#t31')).not.toBeNull()
+  expect(card.querySelectorAll('svg.odontogram')).toHaveLength(2)
+  expect(within(card).getAllByText('kanan ← kiri pasien')).toHaveLength(2)
+  expect(card).toHaveTextContent(/geser rahang, ketuk gigi untuk detail/)
+  // Midline centring (scrollLeft) needs real layout; checked visually at 390px.
+  expect(upper).toHaveAttribute('data-centred')
+  fireEvent.click(document.getElementById('t16-O')!)
+  expect(screen.getByRole('dialog', { name: 'Detail gigi 16' })).toBeInTheDocument()
+  unmount()
+  style.remove()
+
+  // 481–720px (only the 720px query matches) and 1280px (none): one combined SVG, no jaw labels, as before.
+  for (const [w, mq] of [[600, (q: string) => q.includes('720')], [1280, () => false]] as const) {
+    vi.stubGlobal('matchMedia', (q: string) => ({ media: q, matches: mq(q), addEventListener() {}, removeEventListener() {} }))
+    const st = document.head.appendChild(document.createElement('style'))
+    st.textContent = cssAt(baseCss + css, w)
+    const r = renderChart({ visits: [visit] })
+    const card2 = await screen.findByRole('region', { name: 'Odontogram' })
+    const svgs = card2.querySelectorAll('svg.odontogram')
+    expect(svgs).toHaveLength(1)
+    expect(svgs[0].querySelector('#t11')).not.toBeNull()
+    expect(svgs[0].querySelector('#t41')).not.toBeNull()
+    expect(within(card2).getByRole('group', { name: /^Odontogram \(FDI\)/ })).toBe(svgs[0])
+    expect(within(card2).queryByText('Rahang atas')).toBeNull()
+    expect(within(card2).queryByText('Rahang bawah')).toBeNull()
+    r.unmount()
+    st.remove()
+  }
+})

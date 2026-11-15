@@ -181,6 +181,12 @@ label.check { flex-direction: row; gap: 8px; align-items: flex-start; font-weigh
   .odo2d-wrap { overscroll-behavior-x: contain; }
   .odo2d-wrap .odontogram { min-width: 820px; }
   .odo2d-wrap .odontogram.is-compact { min-width: 640px; }
+  /* ≤480px (sketch 06): one scroller per jaw, stacked; the jaws scroll independently. */
+  .odo-jaw-hint { margin: 0 0 var(--space-2); }
+  .odo-jaw + .odo-jaw { margin-top: var(--space-3); }
+  .odo-jaw-head { display: flex; justify-content: space-between; gap: var(--space-2); margin: 0 0 var(--space-1);
+    font-size: var(--font-size-xs); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+  .odo-jaw-head .muted { font-weight: 500; letter-spacing: 0; text-transform: none; }
   /* 3D: one sideways scroller per jaw. */
   .odo-card .odo3d { overflow-x: visible; }
   .odo-card .odo3d .chart { min-width: 0; align-items: stretch; zoom: 0.78; }
