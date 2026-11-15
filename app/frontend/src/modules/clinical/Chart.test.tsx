@@ -694,6 +694,20 @@ test('#70 tooth panel: one tap "Tambal 23.2" saves procedure + diagnosis (no typ
   expect(JSON.parse(localStorage.getItem('bt.quick-proc.u1')!)[0]).toMatchObject({ code: '23.2', dx: 'K02.1', n: 1 })
 })
 
+test('E2E 16-11-2026: a finished procedure cannot be saved without its ICD-9-CM code (it would never be billed)', async () => {
+  const calls = dokterChart(1280)
+  await screen.findByRole('region', { name: 'Odontogram' })
+  fireEvent.click(document.getElementById('t26-O')!)
+  const save = screen.getByRole('button', { name: /^Simpan tindakan/ })
+  expect(screen.getByLabelText('Kode ICD-9-CM')).toHaveValue('') // "mis. 23.2" is only a placeholder
+  expect(save).toBeDisabled()
+  expect(save).toHaveAccessibleDescription(/perlu kode ICD-9-CM/)
+  fireEvent.click(save)
+  expect(calls.find((c) => c.url.endsWith('/procedures'))).toBeUndefined()
+  fireEvent.change(screen.getByLabelText('Kode ICD-9-CM'), { target: { value: '23.2' } })
+  expect(save).toBeEnabled()
+})
+
 test('#70 phone: a quick procedure closes the tooth sheet so the tabs and Selesai bar are reachable again', async () => {
   const calls = dokterChart(412)
   await screen.findByRole('region', { name: 'Odontogram' })

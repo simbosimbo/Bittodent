@@ -100,6 +100,11 @@ final class VisitCloser
     /** @return list<string> */
     private function completedProcedureIds(Visit $v): array
     {
-        return self::completedProcedures()->where('visit_id', $v->id)->pluck('id')->all();
+        // Legacy safety net: a finished row without a code (saved before the code became required) is never billed, so it blocks
+        // the close like an unbilled procedure instead of letting the visit close with no invoice.
+        $codeless = ProcedureRecord::where('visit_id', $v->id)->whereIn('state', ['draft', 'final'])->where('status', ProcedureStatus::BILLABLE)
+            ->whereNull('procedure_code')->whereNotIn('id', self::notDoneChainIds())->pluck('id');
+
+        return [...self::completedProcedures()->where('visit_id', $v->id)->pluck('id'), ...$codeless];
     }
 }
