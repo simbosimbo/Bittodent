@@ -44,3 +44,5 @@ Aturan harga (ditegakkan struktur, dicek `ModuleBoundaryTest`):
 Bergantung pada: Clinical, Tariffs, Patients, Tenancy (Contracts/Events; Tenancy = hitung pemilik aktif, unit 4).
 
 Aturan: kode baru diletakkan di sini (`Models/`, `Http/`, `Services/`, `Domain/`, `Routes/routes.php`, `Contracts/`, `Events/`). Modul lain hanya boleh memakai `Contracts/` atau `Events/` modul ini, dan hanya jika sisi (edge) tercantum di `config/modules.php`.
+
+Unit 6: `Contracts\IntegrityFacts` (baca saja, untuk Reporting): tindakan yang sudah punya baris, penyesuaian diskon/hapus + keputusan (`self_approved_sole_owner`), baris Rp0. Lihat DEVIATIONS #52.
