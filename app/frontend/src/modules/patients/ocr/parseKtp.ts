@@ -5,8 +5,20 @@ export type KtpDraft = {
   nik?: string
   name?: string
   dob?: string
+  birthPlace?: string
   sex?: 'laki_laki' | 'perempuan'
+  bloodType?: string
   address?: string
+  rtRw?: string
+  village?: string
+  districtName?: string
+  religion?: string
+  marital?: string
+  job?: string
+  citizenship?: string
+  validUntil?: string
+  provinceName?: string
+  regencyName?: string
   province?: string
   regency?: string
   district?: string
@@ -39,8 +51,45 @@ function parseIdDate(s: string): string | undefined {
 
 function parseSex(s: string): 'laki_laki' | 'perempuan' | undefined {
   const u = s.toUpperCase().replace(/[^A-Z]/g, ' ')
-  if (/PEREMPUAN|WANITA/.test(u)) return 'perempuan'
+  // PERENPUAN and similar OCR slips still count as perempuan.
+  if (/PERE[MN]PUAN|WANITA/.test(u)) return 'perempuan'
   if (/LAKI|PRIA/.test(u)) return 'laki_laki'
+}
+
+function parseBlood(s: string): string | undefined {
+  const m = s.toUpperCase().match(/\b(AB|[ABO0])\b/)
+  if (!m) return
+  return m[1] === '0' ? 'O' : m[1]
+}
+
+function parseMarital(s: string): string | undefined {
+  const u = s.toUpperCase()
+  if (/BELUM\s+KAWIN/.test(u)) return 'BELUM KAWIN'
+  if (/CERAI\s+HIDUP/.test(u)) return 'CERAI HIDUP'
+  if (/CERAI\s+MATI/.test(u)) return 'CERAI MATI'
+  if (/\bKAWIN\b/.test(u)) return 'KAWIN'
+  const v = cleanLine(s).split(' ').filter((w) => w.length > 2).slice(0, 2).join(' ')
+  return v || undefined
+}
+
+function parseValidUntil(s: string): string | undefined {
+  const u = s.toUpperCase().replace(/\s+/g, ' ').trim()
+  const seumur = u.match(/SEUMUR\s+HIDUP/)
+  if (seumur) return 'SEUMUR HIDUP'
+  const d = parseIdDate(u)
+  if (d) return d
+  const v = cleanLine(u)
+  return v || undefined
+}
+
+function cleanLine(s: string): string {
+  return s
+    .replace(/^[\s:.\-–—]+/, '')
+    .replace(/[^\p{L}\p{N} /.,\-']/gu, ' ')
+    .replace(/\bKARTU TANDA PENDUDUK\b.*$/i, '')
+    .replace(/\bREPUBLIK INDONESIA\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 function cleanName(s: string): string | undefined {
@@ -50,7 +99,7 @@ function cleanName(s: string): string | undefined {
 }
 
 function cleanAddress(s: string): string | undefined {
-  const v = s.replace(/\s+/g, ' ').replace(/^[:.\- ]+/, '').trim()
+  const v = cleanLine(s).replace(/\b\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{2,4}\b/g, '').replace(/\s+/g, ' ').trim()
   return v.length >= 3 ? v : undefined
 }
 
@@ -71,6 +120,7 @@ const ANCHORS: { key: string; re: RegExp }[] = [
   { key: 'marital', re: /STATUS\s*PERKAWINAN/g },
   { key: 'job', re: /\bPEKERJAAN\b/g },
   { key: 'citizen', re: /KEWARGANEGARAAN/g },
+  { key: 'validUntil', re: /BERLAKU\s*HINGGA/g },
 ]
 
 function slices(upper: string): Record<string, string> {
@@ -128,6 +178,15 @@ export function parseKtpText(text: string, words?: WordConf[]): { draft: KtpDraf
   const picked = cands.filter((n) => parseNik(n))[0] ?? cands.find((n) => n.length === 16)
   if (picked) draft.nik = picked
   const hadLetterConfusion = !!picked && !text.replace(/\D/g, '').includes(picked)
+  const almostNik = /[0-9OIlSBoils][0-9OIlSBoils\s]{14,22}/g
+  const slicedNik = !!picked && [part.nik ?? '', text].some((src) => {
+    almostNik.lastIndex = 0
+    for (const m of src.matchAll(almostNik)) {
+      const d = fixNikDigits(m[0])
+      if (d.length > 16 && d.includes(picked)) return true
+    }
+    return false
+  })
 
   const name = cleanName(part.name ?? '')
   if (name) draft.name = name
@@ -143,6 +202,32 @@ export function parseKtpText(text: string, words?: WordConf[]): { draft: KtpDraf
   const address = cleanAddress(part.address ?? '')
   if (address) draft.address = address
 
+  const blood = parseBlood(part.blood ?? '')
+  if (blood) draft.bloodType = blood
+  const place = cleanLine((birth.split(',')[0] ?? ''))
+  if (place && !parseIdDate(place)) draft.birthPlace = place
+  const rtRw = cleanLine(part.rtrw ?? '').replace(/\s+/g, '')
+  if (/\d{1,3}\s*\/?\s*\d{1,3}/.test(rtRw)) draft.rtRw = rtRw.replace(/(\d)\s*\/\s*(\d)/, '$1/$2')
+  const village = cleanLine(part.village ?? '')
+  if (village) draft.village = village
+  const districtName = cleanLine(part.districtName ?? '')
+  if (districtName) draft.districtName = districtName
+  const religion = cleanLine(part.religion ?? '')
+  if (religion) draft.religion = religion
+  const marital = parseMarital(part.marital ?? '')
+  if (marital) draft.marital = marital
+  // Issue date printed under the photo must not attach to the job line.
+  const job = cleanLine(part.job ?? '').replace(/\b\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{2,4}\b/g, '').trim()
+  if (job) draft.job = job
+  const citizenship = cleanLine(part.citizen ?? '')
+  if (citizenship) draft.citizenship = citizenship
+  const validUntil = parseValidUntil(part.validUntil ?? '')
+  if (validUntil) draft.validUntil = validUntil
+  const provinceName = cleanLine(part.provinceName ?? '')
+  if (provinceName) draft.provinceName = provinceName
+  const regencyName = cleanLine(part.regencyName ?? '').replace(/^KOTA\s+/, '')
+  if (regencyName) draft.regencyName = regencyName
+
   const parsed = picked ? parseNik(picked) : null
   if (parsed) {
     draft.province = parsed.province
@@ -157,7 +242,7 @@ export function parseKtpText(text: string, words?: WordConf[]): { draft: KtpDraf
     flags.push({ field: 'nik', kind: 'low' })
   }
 
-  if (hadLetterConfusion && picked) flags.push({ field: 'nik', kind: 'low' })
+  if ((hadLetterConfusion || slicedNik) && picked) flags.push({ field: 'nik', kind: 'low' })
   if (name && (name.length < 4 || /\d/.test(name))) flags.push({ field: 'name', kind: 'low' })
 
   const lowAt = (field: OcrFlag['field'], tokens: (string | undefined)[]) => {

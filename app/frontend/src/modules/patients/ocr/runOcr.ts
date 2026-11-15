@@ -2,7 +2,7 @@
 // The raw OCR text stays in this module’s return value for the parser; the form must not send or log it.
 import type { OcrFlag, KtpDraft, WordConf } from './parseKtp'
 import { parseKtpText } from './parseKtp'
-import { cardCrop, fileToKtpCanvas } from './preprocess'
+import { frontCardCrop, fileToKtpCanvas } from './preprocess'
 
 const TESS = '/tesseract'
 
@@ -43,7 +43,13 @@ async function worker(): Promise<WorkerLike> {
 export async function runKtpOcr(file: File, onProgress?: (p: number) => void): Promise<KtpOcrResult> {
   onProgress?.(0.05)
   const bmp = await createImageBitmap(file)
-  const crop = cardCrop(bmp.width, bmp.height)
+  const probe = document.createElement('canvas')
+  probe.width = bmp.width
+  probe.height = bmp.height
+  const pctx = probe.getContext('2d', { willReadFrequently: true })
+  if (!pctx) throw new Error('canvas')
+  pctx.drawImage(bmp, 0, 0)
+  const crop = frontCardCrop(pctx.getImageData(0, 0, bmp.width, bmp.height))
   bmp.close()
   const canvas = await fileToKtpCanvas(file, crop)
   onProgress?.(0.15)

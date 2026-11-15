@@ -1,7 +1,6 @@
 // Browser-only: grayscale, contrast, resize. Optional crop-to-card (ISO ID-1 1.5858).
-export const CARD_RATIO = 85.6 / 53.98
-
-export type Crop = { x: number; y: number; w: number; h: number }
+export { CARD_RATIO, type Crop } from './detectCard'
+import { CARD_RATIO, type Crop, detectFrontCard as detectFromRgba } from './detectCard'
 
 /** Centered ISO ID-1 crop covering as much of the image as possible. */
 export function cardCrop(w: number, h: number): Crop {
@@ -39,4 +38,10 @@ export async function fileToKtpCanvas(file: File, crop?: Crop, longEdge = 1800):
   ctx.putImageData(img, 0, 0)
   bmp.close()
   return c
+}
+
+
+/** Front e-KTP on a scanned page (two-sided scans included). Falls back to a centered ID-1 crop. */
+export function frontCardCrop(img: ImageData): Crop {
+  return detectFromRgba(img.width, img.height, img.data) ?? cardCrop(img.width, img.height)
 }

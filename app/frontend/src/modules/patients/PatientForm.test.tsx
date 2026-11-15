@@ -99,11 +99,11 @@ test('NIK is masked after blur, eye toggle reveals, and hasil stays masked', () 
   expect(nik).toHaveValue('3201********0001')
 })
 
-test('tabs, Terenkripsi chip, and dock CTA are present; Profil is disabled until save', () => {
+test('tabs and dock CTA are present; Profil is disabled until save; Terenkripsi is hidden before upload', () => {
   render(<PatientForm />)
   expect(screen.getByRole('tab', { name: 'Daftar' })).toHaveAttribute('aria-selected', 'true')
   expect(screen.getByRole('tab', { name: 'Profil' })).toBeDisabled()
-  expect(screen.getAllByText('Terenkripsi').length).toBeGreaterThan(0)
+  expect(screen.queryByText('Terenkripsi')).not.toBeInTheDocument()
   expect(screen.getByRole('button', { name: cta })).toBeInTheDocument()
   expect(screen.queryByRole('button', { name: 'Simpan pasien' })).not.toBeInTheDocument()
 })
@@ -141,6 +141,13 @@ test('OCR draft fills the form, flags mismatches, and is not posted to the serve
   expect(screen.getByLabelText('Alamat')).toHaveValue('JL SUKA MAJU NO 1')
   expect(screen.getByLabelText(/^Prov/)).toHaveValue('32')
   expect(screen.getByText('Tidak cocok').getAttribute('data-field')).toBe('dob')
+  expect(screen.getAllByRole('button', { name: 'Dari pindai' }).length).toBeGreaterThan(0)
+  expect(screen.getByRole('button', { name: cta })).toBeDisabled()
+  expect(screen.queryByText('Terenkripsi')).not.toBeInTheDocument()
+  expect(screen.queryByRole('img')).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Konfirmasi semua' }))
+  expect(screen.queryByRole('button', { name: 'Dari pindai' })).not.toBeInTheDocument()
+  expect(screen.getByRole('button', { name: cta })).toBeEnabled()
   fireEvent.click(screen.getByRole('button', { name: cta }))
   await vi.waitFor(() => expect(fetchSpy).toHaveBeenCalled())
   const bodies = fetchSpy.mock.calls.map(([, init]) => typeof init?.body === 'string' ? init.body : '')
@@ -154,4 +161,62 @@ test('OCR draft fills the form, flags mismatches, and is not posted to the serve
     address: 'JL SUKA MAJU NO 1',
     payer_type: 'umum',
   })
+})
+
+test('OCR: Dari pindai fields must be confirmed; a single confirm-all enables the CTA', async () => {
+  vi.mocked(runKtpOcr).mockResolvedValue({
+    draft: { nik: '3201011501900001', name: 'BUDI UJI KTP', dob: '1990-01-15', sex: 'laki_laki' },
+    flags: [],
+  })
+  render(<PatientForm />)
+  const file = new File([new Uint8Array([1, 2, 3])], 'ktp-sintetis.png', { type: 'image/png' })
+  fireEvent.change(screen.getByLabelText('Foto KTP'), { target: { files: [file] } })
+  await vi.waitFor(() => expect(screen.getByLabelText('Nama lengkap *')).toHaveValue('BUDI UJI KTP'))
+  expect(screen.getAllByRole('button', { name: 'Dari pindai' })).toHaveLength(4)
+  expect(screen.getByRole('button', { name: cta })).toBeDisabled()
+  fireEvent.click(screen.getAllByRole('button', { name: 'Dari pindai' })[0])
+  expect(screen.getAllByRole('button', { name: 'Dari pindai' })).toHaveLength(3)
+  expect(screen.getByRole('button', { name: cta })).toBeDisabled()
+  fireEvent.click(screen.getByRole('button', { name: 'Konfirmasi semua' }))
+  expect(screen.queryByRole('button', { name: 'Dari pindai' })).not.toBeInTheDocument()
+  expect(screen.getByRole('button', { name: cta })).toBeEnabled()
+})
+
+test('OCR: editing a scanned field confirms it; regex-repaired NIK shows Periksa', async () => {
+  vi.mocked(runKtpOcr).mockResolvedValue({
+    draft: { nik: '3201011501900001', name: 'BUDI UJI KTP' },
+    flags: [{ field: 'nik', kind: 'low' }],
+  })
+  render(<PatientForm />)
+  const file = new File([new Uint8Array([1, 2, 3])], 'ktp-sintetis.png', { type: 'image/png' })
+  fireEvent.change(screen.getByLabelText('Foto KTP'), { target: { files: [file] } })
+  await vi.waitFor(() => expect(screen.getByLabelText('Nama lengkap *')).toHaveValue('BUDI UJI KTP'))
+  expect(screen.getByText('Periksa').getAttribute('data-field')).toBe('nik')
+  expect(screen.getByRole('button', { name: cta })).toBeDisabled()
+  fireEvent.change(screen.getByLabelText('Nama lengkap *'), { target: { value: 'Budi Uji KTP' } })
+  expect(screen.getAllByRole('button', { name: 'Dari pindai' })).toHaveLength(1)
+  fireEvent.focus(screen.getByRole('textbox', { name: 'NIK' }))
+  expect(screen.queryByRole('button', { name: 'Dari pindai' })).not.toBeInTheDocument()
+  expect(screen.getByRole('button', { name: cta })).toBeEnabled()
+  expect(screen.getByText('Periksa')).toBeInTheDocument()
+})
+
+test('Terenkripsi appears only after an encrypted photo upload succeeds', async () => {
+  vi.mocked(runKtpOcr).mockResolvedValue({ draft: { name: 'BUDI UJI KTP' }, flags: [] })
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+    if (url === '/api/patients') return new Response(JSON.stringify({ id: 'p-enc' }), { status: 201 })
+    if (String(url).includes('/ktp/photos')) return new Response(JSON.stringify({ id: 'ph-1' }), { status: 201 })
+    return new Response(JSON.stringify({ mismatches: [], nik: null }), { status: 200 })
+  })
+  document.cookie = 'XSRF-TOKEN=t'
+  render(<PatientForm canKtp />)
+  const file = new File([new Uint8Array([1, 2, 3])], 'ktp-sintetis.png', { type: 'image/png' })
+  fireEvent.change(screen.getByLabelText('Foto KTP'), { target: { files: [file] } })
+  await vi.waitFor(() => expect(screen.getByLabelText('Nama lengkap *')).toHaveValue('BUDI UJI KTP'))
+  expect(screen.queryByText('Terenkripsi')).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Konfirmasi semua' }))
+  fireEvent.click(screen.getByRole('button', { name: cta }))
+  await vi.waitFor(() => expect(screen.getByRole('tab', { name: 'Profil' })).toHaveAttribute('aria-selected', 'true'))
+  expect(screen.getByText('Terenkripsi')).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Buka' })).toBeInTheDocument()
 })
