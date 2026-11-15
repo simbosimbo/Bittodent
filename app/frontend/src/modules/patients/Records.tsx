@@ -1,15 +1,18 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { ApiError, errorText } from '../../shared/api/http'
 import { setActivePatient } from '../../shared/activePatient'
-import { fmtDateTime } from '../../shared/format'
-import { ALERTS_CHANGED } from './AlertRibbon'
+import { fmtDateTime, initials } from '../../shared/format'
+import { Icon, ICONS } from '../../shared/ui/Icon'
+import { Menu } from '../../shared/ui/Menu'
+import { ALERTS_CHANGED, AlertRibbon } from './AlertRibbon'
 import { getFamily, getMedicalHistory, getPatient, saveMedicalHistory, type Family, type MedicalHistory, type PatientFull } from './api'
-import { age, dob } from './Patients'
+import { age, ageTahun, dob, SEX } from './Patients'
 
 const TABS = [['pasien', 'Profil'], ['rekam-medis', 'Rekam Medis'], ['keluarga', 'Keluarga'], ['riwayat-medis', 'Riwayat Medis']] as const
 
-/** Header + tabs shared by the patient screens; loading the patient makes it the active patient. */
-export function PatientPage({ id, tab, canChart, actions, children }: { id: string; tab: string; canChart: boolean; actions?: ReactNode; children: (p: PatientFull) => ReactNode }) {
+/** Header (with the Profil / Rekam Medis / Keluarga / Riwayat Medis menu) shared by the patient screens; loading the patient makes it the active patient.
+ *  `alerts`: allergy/premed/condition chips in the header (one /alerts fetch); `status`: extra chip in the same row (visit status). Both used on Rekam Medis. */
+export function PatientPage({ id, tab, canChart, actions, alerts, status, children }: { id: string; tab: string; canChart: boolean; actions?: ReactNode; alerts?: boolean; status?: ReactNode; children: (p: PatientFull) => ReactNode }) {
   const [p, setP] = useState<PatientFull | null>(null)
   const [error, setError] = useState('')
   useEffect(() => {
@@ -19,16 +22,32 @@ export function PatientPage({ id, tab, canChart, actions, children }: { id: stri
   if (!p) return <div className="card state-card muted">Memuat…</div>
   return (
     <>
-      <div className="page-head">
-        <div><a href="#/pasien" className="muted small">← Daftar pasien</a><h1>{p.name}</h1>
-          <p className="muted">{dob(p.dob)} {age(p.dob)}</p></div>
-        {actions}
+      <nav className="crumbs small" aria-label="Breadcrumb"><a href="#/pasien">Daftar Pasien</a> <span aria-hidden="true">›</span> <span aria-current="page">{p.name}</span></nav>
+      <div className="patient-head">
+        <span className="avatar avatar-lg" aria-hidden="true">{initials(p.name)}</span>
+        <div className="patient-head-main">
+          <div className="patient-head-title">
+            <h1>{p.name}</h1>
+            {/* DOB and payer live on Profil; "No. RM …" never breaks mid-token. */}
+            <p className="muted small">{[ageTahun(p.dob), p.sex && (SEX[p.sex] ?? p.sex)].filter(Boolean).map((x) => x + ' · ')}<span className="patient-mrn">No. RM <strong>{p.mrn ?? 'belum ada'}</strong></span></p>
+          </div>
+          {(alerts || status) && (
+            <div className="patient-chip-row">
+              {alerts && <AlertRibbon patientId={p.id} compactDefault label="Peringatan medis pasien" className="patient-alerts" />}
+              {status}
+            </div>
+          )}
+        </div>
+        <div className="patient-head-actions">
+          {actions}
+          {/* Profil / Keluarga / Riwayat Medis live here (no outer tab bar, no sidebar items). */}
+          <Menu label="Menu pasien" className="icon-btn icon-btn-outline" trigger={<Icon d={ICONS.more} />}>
+            {(close) => TABS.filter(([k]) => k !== 'rekam-medis' || canChart).map(([k, label]) => (
+              <a key={k} href={`#/${k}/${p.id}`} aria-current={k === tab ? 'page' : undefined} onClick={close}>{label}</a>
+            ))}
+          </Menu>
+        </div>
       </div>
-      <nav className="tabs" aria-label="Data pasien">
-        {TABS.filter(([k]) => k !== 'rekam-medis' || canChart).map(([k, label]) => (
-          <a key={k} href={`#/${k}/${p.id}`} className={k === tab ? 'on' : undefined} aria-current={k === tab ? 'page' : undefined}>{label}</a>
-        ))}
-      </nav>
       {children(p)}
     </>
   )

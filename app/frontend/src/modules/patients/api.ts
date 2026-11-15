@@ -1,11 +1,18 @@
 import { api } from '../../shared/api/http'
 
-export type PatientRow = { id: string; name: string; dob: string | null; sex: string | null; payer_type: string }
+export type CareStatus = 'dalam_perawatan' | 'perlu_kontrol' | 'tidak_aktif'
+// List row: care_status (not admin status) is what the list shows. allergies = latest medical history version (memory only).
+export type PatientRow = { id: string; mrn: string | null; name: string; dob: string | null; sex: string | null; payer_type: string; status?: string
+  last_visit_at?: string | null; last_dentist_id?: string | null; last_dentist_name?: string | null; care_status?: CareStatus; allergies?: string[] }
 export type PatientFull = PatientRow & { nik: string | null; phone: string | null; address: string | null; payer_name: string | null; payer_member_no: string | null; payer_class: string | null }
 type Page = { data: PatientRow[]; next_cursor: string | null }
+export type ListFilter = { care_status?: string; dentist_id?: string }
 
-export const searchPatients = (q: string, cursor?: string) =>
-  api<Page>(`/api/patients?q=${encodeURIComponent(q.trim())}` + (cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''))
+export const searchPatients = (q: string, cursor?: string, f: ListFilter = {}) =>
+  api<Page>(`/api/patients?q=${encodeURIComponent(q.trim())}` + (cursor ? `&cursor=${encodeURIComponent(cursor)}` : '')
+    + (f.care_status ? `&care_status=${encodeURIComponent(f.care_status)}` : '') + (f.dentist_id ? `&dentist_id=${encodeURIComponent(f.dentist_id)}` : ''))
+// Served by the Scheduling backend module (it already knows memberships + names); permission appointment.read.
+export const getDentists = () => api<{ data: { id: string; name: string }[] }>('/api/dentists')
 export const getPatient = (id: string) => api<PatientFull>('/api/patients/' + encodeURIComponent(id))
 export const createPatient = (body: Record<string, string>) => api<{ id: string }>('/api/patients', { method: 'POST', body })
 

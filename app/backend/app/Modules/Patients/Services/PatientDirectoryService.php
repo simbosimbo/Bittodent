@@ -5,6 +5,7 @@ namespace App\Modules\Patients\Services;
 use App\Modules\Patients\Contracts\PatientDirectory;
 use App\Modules\Patients\Models\Guardian;
 use App\Modules\Patients\Models\Patient;
+use App\Shared\Crypto\Crypto;
 use Illuminate\Support\Arr;
 
 final class PatientDirectoryService implements PatientDirectory
@@ -14,11 +15,16 @@ final class PatientDirectoryService implements PatientDirectory
         Patient::findOrFail($patientId, ['tenant_id', 'id']);
     }
 
+    public function lock(string $patientId): void
+    {
+        Patient::whereKey($patientId)->lockForUpdate()->firstOrFail(['tenant_id', 'id']);
+    }
+
     public function summary(string $patientId): array
     {
         $p = Patient::findOrFail($patientId);
 
-        return [...Arr::only($p->toArray(), ['id', 'name', 'dob', 'sex', 'payer_type']), 'is_minor' => $p->isMinor()]; // toArray: dob as Y-m-d
+        return [...Arr::only($p->toArray(), ['id', 'mrn', 'name', 'dob', 'sex', 'payer_type']), 'is_minor' => $p->isMinor()]; // toArray: dob as Y-m-d
     }
 
     public function payerOf(string $patientId): string
@@ -36,5 +42,18 @@ final class PatientDirectoryService implements PatientDirectory
     public function namesByIds(array $ids): array
     {
         return Patient::whereIn('id', $ids)->get(['tenant_id', 'id', 'name'])->toArray();
+    }
+
+    public function findOrCreateForBooking(string $name, string $phone, string $branchId): string
+    {
+        $found = Patient::where('phone_bidx', Crypto::blindIndex(Crypto::normalizePhone($phone)))
+            ->where('name_normalized', Patient::normalizeName($name))->orderBy('created_at')->value('id');
+        if ($found) {
+            return $found;
+        }
+        $p = (new Patient)->fillIdentity(['name' => $name, 'phone' => $phone])->fill(['mrn' => MrnGenerator::next(), 'home_branch_id' => $branchId, 'source' => 'online']);
+        $p->save();
+
+        return $p->id;
     }
 }

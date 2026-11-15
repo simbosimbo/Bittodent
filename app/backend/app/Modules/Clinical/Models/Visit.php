@@ -13,5 +13,11 @@ class Visit extends Model
 
     protected $guarded = ['tenant_id'];
 
-    protected $casts = ['started_at' => 'datetime', 'ended_at' => 'datetime'];
+    protected $casts = ['started_at' => 'datetime', 'ended_at' => 'datetime', 'attendance_cancelled_at' => 'datetime', 'closed_without_invoice' => 'boolean'];
+
+    /** A signed note locks the visit's drafts (findings + procedures). */
+    public function isSigned(): bool
+    {
+        return ClinicalNote::where('visit_id', $this->id)->whereHas('versions', fn ($q) => $q->where('state', 'signed'))->exists();
+    }
 }

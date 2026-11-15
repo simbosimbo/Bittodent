@@ -2,6 +2,7 @@
 
 namespace Tests\Modules\Scheduling;
 
+use App\Modules\Clinical\Models\Visit;
 use App\Modules\Scheduling\Models\Appointment;
 use App\Modules\Scheduling\Models\Chair;
 use App\Modules\Scheduling\Models\PlannedAppointment;
@@ -58,7 +59,9 @@ class PlannedAppointmentTest extends TestCase
 
     public function test_transitions_stamp_arrived_seated_dismissed_and_expose_minutes(): void
     {
-        $a = $this->inA(fn () => Appointment::where('status', 'booked')->where('branch_id', $this->kemang()->id)->orderBy('starts_at')->firstOrFail());
+        // no visit: a visit with unbilled `selesai` work would block `done` (unit 4, EncounterInvoiceGuardTest)
+        $a = $this->inA(fn () => Appointment::where('status', 'booked')->where('branch_id', $this->kemang()->id)
+            ->whereNotIn('id', Visit::whereNotNull('appointment_id')->select('appointment_id'))->orderBy('starts_at')->firstOrFail());
         $r = $this->as('depan@senyum.test');
         $this->travelTo(now()->setTime(2, 0));
         $r->postJson("/api/appointments/{$a->id}/transition", ['to' => 'checked_in'])->assertOk()->assertJsonPath('wait_minutes', null);
@@ -82,5 +85,18 @@ class PlannedAppointmentTest extends TestCase
         $r->postJson("/api/appointments/{$x->id}/reschedule", ['starts_at' => '2030-03-01T02:05:00Z', 'ends_at' => '2030-03-01T02:50:00Z'])->assertOk();
         $r->postJson("/api/appointments/{$x->id}/transition", ['to' => 'cancelled'])->assertOk();
         $r->postJson("/api/appointments/{$x->id}/reschedule", ['starts_at' => '2030-03-02T02:00:00Z', 'ends_at' => '2030-03-02T02:45:00Z'])->assertConflict();
+    }
+
+    public function test_procedure_code_must_be_in_official_icd9cm_list(): void
+    {
+        $p = $this->patientOf($this->tenantA())->id;
+        $post = fn (?string $code) => $this->as('dokter@senyum.test')->postJson("/api/patients/$p/planned-appointments",
+            ['procedure' => 'Cabut (uji)', 'procedure_code' => $code, 'est_minutes' => 30]);
+        $post('23.19')->assertCreated()->assertJsonPath('procedure_code', '23.19');
+        $post('23.01')->assertCreated()->assertJsonPath('procedure_code', '23.01');
+        $post(null)->assertCreated();
+        foreach (['23.99', '23.8', 'K02.1'] as $bad) { // well-formed but not in the list, ICD-10 code
+            $post($bad)->assertUnprocessable()->assertJsonValidationErrors('procedure_code');
+        }
     }
 }

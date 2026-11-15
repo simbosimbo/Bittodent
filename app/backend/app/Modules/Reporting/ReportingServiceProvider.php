@@ -4,5 +4,5 @@ namespace App\Modules\Reporting;
 
 use App\Shared\ModuleServiceProvider;
 
-// Stub: no features yet (see README.md).
+// Read-only owner reports (unit 6). Nothing depends on Reporting; it reads other modules through their Contracts only.
 class ReportingServiceProvider extends ModuleServiceProvider {}

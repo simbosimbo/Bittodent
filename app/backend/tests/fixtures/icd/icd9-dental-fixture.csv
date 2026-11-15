@@ -1,0 +1,53 @@
+code,display,version
+23,Removal and restoration of teeth,ICD9CM_2010
+23.0,Forceps extraction of tooth,ICD9CM_2010
+23.01,Extraction of deciduous tooth,ICD9CM_2010
+23.09,Extraction of other tooth,ICD9CM_2010
+23.1,Surgical removal of tooth,ICD9CM_2010
+23.11,Removal of residual root,ICD9CM_2010
+23.19,Other surgical extraction of tooth,ICD9CM_2010
+23.2,Restoration of tooth by filling,ICD9CM_2010
+23.3,Restoration of tooth by inlay,ICD9CM_2010
+23.4,Other dental restoration,ICD9CM_2010
+23.41,Application of crown,ICD9CM_2010
+23.42,Insertion of fixed bridge,ICD9CM_2010
+23.43,Insertion of removable bridge,ICD9CM_2010
+23.49,Other dental restoration,ICD9CM_2010
+23.5,Implantation of tooth,ICD9CM_2010
+23.6,Prosthetic dental implant,ICD9CM_2010
+23.7,Apicoectomy and root canal therapy,ICD9CM_2010
+23.70,"Root canal, not otherwise specified",ICD9CM_2010
+23.71,Root canal therapy with irrigation,ICD9CM_2010
+23.72,Root canal therapy with apicoectomy,ICD9CM_2010
+23.73,Apicoectomy,ICD9CM_2010
+24,"Other operations on teeth, gums, and alveoli",ICD9CM_2010
+24.0,Incision of gum or alveolar bone,ICD9CM_2010
+24.1,"Diagnostic procedures on teeth, gums, and alveoli",ICD9CM_2010
+24.11,Biopsy of gum,ICD9CM_2010
+24.12,Biopsy of alveolus,ICD9CM_2010
+24.19,"Other diagnostic procedures on teeth, gums, and alveoli",ICD9CM_2010
+24.2,Gingivoplasty,ICD9CM_2010
+24.3,Other operations on gum,ICD9CM_2010
+24.31,Excision of lesion or tissue of gum,ICD9CM_2010
+24.32,Suture of laceration of gum,ICD9CM_2010
+24.39,Other operations on gum,ICD9CM_2010
+24.4,Excision of dental lesion of jaw,ICD9CM_2010
+24.5,Alveoloplasty,ICD9CM_2010
+24.6,Exposure of tooth,ICD9CM_2010
+24.7,Application of orthodontic appliance,ICD9CM_2010
+24.8,Other orthodontic operation,ICD9CM_2010
+24.9,Other dental operations,ICD9CM_2010
+24.91,Extension or deepening of buccolabial or lingual sulcus,ICD9CM_2010
+24.99,Other dental operations,ICD9CM_2010
+87.1,"Other x-ray of face, head, and neck",ICD9CM_2010
+87.11,Full-mouth x-ray of teeth,ICD9CM_2010
+87.12,Other dental x-ray,ICD9CM_2010
+87.13,Temporomandibular contrast arthrogram,ICD9CM_2010
+87.14,Contrast radiogram of orbit,ICD9CM_2010
+87.15,Contrast radiogram of sinus,ICD9CM_2010
+87.16,Other x-ray of facial bones,ICD9CM_2010
+87.17,Other x-ray of skull,ICD9CM_2010
+89.3,Other anatomic and physiologic measurements and manual examinations,ICD9CM_2010
+89.31,Dental examination,ICD9CM_2010
+96.54,"Dental scaling, polishing, and debridement",ICD9CM_2010
+99.97,Fitting of denture,ICD9CM_2010

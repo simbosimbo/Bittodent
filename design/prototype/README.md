@@ -1,6 +1,6 @@
 # Bitto — prototipe klik (data palsu)
 
-Prototipe UI EHR gigi Bitto. React + TypeScript + Vite. Tanpa backend; semua data dari `src/data/mock.ts`. **Data sintetis saja.**
+Prototipe UI Bittodent. React + TypeScript + Vite. Tanpa backend; semua data dari `src/data/mock.ts`. **Data sintetis saja.**
 
 ```bash
 npm install && npm run dev

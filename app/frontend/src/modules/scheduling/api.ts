@@ -6,6 +6,8 @@ export type Appointment = {
   starts_at: string
   ends_at: string
   status: string
+  source: 'staff' | 'online'
+  booking_code: string | null
   reason: string | null
   patient: { id: string; name: string } | null
   dentist: { id: string; name: string } | null
@@ -15,10 +17,13 @@ export type Schedule = {
   branch: { id: string; name: string; timezone: string }
   date: string
   chairs: { id: string; label: string; appointments: Appointment[] }[]
+  walk_in_patients?: number // patients with a visit without appointment that day and no active appointment (count only)
   dentists: { id: string; name: string }[]
 }
 
 export const STATUS: Record<string, string> = {
+  pending_confirmation: 'Menunggu konfirmasi',
+  rejected: 'Ditolak',
   booked: 'Terjadwal',
   checked_in: 'Sudah datang',
   in_treatment: 'Dalam perawatan',

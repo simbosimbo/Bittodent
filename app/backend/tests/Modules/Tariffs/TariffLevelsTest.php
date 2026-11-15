@@ -8,6 +8,7 @@ use App\Modules\Tariffs\Domain\DifficultyTemplate;
 use App\Modules\Tariffs\Models\Tariff;
 use App\Shared\Audit\AuditEvent;
 use App\Shared\Tenancy\Ctx;
+use App\Shared\Terminology\IcdCatalog;
 use Carbon\CarbonImmutable;
 use RuntimeException;
 use Tests\TestCase;
@@ -39,7 +40,12 @@ class TariffLevelsTest extends TestCase
                 ->get()->groupBy('procedure_code')->map(fn ($g) => $g->pluck('variant')->all())->all());
             $expected = collect(DifficultyTemplate::LEVELS)->map(fn ($p) => array_column($p[1], 0))->sortKeys()->all();
             $this->assertSame($expected, $levels, $t->name);
+            // extraction split by official code: 23.09 Extraction of other tooth (no surgical level), 23.19 surgical, 23.01 deciduous
+            $this->assertSame(['standar', 'sulit'], $levels['23.09']);
+            $this->assertSame([['standar'], ['standar']], [$levels['23.19'], $levels['23.01']]);
+            $this->assertSame(150000, Ctx::runAs($t->id, fn () => app(PriceLookup::class)->priceFor('23.09', 'standar', CarbonImmutable::today())));
         }
+        $this->assertSame([], array_values(array_filter(array_keys(DifficultyTemplate::LEVELS), fn ($c) => ! app(IcdCatalog::class)->icd9cmExists((string) $c))));
     }
 
     public function test_owner_edit_creates_new_version_and_keeps_old_snapshots(): void

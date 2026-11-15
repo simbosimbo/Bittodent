@@ -33,7 +33,8 @@ class BillingTest extends TestCase
         $r = $this->as('pemilik@senyum.test');
         $r->postJson("/api/invoices/$id/adjustments", ['kind' => 'write_off', 'amount_rp' => 50000, 'reason' => 'Penghapusan uji'])
             ->assertCreated()->assertJsonPath('balance_rp', 175000)->assertJsonCount(2, 'adjustments');
-        $r->postJson("/api/invoices/$id/adjustments", ['kind' => 'correction', 'amount_rp' => -10000, 'reason' => 'Koreksi salah input'])
+        $r->postJson("/api/invoices/$id/adjustments", ['kind' => 'correction', 'amount_rp' => -10000, 'reason' => 'Koreksi salah input',
+            'invoice_line_id' => $r->getJson("/api/invoices/$id")->json('lines.0.id')])
             ->assertCreated()->assertJsonPath('balance_rp', 185000);
         $r->postJson("/api/invoices/$id/adjustments", ['kind' => 'discount', 'amount_rp' => -5, 'reason' => 'Negatif tidak boleh'])->assertUnprocessable();
         $r->postJson("/api/invoices/$id/adjustments", ['kind' => 'discount', 'amount_rp' => 1.5, 'reason' => 'Bukan bilangan bulat'])->assertUnprocessable();

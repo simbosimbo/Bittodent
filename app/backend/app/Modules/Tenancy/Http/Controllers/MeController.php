@@ -3,6 +3,7 @@
 namespace App\Modules\Tenancy\Http\Controllers;
 
 use App\Modules\Tenancy\Models\Branch;
+use App\Modules\Tenancy\Models\Tenant;
 use App\Shared\Http\Controller;
 use App\Shared\Permissions\Permissions;
 use App\Shared\Tenancy\Ctx;
@@ -32,6 +33,9 @@ class MeController extends Controller
                 'timezone' => $active?->timezone,
             ],
             'branches' => $branches,
+            // Selesai (#55): whether this clinic asks for a PIN and whether I have one; never the hash
+            'selesai' => ['pin_required' => (bool) Tenant::whereKey($ctx->tenantId)->value('selesai_pin_required'),
+                'has_pin' => $user->selesai_pin_hash !== null],
             'memberships' => $ctx->memberships->map(fn ($m) => [
                 'tenant_id' => $m->tenant_id, 'tenant_name' => $m->tenant->name, 'branch_id' => $m->branch_id,
                 'role' => $m->role, 'role_label' => Permissions::LABELS[$m->role],

@@ -8,17 +8,20 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 final class AppointmentStatus
 {
     public const TRANSITIONS = [
-        'booked' => ['checked_in', 'cancelled', 'no_show'],
+        // Online booking: the clinic confirms (-> booked) or rejects; the patient may cancel. A patient reschedule of a booked
+        // appointment sends it back to confirmation. Moving into/out of pending_confirmation needs `appointment.confirm`.
+        'pending_confirmation' => ['booked', 'rejected', 'cancelled'],
+        'booked' => ['checked_in', 'cancelled', 'no_show', 'pending_confirmation'],
         'checked_in' => ['in_treatment'],
         'in_treatment' => ['done'],
-        'done' => [], 'cancelled' => [], 'no_show' => [],
+        'done' => [], 'cancelled' => [], 'no_show' => [], 'rejected' => [],
     ];
 
     /** Timestamp set when entering a state (Open Dental DateTimeArrived/Seated/Dismissed). */
     public const STAMPS = ['checked_in' => 'arrived_at', 'in_treatment' => 'seated_at', 'done' => 'dismissed_at'];
 
     /** States that occupy the chair (count for double-booking). */
-    public const ACTIVE = ['booked', 'checked_in', 'in_treatment'];
+    public const ACTIVE = ['pending_confirmation', 'booked', 'checked_in', 'in_treatment'];
 
     public static function canMove(string $from, string $to): bool
     {

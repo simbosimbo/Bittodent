@@ -16,6 +16,9 @@ final class Ctx
 
     public ?string $userId = null;
 
+    /** audit_event.actor_type: user (staff login) | publik (patient on the public booking page, no login) */
+    public string $actorType = 'user';
+
     /** @var list<string> roles valid for the active branch */
     public array $roles = [];
 

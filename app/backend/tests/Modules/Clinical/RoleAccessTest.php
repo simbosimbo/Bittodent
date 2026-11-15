@@ -37,6 +37,12 @@ class RoleAccessTest extends TestCase
         }
     }
 
+    public function test_confirm_external_is_front_desk_and_assistant_only(): void
+    {
+        $holders = array_keys(array_filter(Permissions::MATRIX, fn ($perms) => in_array('procedure.confirm_external', $perms, true)));
+        $this->assertSame(['assistant', 'front_desk'], $holders); // not the recording dentist, not kasir; owner = open decision (DEVIATIONS #48)
+    }
+
     public function test_owner_reads_chart_and_each_read_writes_exactly_one_audit_row(): void
     {
         $owner = 'pemilik@senyum.test';
@@ -61,7 +67,7 @@ class RoleAccessTest extends TestCase
         $before = $this->denials($owner);
         $r = $this->as($owner);
         $r->putJson("/api/visits/$visit/note", ['soap' => ['S' => 'x']])->assertForbidden();
-        $r->postJson("/api/visits/$visit/sign", ['revision' => 1, 'confirm' => true, 'code' => '000000'])->assertForbidden();
+        $r->postJson("/api/visits/$visit/selesai", ['revision' => 1, 'confirm' => true])->assertForbidden();
         $r->postJson("/api/notes/$note/corrections", ['reason' => 'uji'])->assertForbidden();
         $r->postJson("/api/visits/$visit/findings", [])->assertForbidden();
         $r->putJson("/api/patients/$pid/baseline", [])->assertForbidden();

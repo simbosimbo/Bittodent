@@ -1,4 +1,4 @@
-# EHR Gigi — prototipe (Laravel API + React SPA)
+# Bittodent — prototipe (Laravel API + React SPA)
 
 **Hanya data sintetis.** Mode MySQL tanpa RLS (D-030): data pasien asli dilarang. Detail backend: `backend/README.md`; penyimpangan: `DEVIATIONS.md`.
 
@@ -24,21 +24,27 @@ composer dev                            # dari app/backend; sama dengan ./dev.sh
 Buka **http://127.0.0.1:5173** (pakai `127.0.0.1`, bukan `localhost`, agar cookie sesi cocok).
 Vite meneruskan `/api`, `/login`, `/logout`, `/two-factor-challenge`, `/sanctum`, `/user` ke Laravel, jadi cookie sesi + `XSRF-TOKEN` tetap satu origin.
 
-## Docker (belum diuji di box ini)
+## Docker staging-like (belum pernah dijalankan di box ini)
 
-Docker tidak terpasang di mesin dev, jadi file ini belum pernah dijalankan. Hanya untuk portabilitas, data palsu saja.
+Docker tidak terpasang di mesin dev, jadi image dan compose **belum pernah dibangun/dijalankan** di sini (YAML dicek strukturnya saja). Data palsu saja. Runbook staging (Laravel Cloud Singapore, cadangan Forge + VPS): `docs/deploy/staging.md`.
 
 ```sh
-cd app && cp backend/.env.example backend/.env   # isi APP_KEY, ENCRYPTION_KEY, BLIND_INDEX_KEY
-docker compose up --build                        # http://127.0.0.1:8080
-docker compose run --rm migrate php artisan db:seed --database=mysql_admin --force   # seed sintetis (opsional)
+cd app && cp backend/.env.staging.example backend/.env   # isi APP_KEY, ENCRYPTION_KEY, BLIND_INDEX_KEY (lihat komentar di file)
+docker compose up -d --build                                 # http://127.0.0.1:8080
+docker compose run --rm migrate php artisan staging:seed     # seed sintetis pertama (menolak bila data sudah ada)
 ```
 
 - `mysql` (mysql:8.4, volume `mysql-data`, `127.0.0.1:3307`): `docker/mysql/init/01-users.sh` membuat `ehr_dev`, `ehr_test`, `ehr_admin` (ALL + GRANT OPTION) dan `ehr_app` (tanpa hak) saat volume masih kosong.
 - `migrate` (sekali jalan): `php artisan migrate --database=mysql_admin --force`; migrasi memberi hak per tabel ke `'ehr_app'@'%'` (`DB_APP_GRANT_HOST=%`).
-- `backend`: `php artisan serve` sebagai `ehr_app`, tidak dipublikasikan ke host.
-- `frontend`: build Vite → nginx; meneruskan `/api`, `/login`, `/logout`, `/two-factor-challenge`, `/sanctum`, `/user` ke backend (satu origin untuk cookie).
-- Kata sandi DB default (`ehr_admin_dev`, `ehr_app_dev`, `root_dev_only`) hanya placeholder; ganti lewat `EHR_ADMIN_PASSWORD`, `EHR_APP_PASSWORD`, `MYSQL_ROOT_PASSWORD`. Semua port hanya di `127.0.0.1`.
+- `backend`: php-fpm 8.4 (`backend/Dockerfile`; pdo_mysql, bcmath, intl, zip, pcntl, opcache; `clear_env = no`) sebagai `ehr_app`, hanya di jaringan compose.
+- `queue`: `php artisan queue:work` (driver `database`). `scheduler`: `php artisan schedule:work` (`recall:send-reminders` tiap 15 menit).
+- `frontend`: build Vite → nginx; berkas statis + header keamanan (CSP, X-Frame-Options, nosniff, Referrer-Policy; tanpa HSTS karena TLS tidak diakhiri di sini); `/api`, `/login`, `/logout`, `/two-factor-challenge`, `/sanctum`, `/user`, `/up`, `/ready` diteruskan FastCGI ke php-fpm (satu origin untuk cookie).
+- Compose menjalankan `APP_ENV=staging` tetapi lewat HTTP polos di `127.0.0.1`, jadi `FORCE_HTTPS=false` dan `SESSION_SECURE_COOKIE=false`. Di belakang TLS: hapus dua override itu dan set `TRUSTED_PROXIES`.
+- Kata sandi DB default (`ehr_admin_dev`, `ehr_app_dev`, `root_dev_only`) hanya placeholder; ganti lewat `EHR_ADMIN_PASSWORD`, `EHR_APP_PASSWORD`, `MYSQL_ROOT_PASSWORD`. Image tidak membawa rahasia. Semua port hanya di `127.0.0.1`.
+
+### SPA dari host Laravel (Laravel Cloud)
+
+`scripts/build-spa-into-backend.sh` membangun `frontend` dengan base `/client/` ke `backend/public/client` (diabaikan git); Laravel menyajikan `client/index.html` di `/` (`backend/routes/web.php`, tanpa sesi). `public/index.php`, `/api`, `/login`, `/up`, `/sanctum` tidak tersentuh; rute hash tetap jalan.
 
 ## Tes
 
@@ -77,8 +83,22 @@ Kode saat ini: `cd app/backend && php artisan dev:totp <email>` (menolak jalan b
 | kasir@ceria.test | Kasir | Klinik Gigi Ceria, Bandung |
 | dokter@ceria.test | Pemilik, Dokter Gigi | Klinik Gigi Ceria, Bandung |
 
+## Booking online pasien (data sintetis)
+
+- Halaman publik tanpa login: `#/book/senyum` (Dokter → Layanan → Jadwal → Data → OTP → Kode booking), kelola: `#/book/senyum/manage/<token>` (batal, jadwal ulang). Contoh seed: `#/book/senyum/manage/demo-kelola-senyum`.
+- API: `/api/public/booking/{slug}` (`GET /`, `GET /slots`, `POST /start`, `/resend`, `/verify`, `GET|POST /manage/{token}[/cancel|/reschedule]`); throttle per IP + per nomor.
+- Hasilnya janji `pending_confirmation` (sumber `online`); staf melihat badge **Online** di Jadwal dan menekan **Konfirmasi**/**Tolak** (izin `appointment.confirm`).
+- OTP dev: `BOOKING_OTP_DRIVER=fake` lalu `php artisan booking:otp 0899xxxxxxxx`. Driver `log` hanya mencatat nomor tersamar, tidak pernah kodenya.
+- Seed: slug `senyum` (3 dokter, 4 layanan, 1 permintaan menunggu besok 18.00) dan `ceria`. Penyimpangan: `DEVIATIONS.md` #61–66.
+
 ## Frontend singkat
 
 React 19 + Vite + TypeScript. Kode per modul di `frontend/src/modules/<m>` (`auth`, `patients`, `scheduling`, `clinical`, `billing`; masing-masing `api.ts` + layar + `index.ts` publik) di atas satu klien HTTP `src/shared/api/http.ts` (cookie + XSRF). Modul lain hanya boleh diimpor lewat `index.ts`-nya; `src/shared` tidak mengimpor modul (dicek `src/boundaries.test.ts`). Cangkang A (sidebar, bilah atas dengan pil "Pasien aktif", kartu putih di latar berwarna) di `src/shared/layout/Shell.tsx`; token `src/shared/ui/tokens.css` dibuat dari `design/tokens.json` lewat `npm run tokens` (hasil di-commit agar build Docker tidak butuh folder design). Bilah atas + pita peringatan medis menempel (sticky) saat halaman digulir; sidebar menjadi rel ikon pada lebar ≤1100px. Pasien aktif hanya di memori. Selama ada pasien aktif, pita peringatan (`modules/patients/AlertRibbon.tsx`, dari `GET /api/patients/{id}/alerts`) tampil di semua layar: premedikasi dan catatan penting di depan dan ditonjolkan, lalu alergi, kondisi, obat. Rute hash (`#/pasien`, `#/jadwal`, …) agar tidak bentrok dengan rute Laravel di proxy.
 Tidak ada data pasien di `localStorage`/`sessionStorage`, tidak ada service worker; semua data hanya di memori dan respons API `no-store`.
 Waktu ditampilkan `id-ID`, zona `Asia/Jakarta` (WIB).
+
+## Koreksi tindakan & tagihan (ringkas)
+
+Salah catat tindakan diperbaiki lewat koreksi (baris baru + jejak audit), bukan tagihan Rp0 atau diskon 100%. Uangnya lewat
+nota kredit, void, atau refund yang terpisah dan butuh pemilik untuk pembalikan penuh; laporan pemilik (`#/laporan`) memisahkan
+setiap jenisnya. Ringkasan alur A–D: `backend/app/Modules/Billing/README.md`; rincian: `DEVIATIONS.md` #53, #56, #57, #58.

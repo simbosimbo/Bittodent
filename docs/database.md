@@ -130,7 +130,7 @@ Aturan keras: hanya user dengan `license_type = dokter_gigi` **dan** peran `dokt
 **`patient`**
 | Kolom | Tipe | Aturan |
 |---|---|---|
-| `mrn` | text | no. RM, unik `(tenant_id, mrn)`, dibuat berurutan per tenant |
+| `mrn` | text | no. RM, unik `(tenant_id, mrn)`, dibuat berurutan per tenant. Format (usulan): `BT-` + 6 angka, mulai `BT-000001` per tenant, tanpa kode cabang; penghitung `patient_mrn_seq` dikunci per tenant (MVP MySQL: `MrnGenerator`) |
 | `full_name` | text | wajib. Tidak dienkripsi supaya bisa dicari sebagian (D-020, **diterima Jerome** sebagai pengecualian terdokumentasi) |
 | `name_search` | text | huruf kecil, tanpa tanda baca, dari `full_name` (dibuat otomatis) |
 | `nik_enc` 🔒 | bytea | NIK terenkripsi. Wajib untuk pasien beridentitas (REG-1) |
@@ -143,6 +143,7 @@ Aturan keras: hanya user dengan `license_type = dokter_gigi` **dan** peran `dokt
 | `status` | enum `draf_pendaftaran`, `aktif`, `meninggal`, `diarsip` | draf dari formulir pasien belum jadi rekam medis (REG-2) |
 | `verified_by`, `verified_at` | | siapa yang mencocokkan KTP |
 | `last_visit_at` | timestamptz | dasar hitung retensi 25 tahun |
+| `last_dentist_id`, `last_dentist_name`, `care_status` (+ fakta `care_*`, `next_appointment_at`) | | turunan untuk daftar pasien, didorong Clinical/Scheduling lewat `PatientCareState`; `care_status` = `dalam_perawatan` / `perlu_kontrol` / `tidak_aktif` (aturan di `Patients\Domain\CareStatus`, DEVIATIONS #60) |
 
 **`patient_permission_event`** (izin pasien, hanya ditambah)
 | Kolom | Tipe | Aturan |

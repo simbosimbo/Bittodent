@@ -1,13 +1,16 @@
 import type { ReactElement } from 'react'
 import type { Source, Surface, ToothPresence } from './api'
-import { CONDITIONS, conditionOf, statusOf, isAnterior, isUpper, LOWER, LOWER_PRIMARY, surfaceLabel, surfaceName, surfacesOf, UPPER, UPPER_PRIMARY } from './legend'
+import { CONDITIONS, conditionOf, STATUSES, statusOf, isAnterior, isUpper, LOWER, LOWER_PRIMARY, surfaceLabel, surfaceName, surfacesOf, UPPER, UPPER_PRIMARY } from './legend'
 
 // FDI chart, operator view (patient's right on the chart's left). Ids follow design/odontogram: tooth "t16", surface "t16-O".
 // data-state on .tooth: empty | draft (dashed violet) | signed (solid + lock). data-condition on surfaces / whole tooth.
 // data-status (legend.json statuses) is a separate layer from data-condition; data-baseline="missing" ghosts a tooth absent at baseline.
-export type Mark = { condition: string; state: 'draft' | 'signed'; source: Source; status?: string }
+// paint = procedure paint_type (Filling, Crown, ...) when the mark comes from a treatment; data-paint lets CSS style it later.
+export type Mark = { condition: string; state: 'draft' | 'signed'; source: Source; status?: string; paint?: string }
 type Props = { marks: Record<string, Mark>; selected?: string | null; onPick?: (tooth: number, surface: Surface) => void
-  baseline?: Record<string, ToothPresence>; dentition?: string }
+  baseline?: Record<string, ToothPresence>; dentition?: string; compact?: boolean
+  /** Phone: draw one jaw only (tight viewBox). Omitted = both jaws in one SVG, as on desktop. */
+  arch?: 'upper' | 'lower' }
 const DENTITION: Record<string, string> = { tetap: 'permanent', sulung: 'primary', campuran: 'mixed' }
 
 const S = 44
@@ -48,7 +51,7 @@ function Tooth({ t, x, y, marks, selected, onPick, baseline }: Props & { t: numb
   const all = [whole, ...surfacesOf(t).map((s) => marks[`t${t}-${s}`])].filter(Boolean) as Mark[]
   const state = all.some((m) => m.state === 'draft') ? 'draft' : all.length ? 'signed' : 'empty'
   return (
-    <g id={`t${t}`} className="tooth" data-tooth={t} data-state={state} data-condition={whole?.condition} data-status={whole && statusOf(whole.status ?? '')?.legend}
+    <g id={`t${t}`} className="tooth" data-tooth={t} data-state={state} data-condition={whole?.condition} data-status={whole && statusOf(whole.status ?? '')?.legend} data-paint={whole?.paint}
       data-baseline={baseline?.[t] && baseline[t] !== 'ada' ? 'missing' : undefined} transform={`translate(${x},${y})`}>
       {state === 'draft' && <rect className="tooth-wash" x={-4} y={-4} width={S + 8} height={S + 8} rx={6} />}
       {shapes.map(([s, shape]) => {
@@ -56,7 +59,7 @@ function Tooth({ t, x, y, marks, selected, onPick, baseline }: Props & { t: numb
         const label = `Gigi ${t} ${surfaceName(t, s)}${m ? ': ' + (conditionOf(m.condition)?.label ?? m.condition) + (m.status ? ', ' + (statusOf(m.status)?.label ?? m.status) : '') + (m.state === 'draft' ? ' (draf)' : '') : ''}${baseline?.[t] && baseline[t] !== 'ada' ? ' (baseline: ' + (baseline[t] === 'hilang' ? 'tidak ada' : 'belum tumbuh') + ')' : ''}`
         return (
           <g key={s} id={`t${t}-${s}`} className={`tooth-surface${selected === `t${t}-${s}` ? ' is-sel' : ''}`} data-surface={s}
-            data-condition={m?.condition} data-state={m?.state} data-status={m && statusOf(m.status ?? '')?.legend} role={onPick ? 'button' : undefined} tabIndex={onPick ? 0 : undefined} aria-label={label}
+            data-condition={m?.condition} data-state={m?.state} data-status={m && statusOf(m.status ?? '')?.legend} data-paint={m?.paint} role={onPick ? 'button' : undefined} tabIndex={onPick ? 0 : undefined} aria-label={label}
             onClick={onPick && (() => onPick(t, s))} onKeyDown={onPick && ((e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onPick(t, s) } })}>
             <title>{label}</title>
             {shape}
@@ -77,15 +80,19 @@ export function Odontogram(props: Props) {
   const gap = 10, mid = 18, row = S + 38
   const xOf = (i: number) => 12 + i * (S + gap) + (i >= 8 ? mid : 0)
   const width = 16 * (S + gap) + mid + 24
-  const rows: [number[], number, boolean][] = [[UPPER, 0, false], [UPPER_PRIMARY, 1, true], [LOWER_PRIMARY, 2, true], [LOWER, 3, false]]
+  // Only the rows of the chosen dentition (undefined = all four, as before); kept rows close up vertically.
+  const all: [number[], boolean, 'upper' | 'lower'][] = [[UPPER, false, 'upper'], [UPPER_PRIMARY, true, 'upper'], [LOWER_PRIMARY, true, 'lower'], [LOWER, false, 'lower']]
+  const rows = all.filter(([, primary, arch]) => (!props.arch || arch === props.arch)
+    && (props.dentition === 'tetap' ? !primary : props.dentition === 'sulung' ? primary : true))
+  const name = props.arch ? `Rahang ${props.arch === 'upper' ? 'atas' : 'bawah'}` : 'Odontogram'
   return (
-    <svg className="odontogram" data-dentition={props.dentition ? DENTITION[props.dentition] : 'mixed'} viewBox={`-6 -6 ${width} ${4 * row + 30}`} role="group" aria-label="Odontogram (FDI). Pilih permukaan untuk mengisi kondisi.">
+    <svg className={`odontogram${props.compact ? ' is-compact' : ''}`} data-dentition={props.dentition ? DENTITION[props.dentition] : 'mixed'} viewBox={`-6 -6 ${width} ${rows.length * row + 30}`} role="group" aria-label={`${name} (FDI). Pilih permukaan untuk mengisi kondisi.`}>
       <defs>
         {/* karies always carries dots (colour is never the only signal) */}
         <pattern id="odo-dots" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" fill="#BE123C" /><circle cx="3" cy="3" r="1.3" fill="#fff" /></pattern>
       </defs>
-      <line className="midline" x1={xOf(8) - mid / 2 - gap / 2} y1={0} x2={xOf(8) - mid / 2 - gap / 2} y2={4 * row + 20} />
-      {rows.map(([teeth, r, primary]) => teeth.map((t, i) => (
+      <line className="midline" x1={xOf(8) - mid / 2 - gap / 2} y1={0} x2={xOf(8) - mid / 2 - gap / 2} y2={rows.length * row + 20} />
+      {rows.map(([teeth, primary], r) => teeth.map((t, i) => (
         <Tooth key={t} t={t} x={xOf(primary ? i + 3 : i)} y={22 + r * row} {...props} />
       )))}
     </svg>
@@ -100,6 +107,15 @@ export function Legend() {
       ))}
       <li><span className="swatch swatch-draft" /> Draf (garis putus ungu)</li>
       <li><span className="swatch swatch-signed" /> Ditandatangani (terkunci)</li>
+    </ul>
+  )
+}
+
+/** Procedure status layer (legend.json statuses): label + border/opacity style, never colour alone. */
+export function StatusLegend() {
+  return (
+    <ul className="odo-legend" aria-label="Legenda status">
+      {STATUSES.map((s) => <li key={s.key}><span className={`chip st st-${s.key}`} data-status={s.legend}>{s.label}</span></li>)}
     </ul>
   )
 }

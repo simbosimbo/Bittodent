@@ -19,7 +19,7 @@ Sumber: [PDF JDIH Kemkes](https://jdih.kemkes.go.id/storage/documents/pdfs/2022p
 | 22 | Jika fasyankes menyimpan lewat kerja sama dengan PSE, PSE harus punya **fasilitas penyimpanan di dalam negeri**, dapat **rekomendasi** unit data Kemenkes, dilarang membuka/memanfaatkan data, wajib **pakta integritas/NDA**, dan fasyankes dapat **akses tidak terbatas** ke datanya. | Hosting di Indonesia; kontrak & ekspor data penuh. |
 | 24 | Transfer RME untuk rujukan lewat platform Kemenkes. | Fitur rujukan nanti lewat SATUSEHAT. |
 | 25–26 | Dokumen RM milik fasyankes; **isi RM milik pasien**. | Klinik = pemilik data; pasien berhak dapat isinya. |
-| 29–30 | Prinsip kerahasiaan, integritas, ketersediaan. Hak akses (input, perbaikan, lihat) diatur pimpinan fasyankes. **Perbaikan data administratif dan klinis paling lama 2x24 jam** sejak data diinput (ayat 6). Ayat 7: bila kesalahan **data administratif** diketahui setelah lewat tenggat, perbaikan perlu persetujuan perekam medis dan/atau pimpinan. Ayat 7 **tidak menyebut data klinis**. | RBAC + kunci edit 48 jam + alur persetujuan koreksi. Untuk koreksi klinis setelah 2x24 jam (D-013, `correction_request`): dasar hukumnya **perlu dicek**. |
+| 29–30 | Prinsip kerahasiaan, integritas, ketersediaan. Hak akses (input, perbaikan, lihat) diatur pimpinan fasyankes. **Perbaikan data administratif dan klinis paling lama 2x24 jam** sejak data diinput (ayat 6). Ayat 7: bila kesalahan **data administratif** diketahui setelah lewat tenggat, perbaikan perlu persetujuan perekam medis dan/atau pimpinan. Ayat 7 **tidak menyebut data klinis**. | RBAC + kunci edit 48 jam + alur persetujuan koreksi. Untuk koreksi klinis setelah 2x24 jam (D-013, `correction_request`): dasar hukumnya **perlu dicek**. Koreksi **tindakan** (DEVIATIONS #53): tenggat bisa disetel per klinik (bawaan 48 jam), acuan = `finalized_at` tindakan (baris pertama rantai koreksi); lewat tenggat = persetujuan pemilik. Dasar hukum untuk data klinis **perlu dicek**; acuan `finalized_at` vs waktu input juga perlu dicek. |
 | 31 | Boleh dilengkapi **tanda tangan elektronik**. | Pertimbangkan TTE tersertifikasi (perlu dicek penyelenggaranya). |
 | 32 | Isi RM wajib dirahasiakan, juga setelah pasien meninggal. | |
 | 39 | Simpan RME **paling singkat 25 tahun sejak kunjungan terakhir**. | Retensi minimal 25 tahun; tidak ada hapus otomatis. |
@@ -88,6 +88,7 @@ Sumber: [peraturan.go.id PDF](https://peraturan.go.id/files/Salinan+UU+Nomor+27+
 - [ ] Retensi **≥25 tahun** sejak kunjungan terakhir, tanpa hapus otomatis (Permenkes 24/2022 Pasal 39).
 - [ ] Kunci edit **2x24 jam** + alur koreksi dengan persetujuan (Pasal 30).
 - [ ] Formulir **persetujuan tindakan** sesuai UU 17/2023 Pasal 293.
+- [ ] Tombol **Selesai** = tanda tangan elektronik **tidak tersertifikasi** (DEVIATIONS #55: penanda tangan, waktu server, hash SHA-256 isi kunjungan, teks pernyataan berversi, PIN opsional per klinik). Kekuatan pembuktiannya menurut UU ITE untuk rekam medis **perlu dicek** hukum; naik ke TTE tersertifikasi tetap Q-5.
 - [ ] Penilaian transfer data ke luar negeri untuk setiap penyedia AI/SaaS (UU PDP Pasal 56).
 - [ ] Dapatkan formulir **odontogram** standar resmi terbaru dan panduan rekam medis gigi.
 - [ ] (Setelah MVP, D-008) pengajuan akses bridging PCare/Antrean ke BPJS.

@@ -14,7 +14,7 @@ final class Audit
     {
         $ctx = Ctx::current();
         AuditEvent::create([
-            'actor_type' => 'user',
+            'actor_type' => $ctx->actorType,
             'actor_id' => $ctx->userId,
             'action' => $action,
             'entity_type' => $entityType,
