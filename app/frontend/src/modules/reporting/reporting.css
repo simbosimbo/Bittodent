@@ -60,3 +60,8 @@
   .a4 td:last-child, .a4 th:last-child { text-align: right; }
   .a4 footer { margin-top: 12pt; font-size: 9pt; }
 }
+/* ui review */
+.rev { max-width: 960px; }
+.rev-card:focus-visible { outline: 2px solid var(--color-primary-700); outline-offset: 2px; }
+.rev-val { font-size: 11px; color: var(--muted, #555); font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media (max-width: 520px) { .rev-kpi { grid-template-columns: 1fr 1fr; } .rev-kpi .card:first-child { grid-column: 1 / -1; } }

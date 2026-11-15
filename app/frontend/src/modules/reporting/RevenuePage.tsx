@@ -81,9 +81,11 @@ export default function RevenuePage({ me }: { me: Me }) {
           <h2 id="rev-7">Pendapatan 7 hari</h2>
           <ol className="rev-bars">
             {r.daily.map((d) => (
-              <li key={d.date} aria-label={`${fmtYmdShort(d.date)}: ${rp(d.amount_rp)}`}>
-                <span className="rev-bar" style={{ height: `${Math.round((d.amount_rp / max) * 100)}%` }} />
-                <span className="small muted">{DAY[new Date(d.date + 'T00:00:00Z').getUTCDay()]}</span>
+              <li key={d.date}>
+                <span className="rev-val">{d.amount_rp ? jt(d.amount_rp).replace('Rp', '').trim() : '0'}</span>
+                <span className="sr-only">{fmtYmdShort(d.date)}: {rp(d.amount_rp)}</span>
+                <span className="rev-bar" aria-hidden="true" style={{ height: `${Math.round((d.amount_rp / max) * 100)}%` }} />
+                <span className="small muted" aria-hidden="true">{DAY[new Date(d.date + 'T00:00:00Z').getUTCDay()]}</span>
               </li>
             ))}
           </ol>

@@ -96,3 +96,7 @@
 .shift-dl { display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; margin: 0; }
 .shift-dl div { display: contents; }
 .shift-dl dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+/* ui review: focus rings on custom controls, readable width on desktop, labelled amount */
+.pay-kind:focus-visible, .kasir-card:focus-visible { outline: 2px solid var(--color-primary-700); outline-offset: 2px; }
+.kasir { max-width: 960px; }
+.inv-amount { display: flex; flex-direction: column; gap: 4px; }

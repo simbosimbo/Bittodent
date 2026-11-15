@@ -45,6 +45,7 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
   const [split, setSplit] = useState(false) // #70: one method by default; "Pecah pembayaran" opens the per-row selects
   const [kind, setKind] = useState<PaymentAccount['kind'] | null>(null) // KL04: Debit/Transfer with several banks wait for a bank chip
   const [cash, setCash] = useState('') // KL03 tunai: money handed over, only for the change (the payment is the bill amount)
+  const [busy, setBusy] = useState(false) // a payment/correction request is in flight: no second tap
   const [paidNow, setPaidNow] = useState(false) // KL05: success panel right after the payment that settles the bill
   const can = (p: string) => me.permissions.includes(p)
 
@@ -70,12 +71,15 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
   async function run(fn: () => Promise<Invoice>, ok: (i: Invoice) => string) {
     setError('')
     setMsg('')
+    setBusy(true)
     try {
       const i = await fn()
       setInv(i)
       setMsg(ok(i))
     } catch (e) {
       setError(e instanceof ApiError && [403, 409, 422].includes(e.status) && e.data?.message ? e.data.message : errorText(e))
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -157,6 +161,9 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
     setKind(k)
     setRows([{ ...rows[0], account: of.length === 1 ? of[0].id : '' }])
   }
+  // why "Terima" is disabled, said next to it (not a silent grey button)
+  const payBlock = split ? '' : !curKind ? 'Pilih metode bayar.' : !sel ? 'Pilih bank dulu.'
+    : sel.kind === 'tunai' && cash !== '' && Number(cash) < Number(rows[0].amount) ? 'Uang diterima kurang dari jumlah dibayar.' : ''
   const amt = rp(split ? rows.reduce((t, r) => t + Number(r.amount || 0), 0) : Number(rows[0].amount || 0))
   const payLabel = split || !sel ? `Terima ${amt}` : sel.kind === 'qris' ? 'Sudah dibayar'
     : ['edc', 'transfer'].includes(sel.kind) ? `Terima ${KIND[sel.kind].toLowerCase()} ${sel.bank_name ?? sel.name} ${amt}` : `Terima ${amt}`
@@ -257,8 +264,8 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
                 {rows.length > 1 && <button type="button" className="btn btn-xs" onClick={() => setRows(rows.filter((x) => x !== r))}>Hapus</button>}
               </div>
             ))}
-            {!split && <input className="inv-amount" aria-label="Jumlah 1 (Rp)" type="number" min={1} required value={rows[0].amount}
-              onChange={(e) => setRows([{ ...rows[0], amount: e.target.value }])} />}
+            {!split && <label className="inv-amount">Jumlah dibayar (Rp)<input type="number" min={1} required inputMode="numeric" value={rows[0].amount}
+              onChange={(e) => setRows([{ ...rows[0], amount: e.target.value }])} /></label>}
             {!split && sel?.kind === 'tunai' && (
               <div className="pay-cash">
                 <label>Uang diterima<input type="number" min={0} inputMode="numeric" value={cash} onChange={(e) => setCash(e.target.value)} /></label>
@@ -269,9 +276,9 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
             <div className="toolbar pay-submit">
               {split ? <button type="button" className="btn" onClick={() => setRows([...rows, newRow()])}>Tambah metode (split)</button>
                 : <button type="button" className="btn btn-ghost" onClick={() => setSplit(true)}>Pecah pembayaran</button>}
-              <button className="btn btn-primary" disabled={!split && (!rows[0].account || (sel?.kind === 'tunai' && cash !== '' && Number(cash) < Number(rows[0].amount)))}>
-                {payLabel}</button>
+              <button className="btn btn-primary" disabled={busy || !!payBlock}>{busy ? 'Memproses…' : payLabel}</button>
             </div>
+            {payBlock && <p className="muted small" id="pay-hint">{payBlock}</p>}
           </form>
         )}
       </div>

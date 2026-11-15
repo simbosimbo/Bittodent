@@ -16,13 +16,16 @@ export default function ShiftPage() {
   const [counted, setCounted] = useState('')
   const [reason, setReason] = useState('')
   const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
   useEffect(() => { currentShift().then((r) => setShift(r.shift), (e) => setError(errorText(e))) }, [])
 
   async function act(fn: () => Promise<{ shift: Shift }>, done: (s: Shift) => void) {
     setError('')
+    setBusy(true)
     try { done((await fn()).shift) } catch (e) {
       setError(e instanceof ApiError && e.data?.message ? e.data.message : errorText(e))
     }
+    setBusy(false)
   }
 
   if (closed) return (
@@ -44,7 +47,7 @@ export default function ShiftPage() {
       <h1>Buka shift</h1>
       <label>Kas awal (Rp)<input type="number" min={0} inputMode="numeric" required value={opening} onChange={(e) => setOpening(e.target.value)} /></label>
       {error && <p className="form-error" role="alert">{error}</p>}
-      <button className="btn btn-primary btn-block">Buka shift</button>
+      <button className="btn btn-primary btn-block" disabled={busy}>{busy ? 'Memproses…' : 'Buka shift'}</button>
     </form>
   )
   const diff = counted === '' ? null : Number(counted) - shift.expected_cash_rp
@@ -71,7 +74,7 @@ export default function ShiftPage() {
         <label>Alasan selisih<input required minLength={5} maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} /></label>
       </>}
       {error && <p className="form-error" role="alert">{error}</p>}
-      <button className="btn btn-primary btn-block" disabled={counted === '' || (needReason && reason.trim().length < 5)}>Tutup shift</button>
+      <button className="btn btn-primary btn-block" disabled={busy || counted === '' || (needReason && reason.trim().length < 5)}>{busy ? 'Memproses…' : 'Tutup shift'}</button>
     </form>
   )
 }
