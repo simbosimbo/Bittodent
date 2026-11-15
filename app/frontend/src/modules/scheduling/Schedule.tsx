@@ -202,12 +202,20 @@ export default function Schedule({ me }: { me: Me }) {
   async function confirm(a: Appointment) {
     if (await move(a, 'booked')) say('Dikonfirmasi', () => { move(a, 'pending_confirmation') }) // booked -> pending is a real API move
   }
+  // Mulai kunjungan = one tap (#70): check in first when the patient is still "Terjadwal" today (the server checks the permission
+  // and the transition), then merawat, then straight into the RM.
   async function startVisit(a: Appointment) {
+    if (a.status === 'booked' && !(await move(a, 'checked_in'))) return
     if (!(await move(a, 'in_treatment'))) return
-    if (multi && mode !== 'dokter') { setMode('dokter'); say('Mode Dokter') }
+    if (multi && mode !== 'dokter') setMode('dokter')
+    if (canChart && a.patient) location.hash = chartHref(a)
+    else if (multi) say('Mode Dokter')
   }
+  // Dokter mode: Selesai sends the patient to the payment queue (Kasir / "Belum bayar"); no Bayar prompt for the doctor.
   async function finish(a: Appointment) {
-    if ((await move(a, 'done')) && canBill) setPayFor(a.id)
+    if (!(await move(a, 'done'))) return
+    if (mode === 'dokter') say(canBill || a.visit_id ? 'Selesai · masuk antrean bayar' : 'Selesai')
+    else if (canBill) setPayFor(a.id)
   }
   const A = {
     confirm: (a: Appointment): Act => ({ key: 'confirm', label: 'Konfirmasi', run: () => confirm(a), tone: 'primary' }),
@@ -221,13 +229,13 @@ export default function Schedule({ me }: { me: Me }) {
   const may = {
     confirm: (a: Appointment) => online(a) && canMove && canConfirm,
     checkin: (a: Appointment) => a.status === 'booked' && isToday && canMove,
-    start: (a: Appointment) => a.status === 'checked_in' && canMove && canVisit,
+    start: (a: Appointment) => (a.status === 'checked_in' || (mode === 'dokter' && a.status === 'booked' && isToday)) && canMove && canVisit,
     finish: (a: Appointment) => a.status === 'in_treatment' && canMove,
     pay: (a: Appointment) => a.status === 'done' && canBill && inv.unpaid(a),
     chart: (a: Appointment) => canChart && !!a.patient && !['cancelled', 'no_show', 'rejected', 'pending_confirmation'].includes(a.status),
   }
   const primary = (a: Appointment): Act | null => mode === 'dokter'
-    ? may.start(a) ? A.start(a) : a.status === 'in_treatment' && may.chart(a) ? A.chart(a) : null
+    ? may.start(a) ? A.start(a) : may.chart(a) ? A.chart(a) : null // Dokter: every own card has one primary
     : may.confirm(a) ? A.confirm(a) : may.checkin(a) ? A.checkin(a) : may.pay(a) ? A.pay(a) : null
   const sheetActs = (a: Appointment): Act[] => ([
     mode === 'depan' && may.confirm(a) && A.confirm(a),
@@ -520,8 +528,8 @@ export default function Schedule({ me }: { me: Me }) {
       )}
       {mobile && toast && <Toast key={toast.id} text={toast.text} undo={toast.undo} onDone={() => setToast(null)} />}
       {gridNow && !nowSeen && <button type="button" className="now-chip" onClick={() => toNow(true)}>Sekarang {dotTime(nowMin + START)}</button>}
-      {mobile && canCreate && <button type="button" className="fab" aria-label="Buat janji" onClick={() => setDialog({})}><Icon d={ICONS.plus} size={26} /></button>}
-      {data && <PlannedList sched={data} date={date} canCreate={canCreate} onScheduled={reload} />}
+      {mobile && canCreate && !dokter && <button type="button" className="fab" aria-label="Buat janji" onClick={() => setDialog({})}><Icon d={ICONS.plus} size={26} /></button>}
+      {data && !(mobile && dokter) && <PlannedList sched={data} date={date} canCreate={canCreate} onScheduled={reload} />}
       {dialog && data && (
         <BookDialog sched={data} date={date} me={me} initial={dialog} onClose={() => setDialog(null)} onSaved={() => { setDialog(null); reload(); changed() }} />
       )}

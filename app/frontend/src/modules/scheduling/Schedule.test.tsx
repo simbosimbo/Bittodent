@@ -641,28 +641,36 @@ test('HP: sheet Meja depan – Ubah jadwal kirim reschedule; Batalkan perlu konf
   await vi.waitFor(() => expect(posts.at(-1)!.body).toEqual({ to: 'no_show' }))
 })
 
-test('HP multi-peran: Mulai kunjungan -> mode Dokter + toast; Selesai -> "Lanjut ke Bayar?" -> Bayar ke tagihan & Meja depan', async () => {
+test('HP multi-peran: Mulai kunjungan (Meja depan) -> mode Dokter + langsung RM (#70)', async () => {
   phoneToday()
   let status = 'checked_in'
-  const posts = mockApi(() => [ap('c', status, '09:30', status === 'done' ? { visit_id: 'v1' } : {})], { invoices: { v1: 'terbuka' } })
+  const posts = mockApi(() => [ap('c', status, '09:30')])
   render(<Schedule me={who(['owner', 'dentist'])} />)
   fireEvent.click(await screen.findByRole('button', { name: /^09\.30.*Pasien c/ }))
   status = 'in_treatment'
   fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Mulai kunjungan' }))
-  expect(await screen.findByText('Mode Dokter')).toBeInTheDocument()
+  await vi.waitFor(() => expect(location.hash).toMatch(/^#\/rekam-medis\/p-c/))
+  expect(posts.map((x) => x.body)).toEqual([{ to: 'in_treatment' }])
   expect(screen.getByRole('radio', { name: 'Dokter' })).toBeChecked()
-  expect(posts.at(-1)!.body).toEqual({ to: 'in_treatment' })
-  fireEvent.click(await screen.findByRole('button', { name: /^09\.30.*Pasien c/ }))
-  status = 'done'
-  fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Selesai' }))
-  const prompt = await screen.findByRole('dialog', { name: 'Lanjut ke Bayar?' })
-  fireEvent.click(within(prompt).getByRole('button', { name: 'Bayar' }))
-  expect(location.hash).toBe('#/tagihan/v1')
-  expect(screen.getByRole('radio', { name: 'Meja depan' })).toBeChecked()
   location.hash = ''
 })
 
-test('HP: Selesai -> Nanti tetap di Dokter; pasien muncul di Belum bayar Meja depan', async () => {
+test('HP Dokter (#70): kartu Terjadwal hari ini punya "Mulai kunjungan" = check-in + merawat + RM dalam 1 ketuk; tanpa FAB', async () => {
+  phoneToday()
+  let status = 'booked'
+  const posts = mockApi(() => [ap('c', status, '09:30')])
+  localStorage.setItem('jadwal-mode:d1', 'dokter')
+  render(<Schedule me={who(['owner', 'dentist'])} />)
+  const cta = await screen.findByRole('button', { name: 'Mulai kunjungan Pasien c' })
+  expect(screen.queryByRole('button', { name: 'Buat janji' })).toBeNull()
+  status = 'in_treatment'
+  fireEvent.click(cta)
+  await vi.waitFor(() => expect(location.hash).toMatch(/^#\/rekam-medis\/p-c/))
+  expect(posts.map((x) => x.body)).toEqual([{ to: 'checked_in' }, { to: 'in_treatment' }])
+  location.hash = ''
+})
+
+test('HP Dokter: Selesai -> tanpa prompt Bayar, toast "masuk antrean bayar"; pasien muncul di Belum bayar Meja depan', async () => {
   phoneToday()
   let status = 'in_treatment'
   mockApi(() => [ap('c', status, '09:30', status === 'done' ? { visit_id: 'v1' } : {})], { invoices: { v1: 'terbuka' } })
@@ -671,7 +679,8 @@ test('HP: Selesai -> Nanti tetap di Dokter; pasien muncul di Belum bayar Meja de
   fireEvent.click(await screen.findByRole('button', { name: /^09\.30.*Pasien c/ }))
   status = 'done'
   fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Selesai' }))
-  fireEvent.click(within(await screen.findByRole('dialog', { name: 'Lanjut ke Bayar?' })).getByRole('button', { name: 'Nanti' }))
+  expect(await screen.findByText('Selesai · masuk antrean bayar')).toBeInTheDocument()
+  expect(screen.queryByRole('dialog', { name: 'Lanjut ke Bayar?' })).toBeNull()
   expect(screen.getByRole('radio', { name: 'Dokter' })).toBeChecked()
   fireEvent.click(screen.getByRole('radio', { name: 'Meja depan' }))
   expect(await screen.findByRole('heading', { name: 'Belum bayar · 1' })).toBeInTheDocument()
