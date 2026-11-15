@@ -56,6 +56,7 @@ Di tingkat kunjungan: kandidat dari semua ref digabung (skor terbaik, ref digabu
 - PostgreSQL: implementasi `IcdSearch` baru (mis. `tsvector`/trigram) tanpa mengubah pemanggil.
 - PR #25 (feat/icd-reference, kamus lengkap 18k): rumpun cabang lain. Saat digabung, pilih satu skema kamus; nama tipe
   (`Icd10`/`Icd9cm`, `ICD10_2010`/`ICD9CM_2010`, display resmi) sudah diselaraskan. `icd:import` di sini tidak menggantikan PR #25.
+- Tolak di UI memakai **commit tertunda 5 detik**: item ditandai Ditolak secara optimistik, toast punya tombol Urungkan 48px (bisa diklik). Permintaan `reject` hanya dikirim setelah 5 detik atau saat pengguna meninggalkan halaman (`pagehide` / `visibilitychange` → `fetch` keepalive). Urungkan membatalkan, tidak ada request. Pola yang sama akan diterapkan ke A2 (#57) nanti; PR A2 tidak diubah di sini.
 - PR #59 dan A2 (saran tindakan): perubahan `Agents` (`approve/reject($as)`, `supersede`, `OWN_FLOW`/`WRONG_KIND`) disalin sama
   persis dari A2; saat merge cukup gabungkan `DraftKind::ownFlow()` menjadi `SaranTindakan || SaranIcd`.
 - A4 (KTP): tabel `clinic_ai_setting`, kunci `ai.paid_ai.default`, env `AI_PAID_ENABLED` sama. Migrasi A1 membuat tabel hanya

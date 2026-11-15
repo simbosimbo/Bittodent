@@ -2,6 +2,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
 import type { IcdItem, IcdSuggestions as Data } from './icdApi'
 import IcdSuggestions from './IcdSuggestions'
+import { REJECT_DELAY_MS, pendingRejects } from './pendingReject'
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status })
 const item = (id: string, over: Partial<IcdItem> = {}): IcdItem => ({
@@ -19,7 +20,7 @@ function server(initial: IcdItem[], locked = false) {
   const calls: string[] = []
   vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
     const m = init?.method ?? 'GET'
-    calls.push(`${m} ${url}${init?.body ? ' ' + init.body : ''}`)
+    calls.push(`${m} ${url}${init?.body ? ' ' + init.body : ''}${init?.keepalive ? ' keepalive' : ''}`)
     if (url === '/sanctum/csrf-cookie') { document.cookie = 'XSRF-TOKEN=abc'; return new Response(null, { status: 204 }) }
     if (m === 'GET' && url === '/api/visits/v1/icd-suggestions') return json(payload(items, locked))
     if (m === 'GET' && url === '/api/patients/p1/icd-suggestions') return json({ ...payload(items, true), visit_id: null })
@@ -32,7 +33,11 @@ function server(initial: IcdItem[], locked = false) {
   }))
   return calls
 }
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => {
+  pendingRejects.reset()
+  vi.useRealTimers()
+  vi.unstubAllGlobals()
+})
 
 const two = () => [item('a'), item('b', { system: 'icd9cm', code: '23.09', display: 'Extraction of other tooth', version: 'ICD9CM_2010',
   citations: [{ ref: 'P', type: 'note_draft', id: 'n1', version: 2 }] })]
@@ -56,7 +61,7 @@ test('one tap approves: chip counts update, toast shows, chart reloads, zero rej
   expect(calls).toContain('POST /api/icd-suggestions/a/approve')
 })
 
-test('one tap reject sends no reason (server default tidak_sesuai), shows the rejected chip, does not reload the chart', async () => {
+test('one tap Tolak is optimistic: Ditolak + Urungkan toast, no request yet, chart not reloaded', async () => {
   const calls = server(two())
   const onChanged = vi.fn()
   render(<IcdSuggestions patientId="p1" visitId="v1" onChanged={onChanged} />)
@@ -65,7 +70,8 @@ test('one tap reject sends no reason (server default tidak_sesuai), shows the re
 
   expect(await screen.findByText('✕ 1 ditolak')).toBeInTheDocument()
   expect(screen.getByRole('status')).toHaveTextContent('Ditolak')
-  expect(calls).toContain('POST /api/icd-suggestions/b/reject {}')
+  expect(screen.getByRole('button', { name: 'Urungkan' })).toBeInTheDocument()
+  expect(calls.filter((c) => c.includes('/reject'))).toEqual([])
   expect(onChanged).not.toHaveBeenCalled()
 })
 
@@ -106,6 +112,7 @@ test('empty list', async () => {
   server([])
   render(<IcdSuggestions patientId="p1" visitId="v1" />)
   expect(await screen.findByText('Belum ada saran.')).toBeInTheDocument()
+  expect(screen.queryByText(/draf/)).not.toBeInTheDocument()
 })
 
 // The 48px minimum lives on these classes in icd.css (vitest does not load CSS; scripts/a1-screenshots.mjs measures real sizes).
@@ -113,13 +120,15 @@ test('every button and summary uses a 48px target class', async () => {
   server([...two(), item('c', { state: 'ditolak', code: 'K02.9' })])
   const { container } = render(<IcdSuggestions patientId="p1" visitId="v1" />)
   await screen.findByText('✕ 1 ditolak')
-  fireEvent.click(screen.getAllByRole('button', { name: 'Alasan' })[0])
+  fireEvent.click(within(screen.getByRole('listitem', { name: 'ICD-9-CM 23.09' })).getByRole('button', { name: 'Tolak' }))
+  await screen.findByRole('button', { name: 'Urungkan' })
+  fireEvent.click(within(screen.getByRole('listitem', { name: 'ICD-10 K02.1' })).getByRole('button', { name: 'Alasan' }))
   await screen.findByRole('dialog', { name: 'Alasan' })
   const targets = [...container.querySelectorAll('button, summary')]
   expect(targets.length).toBeGreaterThan(5)
   for (const el of targets) {
     expect(el.tagName === 'SUMMARY' ? el.closest('.ic-done') : el.className, el.textContent ?? '').toBeTruthy()
-    if (el.tagName === 'BUTTON') expect(el.className).toMatch(/\bic-(info|cite|btn|tab)\b/)
+    if (el.tagName === 'BUTTON') expect(el.className).toMatch(/\bic-(info|cite|btn|tab|undo)\b/)
   }
 })
 
@@ -129,6 +138,7 @@ test('hides a zero disetujui chip the same way as ditolak, then shows it after a
   await screen.findByText('✎ 2 draf')
   expect(screen.queryByText('✓ 0 disetujui')).not.toBeInTheDocument()
   expect(screen.queryByText('✕ 0 ditolak')).not.toBeInTheDocument()
+  expect(screen.queryByText('✎ 0 draf')).not.toBeInTheDocument()
   fireEvent.click(within(screen.getByRole('listitem', { name: 'ICD-10 K02.1' })).getByRole('button', { name: '✓ Setujui' }))
   expect(await screen.findByText('✓ 1 disetujui')).toBeInTheDocument()
   expect(screen.queryByText(/ditolak/)).not.toBeInTheDocument()
@@ -162,12 +172,17 @@ test('Tolak is one tap (no reason body); the alasan sheet sends a picked reason'
   const sheet = screen.getByRole('dialog', { name: 'Alasan' })
   expect(within(sheet).getByRole('button', { name: 'Tidak sesuai' })).toBeInTheDocument()
   expect(within(sheet).getAllByRole('button')).toHaveLength(5)
+  vi.useFakeTimers()
   fireEvent.click(within(sheet).getByRole('button', { name: 'Sudah dicatat' }))
 
-  expect(await screen.findByText('✕ 1 ditolak')).toBeInTheDocument()
-  expect(screen.getByRole('status')).toHaveTextContent('Sudah dicatat')
-  expect(calls.some((c) => c.startsWith('POST /api/icd-suggestions/a/reject') && c.includes('sudah_dicatat'))).toBe(true)
+  expect(screen.getByText('✕ 1 ditolak')).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Urungkan' })).toBeInTheDocument()
+  expect(calls.filter((c) => c.includes('/reject'))).toEqual([])
   expect(screen.queryByRole('dialog', { name: 'Alasan' })).not.toBeInTheDocument()
+
+  await vi.advanceTimersByTimeAsync(REJECT_DELAY_MS)
+  vi.useRealTimers()
+  expect(calls.filter((c) => c.startsWith('POST /api/icd-suggestions/a/reject') && c.includes('sudah_dicatat') && !c.includes('keepalive'))).toHaveLength(1)
 })
 
 test('ICD codes render as K02.9 without spaces around the dot', async () => {
@@ -177,4 +192,47 @@ test('ICD codes render as K02.9 without spaces around the dot', async () => {
   expect(code).toHaveClass('ic-code')
   expect(code.textContent).toBe('K02.9')
   expect(code.textContent).not.toMatch(/\s/)
+})
+
+test('Urungkan cancels a pending Tolak: nothing is sent, the item returns to draf', async () => {
+  const calls = server(two())
+  render(<IcdSuggestions patientId="p1" visitId="v1" />)
+  fireEvent.click(within(await screen.findByRole('listitem', { name: 'ICD-10 K02.1' })).getByRole('button', { name: 'Tolak' }))
+  expect(await screen.findByText('✕ 1 ditolak')).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Urungkan' }))
+  expect(screen.queryByText('✕ 1 ditolak')).not.toBeInTheDocument()
+  expect(screen.getByText('✎ 2 draf')).toBeInTheDocument()
+  expect(screen.getByRole('listitem', { name: 'ICD-10 K02.1' }).className).toMatch(/ic-draf/)
+  vi.useFakeTimers()
+  await vi.advanceTimersByTimeAsync(REJECT_DELAY_MS + 200)
+  vi.useRealTimers()
+  expect(calls.filter((c) => c.includes('/reject'))).toEqual([])
+})
+
+test('pending Tolak is sent once after 5 seconds, with no reason body', async () => {
+  const calls = server(two())
+  render(<IcdSuggestions patientId="p1" visitId="v1" />)
+  const card = await screen.findByRole('listitem', { name: 'ICD-9-CM 23.09' })
+  vi.useFakeTimers()
+  fireEvent.click(within(card).getByRole('button', { name: 'Tolak' }))
+  expect(screen.getByRole('button', { name: 'Urungkan' })).toBeInTheDocument()
+  expect(calls.filter((c) => c.includes('/reject'))).toEqual([])
+  await vi.advanceTimersByTimeAsync(REJECT_DELAY_MS)
+  await vi.advanceTimersByTimeAsync(REJECT_DELAY_MS)
+  vi.useRealTimers()
+  const rejects = calls.filter((c) => c.includes('/reject'))
+  expect(rejects).toEqual(['POST /api/icd-suggestions/b/reject {}'])
+})
+
+test('leaving the page flushes a pending Tolak once via keepalive, and the timer does not send again', async () => {
+  const calls = server(two())
+  render(<IcdSuggestions patientId="p1" visitId="v1" />)
+  fireEvent.click(within(await screen.findByRole('listitem', { name: 'ICD-10 K02.1' })).getByRole('button', { name: 'Tolak' }))
+  expect(await screen.findByRole('button', { name: 'Urungkan' })).toBeInTheDocument()
+  window.dispatchEvent(new Event('pagehide'))
+  expect(calls.filter((c) => c.includes('/reject'))).toEqual(['POST /api/icd-suggestions/a/reject {} keepalive'])
+  vi.useFakeTimers()
+  await vi.advanceTimersByTimeAsync(REJECT_DELAY_MS + 200)
+  vi.useRealTimers()
+  expect(calls.filter((c) => c.includes('/reject'))).toHaveLength(1)
 })

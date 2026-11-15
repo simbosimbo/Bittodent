@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { ApiError, errorText } from '../../shared/api/http'
-import { approveIcd, getPatientIcd, getVisitIcd, rejectIcd, type IcdCitation, type IcdItem, type IcdRejectReason, type IcdSuggestions as Data } from './icdApi'
+import { approveIcd, getPatientIcd, getVisitIcd, type IcdCitation, type IcdItem, type IcdRejectReason, type IcdSuggestions as Data } from './icdApi'
+import { pendingRejects } from './pendingReject'
 import './icd.css'
 
 // A1 "Saran ICD": every item cites its source (F1 = signed odontogram finding, A/P = SOAP draft text) and stays a draft until
 // the dentist taps Setujui. Approving only adds the code to the DRAFT SOAP (A.codes / P.codes); signing stays a separate step.
+// Tolak is a delayed commit (5s + Urungkan): drafts are immutable once the reject is recorded.
 type Props = {
   patientId: string
   visitId: string | null             // open visit; null => read-only preview
@@ -25,6 +27,18 @@ const REASONS: { id: IcdRejectReason; label: string }[] = [
 const keyOf = (c: IcdCitation) => (c.type === 'finding' ? (c.surface ? `t${c.tooth}-${c.surface}` : `t${c.tooth}`) : null)
 const citeText = (c: IcdCitation) => (c.type === 'finding' ? `${c.ref} · gigi ${c.tooth}${c.surface ? ' ' + c.surface : ''}` : c.ref === 'A' ? 'A · diagnosis' : 'P · rencana')
 
+function applyPending(data: Data): Data {
+  const pending = new Set(pendingRejects.list().map((p) => p.id))
+  if (pending.size === 0) return data
+  const items = data.items.map((i) => (i.id && pending.has(i.id) ? { ...i, state: 'ditolak' as const } : i))
+  const counts = {
+    draf: items.filter((i) => i.state === 'draf').length,
+    disetujui: items.filter((i) => i.state === 'disetujui').length,
+    ditolak: items.filter((i) => i.state === 'ditolak').length,
+  }
+  return { ...data, items, counts }
+}
+
 function StateChip({ state }: { state: IcdItem['state'] }) {
   return state === 'draf' ? <span className="ic-chip ic-chip-draf">✎ Draf</span>
     : state === 'disetujui' ? <span className="ic-chip ic-chip-ok">✓ Disetujui</span>
@@ -39,6 +53,8 @@ export default function IcdSuggestions({ patientId, visitId, dirty = false, onHi
   const [cited, setCited] = useState<string | null>(null)
   const [filter, setFilter] = useState<Filter>('semua')
   const [sheet, setSheet] = useState<string | null>(null)
+  const [, setPendingTick] = useState(0)
+  const sheetRef = useRef<HTMLDivElement>(null)
 
   const load = useCallback(async () => {
     try {
@@ -49,11 +65,33 @@ export default function IcdSuggestions({ patientId, visitId, dirty = false, onHi
     }
   }, [patientId, visitId])
   useEffect(() => { load() }, [load])
+  useEffect(() => pendingRejects.subscribe(() => setPendingTick((n) => n + 1)), [])
   useEffect(() => {
     if (!msg) return
     const t = setTimeout(() => setMsg(''), 2400)
     return () => clearTimeout(t)
   }, [msg])
+  useLayoutEffect(() => {
+    const el = sheetRef.current
+    if (!el) return
+    const fit = () => {
+      const vv = window.visualViewport
+      const vh = vv?.height ?? window.innerHeight
+      const offset = vv?.offsetTop ?? 0
+      const top = el.getBoundingClientRect().top
+      const safeBot = Number.parseFloat(getComputedStyle(el).getPropertyValue('padding-bottom')) || 0
+      el.style.maxHeight = `${Math.max(48 * 2, vh - Math.max(0, top - offset) - 8 - safeBot)}px`
+    }
+    el.scrollIntoView?.({ block: 'nearest', inline: 'nearest' })
+    fit()
+    const vv = window.visualViewport
+    vv?.addEventListener('resize', fit)
+    window.addEventListener('scroll', fit, true)
+    return () => {
+      vv?.removeEventListener('resize', fit)
+      window.removeEventListener('scroll', fit, true)
+    }
+  }, [sheet])
 
   async function act(id: string, fn: () => Promise<unknown>, ok: string, changed: boolean) {
     setBusy(id)
@@ -71,6 +109,12 @@ export default function IcdSuggestions({ patientId, visitId, dirty = false, onHi
     }
   }
 
+  function reject(id: string, reason?: IcdRejectReason) {
+    setSheet(null)
+    setMsg('')
+    pendingRejects.queue(id, reason)
+  }
+
   const toggleSource = (key: string, item: IcdItem) => {
     const next = key === cited ? null : key
     setCited(next)
@@ -80,10 +124,12 @@ export default function IcdSuggestions({ patientId, visitId, dirty = false, onHi
   if (error) return <section className="ic" role="alert"><p className="muted small">{error}</p></section>
   if (!data) return <section className="ic"><p className="muted small">Memuat…</p></section>
 
-  const readOnly = data.locked || !visitId
-  const open = data.items.filter((i) => i.state === 'draf')
-  const reviewed = data.items.filter((i) => i.state !== 'draf')
+  const view = applyPending(data)
+  const readOnly = view.locked || !visitId
+  const open = view.items.filter((i) => i.state === 'draf')
+  const reviewed = view.items.filter((i) => i.state !== 'draf')
   const shown = filter === 'draf' ? open : filter === 'diulas' ? reviewed : open
+  const pending = pendingRejects.latest()
 
   const card = (s: IcdItem) => {
     const key = s.id ?? `${s.system}:${s.code}`
@@ -103,7 +149,7 @@ export default function IcdSuggestions({ patientId, visitId, dirty = false, onHi
           <>
             <div className="ic-actions">
               <div className="ic-split">
-                <button type="button" className="ic-btn ic-no" disabled={!!busy} onClick={() => act(s.id!, () => rejectIcd(s.id!), 'Ditolak', false)}>Tolak</button>
+                <button type="button" className="ic-btn ic-no" disabled={!!busy} onClick={() => reject(s.id!)}>Tolak</button>
                 <button type="button" className="ic-btn ic-no ic-more" disabled={!!busy} aria-label="Alasan" aria-expanded={sheet === s.id}
                   aria-controls={`ic-alasan-${s.id}`} onClick={() => setSheet(sheet === s.id ? null : s.id!)}>▾</button>
               </div>
@@ -111,10 +157,10 @@ export default function IcdSuggestions({ patientId, visitId, dirty = false, onHi
                 onClick={() => act(s.id!, () => approveIcd(s.id!), `${s.code} masuk ${s.system === 'icd10' ? 'A' : 'P'}`, true)}>✓ Setujui</button>
             </div>
             {sheet === s.id && (
-              <div className="ic-sheet" id={`ic-alasan-${s.id}`} role="dialog" aria-label="Alasan">
+              <div className="ic-sheet" id={`ic-alasan-${s.id}`} ref={sheetRef} role="dialog" aria-label="Alasan">
                 {REASONS.map((r) => (
                   <button key={r.id} type="button" className="ic-btn ic-reason" disabled={!!busy}
-                    onClick={() => act(s.id!, () => rejectIcd(s.id!, r.id), r.label, false)}>{r.label}</button>
+                    onClick={() => reject(s.id!, r.id)}>{r.label}</button>
                 ))}
               </div>
             )}
@@ -129,13 +175,13 @@ export default function IcdSuggestions({ patientId, visitId, dirty = false, onHi
       <div className="ic-head">
         <h2>Saran ICD</h2>
         <button type="button" className="ic-info"
-          aria-label={`Kamus contoh SATUSEHAT, perlu dicek. ${data.paid ? 'AI memilih dari kamus.' : 'Tanpa AI.'} Setujui = kode masuk SOAP draf, belum ditandatangani.`}
-          title={`Kamus contoh SATUSEHAT (perlu dicek) · ${data.paid ? 'AI memilih dari kamus' : 'tanpa AI'} · Setujui = masuk SOAP draf`}>i</button>
+          aria-label={`Kamus contoh SATUSEHAT, perlu dicek. ${view.paid ? 'AI memilih dari kamus.' : 'Tanpa AI.'} Setujui = kode masuk SOAP draf, belum ditandatangani.`}
+          title={`Kamus contoh SATUSEHAT (perlu dicek) · ${view.paid ? 'AI memilih dari kamus' : 'tanpa AI'} · Setujui = masuk SOAP draf`}>i</button>
       </div>
       <div className="ic-chips" aria-label="Ringkasan status">
-        <span className="ic-chip ic-chip-draf">✎ {data.counts.draf} draf</span>
-        {data.counts.disetujui > 0 && <span className="ic-chip ic-chip-ok">✓ {data.counts.disetujui} disetujui</span>}
-        {data.counts.ditolak > 0 && <span className="ic-chip ic-chip-no">✕ {data.counts.ditolak} ditolak</span>}
+        {view.counts.draf > 0 && <span className="ic-chip ic-chip-draf">✎ {view.counts.draf} draf</span>}
+        {view.counts.disetujui > 0 && <span className="ic-chip ic-chip-ok">✓ {view.counts.disetujui} disetujui</span>}
+        {view.counts.ditolak > 0 && <span className="ic-chip ic-chip-no">✕ {view.counts.ditolak} ditolak</span>}
       </div>
       <div className="ic-bar">
         <div className="ic-seg" role="radiogroup" aria-label="Tampilkan">
@@ -146,14 +192,19 @@ export default function IcdSuggestions({ patientId, visitId, dirty = false, onHi
           ))}
         </div>
       </div>
-      {msg && <p className="ic-toast" role="status">{msg}</p>}
+      {pending ? (
+        <div className="ic-toast ic-toast-undo" role="status">
+          <span>Ditolak</span>
+          <button type="button" className="ic-btn ic-undo" onClick={() => pendingRejects.cancel(pending.id)}>Urungkan</button>
+        </div>
+      ) : msg ? <p className="ic-toast" role="status">{msg}</p> : null}
       {readOnly && <p className="small muted">{visitId ? 'Terkunci: kunjungan sudah ditandatangani.' : 'Pratinjau: buka kunjungan untuk menyetujui.'}</p>}
       {dirty && !readOnly && open.length > 0 && <p className="small ic-warn">Simpan draf SOAP dulu.</p>}
-      {data.items.length === 0 ? <p className="ic-empty">Belum ada saran.</p> : (
+      {view.items.length === 0 ? <p className="ic-empty">Belum ada saran.</p> : (
         <>
           {shown.length > 0 && <ul className="ic-list">{shown.map(card)}</ul>}
           {filter === 'semua' && reviewed.length > 0 && (
-            <details className="ic-done">
+            <details className="ic-done" open={pendingRejects.list().length > 0}>
               <summary>{reviewed.length} sudah diulas</summary>
               <ul className="ic-list">{reviewed.map(card)}</ul>
             </details>

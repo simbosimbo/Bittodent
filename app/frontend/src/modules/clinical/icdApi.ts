@@ -19,3 +19,15 @@ export const getPatientIcd = (patientId: string) => api<IcdSuggestions>(`/api/pa
 export const approveIcd = (id: string) => api<IcdItem>(`/api/icd-suggestions/${id}/approve`, { method: 'POST' })
 export const rejectIcd = (id: string, reason?: IcdRejectReason) =>
   api(`/api/icd-suggestions/${id}/reject`, { method: 'POST', body: reason ? { reason } : {} })
+
+/** Unload-safe reject: keepalive fetch so a pending Tolak still lands after pagehide. */
+export function rejectIcdKeepalive(id: string, reason?: IcdRejectReason) {
+  const xsrf = decodeURIComponent(document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)?.[1] ?? '')
+  return fetch(`/api/icd-suggestions/${id}/reject`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    keepalive: true,
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-XSRF-TOKEN': xsrf },
+    body: JSON.stringify(reason ? { reason } : {}),
+  })
+}

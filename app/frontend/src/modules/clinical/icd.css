@@ -36,6 +36,9 @@
 .ic-warn { margin: 0; color: var(--color-warning-fg, #7A4A00); }
 .ic-toast { position: absolute; right: 0; top: 0; z-index: 3; margin: 0; padding: 8px 14px; border-radius: 999px; pointer-events: none;
   background: var(--color-success-bg, #E5F5EC); color: var(--color-success-fg, #1B6E42); font-size: 13px; font-weight: 700; box-shadow: 0 2px 8px rgb(0 0 0 / 8%); }
+.ic-toast-undo { pointer-events: auto; display: flex; align-items: center; gap: 8px; padding: 4px 4px 4px 14px; border-radius: 16px;
+  background: var(--color-danger-bg, #FDECEA); color: var(--color-danger-fg, #B42318); }
+.ic-undo { min-height: 48px; min-width: 48px; padding: 0 14px; background: #fff; color: var(--color-danger-fg, #B42318); border: 1px solid var(--color-danger-border, #F0A39B); }
 
 
 .ic-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
@@ -44,7 +47,8 @@
 .ic-tab.is-on { background: #fff; color: var(--color-primary-700, #0B6B62); box-shadow: 0 1px 2px rgb(0 0 0 / 8%); }
 .ic-split { display: grid; grid-template-columns: 1fr 48px; gap: 4px; }
 .ic-more { padding: 0; font-size: 18px; line-height: 1; }
-.ic-sheet { display: grid; gap: 8px; }
+.ic-sheet { display: grid; gap: 8px; max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 .ic-reason { width: 100%; background: #fff; color: var(--color-neutral-800, #243038); border-color: var(--color-neutral-100, #E6EBEF); text-align: left; padding: 0 14px; }
 
 /* Chart: on a wide screen the panel is a sticky column beside odontogram + SOAP. */
