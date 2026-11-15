@@ -11,6 +11,7 @@ export type Appointment = {
   reason: string | null
   patient: { id: string; name: string } | null
   dentist: { id: string; name: string } | null
+  visit_id?: string | null // only for billing.read users: the visit behind "Bayar" (#/tagihan/<visit_id>)
 }
 
 export type Schedule = {
@@ -34,6 +35,9 @@ export const STATUS: Record<string, string> = {
 
 export const getSchedule = (branchId: string, date: string) => api<Schedule>(`/api/schedule?branch_id=${branchId}&date=${date}`)
 export const transition = (id: string, to: string) => api(`/api/appointments/${id}/transition`, { method: 'POST', body: { to } })
+// Staff move of a booked appointment (same chair/dentist double-booking guard as create; needs appointment.create).
+export const reschedule = (id: string, body: { starts_at: string; ends_at: string; chair_id: string }) =>
+  api(`/api/appointments/${id}/reschedule`, { method: 'POST', body })
 export const createAppointment = (body: { patient_id: string; chair_id: string; dentist_id: string; starts_at: string; ends_at: string; reason: string | null }) =>
   api('/api/appointments', { method: 'POST', body })
 

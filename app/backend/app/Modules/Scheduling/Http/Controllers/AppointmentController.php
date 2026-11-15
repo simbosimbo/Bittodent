@@ -46,6 +46,11 @@ class AppointmentController extends Controller
         $appts->each(fn ($a) => $a->setRelation('patient', isset($patients[$a->patient_id]) ? new Fluent($patients[$a->patient_id]) : null)
             ->setRelation('dentist', isset($names[$a->dentist_id]) ? new Fluent($names[$a->dentist_id]) : null));
         $dentists = $names->only($dentistIds)->values(); // ordered by name
+        // Jadwal "Bayar" opens #/tagihan/<visit_id>: only for users who may read invoices (one query, no clinical content).
+        if (Ctx::current()->can('billing.read')) {
+            $visits = $walkIns->visitIdsByAppointment($appts->pluck('id')->all());
+            $appts->each(fn ($a) => $a->setAttribute('visit_id', $visits[$a->id] ?? null));
+        }
 
         // Beranda KPI: walk-in patients (visit without appointment) who have no active appointment that day. Count only, no ids/names.
         $booked = $appts->whereNotIn('status', ['cancelled', 'no_show', 'rejected'])->pluck('patient_id')->all();
