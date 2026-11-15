@@ -599,3 +599,12 @@ test('≤480px: one labelled, independent scroller per jaw; 1280px: one combined
     st.remove()
   }
 })
+
+test.each([[390, true], [1280, false]])('%ipx: walk-in "Mulai kunjungan" pinned bar only on a phone', async (w, pinned) => {
+  vi.stubGlobal('matchMedia', (q: string) => ({ media: q, matches: w <= Number(q.match(/(\d+)px/)?.[1] ?? 0), addEventListener() {}, removeEventListener() {} }))
+  walkInFetch()
+  render(<ChartPage patientId="p1" me={me} />)
+  const start = await screen.findByRole('button', { name: 'Mulai kunjungan' })
+  expect(!!start.closest('.walk-in-bar')).toBe(pinned)
+  expect(screen.getAllByRole('button', { name: 'Mulai kunjungan' })).toHaveLength(1)
+})

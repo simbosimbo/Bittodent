@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterAll, beforeAll, expect, test, vi } from 'vitest'
 import type { Mark } from './Odontogram'
-import { dentitionFromDob, fitZoom, Odontogram3D, recordsFromMarks, teethForDentition, ZOOM_MAX, ZOOM_MIN } from './Odontogram3D'
+import { dentitionFromDob, fitWidthZoom, fitZoom, Odontogram3D, PHONE_ZOOM_MIN, recordsFromMarks, teethForDentition, ZOOM_MAX, ZOOM_MIN } from './Odontogram3D'
 import { manifest, mockTooth3D } from './tooth3dMock'
 import { surfaceLabel, surfaceName } from './legend'
 
@@ -131,4 +131,13 @@ test('fitZoom: scales the chart to the height left, clamped to a readable floor 
   expect(fitZoom(600, -50)).toBe(ZOOM_MIN)
   expect(fitZoom(0, 300)).toBe(ZOOM_MAX) // not built yet
   expect(ZOOM_MIN).toBeGreaterThanOrEqual(0.45)
+})
+
+test('fitWidthZoom (phone): widest jaw fits the card width, rounded down, clamped', () => {
+  expect(fitWidthZoom(822, 354)).toBe(0.43)
+  expect(fitWidthZoom(822, 298)).toBe(0.36)
+  expect(fitWidthZoom(822, 2000)).toBe(ZOOM_MAX)
+  expect(fitWidthZoom(822, 100)).toBe(PHONE_ZOOM_MIN)
+  expect(fitWidthZoom(0, 354)).toBe(ZOOM_MAX) // not built yet
+  expect(fitWidthZoom(822, 354) * 822).toBeLessThanOrEqual(354)
 })

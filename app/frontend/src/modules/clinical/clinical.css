@@ -194,7 +194,9 @@ label.check { flex-direction: row; gap: 8px; align-items: flex-start; font-weigh
   .odo-jaw-head .muted { font-weight: 500; letter-spacing: 0; text-transform: none; }
   /* 3D: one sideways scroller per jaw. */
   .odo-card .odo3d { overflow-x: visible; }
-  .odo-card .odo3d .chart { min-width: 0; align-items: stretch; zoom: 0.78; }
+  /* --odo3d-zoom-phone = fit-to-card-width from Odontogram3D (whole arch visible); 0.78 until measured. */
+  .odo-card .odo3d .chart { min-width: 0; align-items: stretch; zoom: var(--odo3d-zoom-phone, 0.78); }
+  .odo-card .odo3d .num { font-size: max(var(--font-size-xs), calc(9px / var(--odo3d-zoom-phone, 0.78))); }
   .odo3d .jaw-block { overflow-x: auto; align-items: flex-start; }
   .odo3d .arch-grid { margin: 0 auto; }
   /* Tall enough to record a finding; the patient strip (name, No. RM, allergies) stays pinned at its top while it scrolls. */
@@ -205,6 +207,16 @@ label.check { flex-direction: row; gap: 8px; align-items: flex-start; font-weigh
   .sheet-strip .alert-ribbon.is-compact { padding: 0; background: none; border: 0; flex-wrap: wrap; overflow: visible; }
   .sheet-strip .alert-ribbon.is-compact .alert-chip { white-space: normal; } /* allergies wrap, never scroll out of sight */
   .tooth-sheet .btn.cond, .tooth-sheet .tooth-save, .tooth-sheet .btn-xs, .tooth-sheet select, .tooth-sheet input { min-height: 44px; }
+  /* Walk-in "Mulai kunjungan" pinned just above the bottom nav (65px + safe area); the page pads for it. */
+  .walk-in-bar {
+    position: fixed; left: 0; right: 0; bottom: calc(65px + env(safe-area-inset-bottom)); z-index: 19;
+    padding: var(--space-2) var(--space-3); background: var(--surface); border-top: 1px solid var(--border); box-shadow: 0 -4px 12px rgba(16, 32, 40, 0.06);
+  }
+  .walk-in-bar .walk-in { margin: 0; }
+  .walk-in-bar .walk-in > * { flex: 1 1 100%; }
+  .walk-in-bar .walk-in label { margin: 0; }
+  .shell-main:has(.walk-in-bar) { padding-bottom: calc(80px + 76px + env(safe-area-inset-bottom)); }
+  .chart-cta > a { display: inline-flex; align-items: center; min-height: 44px; }
 }
 
 /* Rekam Medis findings: summary line, chosen condition, filter + save button. */

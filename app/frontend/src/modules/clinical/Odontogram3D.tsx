@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { MOBILE_QUERY } from '../../shared/useIsMobile'
 import type { Baseline, Surface, ToothPresence } from './api'
 import type { Mark } from './Odontogram'
 import './clinical.css'
@@ -98,6 +99,13 @@ export function fitZoom(naturalHeight: number, availHeight: number): number {
   return Math.round(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, availHeight / naturalHeight)) * 100) / 100
 }
 
+// Phone 3D zoom: the widest jaw fits the card width (whole arch visible, no sideways scroll). Rounded down so it never overflows.
+export const PHONE_ZOOM_MIN = 0.3
+export function fitWidthZoom(naturalWidth: number, availWidth: number): number {
+  if (!(naturalWidth > 0) || !(availWidth > 0)) return ZOOM_MAX
+  return Math.floor(Math.min(ZOOM_MAX, Math.max(PHONE_ZOOM_MIN, availWidth / naturalWidth)) * 100) / 100
+}
+
 export function Odontogram3D({ marks, baseline, dentition = 'tetap', selected, onPick }: Props) {
   const host = useRef<HTMLDivElement>(null)
   const pick = useRef(onPick)
@@ -145,6 +153,11 @@ export function Odontogram3D({ marks, baseline, dentition = 'tetap', selected, o
       const chart = el.querySelector<HTMLElement>('.chart')
       if (!chart) return
       const z = parseFloat(getComputedStyle(chart).zoom) || 1
+      if (window.matchMedia?.(MOBILE_QUERY).matches) { // phone: fit width (clinical.css reads --odo3d-zoom-phone)
+        const widest = Math.max(0, ...[...chart.querySelectorAll('.arch-grid')].map((g) => g.getBoundingClientRect().width))
+        el.style.setProperty('--odo3d-zoom-phone', String(fitWidthZoom(widest / z, el.clientWidth)))
+        return
+      }
       const r = chart.getBoundingClientRect() // zoomed box; r.height / z = unzoomed height
       const avail = window.innerHeight - r.top - 32 // r.top is viewport-relative; 32 = pane + card bottom padding
       el.style.setProperty('--odo3d-zoom', String(fitZoom(r.height / z, avail)))

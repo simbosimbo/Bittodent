@@ -682,7 +682,8 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
             {!editable && (visit ? <p className="muted small">{asOf ? 'Tampilan riwayat: hanya baca.' : 'Kunjungan ini sudah Selesai.'}</p> : (
               <div className="chart-cta small">
                 <p>Belum ada kunjungan aktif. Mulai kunjungan hari ini (tanpa janji juga bisa) untuk mengisi odontogram dan SOAP.</p>
-                {!pick && startCtl /* with a tooth picked the control sits in the tooth panel/sheet instead */}
+                {/* with a tooth picked the control sits in the tooth panel/sheet instead; phone: pinned above the bottom nav */}
+                {!pick && startCtl && (mobile ? <div className="walk-in-bar">{startCtl}</div> : startCtl)}
                 <a href={can('appointment.read') ? '#/jadwal' : '#/'}>Buka janji hari ini</a>
               </div>
             ))}
