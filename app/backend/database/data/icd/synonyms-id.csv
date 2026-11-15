@@ -1,0 +1,88 @@
+term,system,code
+gigi berlubang,icd10,K02.1
+gigi berlubang,icd10,K02.9
+lubang gigi,icd10,K02.9
+karies,icd10,K02.9
+karies email,icd10,K02.0
+karies enamel,icd10,K02.0
+karies superfisial,icd10,K02.0
+karies dentin,icd10,K02.1
+karies media,icd10,K02.1
+karies sementum,icd10,K02.2
+karies akar,icd10,K02.2
+karies terhenti,icd10,K02.3
+sisa akar,icd10,K08.3
+radiks,icd10,K08.3
+gangren radiks,icd10,K08.3
+gigi bungsu impaksi,icd10,K01.1
+impaksi,icd10,K01.1
+gigi impaksi,icd10,K01.1
+persistensi gigi sulung,icd10,K00.6
+gigi susu belum tanggal,icd10,K00.6
+radang pulpa,icd10,K04.0
+pulpitis reversibel,icd10,K04.0
+pulpitis ireversibel,icd10,K04.0
+nekrosis pulpa,icd10,K04.1
+gigi mati,icd10,K04.1
+gangren pulpa,icd10,K04.1
+periodontitis apikalis kronis,icd10,K04.5
+abses dengan fistula,icd10,K04.6
+fistula,icd10,K04.6
+abses periapikal,icd10,K04.7
+abses gigi,icd10,K04.7
+gingivitis akut,icd10,K05.0
+radang gusi,icd10,K05.1
+gusi berdarah,icd10,K05.1
+gingivitis kronis,icd10,K05.1
+periodontitis akut,icd10,K05.2
+periodontitis kronis,icd10,K05.3
+gigi goyang,icd10,K05.3
+karang gigi,icd10,K03.6
+kalkulus,icd10,K03.6
+atrisi,icd10,K03.0
+abrasi,icd10,K03.1
+erosi gigi,icd10,K03.2
+resesi gusi,icd10,K06.0
+gusi turun,icd10,K06.0
+gigi berjejal,icd10,K07.3
+gigi tidak rata,icd10,K07.3
+sendi rahang,icd10,K07.6
+gigi hilang,icd10,K08.1
+dry socket,icd10,K10.3
+sariawan,icd10,K12.0
+stomatitis aftosa,icd10,K12.0
+selulitis,icd10,K12.2
+cabut,icd9cm,23.09
+cabut gigi,icd9cm,23.09
+dicabut,icd9cm,23.09
+ekstraksi,icd9cm,23.09
+pencabutan,icd9cm,23.09
+cabut gigi susu,icd9cm,23.01
+cabut gigi sulung,icd9cm,23.01
+ekstraksi gigi sulung,icd9cm,23.01
+sisa akar,icd9cm,23.11
+cabut sisa akar,icd9cm,23.11
+odontektomi,icd9cm,23.19
+operasi gigi bungsu,icd9cm,23.19
+tumpat,icd9cm,23.2
+tumpatan,icd9cm,23.2
+tambal,icd9cm,23.2
+restorasi komposit,icd9cm,23.2
+scaling,icd9cm,96.54
+skeling,icd9cm,96.54
+pembersihan karang gigi,icd9cm,96.54
+perawatan saluran akar,icd9cm,23.70
+psa,icd9cm,23.70
+pulpektomi,icd9cm,23.70
+apikoektomi,icd9cm,23.73
+mahkota,icd9cm,23.41
+crown,icd9cm,23.41
+gigi tiruan,icd9cm,99.97
+protesa,icd9cm,99.97
+behel,icd9cm,24.7
+kawat gigi,icd9cm,24.7
+rontgen gigi,icd9cm,87.12
+foto periapikal,icd9cm,87.12
+pemeriksaan gigi,icd9cm,89.31
+periksa gigi,icd9cm,89.31
+insisi abses,icd9cm,24.0

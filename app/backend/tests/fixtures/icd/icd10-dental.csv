@@ -1,0 +1,124 @@
+code,display,version
+K00,Disorders of tooth development and eruption,ICD10_2010
+K00.0,Anodontia,ICD10_2010
+K00.1,Supernumerary teeth,ICD10_2010
+K00.2,Abnormalities of size and form of teeth,ICD10_2010
+K00.3,Mottled teeth,ICD10_2010
+K00.4,Disturbances in tooth formation,ICD10_2010
+K00.5,Hereditary disturbances in tooth structure nec,ICD10_2010
+K00.6,Disturbances in tooth eruption,ICD10_2010
+K00.7,Teething syndrome,ICD10_2010
+K00.8,Other disorders of tooth development,ICD10_2010
+K00.9,"Disorder of tooth development, unspecified",ICD10_2010
+K01,Embedded and impacted teeth,ICD10_2010
+K01.0,Embedded teeth,ICD10_2010
+K01.1,Impacted teeth,ICD10_2010
+K02,Dental caries,ICD10_2010
+K02.0,Caries limited to enamel,ICD10_2010
+K02.1,Caries of dentine,ICD10_2010
+K02.2,Caries of cementum,ICD10_2010
+K02.3,Arrested dental caries,ICD10_2010
+K02.4,Odontoclasia,ICD10_2010
+K02.8,Other dental caries,ICD10_2010
+K02.9,"Dental caries, unspecified",ICD10_2010
+K03,Other diseases of hard tissues of teeth,ICD10_2010
+K03.0,Excessive attrition of teeth,ICD10_2010
+K03.1,Abrasion of teeth,ICD10_2010
+K03.2,Erosion of teeth,ICD10_2010
+K03.3,Pathological resorption of teeth,ICD10_2010
+K03.4,Hypercementosis,ICD10_2010
+K03.5,Ankylosis of teeth,ICD10_2010
+K03.6,Deposits [accretions] on teeth,ICD10_2010
+K03.7,Posteruptive colour changes of dental hard tissues,ICD10_2010
+K03.8,Other specified diseases of hard tissues of teeth,ICD10_2010
+K03.9,"Disease of hard tissues of teeth, unspecified",ICD10_2010
+K04,Diseases of pulp and periapical tissues,ICD10_2010
+K04.0,Pulpitis,ICD10_2010
+K04.1,Necrosis of pulp,ICD10_2010
+K04.2,Pulp degeneration,ICD10_2010
+K04.3,Abnormal hard tissue formation in pulp,ICD10_2010
+K04.4,Acute apical periodontitis of pulpal origin,ICD10_2010
+K04.5,Chronic apical periodontitis,ICD10_2010
+K04.6,Periapical abscess with sinus,ICD10_2010
+K04.7,Periapical abscess without sinus,ICD10_2010
+K04.8,Radicular cyst,ICD10_2010
+K04.9,Other and unspec diseases of pulp and periapical tissues,ICD10_2010
+K05,Gingivitis and periodontal diseases,ICD10_2010
+K05.0,Acute gingivitis,ICD10_2010
+K05.1,Chronic gingivitis,ICD10_2010
+K05.2,Acute periodontitis,ICD10_2010
+K05.3,Chronic periodontitis,ICD10_2010
+K05.4,Periodontosis,ICD10_2010
+K05.5,Other periodontal diseases,ICD10_2010
+K05.6,"Periodontal disease, unspecified",ICD10_2010
+K06,Other disorders of gingiva and edentulous alveolar ridge,ICD10_2010
+K06.0,Gingival recession,ICD10_2010
+K06.1,Gingival enlargement,ICD10_2010
+K06.2,Gingival and edentulous alveolar ridge les assoc with traum,ICD10_2010
+K06.8,Other specified disorder of gingiva and edentulous alveolar ridge,ICD10_2010
+K06.9,"Disorder of gingiva and edentulous alveolar ridge, unspec act",ICD10_2010
+K07,Dentofacial anomalies [including malocclusion],ICD10_2010
+K07.0,Major anomalies of jaw size,ICD10_2010
+K07.1,Anomalies of jaw-cranial base relationship,ICD10_2010
+K07.2,Anomalies of dental arch relationship,ICD10_2010
+K07.3,Anomalies of tooth position,ICD10_2010
+K07.4,"Malocclusion, unspecified",ICD10_2010
+K07.5,Dentofacial functional abnormalities,ICD10_2010
+K07.6,Temporomandibular joint disorders,ICD10_2010
+K07.8,Other dentofacial anomalies,ICD10_2010
+K07.9,"Dentofacial anomaly, unspecified",ICD10_2010
+K08,Other disorders of teeth and supporting structures,ICD10_2010
+K08.0,Exfoliation of teeth due to systemic causes,ICD10_2010
+K08.1,Loss of teeth accident extraction or local periodontal dis,ICD10_2010
+K08.2,Atrophy of edentulous alveolar ridge,ICD10_2010
+K08.3,Retained dental root,ICD10_2010
+K08.8,Other specified disorders of teeth and supporting structures,ICD10_2010
+K08.9,"Disorder of teeth and supporting structures, unspecified",ICD10_2010
+K09,"Cysts of oral region, not elsewhere classified",ICD10_2010
+K09.0,Developmental odontogenic cysts,ICD10_2010
+K09.1,Developmental (nonodontogenic) cysts of oral region,ICD10_2010
+K09.2,Other cysts of jaw,ICD10_2010
+K09.8,"Other cysts of oral region, not elsewhere classified",ICD10_2010
+K09.9,"Cyst of oral region, unspecified",ICD10_2010
+K10,Other diseases of jaws,ICD10_2010
+K10.0,Developmental disorders of jaws,ICD10_2010
+K10.1,"Giant cell granuloma, central",ICD10_2010
+K10.2,Inflammatory conditions of jaws,ICD10_2010
+K10.3,Alveolitis of jaws,ICD10_2010
+K10.8,Other specified diseases of jaws,ICD10_2010
+K10.9,"Disease of jaws, unspecified",ICD10_2010
+K11,Diseases of salivary glands,ICD10_2010
+K11.0,Atrophy of salivary gland,ICD10_2010
+K11.1,Hypertrophy of salivary gland,ICD10_2010
+K11.2,Sialoadenitis,ICD10_2010
+K11.3,Abscess of salivary gland,ICD10_2010
+K11.4,Fistula of salivary gland,ICD10_2010
+K11.5,Sialolithiasis,ICD10_2010
+K11.6,Mucocele of salivary gland,ICD10_2010
+K11.7,Disturbances of salivary secretion,ICD10_2010
+K11.8,Other diseases of salivary glands,ICD10_2010
+K11.9,"Disease of salivary gland, unspecified",ICD10_2010
+K12,Stomatitis and related lesions,ICD10_2010
+K12.0,Recurrent oral aphthae,ICD10_2010
+K12.1,Other forms of stomatitis,ICD10_2010
+K12.2,Cellulitis and abscess of mouth,ICD10_2010
+K12.3,Oral mucositis (ulcerative),ICD10_2010
+K13,Other diseases of lip and oral mucosa,ICD10_2010
+K13.0,Diseases of lips,ICD10_2010
+K13.1,Cheek and lip biting,ICD10_2010
+K13.2,"Leukoplakia and other disturbances of oral epithelium, including tongue",ICD10_2010
+K13.3,Hairy leukoplakia,ICD10_2010
+K13.4,Granuloma and granuloma-like lesions of oral mucosa,ICD10_2010
+K13.5,Oral submucous fibrosis,ICD10_2010
+K13.6,Irritative hyperplasia of oral mucosa,ICD10_2010
+K13.7,Other and unspecified lesions of oral mucosa,ICD10_2010
+K14,Diseases of tongue,ICD10_2010
+K14.0,Glossitis,ICD10_2010
+K14.1,Geographic tongue,ICD10_2010
+K14.2,Median rhomboid glossitis,ICD10_2010
+K14.3,Hypertrophy of tongue papillae,ICD10_2010
+K14.4,Atrophy of tongue papillae,ICD10_2010
+K14.5,Plicated tongue,ICD10_2010
+K14.6,Glossodynia,ICD10_2010
+K14.8,Other diseases of tongue,ICD10_2010
+K14.9,"Disease of tongue, unspecified",ICD10_2010

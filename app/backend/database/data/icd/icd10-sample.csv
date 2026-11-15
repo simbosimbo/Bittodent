@@ -1,0 +1,31 @@
+code,display,version
+K00.6,Disturbances in tooth eruption,ICD10_2010
+K01.1,Impacted teeth,ICD10_2010
+K02,Dental caries,ICD10_2010
+K02.0,Caries limited to enamel,ICD10_2010
+K02.1,Caries of dentine,ICD10_2010
+K02.2,Caries of cementum,ICD10_2010
+K02.3,Arrested dental caries,ICD10_2010
+K02.9,"Dental caries, unspecified",ICD10_2010
+K03.0,Excessive attrition of teeth,ICD10_2010
+K03.1,Abrasion of teeth,ICD10_2010
+K03.2,Erosion of teeth,ICD10_2010
+K03.6,Deposits [accretions] on teeth,ICD10_2010
+K04.0,Pulpitis,ICD10_2010
+K04.1,Necrosis of pulp,ICD10_2010
+K04.5,Chronic apical periodontitis,ICD10_2010
+K04.6,Periapical abscess with sinus,ICD10_2010
+K04.7,Periapical abscess without sinus,ICD10_2010
+K05.0,Acute gingivitis,ICD10_2010
+K05.1,Chronic gingivitis,ICD10_2010
+K05.2,Acute periodontitis,ICD10_2010
+K05.3,Chronic periodontitis,ICD10_2010
+K06.0,Gingival recession,ICD10_2010
+K07.3,Anomalies of tooth position,ICD10_2010
+K07.6,Temporomandibular joint disorders,ICD10_2010
+K08.1,Loss of teeth accident extraction or local periodontal dis,ICD10_2010
+K08.3,Retained dental root,ICD10_2010
+K10.3,Alveolitis of jaws,ICD10_2010
+K12.0,Recurrent oral aphthae,ICD10_2010
+K12.2,Cellulitis and abscess of mouth,ICD10_2010
+K13.0,Diseases of lips,ICD10_2010

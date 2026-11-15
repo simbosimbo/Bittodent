@@ -1,0 +1,17 @@
+code,display,version
+23.01,Extraction of deciduous tooth,ICD9CM_2010
+23.09,Extraction of other tooth,ICD9CM_2010
+23.11,Removal of residual root,ICD9CM_2010
+23.19,Other surgical extraction of tooth,ICD9CM_2010
+23.2,Restoration of tooth by filling,ICD9CM_2010
+23.41,Application of crown,ICD9CM_2010
+23.70,"Root canal, not otherwise specified",ICD9CM_2010
+23.71,Root canal therapy with irrigation,ICD9CM_2010
+23.73,Apicoectomy,ICD9CM_2010
+24.0,Incision of gum or alveolar bone,ICD9CM_2010
+24.7,Application of orthodontic appliance,ICD9CM_2010
+87.11,Full-mouth x-ray of teeth,ICD9CM_2010
+87.12,Other dental x-ray,ICD9CM_2010
+89.31,Dental examination,ICD9CM_2010
+96.54,"Dental scaling, polishing, and debridement",ICD9CM_2010
+99.97,Fitting of denture,ICD9CM_2010
