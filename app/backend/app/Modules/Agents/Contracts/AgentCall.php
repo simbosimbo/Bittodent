@@ -13,5 +13,6 @@ final readonly class AgentCall
         public ModelRequest $request,
         public array $inputRefs = [],
         public ?string $patientId = null,
+        public bool $crossBranch = false,   // D-027: reading another branch's data (audited)
     ) {}
 }
