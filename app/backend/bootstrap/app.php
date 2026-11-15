@@ -1,9 +1,12 @@
 <?php
 
 use App\Modules\Identity\Http\Middleware\EnsureTwoFactor;
+use App\Modules\Platform\Http\Middleware\LoadImpersonation;
 use App\Modules\Tenancy\Http\Middleware\TenantContext;
 use App\Shared\Http\Middleware\NoStore;
+use App\Shared\Http\Middleware\NotImpersonating;
 use App\Shared\Http\Middleware\RequirePermission;
+use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -18,11 +21,14 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
-        $middleware->api(append: [NoStore::class]);
+        $middleware->api(append: [NoStore::class, LoadImpersonation::class]); // DEVIATIONS #61
+        // must see the session before auth:sanctum (Authenticate is moved up by the priority list): a stale impersonation is dropped first
+        $middleware->prependToPriorityList(before: AuthenticatesRequests::class, prepend: LoadImpersonation::class);
         $middleware->alias([
             '2fa' => EnsureTwoFactor::class,
             'tenant' => TenantContext::class,
             'perm' => RequirePermission::class,
+            'not_impersonating' => NotImpersonating::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

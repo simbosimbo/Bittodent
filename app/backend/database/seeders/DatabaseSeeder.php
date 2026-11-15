@@ -20,6 +20,7 @@ use App\Modules\Patients\Models\Guardian;
 use App\Modules\Patients\Models\Household;
 use App\Modules\Patients\Models\MedicalHistoryVersion;
 use App\Modules\Patients\Models\Patient;
+use App\Modules\Platform\Models\PlatformAdmin;
 use App\Modules\Prescriptions\Models\Prescription;
 use App\Modules\Prescriptions\Models\PrescriptionItem;
 use App\Modules\Prescriptions\Models\PrescriptionVoid;
@@ -102,6 +103,18 @@ class DatabaseSeeder extends Seeder
             $this->c3Demo($b1, $users['dokter@ceria.test'], $patients, 2);
             $this->paymentAccounts($users['dokter@ceria.test'], [['Kas Dago', 'tunai', $b1->id]]);
         }, $users['dokter@ceria.test']->id);
+
+        self::platformAdminFromEnv();
+    }
+
+    /** DEVIATIONS #61: a platform superadmin ONLY when all three env vars are set (never hardcoded, never printed). */
+    public static function platformAdminFromEnv(): void
+    {
+        [$email, $password, $secret] = [env('PLATFORM_ADMIN_EMAIL'), env('PLATFORM_ADMIN_PASSWORD'), env('PLATFORM_ADMIN_TOTP_SECRET')];
+        if ($email && $password && $secret && ! PlatformAdmin::where('email', strtolower($email))->exists()) {
+            PlatformAdmin::create(['name' => 'Admin Platform', 'email' => strtolower($email), 'password' => $password,
+                'totp_secret' => $secret, 'permissions' => [PlatformAdmin::IMPERSONATE]]);
+        }
     }
 
     public static function user(string $email, string $name, string $license = 'lainnya', bool $twoFactor = true): User

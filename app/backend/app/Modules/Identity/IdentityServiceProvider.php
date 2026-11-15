@@ -49,10 +49,11 @@ class IdentityServiceProvider extends ModuleServiceProvider
             );
         });
 
-        Event::listen(Login::class, fn (Login $e) => Audit::auth('login', $e->user->getAuthIdentifier()));
-        Event::listen(Failed::class, fn (Failed $e) => Audit::auth('login_gagal', $e->user?->getAuthIdentifier(), $e->credentials['email'] ?? null));
+        // clinic (web guard) logins only; the platform guard logs to platform_audit_log itself (DEVIATIONS #61)
+        Event::listen(Login::class, fn (Login $e) => $e->guard === 'web' && Audit::auth('login', $e->user->getAuthIdentifier()));
+        Event::listen(Failed::class, fn (Failed $e) => $e->guard === 'web' && Audit::auth('login_gagal', $e->user?->getAuthIdentifier(), $e->credentials['email'] ?? null));
         Event::listen(TwoFactorAuthenticationFailed::class, fn ($e) => Audit::auth('2fa_gagal', $e->user->getAuthIdentifier()));
-        Event::listen(Logout::class, fn (Logout $e) => Audit::auth('logout', $e->user?->getAuthIdentifier()));
+        Event::listen(Logout::class, fn (Logout $e) => $e->guard === 'web' && Audit::auth('logout', $e->user?->getAuthIdentifier()));
     }
 
     /** Quick login skips TOTP: only on APP_ENV=local with DEV_QUICK_LOGIN=true. Otherwise the routes do not exist (404). */
