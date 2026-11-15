@@ -14,7 +14,9 @@ type Props = { marks: Record<string, Mark>; selected?: string | null; onPick?: (
 const DENTITION: Record<string, string> = { tetap: 'permanent', sulung: 'primary', campuran: 'mixed' }
 
 const S = 44
-const K = 12
+const K_DESK = 12
+/** Phone (one jaw per SVG, `arch` set): thinner side surfaces so the centre (O/I, the usual tap) is ~60% of the tooth (#70). */
+const K_PHONE = 8
 
 function Glyph({ cond }: { cond: string }) {
   const c = conditionOf(cond)?.color
@@ -29,7 +31,8 @@ function Glyph({ cond }: { cond: string }) {
   }
 }
 
-function Tooth({ t, x, y, marks, selected, onPick, baseline }: Props & { t: number; x: number; y: number }) {
+function Tooth({ t, x, y, marks, selected, onPick, baseline, arch }: Props & { t: number; x: number; y: number }) {
+  const K = arch ? K_PHONE : K_DESK
   const upper = isUpper(t)
   const q = Math.floor(t / 10)
   const mesialRight = [1, 4, 5, 8].includes(q) // M faces the midline

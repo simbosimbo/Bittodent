@@ -163,7 +163,7 @@ a.tl-block:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px
   .mode-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; margin-bottom: var(--space-3); padding: 3px; border-radius: 14px;
     background: var(--color-neutral-50); border: 1px solid var(--color-neutral-100); }
   .mode-toggle label {
-    display: flex; flex-direction: row; align-items: center; justify-content: center; min-height: 44px; margin: 0; padding: 0 var(--space-3);
+    display: flex; flex-direction: row; align-items: center; justify-content: center; min-height: 48px; margin: 0; padding: 0 var(--space-3);
     border-radius: 11px; font-weight: 600; font-size: var(--font-size-md); color: var(--color-neutral-700); cursor: pointer; white-space: nowrap;
   }
   .mode-toggle input { position: absolute; opacity: 0; width: 1px; height: 1px; }
@@ -287,3 +287,24 @@ a.tl-block:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px
 .refer-presets { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip-toggle { min-height: 44px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--border, #d9dee8); background: #fff; font: inherit; font-weight: 600; color: var(--text, #1f2937); }
 .chip-toggle[aria-pressed="true"] { background: #0B6B62; border-color: #0B6B62; color: #fff; }
+
+/* #70 Meja depan compact cards (phone): no initials bubble (the name is right there), one-line meta, tighter padding. */
+@media (max-width: 720px) {
+  .agenda-item { min-height: 64px; }
+  .agenda-open { padding: var(--space-3) 0 var(--space-3) var(--space-3); gap: var(--space-2); align-items: center; }
+  .agenda-av { display: none; }
+  .agenda-meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; font-size: var(--font-size-sm); }
+  .agenda-chips { margin-top: 0; }
+}
+
+/* #70 desktop doctor filter: the same chip row as the phone ("Semua" + one chip per dentist), compact. */
+@media (min-width: 721px) {
+  .chair-pills { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-3); }
+  .chair-pills button {
+    min-height: 36px; padding: 0 var(--space-3); border: 1px solid var(--color-neutral-200); border-radius: var(--radius-pill);
+    background: var(--surface); font: inherit; font-weight: 600; color: var(--color-neutral-700); white-space: nowrap; cursor: pointer;
+  }
+  .chair-pills button[aria-pressed='true'] { background: var(--color-primary-700); border-color: var(--color-primary-700); color: #fff; }
+  .chair-pills button[aria-pressed='true'] .muted { color: inherit; }
+  .chair-pills button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+}

@@ -646,7 +646,7 @@ test('RM > Billing without billing.read stays "Belum tersedia"', async () => {
 })
 
 // --- #70 Dokter mode: one-tap procedure, SOAP template, Selesai saves first, phone sticky bar (synthetic data) ---
-function dokterChart(w: number) {
+function dokterChart(w: number, appt?: string) {
   localStorage.clear()
   vi.stubGlobal('matchMedia', (q: string) => ({ media: q, matches: w <= Number(q.match(/(\d+)px/)?.[1] ?? 0), addEventListener() {}, removeEventListener() {} }))
   const calls: { url: string; method: string; body: any }[] = []
@@ -655,6 +655,8 @@ function dokterChart(w: number) {
     const method = init?.method ?? 'GET'
     if (method !== 'GET') calls.push({ url, method, body: init?.body ? JSON.parse(init.body as string) : null })
     if (url.endsWith('/procedures') && method === 'POST') return new Response(JSON.stringify({ id: 'x1' }), { status: 201 })
+    if (url.endsWith('/visit') && method === 'POST') return new Response(JSON.stringify({ id: visit.id }), { status: 200 })
+    if ((url.endsWith('/transition') || url.endsWith('/selesai')) && method === 'POST') return new Response(JSON.stringify({ ok: true }), { status: 200 })
     if (url.endsWith('/note') && method === 'PUT') { noteSaved = true; return new Response(JSON.stringify({ revision: 1 }), { status: 200 }) }
     const draftNote = { id: 'n1', author_id: 'u1', created_at: '', pending_correction: null, versions: [{ id: 'nv1', version: 1, revision: 1, supersedes_id: null,
       status: 'draf', source: 'manual', signed_by: null, signed_by_name: null, signed_at: null, reason: null, correction_request_id: null, content_hash: 'h',
@@ -666,9 +668,22 @@ function dokterChart(w: number) {
       : url.endsWith('/alerts') ? alerts : full), { status: 200 })
   }))
   window.Tooth3D = mockTooth3D
-  render(<ChartPage patientId="p1" me={me} />)
+  render(<ChartPage patientId="p1" appointmentId={appt} me={appt ? { ...me, permissions: [...me.permissions, 'appointment.transition'] } : me} />)
   return calls
 }
+
+test('#70 RM Selesai from an appointment also frees the chair (appointment -> done), so "Pasien saya" stays current', async () => {
+  const calls = dokterChart(412, 'a1')
+  await screen.findByRole('region', { name: 'Odontogram' })
+  fireEvent.click(screen.getByRole('tab', { name: 'Catatan Klinis' }))
+  fireEvent.click(within(screen.getByRole('group', { name: 'Template catatan' })).getByRole('button', { name: 'Tambal' }))
+  fireEvent.click(within(document.querySelector('.rm-actionbar') as HTMLElement).getByRole('button', { name: 'Selesai' }))
+  const dlg = await screen.findByRole('dialog')
+  fireEvent.click(within(dlg).getByRole('checkbox'))
+  fireEvent.click(within(dlg).getByRole('button', { name: 'Selesai' }))
+  await waitFor(() => expect(calls.find((c) => c.url.endsWith('/appointments/a1/transition'))?.body).toEqual({ to: 'done' }))
+  expect(calls.findIndex((c) => c.url.endsWith('/selesai'))).toBeLessThan(calls.findIndex((c) => c.url.endsWith('/transition')))
+})
 
 test('#70 tooth panel: one tap "Tambal 23.2" saves procedure + diagnosis (no typing) and becomes this dentist\'s favourite', async () => {
   const calls = dokterChart(1280)

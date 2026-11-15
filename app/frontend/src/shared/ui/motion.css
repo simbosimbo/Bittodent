@@ -33,6 +33,7 @@
 @media (min-width: 721px) { .sk-kpis { grid-template-columns: repeat(4, 1fr); } }
 .sk-kpi { min-height: 112px; }
 .sk-board { min-height: 240px; }
+.sk-record .sk-board { min-height: 360px; }
 .sk-search { height: 44px; }
 .sk-rowline { height: 56px; }
 .sk-head { display: flex; align-items: center; gap: 12px; }

@@ -289,7 +289,8 @@ export default function Schedule({ me }: { me: Me }) {
     const next = all.filter((a) => new Date(a.ends_at).getTime() > now && !['cancelled', 'no_show', 'rejected', 'done'].includes(a.status))[0]
     return next?.dentist?.id ?? cols[0]?.id
   }
-  const shownCol = mobile ? (cols.find((c) => c.id === docPick) ?? cols.find((c) => c.id === nextDoc())) : undefined
+  // Desktop (#70): all dentist columns, or only the one picked in the chip row.
+  const shownCol = mobile ? (cols.find((c) => c.id === docPick) ?? cols.find((c) => c.id === nextDoc())) : cols.find((c) => c.id === docPick)
   const chairs = shownCol ? [shownCol] : cols
   const isNotOwn = (id: string) => all.find((x) => x.id === id)?.dentist?.id !== me.user.id
   const chairLabel = (a: Appointment) => data?.chairs.find((c) => c.id === a.chair_id)?.label
@@ -356,7 +357,7 @@ export default function Schedule({ me }: { me: Me }) {
         : !data || (mobile && loading && data.date !== date) ? <PageSkeleton variant="schedule" label="Memuat jadwal…" />
         : data.chairs.length === 0 ? <div className="card state-card muted">Cabang ini belum punya kursi aktif.</div> : (
           <>
-          {mobile && !dokter && cols.length > 1 && (
+          {(!mobile || !dokter) && cols.length > 1 && (
             // Agenda: "Semua" + one pill per dentist. Grid shows one dentist column, so it has no "Semua" (see docPick).
             <div className="chair-pills" role="group" aria-label="Pilih dokter">
               {!gridOn && <button type="button" aria-pressed={!docPick} onClick={() => setDocPick(null)}>Semua <span className="muted small">· {count}</span></button>}

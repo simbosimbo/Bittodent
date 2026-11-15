@@ -29,8 +29,9 @@ const status = `/* Status colours (#70, review scroll-travel (a)): one token set
   --status-booked-bg: #ECF4FC; --status-booked-fg: #1D4F8A; --status-booked-border: #B7D0F5;
 }
 `
+const suffix = tokens.status ? '' : `\n${status}`
 writeFileSync(
   resolve(here, '../src/shared/ui/tokens.css'),
-  `/* DIBUAT OTOMATIS dari design/tokens.json oleh scripts/gen-tokens.mjs (npm run tokens). Jangan edit manual. */\n:root {\n${lines.join('\n')}\n}\n\n${status}`,
+  `/* DIBUAT OTOMATIS dari design/tokens.json oleh scripts/gen-tokens.mjs (npm run tokens). Jangan edit manual. */\n:root {\n${lines.join('\n')}\n}\n${suffix}`,
 )
 console.log(`tokens.css: ${lines.length} variabel`)
