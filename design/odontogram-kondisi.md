@@ -1,117 +1,128 @@
 # Kondisi odontogram Bittodent
 
-Taksonomi untuk bagan 2D (input dokter) dan tampilan 3D (baca/edukasi). Legenda ini internal: mengikuti penomoran FDI dan singkatan yang lazim di rekam medis gigi Indonesia, tetapi **bukan salinan formulir resmi**. Simbol resmi PDGI dapat diganti nanti tanpa mengubah kunci data.
+Taksonomi dan simbol bagan 2D (input) dan tampilan 3D (baca). Mengikuti **Panduan Rekam Medis Kedokteran Gigi, Kemenkes dan PB PDGI (2015)**, hlm. 13-19: [PDF](https://dental.id/wp-content/uploads/2016/08/PANDUAN-REKAM-MEDIS-DOKTER-GIGI.pdf). Papan: `design/boards/odontogram-v2.html`. Review asal: `/workspace/audit/odontogram-v2/review-klinis-grid.md`.
 
-## Dasar hukum dan acuan
+## Dasar
 
-- **Permenkes 269/2008** Pasal 3: rekam medis kasus gigi dilengkapi **odontogram klinik**. Peraturan ini mewajibkan adanya odontogram, tidak merinci simbol.
-- **Penomoran FDI** (dipakai PDGI): tetap 11-18, 21-28, 31-38, 41-48; sulung 51-55, 61-65, 71-75, 81-85. Kanan/kiri = sisi pasien.
-- **Permukaan** (tulisan kapital di depan singkatan): M mesial, O oklusal (I insisal pada anterior), D distal, B bukal/labial (panduan lama memakai V vestibular), L lingual/palatal. Di data Bittodent, id permukaan palatal tetap `L`.
-- Singkatan lazim (sou, car, amf, cof, gif, fis, rct, fmc, poc, meb, pon, abu, prd, fld, imp, dan seterusnya) dipakai sebagai **kode tampilan**, bukan sebagai teks undang-undang.
-- Produk sejenis (pola, bukan salinan UI): Open Dental dan Dentrix memisahkan kondisi vs tindakan dan mengecat permukaan; CareStack menumpuk status dengan transparansi, membedakan rencana vs selesai, dan menyembunyikan tindakan lain pada gigi hilang. Mobbin tidak punya pola bagan gigi yang kuat.
-- Legenda MVP lama (`design/odontogram/legend.json`) hanya 8 kondisi. Dokumen ini memperluasnya. Kode ICD adalah **contoh** untuk yang umum; kode jadi mengikuti `coding_rule` cabang.
+- **Permenkes 269/2008** Pasal 3: rekam medis kasus gigi wajib odontogram klinik. Simbol tidak dirinci di sana; rinciannya di Panduan 2015.
+- **FDI**: tetap 11-18, 21-28, 31-38, 41-48. Sulung 51-55, 61-65, 71-75, 81-85. Kanan/kiri = sisi pasien.
+- **Permukaan MODVL**: M mesial, O oklusal (I insisal pada anterior), D distal, **V vestibular/bukal/labial**, L lingual/palatal. Kunci data permukaan bukal diganti `B` ke `V` (migrasi data: alias `B` dibaca sebagai `V`).
+- **Penulisan**: permukaan kapital di depan, kondisi huruf kecil, gabungan dengan tanda hubung. Contoh `36: O car`, `46: MOD amf`, `16: O cof-rct`, `45: mis-pon-pob`, `prd-acr`. Kode selalu huruf kecil di UI (tanpa `text-transform: uppercase`).
+- **Di luar daftar**: ditulis dalam tanda kutip, bukan kode baru. Contoh `12: cfr "1/2 insisal"`.
+- **Gigi sehat** ditulis `sou`, jangan dikosongkan.
+- **Aturan isi**: seluruh gigi diperiksa dan dicatat pada kunjungan pertama. Selama perawatan belum mencapai restorasi tetap, odontogram tidak diubah; tindakan harian masuk tabel perawatan. Setelah restorasi tetap: koreksi + paraf + tanggal. Kunjungan terakhir lebih dari 1 tahun: odontogram baru.
 
-## 2D atau 3D
+## Warna
 
-**2D (FDI, 5 permukaan) adalah input utama mode Dokter.** Ketuk gigi lalu permukaan atau seluruh gigi, target 48-56px, cepat di HP, selaras odontogram klinik, dan tidak membebani GPU.
+- **Bawaan hitam-putih (resmi)**: amalgam/logam hitam penuh, restorasi sewarna gigi diarsir.
+- **Opsional** (Pengaturan, Rekam medis, Lanjutan): logam emas merah, amalgam/logam hitam, sewarna gigi hijau, sealant merah muda.
+- Warna **tidak** dipakai untuk status. Merah = rencana dan biru = selesai adalah kebiasaan charting Amerika, bukan PDGI. Hijau resmi berarti sewarna gigi.
 
-**3D (aset yang sudah ada di `design/odontogram/3d` dan port bagan) adalah tampilan baca:** ringkasan kunjungan dan edukasi pasien. Toggle **2D | 3D** di header bagan. 3D tidak dipakai untuk input (permukaan 5 sisi sulit tepat di mesh, dan mid-range Android mudah patah frame jika 32 gigi di-render WebGL atau SVG berat). 3D dimuat lazy; jika `prefers-reduced-motion` atau gagal muat, tetap 2D.
+## Status (lapisan produk)
 
-## Status per kondisi
+Bukan kolom formulir PDGI. Dibedakan lewat bentuk garis dan lencana, tanpa warna:
 
-Status terpisah dari jenis kondisi (warna + bentuk). Empat nilai di sheet. Bukan teal merek `#0B6B62` (teal hanya tombol primer). Kontras teks AA.
+| Kunci | Label | Tanda di bagan |
+|---|---|---|
+| `ada_sebelumnya` | Ada sebelumnya | garis utuh, tanpa lencana (bawaan pemeriksaan awal) |
+| `klinik_lain` | Klinik lain | garis utuh + lencana `L` |
+| `rencana` | Rencana | simbol digambar garis putus, tanpa isi |
+| `selesai` | Selesai | garis utuh + lencana centang |
 
-| Kunci | Label | Ikon | Warna teks / latar | Arti |
-|---|---|---|---|---|
-| `ada_sebelumnya` | Ada sebelumnya | kotak isi | `#344054` / `#EEF0F4` | Sudah ada di pasien, dicatat di klinik ini |
-| `klinik_lain` | Dikerjakan klinik lain | kotak kosong | `#1D4ED8` / `#E8F0FE` | Dikerjakan di luar, hanya dicatat |
-| `rencana` | Rencana | segitiga, garis putus | `#B54708` / `#FFFAEB` | Akan dikerjakan |
-| `selesai_hari_ini` | Selesai hari ini | centang | `#0B7A45` / `#ECFDF3` | Selesai pada kunjungan ini |
+## Kondisi
 
-Opsional kemudian: `dirujuk` (tidak di radio utama).
+Total **30 kondisi** + baseline `sou`, ditambah 2 peran rentang dan 2 bahan protesa. Ikon di UI = simbol resmi 28px (bukan titik warna).
 
-## Kelompok kondisi
+### Permukaan (10), wajib MODVL
 
-Jumlah di bawah **tidak termasuk** `sehat` (sou), yang hanya baseline "tidak ada kelainan". Total kondisi tercatat: **33**.
+| Kunci | Label | Kode | Simbol resmi |
+|---|---|---|---|
+| `karies` | Karies (juga tambalan sementara) | car | garis batas tebal pada permukaan |
+| `tambalan_amalgam` | Tambalan amalgam | amf | permukaan hitam penuh |
+| `tambalan_komposit` | Tambalan komposit | cof | permukaan diarsir |
+| `tambalan_gic` | Tambalan GIC | gif | diarsir, dirinci di tabel |
+| `sealant` | Pit dan fissure sealant | fis | arsir silang (opsional merah muda) |
+| `inlay` | Inlay | inl | digambar seperti tambalan, dirinci di tabel |
+| `onlay` | Onlay | onl | seperti tambalan, dirinci di tabel |
+| `fraktur` | Fraktur mahkota | cfr | tanda # |
+| `abrasi` | Abrasi | abr | kode teks |
+| `atrisi` | Atrisi | att | kode teks |
 
-### Permukaan (9)
+### Seluruh gigi (15)
 
-Berlaku pada M, O/I, D, B, L. Wajib pilih permukaan.
+| Kunci | Label | Kode | Simbol resmi |
+|---|---|---|---|
+| `non_vital` | Gigi non-vital | nvt | segitiga akar kosong |
+| `psa` | Perawatan saluran akar | rct | segitiga akar hitam (gabung: `amf-rct`, `poc-rct`) |
+| `mahkota_logam` | Mahkota logam | fmc | bingkai tebal |
+| `mahkota_porselen` | Mahkota porselen | poc | bingkai tebal + arsir |
+| `mahkota_metal_porselen` | Mahkota metal porselen | mpc | bingkai tebal + arsir (dirinci di tabel) |
+| `mahkota_emas` | Mahkota emas | gmc | bingkai tebal (opsional merah) |
+| `sisa_akar` | Sisa akar | rrx | garis V |
+| `hilang` | Gigi hilang | mis | silang |
+| `tidak_diketahui` | Tidak ada, tidak diketahui | non | kode teks |
+| `belum_erupsi` | Belum erupsi | une | kode teks |
+| `erupsi_sebagian` | Erupsi sebagian | pre | kode teks |
+| `impaksi` | Impaksi visible | imv | kode teks |
+| `anomali` | Anomali (peg shape, mikro, fusi) | ano | kode teks |
+| `diastema` | Diastema | dia | kode teks, lebar dicatat |
+| `migrasi` | Migrasi, versi, rotasi | (panah) | panah sesuai arah, tanpa singkatan |
 
-| Kunci | Label | Kode | Tanda 2D | ICD-10 (dx) | ICD-9-CM (tindakan, contoh) |
-|---|---|---|---|---|---|
-| `karies` | Karies | car | isi + titik, `#BE123C` | K02.9 (K02.1 dentin) | 23.2 tumpatan, bila dirawat |
-| `tambalan_amalgam` | Tambalan amalgam | amf | isi solid gelap `#1A1A1A` | Z97.2 atau riwayat K02 | 23.2 |
-| `tambalan_komposit` | Tambalan komposit | cof | isi solid `#0B7A45` | sama | 23.2 |
-| `tambalan_gic` | Tambalan GIC | gif | isi solid `#0E7490` | sama | 23.2 |
-| `sealant` | Sealant | fis | isi muda + huruf S, `#9D174D` | Z29.8 pencegahan | 23.2 |
-| `abrasi` | Abrasi | abr | arsir tepi, `#92400E` | K03.1 | sesuai rencana |
-| `erosi` | Erosi | ero | arsir halus, `#B45309` | K03.2 | sesuai rencana |
-| `atrisi` | Atrisi | at | datar oklusal, `#7A5C00` | K03.0 | sesuai rencana |
-| `fraktur` | Fraktur | cfr | zigzag, `#9F1239` | K03.81 atau S02.5 | sesuai rencana |
+### Rentang dan protesa (4)
 
-### Seluruh gigi (17)
+| Kunci | Label | Kode | Simbol resmi |
+|---|---|---|---|
+| `jembatan_logam` | Jembatan logam | meb | batang penghubung di atas rentang |
+| `jembatan_porselen` | Jembatan porselen | pob | batang + bingkai tebal arsir |
+| `gts` | Gigi tiruan sebagian | prd | silang + kode |
+| `gtl` | Gigi tiruan lengkap | fld | silang + kode |
 
-Tanpa permukaan, atau permukaan opsional (misalnya fraktur sudah di kelompok atas).
-
-| Kunci | Label | Kode | Tanda 2D | ICD-10 | ICD-9-CM (contoh) |
-|---|---|---|---|---|---|
-| `mahkota_logam` | Mahkota logam | fmc | cincin `#6B7280` | Z97.2 | 23.41 |
-| `mahkota_porselen` | Mahkota porselen | poc | cincin `#6D28D9` | Z97.2 | 23.41 |
-| `mahkota_metal_porselen` | Mahkota metal porselen | mpc | cincin ganda | Z97.2 | 23.41 |
-| `veneer` | Veneer | ven | pita labial `#7C3AED` | Z97.2 | 23.49 |
-| `inlay` | Inlay | inl | kotak dalam permukaan | Z97.2 | 23.3 |
-| `onlay` | Onlay | onl | kotak + tepi kuspid | Z97.2 | 23.3 |
-| `psa` | Perawatan saluran akar | rct | garis vertikal akar `#1E40AF` | K04.1 / K04.0 | 23.43 |
-| `sisa_akar` | Sisa akar | rrx | huruf V terbalik `#9A3412` | K08.3 | 23.11 |
-| `hilang` | Hilang | mis | silang `#3F3F46` | K08.1 | - |
-| `perlu_dicabut` | Perlu dicabut | - | garis miring `#A15C00` | sesuai dx | 23.09 |
-| `goyang` | Goyang (mobilitas) | mob | I / II / III `#B54708` | K05.3 | sesuai rencana |
-| `impaksi` | Impaksi | imv | panah miring `#0F5F63` | K01.1 | 23.19 |
-| `belum_erupsi` | Belum erupsi | une | kerangka putus `#5F6C77` | K00.6 | - |
-| `erupsi_sebagian` | Erupsi sebagian | pre | setengah kerangka | K00.6 | - |
-| `sulung_persisten` | Gigi sulung persisten | per | angka sulung + kunci | K00.6 | sesuai rencana |
-| `diastema` | Diastema | dia | celah antar gigi | K07.2 | - |
-| `malposisi` | Rotasi / malposisi | mal | anak panah putar | K07.3 | sesuai rencana |
-
-### Multi-gigi / rentang (6)
-
-Dipilih dengan mengetuk dua atau lebih gigi di bagan. Rentang tersorot. Pontic dan abutment adalah peran pada gigi di rentang, bukan tab terpisah.
-
-| Kunci | Label | Kode | Tanda 2D | ICD-10 | ICD-9-CM (contoh) |
-|---|---|---|---|---|---|
-| `bridge_pontic` | Bridge, pontic | pon | kotak gantung + batang | Z97.2 | 23.42 |
-| `bridge_abutment` | Bridge, abutment | abu | cincin + batang ke pontic | Z97.2 | 23.42 |
-| `splint` | Splint | spl | batang pengikat | sesuai dx | 23.49 |
-| `gts` | Gigi tiruan sebagian | prd | kurung rentang `#344054` | Z97.2 | 23.6 (contoh) |
-| `gtp` | Gigi tiruan penuh | fld | kurung satu rahang | Z97.2 | 23.6 (contoh) |
-| `orto_bracket` | Orto, bracket | brk | kotak kecil labial `#0E7490` | Z46.4 | sesuai rencana |
+Peran per gigi di rentang: `pon` pontik (ditulis `mis-pon-pob`), `abu` gigi penyangga. Bahan protesa: `acr` akrilik (`prd-acr`), `frm` frame.
 
 ### Implan (1)
 
-| Kunci | Label | Kode | Tanda 2D | ICD-10 | ICD-9-CM (contoh) |
-|---|---|---|---|---|---|
-| `implan` | Implan | imp | sekrup `#0F5F63` | Z96.5 | 23.5 |
+| Kunci | Label | Kode | Simbol resmi |
+|---|---|---|---|
+| `implan` | Implan | ipx | bingkai + kode `ipx` (dengan mahkota: `ipx-poc`) |
 
-Mahkota di atas implan = `implan` + salah satu `mahkota_*` sebagai lapisan terpisah, masing-masing berstatus sendiri.
+### Perubahan dari v2
 
-## Ringkasan jumlah
+- Ditambah: `nvt`, `non`, `ano`, `gmc`, `meb`, `pob`, `acr`, `frm`, migrasi (panah).
+- Kode diganti: `imp` ke `ipx`, `at` ke `att`, permukaan `B` ke `V`.
+- Bridge `pon`/`abu` jadi peran di dalam `meb`/`pob`.
+- Dihapus sebagai kode (jadi catatan bebas dalam kutip): erosi (`ero`), goyang (`mob`), veneer (`ven`), splint (`spl`), bracket orto (`brk`), sulung persisten (`per`, dicatat lewat nomor sulung 5x-8x). Perlu dicabut (`ext`) bukan simbol bagan: masuk tabel perawatan sebagai rencana tindakan.
 
-| Kelompok | Jumlah |
-|---|---|
-| Permukaan | 9 |
-| Seluruh gigi | 17 |
-| Multi-gigi / rentang | 6 |
-| Implan | 1 |
-| **Total kondisi** | **33** |
-| Baseline sehat (sou) | 1, tidak dihitung di total |
+## 2D atau 3D
 
-## Cara input (mode Dokter)
+**2D input utama.** Sel gigi 48x64 px, simbol 40x40 (diukur di papan, Playwright). HP: satu penggulir horizontal untuk dua rahang (18 sejajar 48), dibuka di garis tengah, minimap posisi. Desktop 1280: 32 gigi muat tanpa geser. Toggle **Tetap | Sulung | Campuran** (48px); bawaan dari umur, campuran = 4 baris, sulung di bawah penggantinya.
 
-1. Ketuk gigi di bagan **2D**. Sheet (drawer bawah) terbuka.
-2. Tab: Permukaan, Seluruh gigi, atau Rentang. Tanpa nomor stepper.
-3. Cari kondisi, atau pilih Favorit / terakhir dipakai di atas daftar.
-4. Permukaan: ketuk pad 56px. Rentang: ketuk gigi lain di bagan untuk abutment atau pontic; rentang tersorot.
-5. Pilih status (radio). Satu tombol primer: Simpan.
+**3D hanya baca** (ringkasan, edukasi). Render `Odontogram3D` terbaru. Gerak dikurangi atau gagal muat: tetap 2D. Toggle 2D | 3D tinggi 48.
 
-Kode ICD diisi otomatis dari aturan cabang, tetap bisa diubah sebelum Setujui rencana.
+## Cara input
+
+### Mode Perawatan (bawaan, tooth-first)
+
+1. Ketuk gigi. Sheet terbuka; bagan menyempit ke rahang gigi itu.
+2. Tab Permukaan, Seluruh gigi, atau Rentang.
+3. Permukaan: pad MODVL 56px, lalu **RadioGroup kartu 2 kolom** (5 tersering + "5 lainnya"). Seluruh gigi: **Listbox** multi-pilih (gabungan dengan tanda hubung), cari di header sheet. Rentang: RadioGroup kartu, ketuk gigi pertama dan terakhir, peran otomatis.
+4. Status: segmented Ada / Lain / Rencana / Selesai.
+5. Satu tombol primer dengan catatan resmi: `Simpan 26 O car`.
+
+### Mode Pemeriksaan awal (palet)
+
+1. Pilih alat sekali (strip alat tersering + Semua).
+2. Ketuk banyak gigi. Alat seluruh gigi langsung tercatat; alat permukaan membuka pad MODVL kecil.
+3. Tandai sisa `sou`, lalu Simpan sekali, paraf dan tanggal.
+
+| Skenario | Tooth-first | Palet |
+|---|---|---|
+| Karies 36 O | 5 | 4 |
+| Tambalan 47 MOD amf | 7 | 6 |
+| 8 hilang + 2 sisa akar | 40-50 | 13 |
+| Mulut lengkap (8 mis, 2 rrx, 1 MOD amf, 21 sou) | 130+ | 19 |
+
+## Warna kontrol
+
+Terpilih (gigi, pad, kartu, alat, listbox): garis 2px `primary-800` + latar `primary-50`, sama dengan papan menu-pengaturan-mode. Teal `#0B6B62` hanya tombol primer.
+
+Kode ICD tetap diisi dari aturan cabang dan bisa diubah sebelum rencana disetujui.
