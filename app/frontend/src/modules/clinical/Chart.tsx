@@ -8,6 +8,7 @@ import {
 } from './api'
 import { AI_BADGE, CONDITIONS, findingText, PRESENCE, STATUSES, statusOf, surfaceLabel, surfaceName } from './legend'
 import { Legend, Odontogram, type Mark } from './Odontogram'
+import IcdSuggestions from './IcdSuggestions'
 import { SignDialog } from './SignDialog'
 import './clinical.css'
 
@@ -211,6 +212,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const [status, setStatus] = useState<ProcStatus>('kondisi_pantau')
   const [procCode, setProcCode] = useState('')
   const [baselineOpen, setBaselineOpen] = useState(false)
+  const [cited, setCited] = useState<string[]>([])
   const can = (p: string) => me.permissions.includes(p)
 
   const load = useCallback(async () => {
@@ -287,6 +289,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
       </div>
       {msg && <p className="notice" role="status">{msg}</p>}
 
+      <div className={visit && can('ai_draft.review') ? 'chart-icd' : undefined}>
       <div className="card">
         <div className="card-head">
           <h2>Odontogram</h2>
@@ -301,7 +304,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
         )}
         {baselineOpen && <BaselineEditor value={chart.baseline} onClose={() => setBaselineOpen(false)}
           onSave={(b) => run(async () => { await saveBaseline(p.id, { base_version: chart.baseline?.version ?? null, ...b }); setBaselineOpen(false) }, 'Keadaan awal tersimpan (versi baru).')} />}
-        <Odontogram marks={marks} baseline={chart.baseline?.teeth} dentition={chart.baseline?.dentition} selected={pick ? `t${pick.tooth}-${pick.surface}` : null} onPick={editable ? (tooth, surface) => setPick({ tooth, surface }) : undefined} />
+        <Odontogram marks={marks} baseline={chart.baseline?.teeth} dentition={chart.baseline?.dentition} selected={pick ? `t${pick.tooth}-${pick.surface}` : null} highlight={cited} onPick={editable ? (tooth, surface) => setPick({ tooth, surface }) : undefined} />
         {!editable && <p className="muted small">{visit ? 'Kunjungan ini sudah ditandatangani.' : 'Tidak ada kunjungan aktif. Buka dari kartu janji untuk mengisi.'}</p>}
         {pick && editable && (
           <div className="picker-pop" role="group" aria-label="Pilih kondisi">
@@ -347,6 +350,13 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
           )}
         </div>
       )}
+
+      {visit && can('ai_draft.review') && (
+        <div className="card chart-icd-panel">
+          <IcdSuggestions patientId={p.id} visitId={editable ? visit.id : null} dirty={dirty} onHighlight={setCited} onChanged={load} />
+        </div>
+      )}
+      </div>
 
       <div className="card">
         <h2>Riwayat kunjungan</h2>
