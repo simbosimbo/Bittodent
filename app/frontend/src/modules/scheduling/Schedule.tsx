@@ -33,6 +33,61 @@ function useNow(on: boolean) {
   return now
 }
 
+/** YYYY-MM-DD + n days (calendar dates, no time zone). */
+const addDays = (ymd: string, n: number) => {
+  const d = new Date(ymd + 'T00:00:00Z')
+  d.setUTCDate(d.getUTCDate() + n)
+  return d.toISOString().slice(0, 10)
+}
+/** Monday of the week containing ymd. */
+const weekStart = (ymd: string) => addDays(ymd, -((new Date(ymd + 'T00:00:00Z').getUTCDay() + 6) % 7))
+const dayFmt = (opts: Intl.DateTimeFormatOptions) => (ymd: string) => new Intl.DateTimeFormat('id-ID', { timeZone: 'UTC', ...opts }).format(new Date(ymd + 'T00:00:00Z'))
+const wdShort = dayFmt({ weekday: 'short' }), dayNum = dayFmt({ day: 'numeric' })
+const apptCount = (s: Sched) => s.chairs.reduce((n, c) => n + c.appointments.length, 0)
+
+/** Appointments per day for the 7 days from `from` (mobile week strip dots). */
+function useWeekCounts(branchId: string | null, from: string, on: boolean) {
+  const [counts, setCounts] = useState<Record<string, number> | null>(null)
+  const [error, setError] = useState(false)
+  const [tick, setTick] = useState(0)
+  useEffect(() => {
+    if (!on || !branchId) return
+    let live = true
+    setCounts(null)
+    setError(false)
+    // shortcut: 7 calls to the one-day /api/schedule (no backend change); add a ranged count endpoint if this shows up in load.
+    Promise.all(Array.from({ length: 7 }, (_, i) => addDays(from, i)).map((d) => getSchedule(branchId, d).then((s) => [d, apptCount(s)] as const)))
+      .then((r) => { if (live) setCounts(Object.fromEntries(r)) }, () => { if (live) setError(true) })
+    return () => { live = false }
+  }, [branchId, from, on, tick])
+  return { counts, error, retry: () => setTick((t) => t + 1) }
+}
+
+/** Mobile: Mon–Sun of the selected date's week; tap a day to select it. Dots = appointments that day (max 3). */
+function WeekStrip({ date, counts, error, onPick, onRetry }: {
+  date: string; counts: Record<string, number> | null; error: boolean; onPick: (d: string) => void; onRetry: () => void
+}) {
+  const from = weekStart(date), today = todayWib()
+  return (
+    <>
+      <div className="week-strip" role="group" aria-label="Pilih hari" aria-busy={!counts && !error}>
+        {Array.from({ length: 7 }, (_, i) => addDays(from, i)).map((d) => {
+          const n = counts?.[d]
+          return (
+            <button key={d} type="button" aria-pressed={d === date} aria-current={d === today ? 'date' : undefined}
+              aria-label={`${fmtDate(d)}${n === undefined ? '' : `, ${n} janji`}`} onClick={() => onPick(d)}>
+              <span className="week-wd">{wdShort(d)}</span>
+              <span className="week-day">{dayNum(d)}</span>
+              <span className="week-dots" aria-hidden="true">{Array.from({ length: Math.min(n ?? 0, 3) }, (_, k) => <i key={k} />)}</span>
+            </button>
+          )
+        })}
+      </div>
+      {error && <p className="week-error small" role="alert">Jumlah janji per hari gagal dimuat. <button type="button" className="btn btn-ghost" onClick={onRetry}>Coba lagi</button></p>}
+    </>
+  )
+}
+
 export function useSchedule(branchId: string | null, date: string) {
   const [data, setData] = useState<Sched | null>(null)
   const [error, setError] = useState('')
@@ -69,11 +124,8 @@ export default function Schedule({ me }: { me: Me }) {
   const [sheetId, setSheetId] = useState<string | null>(null) // mobile: tapped card -> action sheet
   const isToday = date === todayWib()
   const now = useNow(mobile && isToday)
-  const shift = (days: number) => {
-    const d = new Date(date + 'T00:00:00Z')
-    d.setUTCDate(d.getUTCDate() + days)
-    setDate(d.toISOString().slice(0, 10))
-  }
+  const shift = (days: number) => setDate(addDays(date, days))
+  const week = useWeekCounts(me.active.branch_id, weekStart(date), mobile)
 
   async function move(a: Appointment, to: string) {
     setActionError('')
@@ -100,7 +152,9 @@ export default function Schedule({ me }: { me: Me }) {
   const sheetAppt = sheetId ? data?.chairs.flatMap((c) => c.appointments).find((a) => a.id === sheetId) : undefined
 
   if (!me.active.branch_id) return <div className="card state-card">Belum ada cabang aktif.</div>
-  const count = data?.chairs.reduce((n, c) => n + c.appointments.length, 0) ?? 0
+  const count = data ? apptCount(data) : 0
+  // The selected day's dot follows the live day data (after a booking or a status change), not the week fetch.
+  const weekCounts = week.counts && data && data.date === date ? { ...week.counts, [date]: count } : week.counts
   const pending = (data?.chairs.flatMap((c) => c.appointments) ?? [])
     .filter((a) => a.status === 'pending_confirmation' && a.source === 'online')
     .sort((x, y) => x.starts_at.localeCompare(y.starts_at))
@@ -117,26 +171,36 @@ export default function Schedule({ me }: { me: Me }) {
   const nowMin = mobile && isToday ? minutesOfDay(new Date(now).toISOString(), tz) - START : -1
   const nowTop = nowMin >= 0 && nowMin <= END - START ? (nowMin / STEP) * ROW : null
 
-  const prev = <button className="btn" onClick={() => shift(-1)} aria-label="Hari sebelumnya">{mobile ? <Icon d={ICONS.left} /> : '‹'}</button>
-  const next = <button className="btn" onClick={() => shift(1)} aria-label="Hari berikutnya">{mobile ? <Icon d={ICONS.right} /> : '›'}</button>
+  const prev = <button className="btn" onClick={() => shift(-1)} aria-label="Hari sebelumnya">‹</button>
+  const next = <button className="btn" onClick={() => shift(1)} aria-label="Hari berikutnya">›</button>
   const today = <button className="btn" onClick={() => setDate(todayWib())}>Hari ini</button>
   const dateInput = <DateField aria-label="Tanggal" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} />
   const create = canCreate && <button className="btn btn-primary" onClick={() => setDialog({})}>+ Buat Janji</button>
 
   return (
     <>
-      <div className="page-head">
-        <div>
-          <h1 className="shell-dup-title">Jadwal</h1>
-          <p className="muted">{fmtDate(date)} · {me.active.branch_name} · {count} janji</p>
+      {mobile ? (
+        // Phone: one compact row (date picker · count · Hari ini when elsewhere · week arrows) + the week strip, pinned under the top bar.
+        <div className="sched-top">
+          <h1 className="sr-only">Jadwal</h1>
+          <div className="sched-bar">
+            {dateInput}
+            <span className="muted small sched-count">{count} janji</span>
+            {!isToday && today}
+            <button className="btn" onClick={() => shift(-7)} aria-label="Minggu sebelumnya"><Icon d={ICONS.left} /></button>
+            <button className="btn" onClick={() => shift(7)} aria-label="Minggu berikutnya"><Icon d={ICONS.right} /></button>
+          </div>
+          <WeekStrip date={date} counts={weekCounts} error={week.error} onPick={setDate} onRetry={week.retry} />
         </div>
-        {mobile ? (
-          // Row 1: ‹ date › Hari ini; row 2: full-width Buat Janji (styles.css .sched-bar).
-          <div className="toolbar sched-bar">{prev}{dateInput}{next}{today}{create}</div>
-        ) : (
+      ) : (
+        <div className="page-head">
+          <div>
+            <h1 className="shell-dup-title">Jadwal</h1>
+            <p className="muted">{fmtDate(date)} · {me.active.branch_name} · {count} janji</p>
+          </div>
           <div className="toolbar">{prev}{today}{next}{dateInput}{create}</div>
-        )}
-      </div>
+        </div>
+      )}
       {actionError && <p className="form-error" role="alert">{actionError}</p>}
       {canConfirm && pending.length > 0 && (
         <div className="card confirm-card">
@@ -240,6 +304,7 @@ export default function Schedule({ me }: { me: Me }) {
           </div>
         </Sheet>
       )}
+      {mobile && canCreate && <button type="button" className="fab" aria-label="Buat janji" onClick={() => setDialog({})}><Icon d={ICONS.plus} size={26} /></button>}
       {data && <PlannedList sched={data} date={date} canCreate={canCreate} onScheduled={reload} />}
       {dialog && data && (
         <BookDialog sched={data} date={date} me={me} initial={dialog} onClose={() => setDialog(null)} onSaved={() => { setDialog(null); reload() }} />

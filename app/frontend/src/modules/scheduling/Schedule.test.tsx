@@ -105,8 +105,9 @@ test('HP: pil kursi + satu kolom; default kursi dengan janji berikutnya, pil men
   fireEvent.click(within(pills).getByRole('button', { name: /Kursi 1/ }))
   expect(screen.getByText('Ani Contoh')).toBeInTheDocument()
   expect(container.querySelectorAll('.sched-col')).toHaveLength(1)
-  // Toolbar: Buat Janji on its own row
-  expect(container.querySelector('.sched-bar .btn-primary')).toHaveTextContent('+ Buat Janji')
+  // No full-width Buat Janji on a phone: the FAB replaces it
+  expect(screen.queryByRole('button', { name: '+ Buat Janji' })).toBeNull()
+  expect(screen.getByRole('button', { name: 'Buat janji' })).toHaveClass('fab')
 })
 
 test('HP: garis sekarang hanya pada tanggal hari ini', async () => {
@@ -119,7 +120,7 @@ test('HP: garis sekarang hanya pada tanggal hari ini', async () => {
   expect(await screen.findByRole('img', { name: 'Sekarang 10:30' })).toBeInTheDocument()
   expect(container.querySelector('.sched-now-label')).toHaveTextContent('10:30')
   date = '2030-01-08'
-  fireEvent.click(screen.getByRole('button', { name: 'Hari berikutnya' }))
+  fireEvent.click(screen.getByRole('button', { name: /^Selasa, 8 Januari 2030/ }))
   await vi.waitFor(() => expect(container.querySelector('.sched-now')).toBeNull())
   expect(container.querySelector('.sched-now-label')).toBeNull()
 })
@@ -226,7 +227,7 @@ test.each([[412, true], [1280, false]])('%ipx: Buat Janji Escape/scroll-lock onl
   viewport(w)
   mockOne(() => [])
   render(<Schedule me={ME_CHART} />)
-  fireEvent.click(await screen.findByRole('button', { name: '+ Buat Janji' }))
+  fireEvent.click(await screen.findByRole('button', { name: modal ? 'Buat janji' : '+ Buat Janji' }))
   const dialog = screen.getByRole('dialog', { name: 'Buat Janji' })
   expect(dialog.contains(document.activeElement)).toBe(modal)
   expect(document.body.style.overflow).toBe(modal ? 'hidden' : '')
@@ -246,4 +247,98 @@ test.each([[390, '44px', '16px'], [1280, '40px', '']])('%ipx: form fields min-he
     expect(getComputedStyle(container.querySelector('input[type=checkbox]')!).minHeight).not.toBe('44px')
     expect(getComputedStyle(container.querySelector('label.check')!).minHeight).toBe(w <= 720 ? '44px' : 'auto')
   } finally { style.remove() }
+})
+
+// ---- Jadwal mobile rebuild: week strip, toolbar, FAB ----
+/** /api/schedule per requested date: `perDay[date]` appointments in Kursi 1 (09:00, 10:00, …), Kursi 2 empty. */
+function mockWeek(perDay: Record<string, number>, opts: { failWeek?: () => boolean } = {}) {
+  const calls: string[] = []
+  vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+    if (url.startsWith('/api/schedule')) {
+      const d = new URL(url, 'http://x').searchParams.get('date')!
+      calls.push(d)
+      if (opts.failWeek?.() && calls.length > 1) return json({ message: 'x' }, 500)
+      const list = Array.from({ length: perDay[d] ?? 0 }, (_, i) => {
+        const h = String(9 + i).padStart(2, '0')
+        return { ...appt('w' + d + i, 'booked', 'staff', `Pasien ${d} ${i}`, '09:00'), starts_at: `${d}T${h}:00:00+07:00`, ends_at: `${d}T${h}:30:00+07:00` }
+      })
+      return json({ ...sched([]), date: d, chairs: [{ id: 'c1', label: 'Kursi 1', appointments: list }, { id: 'c2', label: 'Kursi 2', appointments: [] }] })
+    }
+    if (url.startsWith('/api/planned-appointments')) return json({ data: [] })
+    if (url.startsWith('/api/patients')) return json({ data: [] })
+    throw new Error('unexpected ' + url)
+  }))
+  return calls
+}
+const today9 = () => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2030-01-09T01:00:00Z')) } // Rabu 9 Jan 2030, 08:00 WIB
+
+test('HP: week strip Sen–Min dengan titik jumlah janji; ketuk hari memilih tanggal', async () => {
+  today9()
+  viewport(412)
+  const calls = mockWeek({ '2030-01-07': 1, '2030-01-09': 2, '2030-01-12': 5 })
+  render(<Schedule me={ME} />)
+  const strip = await screen.findByRole('group', { name: 'Pilih hari' })
+  await vi.waitFor(() => expect(strip).toHaveAttribute('aria-busy', 'false'))
+  const days = within(strip).getAllByRole('button')
+  expect(days.map((b) => b.querySelector('.week-wd')!.textContent)).toEqual(['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'])
+  expect(days.map((b) => b.querySelectorAll('.week-dots i').length)).toEqual([1, 0, 2, 0, 0, 3, 0]) // max 3 dots
+  expect(days[2]).toHaveAttribute('aria-pressed', 'true')
+  expect(days[2]).toHaveAttribute('aria-current', 'date')
+  expect(days[5]).toHaveAccessibleName('Sabtu, 12 Januari 2030, 5 janji')
+  expect(new Set(calls)).toEqual(new Set(['2030-01-07', '2030-01-08', '2030-01-09', '2030-01-10', '2030-01-11', '2030-01-12', '2030-01-13']))
+
+  fireEvent.click(days[5])
+  expect(days[5]).toHaveAttribute('aria-pressed', 'true')
+  expect(await screen.findByText('5 janji')).toBeInTheDocument()
+  // Week arrows move 7 days and load the next week's dots
+  fireEvent.click(screen.getByRole('button', { name: 'Minggu berikutnya' }))
+  expect(await screen.findByRole('button', { name: /^Sabtu, 19 Januari 2030/ })).toHaveAttribute('aria-pressed', 'true')
+  await vi.waitFor(() => expect(calls).toContain('2030-01-14'))
+})
+
+test('HP: "Hari ini" hanya muncul bila tanggal terpilih bukan hari ini', async () => {
+  today9()
+  viewport(412)
+  mockWeek({})
+  render(<Schedule me={ME} />)
+  const strip = await screen.findByRole('group', { name: 'Pilih hari' })
+  expect(screen.queryByRole('button', { name: 'Hari ini' })).toBeNull()
+  fireEvent.click(within(strip).getByRole('button', { name: /^Kamis, 10 Januari 2030/ }))
+  fireEvent.click(screen.getByRole('button', { name: 'Hari ini' }))
+  expect(within(strip).getByRole('button', { name: /^Rabu, 9 Januari 2030/ })).toHaveAttribute('aria-pressed', 'true')
+  expect(screen.queryByRole('button', { name: 'Hari ini' })).toBeNull()
+})
+
+test('HP: titik minggu gagal dimuat -> pesan + Coba lagi', async () => {
+  today9()
+  viewport(412)
+  let fail = true
+  mockWeek({ '2030-01-08': 1 }, { failWeek: () => fail })
+  render(<Schedule me={ME} />)
+  const alert = await screen.findByText(/Jumlah janji per hari gagal dimuat/)
+  fail = false
+  fireEvent.click(within(alert).getByRole('button', { name: 'Coba lagi' }))
+  await vi.waitFor(() => expect(screen.getByRole('button', { name: /^Selasa, 8 Januari 2030, 1 janji/ })).toBeInTheDocument())
+  expect(screen.queryByText(/gagal dimuat/)).toBeNull()
+})
+
+test('HP: FAB "Buat janji" membuka dialog Buat Janji', async () => {
+  today9()
+  viewport(360)
+  mockWeek({})
+  render(<Schedule me={ME} />)
+  const fab = await screen.findByRole('button', { name: 'Buat janji' })
+  expect(fab).toHaveClass('fab')
+  fireEvent.click(fab)
+  expect(await screen.findByRole('dialog', { name: 'Buat Janji' })).toBeInTheDocument()
+})
+
+test('desktop: tanpa week strip, FAB, atau toolbar HP', async () => {
+  viewport(1280)
+  const calls = mockWeek({})
+  const { container } = render(<Schedule me={ME} />)
+  await screen.findByRole('button', { name: '+ Buat Janji' })
+  expect(container.querySelector('.sched-top, .week-strip, .fab')).toBeNull()
+  expect(screen.getByRole('heading', { name: 'Jadwal' })).toHaveClass('shell-dup-title')
+  expect(calls).toHaveLength(1) // no week fetch on desktop
 })
