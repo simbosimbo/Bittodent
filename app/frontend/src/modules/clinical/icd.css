@@ -38,7 +38,7 @@
 
 /* Chart: on a wide screen the panel is a sticky column beside odontogram + SOAP. */
 @media (min-width: 1200px) {
-  .chart-icd { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 360px); column-gap: 16px; align-items: start; }
+  .chart-icd { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 360px); grid-template-rows: auto 1fr; column-gap: 16px; align-items: start; }
   .chart-icd > :not(.chart-icd-panel) { grid-column: 1; }
   .chart-icd > .chart-icd-panel { grid-column: 2; grid-row: 1 / span 2; position: sticky; top: 160px; max-height: calc(100vh - 172px); overflow: auto; }
 }

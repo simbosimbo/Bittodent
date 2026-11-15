@@ -29,7 +29,7 @@ const open = async (page) => {
   await login(page)
   await page.goto(`${base}#/rekam-medis/${patient}`)
   const panel = page.locator('section.ic')
-  await panel.getByText(/draf$/).first().waitFor()
+  await panel.locator('.ic-card').first().waitFor()
   return panel
 }
 try {
@@ -46,7 +46,11 @@ try {
   const hp = await ctx.newPage()
   const p2 = await open(hp)
   await tapCheck(hp, 'hp-390')
-  await hp.evaluate(() => document.querySelector('.chart-icd-panel')?.scrollIntoView({ block: 'start' }))
+  const below = () => { // scroll an element just below the app's sticky header
+    const top = Math.max(0, ...[...document.querySelectorAll('header, .topbar, [class*="sticky"]')].map((h) => getComputedStyle(h).position === 'sticky' || getComputedStyle(h).position === 'fixed' ? h.getBoundingClientRect().bottom : 0))
+    return top
+  }
+  await hp.evaluate((fn) => { const h = new Function('return (' + fn + ')()')(); const el = document.querySelector('.chart-icd-panel'); if (el) window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - h - 8) }, below.toString())
   await hp.waitForTimeout(300)
   await hp.screenshot({ path: join(out, 'a1-hp-390.png') })
   const chip = p2.locator('.ic-cite').first()
