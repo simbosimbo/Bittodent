@@ -15,7 +15,7 @@ Akses (U0d): pemilik hanya **membaca** (`note.read`); tidak pernah menulis draf,
 - `tooth_finding` = **kondisi visual** (karies, hilang, perlu dicabut, ...) per gigi / satu permukaan. API temuan menolak kode tindakan dan status tindakan (422).
 - `procedure_record` = **tindakan** (setara `procedurelog` Open Dental): satu baris = satu tindakan = satu harga, berapa pun permukaannya (`surfaces` = `MOD`, urutan M O D I B L). `treat_area` dari katalog klinis `procedure_definition` (`Domain/ProcedureCatalog.php`, bukan Tariffs).
 - API: `POST /api/visits/{id}/procedures` (draf; `surfaces` boleh string atau array; `provider_id` default dokter kunjungan), `PATCH /api/procedures/{id}` (draf sendiri), `DELETE /api/procedures/{id}` (state `discarded`), `POST /api/procedures/{id}/status` (dokter gigi, baris final baru + `supersedes_id`).
-- Status (`Domain/ProcedureStatus.php`): kunci Indonesia tetap + `cancelled` (dari `direncanakan`) + `superseded` (hanya jalur gantikan, unit berikut). `external` = alias tulis `ada_di_tempat_lain`. Matriks di `TRANSITIONS`; `selesai` final.
+- Status (`Domain/ProcedureStatus.php`): kunci Indonesia tetap + `cancelled` (dari `direncanakan`) + `superseded` (hanya penanda dari jalur ganti, unit 3). `external` = alias tulis `ada_di_tempat_lain`. Matriks di `TRANSITIONS`; `selesai` final.
 - **Tagihan**: hanya tindakan final `selesai` dengan kode memicu `ProcedureRecorded` (tanpa harga; membawa `provider_id` + kategori/bidang dokter itu). Billing membuat satu `invoice_line` per `procedure_id` (UNIQUE). EC/EO/R/Cn/rencana/batal tidak pernah menagih; `ada_di_klinik_ini` = pekerjaan **lama** di klinik ini.
 - Tanda tangan memfinalkan draf temuan **dan** draf tindakan kunjungan itu, lalu menagih tindakan `selesai`.
 
@@ -27,6 +27,17 @@ Akses (U0d): pemilik hanya **membaca** (`note.read`); tidak pernah menulis draf,
 - **Perlu konfirmasi (`external_confirmation = pending`):** pasien sudah punya tindakan `selesai` hari itu, lalu dokter tetap mencatat tindakan klinik lain di tempat lain di mulut. Baris pending/ditolak **bukan riwayat aktif**: tidak masuk `procedures` di chart, tidak dicat di odontogram, tidak bisa ganti status (409), tetap tidak menagih.
 - **Tanpa konfirmasi (`not_required`):** pemeriksaan awal, riwayat, ERM — kunjungan tanpa `selesai` hari itu. Langsung aktif.
 - Konfirmasi: `POST /api/procedures/{id}/confirm-external {confirm, reason?}` dan daftar `GET /api/procedures/pending-external` (cabang aktif, tanpa diagnosis), izin `procedure.confirm_external` = **front_desk dan assistant saja**: mata kedua ketika tindakan klinik lain dicatat pada kunjungan yang sudah ada pekerjaan yang (akan) ditagih hari itu, supaya pekerjaan hari ini tidak tersembunyi dari tagihan. Dokter tidak (ia yang mencatat), kasir tidak, pemilik **belum** (keputusan terbuka). Tolak = `rejected` (tanpa DELETE). Keduanya diaudit. Konfirmasi ditolak 422 bila sejak dicatat situs itu mendapat `selesai` hari itu. Baris final pending hanya boleh mengubah kolom konfirmasi, sekali (trigger MySQL).
+
+## Riwayat tindakan, ganti, koreksi, per tanggal (DEVIATIONS #49)
+
+- Baris final tidak pernah diubah. Tiga cara menulis riwayat, semuanya baris final baru, hanya dokter (`note.sign`):
+  - **Ubah status** `POST /api/procedures/{id}/status` (unit 1): baris baru `supersedes_id`, hanya sepanjang `TRANSITIONS`.
+  - **Ganti restorasi** `POST /api/procedures/{id}/replace {visit_id, status direncanakan|selesai, reason, kode + situs}`: untuk pekerjaan yang sudah ada (`selesai`, `ada_di_klinik_ini`, `ada_di_tempat_lain`). Penanda `superseded` (salinan lama, `supersedes_id`) + tindakan baru (`replaces_id` = lama). Tagihan lama tetap; yang baru menagih bila `selesai`.
+  - **Koreksi** `POST /api/procedures/{id}/corrections {reason, field yang dikoreksi}`: status sama, `supersedes_id`, tidak menagih. Belum memakai `correction_request`/2x24 jam.
+- Alasan wajib ≥10 huruf untuk ganti dan koreksi (kolom `reason`).
+- Chart: `procedures` = baris final terkini (tidak digantikan, bukan penanda, bukan luar pending/ditolak). `procedure_history` = semua baris final yang berlaku, dengan `superseded_by` + `change` (`digantikan`/`koreksi`/`status`, diturunkan).
+- `GET /api/patients/{id}/chart?as_of=YYYY-MM-DD`: akhir hari lokal cabang. Waktu berlaku = `finalized_at` (luar terkonfirmasi: yang lebih akhir dengan `external_confirmed_at`), bukan `external_date`. Masa depan = sekarang; kosong/salah = 422. Draf dan antrean konfirmasi kosong. Diaudit (`baca` chart, `as_of`).
+- UI bot masih memegang: slider tanggal, linimasa, panel riwayat per gigi.
 
 ## Backlog (belum dibuat)
 
