@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Bittodent · KlinikMe gigi · AI dan input cepat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+/* DIBUAT OTOMATIS dari design/tokens.json + odontogram/legend.json oleh scripts/gen-tokens.mjs. Jangan edit manual. */
+:root {
+  --color-primary-50: #EEF9F8;
+  --color-primary-100: #D3F0EC;
+  --color-primary-200: #A8E0D9;
+  --color-primary-300: #7DD0C6;
+  --color-primary-400: #3BB8AB;
+  --color-primary-500: #14A396;
+  --color-primary-600: #0E8579;
+  --color-primary-700: #0B6B62;
+  --color-primary-800: #0A5650;
+  --color-primary-900: #083F3B;
+  --color-neutral-0: #FFFFFF;
+  --color-neutral-25: #FAFAFC;
+  --color-neutral-50: #F2F4F8;
+  --color-neutral-100: #E6EBEF;
+  --color-neutral-200: #D4DBE1;
+  --color-neutral-300: #B5C0C9;
+  --color-neutral-400: #8A96A0;
+  --color-neutral-500: #5F6C77;
+  --color-neutral-600: #4D5A64;
+  --color-neutral-700: #3B4752;
+  --color-neutral-800: #243044;
+  --color-neutral-900: #16212B;
+  --color-success-bg: #ECFDF3;
+  --color-success-border: #4ADE80;
+  --color-success-fg: #15803D;
+  --color-success-solid: #15803D;
+  --color-warning-bg: #FFFAEB;
+  --color-warning-border: #F5C14A;
+  --color-warning-fg: #B54708;
+  --color-danger-bg: #FEF3F2;
+  --color-danger-border: #FDA29B;
+  --color-danger-fg: #B42318;
+  --color-danger-solid: #D92D20;
+  --color-info-bg: #EEF4FF;
+  --color-info-border: #93B4FD;
+  --color-info-fg: #2E5AAC;
+  --color-info-solid: #3B5BDB;
+  --color-draft-bg: #FFF8E1;
+  --color-draft-border: #D99A00;
+  --color-draft-fg: #704400;
+  --color-locked-bg: #EEF1F4;
+  --color-locked-border: #B5C0C9;
+  --color-locked-fg: #2E3A45;
+  --color-offline-bg: #2E3A45;
+  --color-offline-fg: #FFFFFF;
+  --color-appointment-terjadwal-bg: #E3EDFC;
+  --color-appointment-terjadwal-border: #5C8FE0;
+  --color-appointment-terjadwal-fg: #174E9E;
+  --color-appointment-checkin-bg: #F1E8FC;
+  --color-appointment-checkin-border: #9A6BD6;
+  --color-appointment-checkin-fg: #5B2F94;
+  --color-appointment-merawat-bg: #D3F0EC;
+  --color-appointment-merawat-border: #14A396;
+  --color-appointment-merawat-fg: #0A5650;
+  --color-appointment-selesai-bg: #E5F5EC;
+  --color-appointment-selesai-border: #4CA874;
+  --color-appointment-selesai-fg: #1B6E42;
+  --color-appointment-batal-bg: #F2F4F8;
+  --color-appointment-batal-border: #B5C0C9;
+  --color-appointment-batal-fg: #5F6C77;
+  --color-appointment-blok-bg: #F2F4F8;
+  --color-appointment-blok-stripe: #E1E6EA;
+  --color-appointment-blok-fg: #3B4752;
+  --color-chart-plan: #0B6B62;
+  --color-chart-changed: #F5B400;
+  --color-chart-enamel: #FFFFFF;
+  --color-brand: #0B6B62;
+  --color-brand-hover: #0A5650;
+  --color-canvas: #F2F4F8;
+  --color-border: #EAECF8;
+  --color-text: #243044;
+  --color-muted: #5C6573;
+  --color-sidebar: #FAFAFC;
+  --color-surface: #FFFFFF;
+  --color-surface-muted: #F4F6FA;
+  --font-family-sans: "Plus Jakarta Sans", Inter, "Segoe UI", system-ui, sans-serif;
+  --font-family-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-size-xs: 12px;
+  --font-size-sm: 13px;
+  --font-size-base: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+  --font-size-3xl: 30px;
+  --font-size-label: 12px;
+  --font-size-body: 14px;
+  --font-size-clinical: 16px;
+  --font-size-title: 18px;
+  --font-size-page: 28px;
+  --font-size-kpi: 32px;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-line-height-tight: 1.25;
+  --font-line-height-normal: 1.5;
+  --space-0: 0px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+  --radius-card: 16px;
+  --radius-control: 10px;
+  --radius-frame: 24px;
+  --shadow-sm: 0 1px 2px rgba(22,33,43,0.06), 0 1px 1px rgba(22,33,43,0.04);
+  --shadow-md: 0 4px 12px rgba(22,33,43,0.08);
+  --shadow-lg: 0 12px 32px rgba(22,33,43,0.14);
+  --shadow-focus: 0 0 0 3px rgba(11, 107, 98, 0.35);
+  --shadow-card: none;
+  --shadow-float: 0 16px 40px rgba(36, 48, 68, 0.08);
+  --size-touch: 44px;
+  --size-topbar: 64px;
+  --size-rail: 224px;
+  --size-rail-compact: 84px;
+  --size-sidebar: 264px;
+  --size-sidebar-compact: 72px;
+  --size-gutter: 20px;
+  --size-page-pad: 28px;
+  --size-page-pad-mobile: 16px;
+  --size-topbar-compact: 56px;
+  --shells-a-name: Zendenta-like;
+  --shells-a-color-bg: #EEF3F4;
+  --shells-a-color-surface: #FFFFFF;
+  --shells-a-color-sidebar: #F7FAFA;
+  --shells-a-color-sidebar-text: #3B4752;
+  --shells-a-color-sidebar-active-bg: #D3F0EC;
+  --shells-a-color-sidebar-active-text: #0B6B62;
+  --shells-a-color-border: #E6EBEF;
+  --shells-a-color-accent: #0B6B62;
+  --shells-a-color-text: #16212B;
+  --shells-a-color-muted: #5F6C77;
+  --shells-a-font-size: 14px;
+  --shells-a-font-title: 24px;
+  --shells-a-font-family: Inter, "Segoe UI", system-ui, sans-serif;
+  --shells-a-space-page: 24px;
+  --shells-a-space-card: 20px;
+  --shells-a-space-gap: 16px;
+  --shells-a-radius-card: 16px;
+  --shells-a-radius-item: 10px;
+  --shells-a-shadow-card: 0 1px 2px rgba(22,33,43,0.06), 0 1px 1px rgba(22,33,43,0.04);
+  --shells-a-size-sidebar: 248px;
+  --shells-a-size-sidebar-compact: 72px;
+  --shells-a-size-topbar: 64px;
+  --shells-a-size-touch: 44px;
+  --shells-b-name: Dense-calm Linear/Notion;
+  --shells-b-color-bg: #FAFAF9;
+  --shells-b-color-surface: #FFFFFF;
+  --shells-b-color-sidebar: #F4F4F3;
+  --shells-b-color-sidebar-text: #3F3F46;
+  --shells-b-color-sidebar-active-bg: #E8E8E6;
+  --shells-b-color-sidebar-active-text: #0B6B62;
+  --shells-b-color-border: #E4E4E7;
+  --shells-b-color-accent: #0B6B62;
+  --shells-b-color-text: #18181B;
+  --shells-b-color-muted: #71717A;
+  --shells-b-font-size: 13px;
+  --shells-b-font-title: 18px;
+  --shells-b-font-family: Inter, "Segoe UI", system-ui, sans-serif;
+  --shells-b-space-page: 16px;
+  --shells-b-space-card: 12px;
+  --shells-b-space-gap: 12px;
+  --shells-b-radius-card: 8px;
+  --shells-b-radius-item: 6px;
+  --shells-b-shadow-card: none;
+  --shells-b-size-sidebar: 200px;
+  --shells-b-size-sidebar-compact: 56px;
+  --shells-b-size-topbar: 48px;
+  --shells-b-size-touch: 36px;
+  --shells-b-size-touch-tablet: 44px;
+  --shells-c-name: Modern clinical EHR;
+  --shells-c-color-bg: #F3F6F7;
+  --shells-c-color-surface: #FFFFFF;
+  --shells-c-color-sidebar: #0A5650;
+  --shells-c-color-sidebar-text: #D3F0EC;
+  --shells-c-color-sidebar-active-bg: #0B6B62;
+  --shells-c-color-sidebar-active-text: #FFFFFF;
+  --shells-c-color-border: #D4DBE1;
+  --shells-c-color-accent: #0B6B62;
+  --shells-c-color-text: #16212B;
+  --shells-c-color-muted: #5F6C77;
+  --shells-c-color-strip: #FFFFFF;
+  --shells-c-color-strip-edge: #0B6B62;
+  --shells-c-font-size: 15px;
+  --shells-c-font-title: 20px;
+  --shells-c-font-family: Inter, "Segoe UI", system-ui, sans-serif;
+  --shells-c-space-page: 20px;
+  --shells-c-space-card: 16px;
+  --shells-c-space-gap: 16px;
+  --shells-c-radius-card: 12px;
+  --shells-c-radius-item: 8px;
+  --shells-c-shadow-card: 0 1px 2px rgba(22,33,43,0.05);
+  --shells-c-size-sidebar: 72px;
+  --shells-c-size-sidebar-compact: 72px;
+  --shells-c-size-topbar: 56px;
+  --shells-c-size-strip: 80px;
+  --shells-c-size-panel: 360px;
+  --shells-c-size-touch: 48px;
+  /* Warna kondisi & status odontogram — SUMBER: design/odontogram/legend.json */
+  --legend-condition-sehat: #0B7A45;
+  --color-tooth-sehat: #0B7A45;
+  --legend-condition-karies: #BE123C;
+  --color-tooth-karies: #BE123C;
+  --legend-condition-tambalan: #1E40AF;
+  --color-tooth-tambalan: #1E40AF;
+  --legend-condition-mahkota: #6D28D9;
+  --color-tooth-mahkota: #6D28D9;
+  --legend-condition-hilang: #3F3F46;
+  --color-tooth-hilang: #3F3F46;
+  --legend-condition-sisa-akar: #9A3412;
+  --color-tooth-sisa-akar: #9A3412;
+  --legend-condition-perlu-dicabut: #A15C00;
+  --color-tooth-perlu-dicabut: #A15C00;
+  --legend-condition-implan: #0F5F63;
+  --color-tooth-implan: #0F5F63;
+  --legend-status-kondisi: #374151;
+  --color-proc-status-kondisi: #374151;
+  --legend-status-sudah-ada-sini: #0B7A45;
+  --color-proc-status-sudah-ada-sini: #0B7A45;
+  --legend-status-sudah-ada-lain: #1E40AF;
+  --color-proc-status-sudah-ada-lain: #1E40AF;
+  --legend-status-direncanakan: #A15C00;
+  --color-proc-status-direncanakan: #A15C00;
+  --legend-status-selesai: #0F5F63;
+  --color-proc-status-selesai: #0F5F63;
+  --legend-status-dirujuk: #6D28D9;
+  --color-proc-status-dirujuk: #6D28D9;
+  --legend-state-draft: #6D28D9;
+  --legend-state-draft-wash: #F3EEFF;
+  --legend-state-draft-accent: #A15C00;
+  --legend-state-signed: #111827;
+  --legend-enamel: var(--color-chart-enamel);
+}
+
+
+*{box-sizing:border-box}
+html,body{margin:0;background:#E8EEF0;color:var(--color-neutral-800);
+  font-family:var(--font-family-sans);-webkit-font-smoothing:antialiased}
+body{padding:48px 40px 80px}
+.wrap{max-width:1760px;margin:0 auto}
+h1.page{font-size:28px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px;color:var(--color-neutral-900)}
+.lede{margin:0 0 36px;color:var(--color-neutral-600);font-size:14px;font-weight:500;max-width:820px;line-height:1.5}
+.ab{margin:0 0 64px;width:max-content;max-width:none;padding:8px 8px 8px 16px}
+.ab-k{display:flex;align-items:baseline;gap:12px;margin:0 0 8px}
+.ab-n{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--color-primary-700);text-transform:uppercase}
+.ab-t{font-size:16px;font-weight:650;color:var(--color-neutral-800)}
+.ab-d{font-size:12px;font-weight:500;color:var(--color-neutral-500);margin:0 0 14px;max-width:820px;line-height:1.45}
+.row{display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap}
+
+.ic{width:20px;height:20px;flex:none}
+.ic-btn{width:16px;height:16px}
+.ic-sm{width:16px;height:16px}
+.ic-lg{width:24px;height:24px}
+
+.syn{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;
+  background:#FFFAEB;color:#B54708;border:1px solid #F5C14A;font-size:10px;font-weight:700;letter-spacing:.04em}
+.chip{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;
+  font-size:11px;font-weight:700;letter-spacing:.01em;white-space:nowrap}
+.st-draf{background:#FFF6E5;color:#9A6700}
+.st-ai{background:var(--color-appointment-checkin-bg);color:var(--color-appointment-checkin-fg)}
+.st-ok{background:var(--color-appointment-selesai-bg);color:var(--color-appointment-selesai-fg)}
+.st-warn{background:var(--color-warning-bg);color:var(--color-warning-fg)}
+.st-info{background:var(--color-info-bg);color:var(--color-info-fg)}
+.st-mute{background:var(--color-neutral-100);color:var(--color-neutral-600)}
+.st-ada{background:var(--color-appointment-selesai-bg);color:var(--color-appointment-selesai-fg)}
+.st-sebagian{background:#FFF6E5;color:#9A6700}
+.st-belum{background:var(--color-neutral-100);color:var(--color-neutral-600)}
+.st-karies{background:#FDECEC;color:#B42318}
+.st-isi{background:var(--color-primary-50);color:var(--color-primary-800)}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 16px;
+  border-radius:12px;font-size:13px;font-weight:700;border:0;background:transparent;color:var(--color-neutral-800);cursor:default}
+.btn.pri{background:var(--color-primary-700);color:#fff}
+.btn.sec{background:var(--color-neutral-0);color:var(--color-primary-800);border:1px solid var(--color-primary-200)}
+.btn.ghost{background:var(--color-neutral-0);color:var(--color-neutral-700);border:1px solid var(--color-neutral-200)}
+.btn.dis{opacity:.45}
+.icon-btn{width:44px;height:44px;display:grid;place-items:center;border:0;background:transparent;
+  border-radius:12px;color:var(--color-neutral-700);flex:none;padding:0}
+
+.av{width:32px;height:32px;border-radius:10px;background:var(--color-primary-100);color:var(--color-primary-800);
+  display:grid;place-items:center;font-size:11px;font-weight:800;flex:none}
+.av-fd{background:#E8F0FE;color:#1D4ED8}
+
+.desk{width:1280px;background:var(--color-neutral-0);border:1px solid var(--color-neutral-200);
+  border-radius:20px;overflow:hidden;display:flex;flex:none;box-shadow:0 8px 28px rgba(22,33,43,.06)}
+.rail{width:72px;background:#F4F7F7;border-right:1px solid var(--color-neutral-200);display:flex;flex-direction:column;
+  align-items:center;padding:16px 8px 12px;gap:4px;flex:none}
+.rail .logo{width:40px;height:40px;border-radius:12px;background:var(--color-primary-700);color:#fff;
+  display:grid;place-items:center;margin-bottom:8px}
+.rail .logo .ic{width:20px;height:20px}
+.rspacer{flex:1}
+.rbtn{width:48px;height:48px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;color:var(--color-neutral-500);font-size:9px;font-weight:700;letter-spacing:.02em;border:0;background:transparent}
+.rbtn .ic{width:20px;height:20px}
+.rbtn.on{background:var(--color-primary-700);color:#fff}
+.desk-col{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--color-canvas)}
+.top{display:flex;align-items:center;justify-content:space-between;min-height:56px;padding:0 16px 0 20px;
+  background:var(--color-neutral-0);border-bottom:1px solid var(--color-neutral-200);gap:12px}
+.top h2{margin:0;font-size:16px;font-weight:700;color:var(--color-neutral-900)}
+.top .who{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--color-neutral-600)}
+.crumb{font-size:12px;font-weight:600;color:var(--color-neutral-500)}
+.crumb b{color:var(--color-neutral-800);font-weight:700}
+.desk-body{flex:1;padding:16px;display:flex;gap:16px;min-height:0}
+.desk-body.col{flex-direction:column}
+
+.ph{width:360px;background:var(--color-neutral-0);border:1px solid var(--color-neutral-200);
+  border-radius:24px;overflow:hidden;position:relative;display:flex;flex-direction:column;flex:none}
+.ph-bar{display:flex;align-items:center;justify-content:space-between;padding:8px 16px 0;min-height:28px;
+  background:var(--color-neutral-0)}
+.ph-time{font-size:12px;font-weight:600;color:var(--color-neutral-700)}
+.hd{background:var(--color-neutral-0);padding:0 8px 8px;display:flex;align-items:center;justify-content:space-between;
+  min-height:44px;gap:8px;border-bottom:1px solid var(--color-neutral-100)}
+.h-sm{margin:0;font-size:16px;font-weight:700;flex:1}
+.ph-body{flex:1;background:var(--color-canvas);padding:8px 16px 100px;display:flex;flex-direction:column;gap:8px}
+.bnav{position:absolute;left:0;right:0;bottom:0;height:72px;background:var(--color-neutral-0);
+  border-top:1px solid var(--color-neutral-200);display:flex;padding:0 4px 8px}
+.navi{flex:1;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;font-size:10px;font-weight:700;color:var(--color-neutral-500);min-height:44px}
+.navi .ic{width:20px;height:20px}
+.navi.on{color:var(--color-primary-700)}
+
+.card{background:var(--color-neutral-0);border:1px solid var(--color-neutral-200);border-radius:16px;padding:14px 16px}
+.card h3{margin:0 0 8px;font-size:13px;font-weight:700;color:var(--color-neutral-800);display:flex;align-items:center;gap:8px}
+.note{font-size:13px;line-height:1.45;color:var(--color-neutral-700)}
+.note b{font-weight:700;color:var(--color-neutral-900)}
+.mu{font-size:12px;font-weight:500;color:var(--color-neutral-500)}
+.kicker{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500)}
+.banner{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;border-radius:12px;font-size:12px;font-weight:600;line-height:1.4}
+.banner.warn{background:var(--color-warning-bg);color:var(--color-warning-fg);border:1px solid var(--color-warning-border)}
+.banner.info{background:var(--color-info-bg);color:var(--color-info-fg);border:1px solid var(--color-info-border)}
+.banner.ok{background:var(--color-success-bg);color:var(--color-success-fg);border:1px solid var(--color-success-border)}
+.banner .ic{margin-top:1px}
+.field{display:flex;flex-direction:column;gap:4px;margin:0 0 10px}
+.lab{font-size:11px;font-weight:700;color:var(--color-neutral-500);letter-spacing:.04em;text-transform:uppercase}
+.inp{min-height:44px;border:1px solid var(--color-neutral-200);border-radius:12px;background:var(--color-neutral-0);
+  padding:10px 12px;font-size:14px;font-weight:600;color:var(--color-neutral-800);display:flex;align-items:center}
+.inp.area{min-height:52px;align-items:flex-start;font-weight:500;line-height:1.4}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:16px;flex:1;min-height:0}
+.split-5{display:grid;grid-template-columns:1.15fr .85fr;gap:16px;flex:1;min-height:0}
+.scroll-col{display:flex;flex-direction:column;gap:10px;min-width:0}
+
+.icode{display:flex;gap:10px;align-items:flex-start;padding:12px;border:1px solid var(--color-neutral-200);
+  border-radius:14px;background:var(--color-neutral-0)}
+.icode.on{border-color:var(--color-primary-300);background:var(--color-primary-50);box-shadow:0 0 0 2px var(--color-primary-100)}
+.icode .code{font-size:14px;font-weight:800;color:var(--color-neutral-900);font-variant-numeric:tabular-nums}
+.icode .nm{font-size:13px;font-weight:600;color:var(--color-neutral-800)}
+.checkb{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--color-neutral-300);flex:none;margin-top:2px;
+  display:grid;place-items:center;color:#fff}
+.icode.on .checkb{background:var(--color-primary-700);border-color:var(--color-primary-700)}
+
+.phrase{display:inline-flex;align-items:center;min-height:44px;padding:0 12px;border-radius:999px;
+  border:1px solid var(--color-primary-200);background:var(--color-neutral-0);color:var(--color-primary-800);
+  font-size:12px;font-weight:700}
+.phrase.on{background:var(--color-primary-700);color:#fff;border-color:var(--color-primary-700)}
+.phrases{display:flex;flex-wrap:wrap;gap:8px}
+
+.od-grid{display:flex;flex-direction:column;gap:8px}
+.od-row{display:flex;gap:4px;justify-content:center}
+.od-t{width:32px;height:40px;border-radius:8px;border:1px solid var(--color-neutral-200);background:#fff;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:9px;font-weight:800;
+  color:var(--color-neutral-600)}
+.od-t .sq{width:14px;height:14px;border-radius:3px;border:1px solid var(--color-neutral-300);background:#fff;margin-bottom:2px}
+.od-t.on{border-color:var(--color-primary-700);background:var(--color-primary-50);color:var(--color-primary-800)}
+.od-t.on .sq{background:#FDECEC;border-color:#B42318}
+.od-lab{text-align:center;font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--color-neutral-500)}
+.surf{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.surf b{min-height:44px;border-radius:10px;border:1px solid var(--color-neutral-200);background:#fff;
+  display:grid;place-items:center;font-size:12px;font-weight:800;color:var(--color-neutral-600)}
+.surf b.on{background:var(--color-primary-700);color:#fff;border-color:var(--color-primary-700)}
+
+.ktp{width:100%;aspect-ratio:1.6;border-radius:16px;background:linear-gradient(180deg,#1F4E79,#163A5F);
+  color:#fff;padding:16px;display:flex;flex-direction:column;justify-content:space-between;position:relative}
+.ktp .idlab{font-size:10px;font-weight:800;letter-spacing:.12em}
+.ktp .who{font-size:16px;font-weight:800}
+.ktp .meta{font-size:11px;font-weight:600;opacity:.85;line-height:1.5}
+.ktp .photo{position:absolute;right:16px;top:40px;width:72px;height:88px;border-radius:8px;background:#C5D4E3}
+
+.sig{height:120px;border:1.5px dashed var(--color-neutral-300);border-radius:14px;background:var(--color-neutral-25);
+  display:flex;align-items:flex-end;padding:8px 16px;color:var(--color-neutral-400)}
+.sig svg{width:180px;height:70px;stroke:var(--color-neutral-800);fill:none;stroke-width:2;stroke-linecap:round}
+
+.ba{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.well{min-height:180px;border:1.5px dashed var(--color-neutral-300);border-radius:14px;background:var(--color-neutral-25);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--color-neutral-500);
+  font-size:12px;font-weight:700;text-align:center;padding:16px}
+.well.has{border-style:solid;background:#E8F0E9;color:var(--color-primary-900);border-color:var(--color-primary-200)}
+.well .ic{width:28px;height:28px}
+
+.rx{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;
+  border:1px solid var(--color-neutral-200);border-radius:14px;background:#fff}
+.rx .nm{font-size:13px;font-weight:700}
+.rx .ds{font-size:12px;font-weight:500;color:var(--color-neutral-500)}
+
+table.gap{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid var(--color-neutral-200);
+  border-radius:16px;overflow:hidden;font-size:13px}
+table.gap th,table.gap td{padding:10px 12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--color-neutral-100);
+  line-height:1.4}
+table.gap th{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--color-neutral-500);
+  background:var(--color-neutral-50)}
+table.gap tr:last-child td{border-bottom:0}
+table.gap td.ft{font-weight:700;color:var(--color-neutral-900);white-space:nowrap}
+.legend{display:flex;gap:12px;align-items:center;margin:0 0 12px;font-size:12px;font-weight:600;color:var(--color-neutral-600)}
+
+figcaption{font-size:12px;font-weight:600;color:var(--color-neutral-500);margin-top:8px}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 class="page">AI dan input cepat untuk klinik gigi</h1>
+  <p class="lede">Papan usulan Bittodent, dibanding fitur publik KlinikMe. Semua layar memakai data sintetis. Keluaran AI selalu Draf sampai dokter Setujui, lalu Selesai. NIK dienkripsi dan tidak ditampil penuh. Fitur tanpa izin disembunyikan.</p>
+  
+    <section class="ab" id="ab-01">
+      <div class="ab-k"><span class="ab-n">01</span><span class="ab-t">AI saran ICD dari catatan</span></div>
+      <p class="ab-d">Kode disarankan dari SOAP yang sudah ada, bukan diketik ulang. Hasil selalu Draf sampai dokter Setujui. Draf tidak masuk SATUSEHAT atau klaim.</p>
+      
+    <div class="desk" style="height:auto">
+      <aside class="rail"><div class="logo"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg></div><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg>Beranda</button><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Jadwal</button><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Pasien</button><button class="rbtn on" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg>RM</button><span class="rspacer"></span><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg>Lainnya</button></aside>
+      <div class="desk-col">
+        <header class="top"><div><h2>Saran ICD</h2><div class=crumb>Budi Santoso · Gigi 26 · 15 Nov 2026</div></div>
+          <div class="who"><span class="syn">DATA SINTETIS</span><span class="av" aria-hidden="true">NP</span>
+            <span>drg. Nadia Putri</span></div>
+        </header>
+        
+    <div class="desk-body">
+      <div class="split-5" style="flex:1">
+        <div class="scroll-col">
+          <div class="kicker">Catatan disetujui</div>
+          
+    <article class="card">
+      <h3>SOAP hari ini</h3>
+      <div class="field"><span class="lab">S</span>
+        <div class="note">Nyeri gigit di rahang kiri atas sejak 3 hari. Tidak ada pembengkakan. Tidak alergi obat.</div></div>
+      <div class="field"><span class="lab">O</span>
+        <div class="note">Gigi 26 karies dentin permukaan O dan M. Gingiva sekitar sedikit meradang. Uji perkusi positif ringan.</div></div>
+      <div class="field"><span class="lab">A</span>
+        <div class="note">Karies dentin 26. Gingivitis ringan setempat.</div></div>
+      <div class="field"><span class="lab">P</span>
+        <div class="note">Restorasi komposit 26. Edukasi kebersihan. Kontrol 7 hari.</div></div>
+    </article>
+        </div>
+        <div class="scroll-col">
+          <article class="card">
+            <h3><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/></svg> Saran kode <span class="chip st-ai">Draf AI</span></h3>
+            <div class="banner warn"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+              Draf. Belum ke SATUSEHAT atau klaim. Dokter memilih, lalu Setujui.</div>
+            
+    <div class="icode on">
+      <span class="checkb"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
+      <div>
+        <div class="code">K02.1 <span class="mu">ICD-10</span></div>
+        <div class="nm">Karies dentin</div>
+        <div class="mu">Dari asesmen · 26</div>
+      </div>
+    </div>
+            
+    <div class="icode">
+      <span class="checkb"></span>
+      <div>
+        <div class="code">K05.10 <span class="mu">ICD-10</span></div>
+        <div class="nm">Gingivitis kronis</div>
+        <div class="mu">Dari objektif · rendah</div>
+      </div>
+    </div>
+            
+    <div class="icode on">
+      <span class="checkb"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
+      <div>
+        <div class="code">23.2 <span class="mu">ICD-9-CM</span></div>
+        <div class="nm">Restorasi gigi</div>
+        <div class="mu">Dari rencana · ICD-9-CM</div>
+      </div>
+    </div>
+            <div class="actions">
+              <button class="btn ghost" type="button"><svg class="ic-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>Buang draf</button>
+              <button class="btn pri" type="button"><svg class="ic-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Setujui yang dipilih</button>
+            </div>
+            <p class="mu" style="margin:10px 0 0">Selesai (tanda tangan) aktif setelah Setujui.</p>
+          </article>
+        </div>
+      </div>
+    </div>
+      </div>
+    </div>
+    </section>
+    <section class="ab" id="ab-02">
+      <div class="ab-k"><span class="ab-n">02</span><span class="ab-t">AI draf SOAP dari suara</span></div>
+      <p class="ab-d">Agen Scribe merapikan ucapan jadi SOAP. Selalu Draf. Dokter boleh ubah, lalu Setujui, kemudian Selesai. Tanpa izin rekam, tombol mikrofon tidak ditampilkan.</p>
+      
+    <div class="ph" style="height:840px">
+      <div class="ph-bar"><span class="syn">DATA SINTETIS</span><span class="ph-time">09.40</span></div>
+      <header class="hd"><button class="icon-btn" type="button" aria-label="Kembali"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button><h1 class="h-sm">Draf SOAP</h1>
+        <button class="icon-btn" type="button" aria-label="Lainnya"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg></button></header>
+      <div class="ph-body">
+      <div class="banner ok"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 5 6v6c0 5 3.5 8 7 9 3.5-1 7-4 7-9V6z"/><path d="M9 12l2 2 4-4"/></svg> Izin rekam pasien ada. Audio dihapus setelah Selesai.</div>
+      <article class="card">
+        <h3><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg> Ucapan <span class="chip st-ai">Draf AI</span></h3>
+        <p class="note">Nyeri gigit kiri atas tiga hari, gigi 26 karies dentin, tambal komposit, kontrol tujuh hari, tidak alergi.</p>
+      </article>
+      <article class="card">
+        <div class="field"><span class="lab">S</span><div class="inp area">Nyeri gigit rahang kiri atas sejak 3 hari. Tidak alergi obat.</div></div>
+        <div class="field"><span class="lab">O</span><div class="inp area">Gigi 26 karies dentin. Perkusi ringan positif.</div></div>
+        <div class="field"><span class="lab">A</span><div class="inp area">Karies dentin 26.</div></div>
+        <div class="field"><span class="lab">P</span><div class="inp area">Restorasi komposit 26. Kontrol 7 hari.</div></div>
+      </article>
+      <div class="actions">
+        <button class="btn ghost" type="button">Ubah</button>
+        <button class="btn pri" type="button"><svg class="ic-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Setujui draf</button>
+      </div>
+      <p class="mu">AI hanya merapikan yang diucapkan. Tidak menambah diagnosis atau obat.</p>
+    </div>
+      <nav class="bnav"><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><span>Beranda</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Jadwal</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Pasien</span></button><button class="navi on" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg><span>Rekam Medis</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg><span>Lainnya</span></button></nav>
+    </div>
+    </section>
+    <section class="ab" id="ab-03">
+      <div class="ab-k"><span class="ab-n">03</span><span class="ab-t">AI saran tindakan dari odontogram</span></div>
+      <p class="ab-d">Usulan Bittodent. Tidak ada bukti publik KlinikMe punya fitur ini. Saran tetap Draf sampai Setujui. AI tidak menambah temuan yang tidak ada di chart.</p>
+      
+    <div class="desk" style="height:auto">
+      <aside class="rail"><div class="logo"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg></div><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg>Beranda</button><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Jadwal</button><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Pasien</button><button class="rbtn on" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg>RM</button><span class="rspacer"></span><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg>Lainnya</button></aside>
+      <div class="desk-col">
+        <header class="top"><div><h2>Saran tindakan</h2><div class=crumb>Budi Santoso · Gigi 26</div></div>
+          <div class="who"><span class="syn">DATA SINTETIS</span><span class="av" aria-hidden="true">NP</span>
+            <span>drg. Nadia Putri</span></div>
+        </header>
+        
+    <div class="desk-body">
+      <div class="split-5" style="flex:1">
+        <article class="card">
+          <h3>Odontogram <span class="chip st-karies">26 karies</span></h3>
+          
+    <div class="od-grid">
+      <div class="od-lab">RAHANG ATAS</div><div class="od-row"><div class="od-t"><span class="sq"></span>18</div><div class="od-t"><span class="sq"></span>17</div><div class="od-t"><span class="sq"></span>16</div><div class="od-t"><span class="sq"></span>15</div><div class="od-t"><span class="sq"></span>14</div><div class="od-t"><span class="sq"></span>13</div><div class="od-t"><span class="sq"></span>12</div><div class="od-t"><span class="sq"></span>11</div><div class="od-t"><span class="sq"></span>21</div><div class="od-t"><span class="sq"></span>22</div><div class="od-t"><span class="sq"></span>23</div><div class="od-t"><span class="sq"></span>24</div><div class="od-t"><span class="sq"></span>25</div><div class="od-t on"><span class="sq"></span>26</div><div class="od-t"><span class="sq"></span>27</div><div class="od-t"><span class="sq"></span>28</div></div>
+      <div class="od-lab">RAHANG BAWAH</div><div class="od-row"><div class="od-t"><span class="sq"></span>48</div><div class="od-t"><span class="sq"></span>47</div><div class="od-t"><span class="sq"></span>46</div><div class="od-t"><span class="sq"></span>45</div><div class="od-t"><span class="sq"></span>44</div><div class="od-t"><span class="sq"></span>43</div><div class="od-t"><span class="sq"></span>42</div><div class="od-t"><span class="sq"></span>41</div><div class="od-t"><span class="sq"></span>31</div><div class="od-t"><span class="sq"></span>32</div><div class="od-t"><span class="sq"></span>33</div><div class="od-t"><span class="sq"></span>34</div><div class="od-t"><span class="sq"></span>35</div><div class="od-t"><span class="sq"></span>36</div><div class="od-t"><span class="sq"></span>37</div><div class="od-t"><span class="sq"></span>38</div></div>
+    </div>
+          <p class="mu" style="margin:10px 0 0">Temuan tercatat: 26 karies O, M. Perkusi ringan.</p>
+        </article>
+        <article class="card">
+          <h3><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/></svg> Saran tindakan <span class="chip st-ai">Draf AI</span></h3>
+          <div class="banner info"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+            Hanya dari temuan di chart. Bukan diagnosis baru.</div>
+          
+    <div class="icode on">
+      <span class="checkb"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
+      <div>
+        <div class="code">Restorasi komposit <span class="mu">Tindakan</span></div>
+        <div class="nm">Gigi 26 · permukaan O, M</div>
+        <div class="mu">Dari karies 26</div>
+      </div>
+    </div>
+          
+    <div class="icode">
+      <span class="checkb"></span>
+      <div>
+        <div class="code">Foto bitewing <span class="mu">Tindakan</span></div>
+        <div class="nm">Rahang kiri atas</div>
+        <div class="mu">Opsional</div>
+      </div>
+    </div>
+          
+    <div class="icode on">
+      <span class="checkb"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
+      <div>
+        <div class="code">Kontrol <span class="mu">Jadwal</span></div>
+        <div class="nm">7 hari</div>
+        <div class="mu">Dari rencana</div>
+      </div>
+    </div>
+          <div class="actions">
+            <button class="btn ghost" type="button">Buang</button>
+            <button class="btn pri" type="button"><svg class="ic-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Setujui yang dipilih</button>
+          </div>
+        </article>
+      </div>
+    </div>
+      </div>
+    </div>
+    </section>
+    <section class="ab" id="ab-04">
+      <div class="ab-k"><span class="ab-n">04</span><span class="ab-t">Pindai KTP pasien baru</span></div>
+      <p class="ab-d">Identitas terisi otomatis sebagai draf. Resepsionis memverifikasi. NIK hanya mask. Nomor RM belum final sebelum Verifikasi dan daftar.</p>
+      
+    <div class="desk" style="height:auto">
+      <aside class="rail"><div class="logo"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg></div><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg>Beranda</button><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Jadwal</button><button class="rbtn on" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Pasien</button><span class="rspacer"></span><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg>Lainnya</button></aside>
+      <div class="desk-col">
+        <header class="top"><div><h2>Pasien baru · pindai KTP</h2>
+          <div class="crumb">Klinik Gigi Senyum Sehat · Tebet</div></div>
+          <div class="who"><span class="syn">DATA SINTETIS</span><span class="av av-fd" aria-hidden="true">SF</span><span>Sari Front Desk</span></div>
+        </header>
+        
+    <div class="desk-body">
+      <div class="split" style="flex:1">
+        <article class="card">
+          <h3><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Hasil pindai</h3>
+          <div class="ktp">
+            <div class="idlab">KTP · DATA SINTETIS</div>
+            <div>
+              <div class="who">BUDI SANTOSO</div>
+              <div class="meta">Tebet, Jakarta Selatan<br/>NIK berakhir 4281</div>
+            </div>
+            <div class="photo" aria-hidden="true"></div>
+          </div>
+          <p class="mu" style="margin:10px 0 0">Foto dipakai untuk isi draf. NIK tidak tampil penuh.</p>
+        </article>
+        <article class="card">
+          <h3>Draf pasien baru</h3>
+          <div class="banner warn"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            NIK dienkripsi. Periksa kesesuaian dengan KTP fisik sebelum daftar.</div>
+          <div class="field"><span class="lab">Nama</span><div class="inp">Budi Santoso</div></div>
+          <div class="split" style="gap:10px">
+            <div class="field"><span class="lab">Lahir</span><div class="inp">12 Mar 1988</div></div>
+            <div class="field"><span class="lab">Kelamin</span><div class="inp">Laki-laki</div></div>
+          </div>
+          <div class="field"><span class="lab">Alamat</span><div class="inp">Tebet, Jakarta Selatan</div></div>
+          <div class="field"><span class="lab">NIK</span><div class="inp"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> ···· 4281</div></div>
+          <div class="actions">
+            <button class="btn ghost" type="button">Batal</button>
+            <button class="btn sec" type="button">Simpan draf</button>
+            <button class="btn pri" type="button"><svg class="ic-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Verifikasi dan daftar</button>
+          </div>
+        </article>
+      </div>
+    </div>
+      </div>
+    </div>
+    </section>
+    <section class="ab" id="ab-05">
+      <div class="ab-k"><span class="ab-n">05</span><span class="ab-t">Frasa cepat SOAP</span></div>
+      <p class="ab-d">KlinikMe punya SOAP dan CPPT, frasa cepat tidak terverifikasi. Bittodent belum punya makro. Satu ketuk mengisi kolom, dokter tetap bisa mengubah.</p>
+      <div class="row">
+    <div class="desk" style="height:auto">
+      <aside class="rail"><div class="logo"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg></div><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg>Beranda</button><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Jadwal</button><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Pasien</button><button class="rbtn on" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg>RM</button><span class="rspacer"></span><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg>Lainnya</button></aside>
+      <div class="desk-col">
+        <header class="top"><div><h2>SOAP · frasa cepat</h2><div class=crumb>Budi Santoso</div></div>
+          <div class="who"><span class="syn">DATA SINTETIS</span><span class="av" aria-hidden="true">NP</span>
+            <span>drg. Nadia Putri</span></div>
+        </header>
+        
+    <div class="desk-body col">
+      <article class="card">
+        <h3>Frasa cepat</h3>
+        <div class="phrases"><span class="phrase on">Nyeri gigit</span><span class="phrase on">Tidak alergi obat</span><span class="phrase">Gusi berdarah</span><span class="phrase on">Kontrol 7 hari</span><span class="phrase">Edukasi sikat gigi</span><span class="phrase">Rujuk sp. konservasi</span></div>
+        <p class="mu" style="margin:10px 0 0">Satu ketuk mengisi atau menambah kolom SOAP. Boleh diubah setelahnya.</p>
+      </article>
+      <div class="split">
+        <article class="card">
+          <div class="field"><span class="lab">S</span>
+            <div class="inp area">Nyeri gigit di rahang kiri atas. Tidak alergi obat.</div></div>
+          <div class="field"><span class="lab">O</span>
+            <div class="inp area">Gigi 26 karies dentin O, M.</div></div>
+        </article>
+        <article class="card">
+          <div class="field"><span class="lab">A</span>
+            <div class="inp area">Karies dentin 26.</div></div>
+          <div class="field"><span class="lab">P</span>
+            <div class="inp area">Restorasi komposit 26. Kontrol 7 hari.</div></div>
+        </article>
+      </div>
+    </div>
+      </div>
+    </div>
+    <div class="ph" style="height:760px">
+      <div class="ph-bar"><span class="syn">DATA SINTETIS</span><span class="ph-time">09.40</span></div>
+      <header class="hd"><button class="icon-btn" type="button" aria-label="Kembali"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button><h1 class="h-sm">SOAP</h1>
+        <button class="icon-btn" type="button" aria-label="Lainnya"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg></button></header>
+      <div class="ph-body">
+      <div class="phrases"><span class="phrase on">Nyeri gigit</span><span class="phrase on">Tidak alergi obat</span><span class="phrase">Gusi berdarah</span><span class="phrase on">Kontrol 7 hari</span><span class="phrase">Edukasi sikat gigi</span><span class="phrase">Rujuk sp. konservasi</span></div>
+      <article class="card">
+        <div class="field"><span class="lab">S</span><div class="inp area">Nyeri gigit di rahang kiri atas. Tidak alergi obat.</div></div>
+        <div class="field"><span class="lab">O</span><div class="inp area">Gigi 26 karies dentin O, M.</div></div>
+        <div class="field"><span class="lab">A</span><div class="inp area">Karies dentin 26.</div></div>
+        <div class="field"><span class="lab">P</span><div class="inp area">Restorasi komposit 26. Kontrol 7 hari.</div></div>
+      </article>
+      <button class="btn pri" type="button">Simpan</button>
+    </div>
+      <nav class="bnav"><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><span>Beranda</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Jadwal</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Pasien</span></button><button class="navi on" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg><span>Rekam Medis</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg><span>Lainnya</span></button></nav>
+    </div></div>
+    </section>
+    <section class="ab" id="ab-06">
+      <div class="ab-k"><span class="ab-n">06</span><span class="ab-t">Input odontogram cepat</span></div>
+      <p class="ab-d">KlinikMe sudah memasarkan odontogram interaktif. Bittodent punya 2D dan 3D; alur ketuk cepat (gigi, permukaan, kondisi) masih perlu diperketat agar setara dalam kecepatan catat.</p>
+      
+    <div class="desk" style="height:auto">
+      <aside class="rail"><div class="logo"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg></div><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg>Beranda</button><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Jadwal</button><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Pasien</button><button class="rbtn on" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg>RM</button><span class="rspacer"></span><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg>Lainnya</button></aside>
+      <div class="desk-col">
+        <header class="top"><div><h2>Odontogram cepat</h2><div class=crumb>Budi Santoso</div></div>
+          <div class="who"><span class="syn">DATA SINTETIS</span><span class="av" aria-hidden="true">NP</span>
+            <span>drg. Nadia Putri</span></div>
+        </header>
+        
+    <div class="desk-body">
+      <div class="split-5" style="flex:1">
+        <article class="card">
+          <h3>Pilih gigi</h3>
+          
+    <div class="od-grid">
+      <div class="od-lab">RAHANG ATAS</div><div class="od-row"><div class="od-t"><span class="sq"></span>18</div><div class="od-t"><span class="sq"></span>17</div><div class="od-t"><span class="sq"></span>16</div><div class="od-t"><span class="sq"></span>15</div><div class="od-t"><span class="sq"></span>14</div><div class="od-t"><span class="sq"></span>13</div><div class="od-t"><span class="sq"></span>12</div><div class="od-t"><span class="sq"></span>11</div><div class="od-t"><span class="sq"></span>21</div><div class="od-t"><span class="sq"></span>22</div><div class="od-t"><span class="sq"></span>23</div><div class="od-t"><span class="sq"></span>24</div><div class="od-t"><span class="sq"></span>25</div><div class="od-t on"><span class="sq"></span>26</div><div class="od-t"><span class="sq"></span>27</div><div class="od-t"><span class="sq"></span>28</div></div>
+      <div class="od-lab">RAHANG BAWAH</div><div class="od-row"><div class="od-t"><span class="sq"></span>48</div><div class="od-t"><span class="sq"></span>47</div><div class="od-t"><span class="sq"></span>46</div><div class="od-t"><span class="sq"></span>45</div><div class="od-t"><span class="sq"></span>44</div><div class="od-t"><span class="sq"></span>43</div><div class="od-t"><span class="sq"></span>42</div><div class="od-t"><span class="sq"></span>41</div><div class="od-t"><span class="sq"></span>31</div><div class="od-t"><span class="sq"></span>32</div><div class="od-t"><span class="sq"></span>33</div><div class="od-t"><span class="sq"></span>34</div><div class="od-t"><span class="sq"></span>35</div><div class="od-t"><span class="sq"></span>36</div><div class="od-t"><span class="sq"></span>37</div><div class="od-t"><span class="sq"></span>38</div></div>
+    </div>
+        </article>
+        <article class="card">
+          <h3>Gigi 26 <span class="chip st-karies">Karies</span></h3>
+          <div class="lab" style="margin-bottom:6px">Permukaan</div>
+          <div class="surf"><b class="on">M</b><b class="on">O</b><b class="">D</b><b class="">B</b><b class="">L</b></div>
+          <div class="lab" style="margin:12px 0 6px">Kondisi</div>
+          <div class="phrases"><span class="phrase on">Karies</span><span class="phrase">Tumpatan</span><span class="phrase">Hilang</span><span class="phrase">Goyah</span><span class="phrase">Sisa akar</span><span class="phrase">Mahkota</span></div>
+          <div class="actions">
+            <button class="btn ghost" type="button">Batal</button>
+            <button class="btn pri" type="button"><svg class="ic-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Simpan 26</button>
+          </div>
+        </article>
+      </div>
+    </div>
+      </div>
+    </div>
+    </section>
+    <section class="ab" id="ab-07">
+      <div class="ab-k"><span class="ab-n">07</span><span class="ab-t">e-resep cepat</span></div>
+      <p class="ab-d">KlinikMe menyebut e-resep di FAQ; kedalaman UX tidak terverifikasi. Bittodent masih kerangka, MVP resep kertas (D-036). Template obat gigi, draf sampai Setujui. AI tidak mengisi resep.</p>
+      
+    <div class="ph" style="height:720px">
+      <div class="ph-bar"><span class="syn">DATA SINTETIS</span><span class="ph-time">09.40</span></div>
+      <header class="hd"><button class="icon-btn" type="button" aria-label="Kembali"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button><h1 class="h-sm">Resep</h1>
+        <button class="icon-btn" type="button" aria-label="Lainnya"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg></button></header>
+      <div class="ph-body">
+      <div class="banner warn"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg> AI tidak meresepkan. Dokter memilih template, lalu Setujui dan Selesai.</div>
+      <article class="card">
+        <h3>Template cepat</h3>
+        <div class="phrases">
+          <span class="phrase on">Amoksisilin</span>
+          <span class="phrase on">Ibuprofen</span>
+          <span class="phrase">Obat kumur</span>
+        </div>
+      </article>
+      <article class="card">
+        <h3>Resep <span class="chip st-draf">Draf</span></h3>
+        
+      <div class="rx">
+        <div><div class="nm">Amoksisilin 500 mg</div><div class="ds">3x1, 5 hari, sesudah makan</div></div>
+        <span class="chip st-draf">Draf</span>
+      </div>
+        
+      <div class="rx">
+        <div><div class="nm">Ibuprofen 400 mg</div><div class="ds">3x1, bila nyeri</div></div>
+        <span class="chip st-draf">Draf</span>
+      </div>
+        <div class="actions">
+          <button class="btn ghost" type="button"><svg class="ic-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Cetak</button>
+          <button class="btn pri" type="button"><svg class="ic-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Setujui</button>
+        </div>
+        <p class="mu" style="margin:10px 0 0">Selesai (tanda tangan) setelah Setujui. MVP tetap bisa cetak kertas.</p>
+      </article>
+    </div>
+      <nav class="bnav"><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><span>Beranda</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Jadwal</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Pasien</span></button><button class="navi on" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg><span>Rekam Medis</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg><span>Lainnya</span></button></nav>
+    </div>
+    </section>
+    <section class="ab" id="ab-08">
+      <div class="ab-k"><span class="ab-n">08</span><span class="ab-t">Informed consent digital</span></div>
+      <p class="ab-d">KlinikMe sudah menandatangani formulir secara digital. Bittodent punya rekam consent (D-012), alur pad tanda tangan belum. Wali wajib jika pasien anak. Fitur tanpa izin disembunyikan.</p>
+      
+    <div class="desk" style="height:auto">
+      <aside class="rail"><div class="logo"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg></div><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg>Beranda</button><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Jadwal</button><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Pasien</button><button class="rbtn on" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg>RM</button><span class="rspacer"></span><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg>Lainnya</button></aside>
+      <div class="desk-col">
+        <header class="top"><div><h2>Informed consent</h2><div class=crumb>Budi Santoso · gigi 38</div></div>
+          <div class="who"><span class="syn">DATA SINTETIS</span><span class="av" aria-hidden="true">NP</span>
+            <span>drg. Nadia Putri</span></div>
+        </header>
+        
+    <div class="desk-body">
+      <div class="split-5" style="flex:1">
+        <article class="card">
+          <h3>Persetujuan tindakan</h3>
+          <div class="field"><span class="lab">Tindakan</span><div class="inp">Pencabutan gigi 38</div></div>
+          <div class="field"><span class="lab">Dokter</span><div class="inp">drg. Nadia Putri</div></div>
+          <div class="note">Risiko yang dijelaskan: nyeri, pembengkakan, perdarahan, dan kemungkinan perawatan lanjutan. Alternatif: observasi atau rujuk bedah mulut.</div>
+        </article>
+        <article class="card">
+          <h3>Tanda tangan pasien</h3>
+          <div class="field"><span class="lab">Penandatangan</span><div class="inp">Budi Santoso · pasien</div></div>
+          
+      <div class="sig" aria-label="Tanda tangan sintetis">
+        <svg viewBox="0 0 180 70" aria-hidden="true">
+          <path d="M8 48 C28 12, 40 60, 62 36 C80 16, 90 50, 120 28 C140 14, 150 40, 172 32"/>
+        </svg>
+      </div>
+          <div class="mu" style="margin:8px 0">Hash dokumen akan disimpan. Bukan TTE tersertifikasi.</div>
+          <div class="actions">
+            <button class="btn ghost" type="button">Ulangi</button>
+            <button class="btn pri" type="button"><svg class="ic-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v8"/><path d="M8 11h8v3H8z"/><path d="M5 21h14v-4H5z"/></svg>Setujui dan simpan</button>
+          </div>
+        </article>
+      </div>
+    </div>
+      </div>
+    </div>
+    </section>
+    <section class="ab" id="ab-09">
+      <div class="ab-k"><span class="ab-n">09</span><span class="ab-t">Foto before-after per gigi</span></div>
+      <p class="ab-d">KlinikMe punya Preview Before-After; visual pemasaran di /produk berupa wajah, dan teks pendukung juga membingkai klinik kecantikan. Per gigi tidak terverifikasi. Bittodent belum punya. Usulan: foto di nomor gigi.</p>
+      
+    <div class="desk" style="height:auto">
+      <aside class="rail"><div class="logo"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg></div><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg>Beranda</button><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Jadwal</button><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Pasien</button><button class="rbtn on" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg>RM</button><span class="rspacer"></span><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg>Lainnya</button></aside>
+      <div class="desk-col">
+        <header class="top"><div><h2>Foto per gigi</h2><div class=crumb>Budi Santoso · kunjungan hari ini</div></div>
+          <div class="who"><span class="syn">DATA SINTETIS</span><span class="av" aria-hidden="true">NP</span>
+            <span>drg. Nadia Putri</span></div>
+        </header>
+        
+    <div class="desk-body">
+      <div class="split-5" style="flex:1">
+        <article class="card">
+          <h3>Gigi 26</h3>
+          
+    <div class="od-grid">
+      <div class="od-lab">RAHANG ATAS</div><div class="od-row"><div class="od-t"><span class="sq"></span>18</div><div class="od-t"><span class="sq"></span>17</div><div class="od-t"><span class="sq"></span>16</div><div class="od-t"><span class="sq"></span>15</div><div class="od-t"><span class="sq"></span>14</div><div class="od-t"><span class="sq"></span>13</div><div class="od-t"><span class="sq"></span>12</div><div class="od-t"><span class="sq"></span>11</div><div class="od-t"><span class="sq"></span>21</div><div class="od-t"><span class="sq"></span>22</div><div class="od-t"><span class="sq"></span>23</div><div class="od-t"><span class="sq"></span>24</div><div class="od-t"><span class="sq"></span>25</div><div class="od-t on"><span class="sq"></span>26</div><div class="od-t"><span class="sq"></span>27</div><div class="od-t"><span class="sq"></span>28</div></div>
+      <div class="od-lab">RAHANG BAWAH</div><div class="od-row"><div class="od-t"><span class="sq"></span>48</div><div class="od-t"><span class="sq"></span>47</div><div class="od-t"><span class="sq"></span>46</div><div class="od-t"><span class="sq"></span>45</div><div class="od-t"><span class="sq"></span>44</div><div class="od-t"><span class="sq"></span>43</div><div class="od-t"><span class="sq"></span>42</div><div class="od-t"><span class="sq"></span>41</div><div class="od-t"><span class="sq"></span>31</div><div class="od-t"><span class="sq"></span>32</div><div class="od-t"><span class="sq"></span>33</div><div class="od-t"><span class="sq"></span>34</div><div class="od-t"><span class="sq"></span>35</div><div class="od-t"><span class="sq"></span>36</div><div class="od-t"><span class="sq"></span>37</div><div class="od-t"><span class="sq"></span>38</div></div>
+    </div>
+          <p class="mu" style="margin:10px 0 0">Foto menempel pada nomor gigi dan kunjungan, bukan galeri wajah.</p>
+        </article>
+        <article class="card">
+          <h3>Sebelum dan sesudah <span class="chip st-isi">26</span></h3>
+          <div class="ba">
+            <div class="well has"><svg class="ic-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg><span>Sebelum · 15 Nov 2026</span><span class="mu">Karies O, M</span></div>
+            <div class="well"><svg class="ic-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>Sesudah</span><span class="mu">Ambil atau unggah setelah restorasi</span></div>
+          </div>
+          <div class="actions">
+            <button class="btn pri" type="button"><svg class="ic-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Ambil foto sesudah</button>
+          </div>
+        </article>
+      </div>
+    </div>
+      </div>
+    </div>
+    </section>
+    <section class="ab" id="ab-10">
+      <div class="ab-k"><span class="ab-n">10</span><span class="ab-t">Ringkasan gap</span></div>
+      <p class="ab-d">Fokus AI dan kemudahan input. Fitur non-gigi diabaikan.</p>
+      
+    <div class="desk" style="height:auto;min-height:720px;width:1280px;display:block;padding:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div><h2 style="margin:0;font-size:16px">Ringkasan gap · klinik gigi</h2>
+          <div class="crumb">Sumber publik KlinikMe, 15 Nov 2026, WIB. Bittodent dari repo dan papan.</div></div>
+        <span class="syn">DATA SINTETIS</span>
+      </div>
+      <div class="legend"><span class="chip st-ada">Ada</span> <span class="chip st-sebagian">Sebagian</span> <span class="chip st-belum">Belum</span>
+        <span>Yang tidak terverifikasi dari halaman publik dicatat di usulan.</span>
+      </div>
+      <table class="gap">
+        <thead><tr><th>Fitur</th><th>KlinikMe</th><th>Bittodent</th><th>Usulan</th></tr></thead>
+        <tbody><tr><td class='ft'>Scan KTP</td><td><span class="chip st-ada">Ada</span></td><td><span class="chip st-sebagian">Sebagian</span></td><td>Pindai ke draf, NIK mask, verifikasi resepsionis.</td></tr><tr><td class='ft'>Saran ICD dari catatan</td><td><span class="chip st-sebagian">Sebagian</span></td><td><span class="chip st-sebagian">Sebagian</span></td><td>Saran Draf dari catatan, Setujui, lalu Selesai. KlinikMe: pencarian dan standarisasi; saran dari SOAP tidak terverifikasi.</td></tr><tr><td class='ft'>Draf SOAP dari suara</td><td><span class="chip st-belum">Belum</span></td><td><span class="chip st-sebagian">Sebagian</span></td><td>Scribe merapikan ucapan. Izin rekam. Audio hapus setelah Selesai.</td></tr><tr><td class='ft'>Saran tindakan dari odontogram</td><td><span class="chip st-belum">Belum</span></td><td><span class="chip st-belum">Belum</span></td><td>Saran dari temuan di chart, Draf sampai Setujui.</td></tr><tr><td class='ft'>Frasa cepat SOAP</td><td><span class="chip st-belum">Belum</span></td><td><span class="chip st-belum">Belum</span></td><td>Satu ketuk mengisi kolom SOAP.</td></tr><tr><td class='ft'>Odontogram cepat</td><td><span class="chip st-ada">Ada</span></td><td><span class="chip st-sebagian">Sebagian</span></td><td>Ketuk gigi, permukaan, kondisi. 2D dan 3D Bittodent sudah ada.</td></tr><tr><td class='ft'>e-resep cepat</td><td><span class="chip st-sebagian">Sebagian</span></td><td><span class="chip st-sebagian">Sebagian</span></td><td>Template obat, Draf sampai Setujui. AI tidak meresepkan. KlinikMe hanya disebut di FAQ.</td></tr><tr><td class='ft'>Consent tanda tangan</td><td><span class="chip st-ada">Ada</span></td><td><span class="chip st-sebagian">Sebagian</span></td><td>Pad tablet, hash dokumen, wali jika anak.</td></tr><tr><td class='ft'>Foto before-after per gigi</td><td><span class="chip st-sebagian">Sebagian</span></td><td><span class="chip st-belum">Belum</span></td><td>KlinikMe: galeri umum, per gigi tidak terverifikasi. Usulan: foto di nomor gigi.</td></tr></tbody>
+      </table>
+    </div>
+    </section>
+</div>
+</body>
+</html>
