@@ -21,7 +21,11 @@ export type Procedure = {
   /** pending = entered on a day with `selesai` work; front desk / assistant confirm. pending/rejected are not chart history. */
   external_confirmation: 'not_required' | 'pending' | 'confirmed' | 'rejected' | null
   external_confirmed_by: string | null; external_confirmed_at: string | null; external_confirmation_reason: string | null
+  /** unit 3: reason of a replace/correction; replaces_id = the restoration this new work replaces */
+  reason: string | null; replaces_id: string | null
 }
+/** Every final row in force (as of the cut), oldest first. change = how it was superseded: replaced, corrected, or a status move. */
+export type ProcedureHistoryRow = Procedure & { effective_at: string; superseded_by: string | null; change: 'digantikan' | 'koreksi' | 'status' | null }
 export type ToothPresence = 'ada' | 'hilang' | 'belum_tumbuh'
 export type Baseline = { id: string; version: number; dentition: 'tetap' | 'sulung' | 'campuran'; teeth: Record<string, ToothPresence>; created_at: string }
 export type Block = { codes: string[]; text: string }
@@ -40,12 +44,22 @@ export type ChartVisit = {
   dentist: { id: string; name: string | null }; notes: Note[]; draft_findings: Finding[]; draft_procedures: Procedure[]
 }
 export type Chart = {
+  /** YYYY-MM-DD when viewing the chart as of the end of that day (no drafts, no confirmation queue); null = today */
+  as_of: string | null; procedure_history: ProcedureHistoryRow[]
   patient: { id: string; name: string; dob: string | null; sex: string | null; payer_type: string }
   solo_practice: boolean; baseline: Baseline | null; findings: Finding[]; drafts: Finding[]
   procedures: Procedure[]; procedure_drafts: Procedure[]; pending_externals: Procedure[]; visits: ChartVisit[]
 }
 
-export const getChart = (patientId: string) => api<Chart>(`/api/patients/${patientId}/chart`)
+export const getChart = (patientId: string, asOf?: string | null) =>
+  api<Chart>(`/api/patients/${patientId}/chart${asOf ? `?as_of=${encodeURIComponent(asOf)}` : ''}`)
+/** Replace existing work (selesai / sudah ada) with new work on the same site; the old one is kept and shown as Digantikan. Dentist only. */
+export const replaceProcedure = (procedureId: string, body: { visit_id: string; status: 'direncanakan' | 'selesai'; procedure_code: string; tooth: number | null
+  surfaces: string | null; reason: string }) =>
+  api<{ replaced: Procedure; procedure: Procedure }>(`/api/procedures/${procedureId}/replace`, { method: 'POST', body })
+/** Correct a signed record (not its status): new row, old one stays readable. Never bills. Dentist only. */
+export const correctProcedure = (procedureId: string, body: { reason: string; procedure_code?: string; surfaces?: string | null }) =>
+  api<Procedure>(`/api/procedures/${procedureId}/corrections`, { method: 'POST', body })
 export const visitFromAppointment = (appointmentId: string) => api<{ id: string }>(`/api/appointments/${appointmentId}/visit`, { method: 'POST' })
 /** Visual condition only (karies, hilang, ...). Treatments go through saveProcedure. */
 export const saveFinding = (visitId: string, body: { tooth: number; surface: Surface | null; condition: string }) =>

@@ -3,8 +3,8 @@ import { ApiError, errorText } from '../../shared/api/http'
 import { setActivePatient } from '../../shared/activePatient'
 import type { Me } from '../../shared/session'
 import {
-  approveCorrection, changeStatus, confirmExternal, correctNote, discardFinding, discardProcedure, getChart, saveBaseline, saveFinding, saveNote, saveProcedure, signVisit,
-  visitFromAppointment, type Baseline, type Chart, type ChartVisit, type Note, type ProcStatus, type Procedure, type Soap, type Surface, type ToothPresence, type Version,
+  approveCorrection, changeStatus, confirmExternal, correctNote, correctProcedure, replaceProcedure, discardFinding, discardProcedure, getChart, saveBaseline, saveFinding, saveNote, saveProcedure, signVisit,
+  visitFromAppointment, type Baseline, type Chart, type ChartVisit, type Note, type ProcStatus, type Procedure, type ProcedureHistoryRow, type Soap, type Surface, type ToothPresence, type Version,
 } from './api'
 import { AI_BADGE, CHOOSABLE, CONDITIONS, findingText, paintCondition, PRESENCE, procedureText, sameSite, statusOf, surfaceLabel, surfaceName, surfacesOf } from './legend'
 import { Legend, Odontogram, type Mark } from './Odontogram'
@@ -143,12 +143,78 @@ function History({ visits, me, onFix, onApprove }: { visits: ChartVisit[]; me: M
   )
 }
 
+const REPLACEABLE: ProcStatus[] = ['selesai', 'ada_di_klinik_ini', 'ada_di_tempat_lain']
+const CHANGE_LABEL = { digantikan: 'Digantikan', koreksi: 'Dikoreksi', status: 'Status berubah' } as const
+
+/** Replace (new work on the same site; old kept as Digantikan) or correct (same status, new row) a signed procedure. Reason required. */
+export function ProcedureFixDialog({ p, mode, visitId, onDone, onClose }: { p: Procedure; mode: 'ganti' | 'koreksi'; visitId: string | null; onDone: (msg: string) => void; onClose: () => void }) {
+  const [reason, setReason] = useState('')
+  const [code, setCode] = useState(mode === 'koreksi' ? p.procedure_code ?? '' : '')
+  const [surfaces, setSurfaces] = useState(mode === 'koreksi' ? p.surfaces ?? '' : '') // a crown is whole-tooth; a re-filling types its surfaces
+  const [to, setTo] = useState<'direncanakan' | 'selesai'>('direncanakan')
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  async function submit(e: FormEvent) {
+    e.preventDefault()
+    if (reason.trim().length < 10) return setError('Alasan wajib, minimal 10 huruf.')
+    if (mode === 'ganti' && (!visitId || !code.trim())) return setError(visitId ? 'Kode tindakan pengganti wajib.' : 'Buka kunjungan aktif dulu.')
+    setBusy(true)
+    try {
+      const sf = surfaces.trim().toUpperCase() || null
+      if (mode === 'ganti') await replaceProcedure(p.id, { visit_id: visitId!, status: to, procedure_code: code.trim(), tooth: p.tooth, surfaces: sf, reason: reason.trim() })
+      else await correctProcedure(p.id, { reason: reason.trim(), procedure_code: code.trim() || undefined, surfaces: sf })
+      onDone(mode === 'ganti' ? 'Tindakan lama ditandai Digantikan; tindakan baru tercatat.' : 'Koreksi tersimpan (baris baru; versi lama tetap).')
+    } catch (err) {
+      setError(err instanceof ApiError && (err.status === 409 || err.status === 422) ? err.data?.message ?? 'Data tidak valid.' : errorText(err))
+      setBusy(false)
+    }
+  }
+  return (
+    <div className="overlay" onClick={onClose}>
+      <form className="card dialog" role="dialog" aria-modal="true" aria-labelledby="pfix-title" onClick={(e) => e.stopPropagation()} onSubmit={submit} noValidate>
+        <h2 id="pfix-title">{mode === 'ganti' ? 'Ganti tindakan' : 'Koreksi tindakan'}: {procedureText(p)}</h2>
+        <label>Alasan *<textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} aria-invalid={!!error} /></label>
+        <label>Kode ICD-9-CM{mode === 'ganti' ? ' pengganti *' : ''} <input className="mono" size={6} value={code} placeholder="23.41" onChange={(e) => setCode(e.target.value)} /></label>
+        <label>Permukaan (kosong = seluruh gigi) <input className="mono" size={6} value={surfaces} onChange={(e) => setSurfaces(e.target.value)} /></label>
+        {mode === 'ganti' && <label>Status <select value={to} onChange={(e) => setTo(e.target.value as 'direncanakan' | 'selesai')}>
+          <option value="direncanakan">Direncanakan</option><option value="selesai">Selesai (ditagih)</option></select></label>}
+        <p className="muted small">{mode === 'ganti' ? 'Tindakan lama tetap tersimpan sebagai “Digantikan”; tagihannya tidak berubah.' : 'Status tidak dikoreksi di sini. Koreksi tidak menambah tagihan.'}</p>
+        {error && <p className="form-error" role="alert">{error}</p>}
+        <div className="dialog-actions">
+          <button type="button" className="btn" onClick={onClose}>Batal</button>
+          <button className="btn btn-primary" disabled={busy}>{busy ? 'Menyimpan…' : 'Simpan'}</button>
+        </div>
+      </form>
+    </div>
+  )
+}
+
+/** Every final row in force (as of the chosen date), newest first, with how it was superseded. */
+export function ProcedureHistory({ rows }: { rows: ProcedureHistoryRow[] }) {
+  if (!rows.length) return null
+  return (
+    <details className="small">
+      <summary>Riwayat tindakan ({rows.length})</summary>
+      <ul className="items" aria-label="Riwayat tindakan">
+        {[...rows].reverse().map((h) => (
+          <li key={h.id}>
+            <span className="muted">{fmt(h.effective_at)}</span> {procedureText(h)} <StatusChip status={h.status} />
+            {h.change && <span className="badge badge-old">{CHANGE_LABEL[h.change]}</span>}
+            {h.reason && <span className="muted"> · Alasan: {h.reason}</span>}
+          </li>
+        ))}
+      </ul>
+    </details>
+  )
+}
+
 export function StatusChip({ status }: { status: string }) {
   return <span className={`chip st st-${status}`} data-status={statusOf(status)?.legend}>{statusOf(status)?.label ?? status}</span>
 }
 
 /** Treatments with status chips. Dentists move a signed procedure along the allowed transitions (server appends a new row). */
-function Items({ items, canMove, onMove, onDiscard }: { items: Procedure[]; canMove: boolean; onMove: (p: Procedure, to: ProcStatus) => void; onDiscard: (p: Procedure) => void }) {
+function Items({ items, canMove, onMove, onDiscard, onFix }: { items: Procedure[]; canMove: boolean; onMove: (p: Procedure, to: ProcStatus) => void; onDiscard: (p: Procedure) => void
+  onFix: (p: Procedure, mode: 'ganti' | 'koreksi') => void }) {
   if (!items.length) return null
   return (
     <ul className="items" aria-label="Tindakan dan status">
@@ -160,6 +226,8 @@ function Items({ items, canMove, onMove, onDiscard }: { items: Procedure[]; canM
           {p.state === 'final' && canMove && statusOf(p.status)?.next.map((to) => (
             <button key={to} className="btn btn-xs" onClick={() => onMove(p, to)}>→ {statusOf(to)!.label}</button>
           ))}
+          {p.state === 'final' && canMove && REPLACEABLE.includes(p.status) && <button className="btn btn-xs" onClick={() => onFix(p, 'ganti')}>Ganti…</button>}
+          {p.state === 'final' && canMove && <button className="btn btn-xs btn-ghost" onClick={() => onFix(p, 'koreksi')}>Koreksi…</button>}
         </li>
       ))}
     </ul>
@@ -214,12 +282,14 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const [extClinic, setExtClinic] = useState('')
   const [extDate, setExtDate] = useState('')
   const [baselineOpen, setBaselineOpen] = useState(false)
+  const [asOf, setAsOf] = useState('') // '' = today; otherwise the chart as of the end of that day (read-only)
+  const [procFix, setProcFix] = useState<{ p: Procedure; mode: 'ganti' | 'koreksi' } | null>(null)
   const can = (p: string) => me.permissions.includes(p)
 
   const load = useCallback(async () => {
     try {
       const vid = appointmentId && can('note.write') ? (await visitFromAppointment(appointmentId)).id : null
-      const c = await getChart(patientId)
+      const c = await getChart(patientId, asOf || null)
       setChart(c)
       setActivePatient({ id: c.patient.id, name: c.patient.name })
       const open = vid ?? c.visits.find((v) => v.status === 'berlangsung' && !v.notes.some((n) => n.versions.some((x) => x.signed_at)))?.id ?? null
@@ -230,13 +300,13 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
     } catch (e) {
       setError(e instanceof ApiError && e.status === 404 ? 'Pasien atau janji tidak ditemukan.' : errorText(e))
     }
-  }, [patientId, appointmentId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [patientId, appointmentId, asOf]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { load() }, [load])
 
   const visit = chart?.visits.find((v) => v.id === visitId) ?? null
   const note = visit?.notes[0] ?? null
   const draft = note?.versions.find((x) => x.status === 'draf') ?? null
-  const editable = !!visit && can('note.write') && !note?.versions.some((x) => x.signed_at)
+  const editable = !asOf && !!visit && can('note.write') && !note?.versions.some((x) => x.signed_at)
   const mine = useMemo(() => chart?.drafts.filter((d) => d.visit_id === visitId) ?? [], [chart, visitId])
   const myProcs = useMemo(() => chart?.procedure_drafts.filter((d) => d.visit_id === visitId) ?? [], [chart, visitId])
   const marks = useMemo(() => {
@@ -313,7 +383,11 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
           <h2>Odontogram</h2>
           {mine.length + myProcs.length > 0 && <span className="badge badge-draft">Draf: {mine.length} temuan, {myProcs.length} tindakan</span>}
           {mine.some((d) => d.source === 'ai_draft') && <span className="badge badge-ai">{AI_BADGE}</span>}
+          <label className="small">Lihat per tanggal <input type="date" value={asOf} max={new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' })}
+            onChange={(e) => setAsOf(e.target.value)} /></label>
+          {asOf && <button className="btn btn-xs" onClick={() => setAsOf('')}>Kembali ke hari ini</button>}
         </div>
+        {chart.as_of && <p className="notice notice-warn small" role="status">Tampilan riwayat: keadaan pada akhir {chart.as_of} (WIB). Hanya baca.</p>}
         {can('note.write') && (
           <div className="baseline-row">
             <span className="muted small">Keadaan awal: {chart.baseline ? `${chart.baseline.dentition} · versi ${chart.baseline.version}` : 'belum diisi (isi di kunjungan pertama)'}</span>
@@ -380,8 +454,10 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
             </ul>
           </div>
         )}
-        <Items items={[...chart.procedures, ...myProcs]} canMove={can('note.sign')} onDiscard={(p) => run(() => discardProcedure(p.id))}
+        <Items items={[...chart.procedures, ...myProcs]} canMove={can('note.sign') && !asOf} onDiscard={(p) => run(() => discardProcedure(p.id))}
+          onFix={(p, mode) => setProcFix({ p, mode })}
           onMove={(p, to) => run(() => changeStatus(p.id, to, visit?.id), `Status ${procedureText(p)} diubah (baris baru; versi lama tetap).`)} />
+        <ProcedureHistory rows={chart.procedure_history} />
         <Legend />
       </div>
 
@@ -414,6 +490,8 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
             ...visit.draft_findings.map((f) => findingText(f) + (f.created_by !== me.user.id ? ' (draf pengguna lain)' : '')),
             ...visit.draft_procedures.map((p) => procedureText(p) + ` · ${statusOf(p.status)?.label ?? p.status}` + (p.created_by !== me.user.id ? ' (draf pengguna lain)' : ''))]} />
       )}
+      {procFix && <ProcedureFixDialog p={procFix.p} mode={procFix.mode} visitId={visit?.id ?? null} onClose={() => setProcFix(null)}
+        onDone={async (m) => { setProcFix(null); await load(); setMsg(m) }} />}
       {fixing && <CorrectionDialog note={fixing} solo={chart.solo_practice} onClose={() => setFixing(null)} onDone={async () => { setFixing(null); await load(); setMsg('Koreksi tersimpan.') }} />}
     </>
   )
