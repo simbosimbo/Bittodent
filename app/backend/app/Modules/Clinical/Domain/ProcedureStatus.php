@@ -24,8 +24,10 @@ final class ProcedureStatus
     /** Accepted from clients; `superseded` is not. */
     public const WRITABLE = ['kondisi_pantau', 'ada_di_klinik_ini', 'ada_di_tempat_lain', 'direncanakan', 'selesai', 'dirujuk', 'cancelled'];
 
-    /** Write aliases, stored as the value. `external` = Open Dental EO (clinic name + date come in a later unit). */
+    /** Write aliases, stored as the value. `external` = Open Dental EO; needs clinic name + approximate date (unit 2, DEVIATIONS #48). */
     public const ALIASES = ['external' => 'ada_di_tempat_lain'];
+
+    public const EXTERNAL = 'ada_di_tempat_lain';
 
     public const BILLABLE = 'selesai';
 

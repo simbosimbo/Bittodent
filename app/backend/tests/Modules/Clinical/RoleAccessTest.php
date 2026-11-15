@@ -37,6 +37,12 @@ class RoleAccessTest extends TestCase
         }
     }
 
+    public function test_confirm_external_is_front_desk_and_assistant_only(): void
+    {
+        $holders = array_keys(array_filter(Permissions::MATRIX, fn ($perms) => in_array('procedure.confirm_external', $perms, true)));
+        $this->assertSame(['assistant', 'front_desk'], $holders); // not the recording dentist, not kasir; owner = open decision (DEVIATIONS #48)
+    }
+
     public function test_owner_reads_chart_and_each_read_writes_exactly_one_audit_row(): void
     {
         $owner = 'pemilik@senyum.test';

@@ -11,9 +11,12 @@ final class Permissions
             'appointment.transition', 'note.read', 'audit.read', 'correction.approve', 'patient.update', 'billing.read', 'billing.adjust', 'tariff.manage'],
         'dentist' => ['patient.read', 'patient.read_nik', 'patient.create', 'appointment.read', 'appointment.create',
             'appointment.transition', 'note.read', 'note.write', 'note.sign', 'patient.update', 'appointment.plan'],
-        'assistant' => ['patient.read', 'appointment.read', 'appointment.transition', 'note.read', 'note.write', 'appointment.plan'],
+        // procedure.confirm_external: second pair of eyes on an external entry made on a visit with `selesai` work that day (unit 2).
+        // Not the dentist (who records it), not kasir; owner is an open decision (DEVIATIONS #48).
+        'assistant' => ['patient.read', 'appointment.read', 'appointment.transition', 'note.read', 'note.write', 'appointment.plan',
+            'procedure.confirm_external'],
         'front_desk' => ['patient.read', 'patient.create', 'appointment.read', 'appointment.create', 'appointment.transition',
-            'patient.update', 'billing.read', 'billing.adjust'],
+            'patient.update', 'billing.read', 'billing.adjust', 'procedure.confirm_external'],
         'kasir' => ['patient.read', 'appointment.read', 'billing.read', 'billing.adjust'],
     ];
 

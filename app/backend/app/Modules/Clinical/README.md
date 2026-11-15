@@ -19,6 +19,15 @@ Akses (U0d): pemilik hanya **membaca** (`note.read`); tidak pernah menulis draf,
 - **Tagihan**: hanya tindakan final `selesai` dengan kode memicu `ProcedureRecorded` (tanpa harga; membawa `provider_id` + kategori/bidang dokter itu). Billing membuat satu `invoice_line` per `procedure_id` (UNIQUE). EC/EO/R/Cn/rencana/batal tidak pernah menagih; `ada_di_klinik_ini` = pekerjaan **lama** di klinik ini.
 - Tanda tangan memfinalkan draf temuan **dan** draf tindakan kunjungan itu, lalu menagih tindakan `selesai`.
 
+## Tindakan klinik lain (`external`, DEVIATIONS #48)
+
+- Status `ada_di_tempat_lain` (alias tulis `external`) **wajib** `external_clinic_name` (maks. 120) + `external_date` perkiraan: `2025` (tahun), `2025-06` / `06/2025` (bulan), `12/06/2025` / `2025-06-12` (hari). Disimpan sebagai tanggal (hari pertama bulan/tahun bila kasar) + `external_date_precision` `day|month|year` (`Domain/ApproxDate.php`). Tanggal mustahil atau setelah hari ini (zona waktu cabang) = 422. Status lain yang mengirim kolom ini = 422.
+- **Tidak pernah menagih**, juga bila berkode dan sudah ditandatangani. Audit buat/ubah mencatat nama klinik + tanggal + presisi + status konfirmasi (tanpa harga).
+- **Tolak (422 `external_same_surface`, tidak bisa dikonfirmasi):** gigi/permukaan yang sama dengan tindakan `selesai` (draf atau final) pasien ini pada hari kalender kunjungan (zona waktu cabang, default Asia/Jakarta). Sama = permukaan yang sama, atau seluruh gigi vs permukaan pada gigi itu; rentang/kuadran/rahang/mulut dihitung per gigi (`Domain/ProcedureSite.php`).
+- **Perlu konfirmasi (`external_confirmation = pending`):** pasien sudah punya tindakan `selesai` hari itu, lalu dokter tetap mencatat tindakan klinik lain di tempat lain di mulut. Baris pending/ditolak **bukan riwayat aktif**: tidak masuk `procedures` di chart, tidak dicat di odontogram, tidak bisa ganti status (409), tetap tidak menagih.
+- **Tanpa konfirmasi (`not_required`):** pemeriksaan awal, riwayat, ERM — kunjungan tanpa `selesai` hari itu. Langsung aktif.
+- Konfirmasi: `POST /api/procedures/{id}/confirm-external {confirm, reason?}` dan daftar `GET /api/procedures/pending-external` (cabang aktif, tanpa diagnosis), izin `procedure.confirm_external` = **front_desk dan assistant saja**: mata kedua ketika tindakan klinik lain dicatat pada kunjungan yang sudah ada pekerjaan yang (akan) ditagih hari itu, supaya pekerjaan hari ini tidak tersembunyi dari tagihan. Dokter tidak (ia yang mencatat), kasir tidak, pemilik **belum** (keputusan terbuka). Tolak = `rejected` (tanpa DELETE). Keduanya diaudit. Konfirmasi ditolak 422 bila sejak dicatat situs itu mendapat `selesai` hari itu. Baris final pending hanya boleh mengubah kolom konfirmasi, sekali (trigger MySQL).
+
 ## Backlog (belum dibuat)
 
 - TODO: audio dikte dihapus setelah catatan ditandatangani; transkrip + diff draf-vs-final (draf agen vs versi bertanda tangan) disimpan ke audit.

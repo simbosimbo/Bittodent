@@ -54,7 +54,8 @@ class ProcedureStatusTest extends TestCase
     {
         $v = $this->todayVisit();
         $post = fn (string $status) => $this->as(self::DOC)->postJson("/api/visits/{$v->id}/procedures", ['tooth' => 36, 'surfaces' => 'O', 'procedure_code' => '23.2', 'status' => $status]);
-        $post('external')->assertCreated()->assertJsonPath('status', 'ada_di_tempat_lain');
+        $this->as(self::DOC)->postJson("/api/visits/{$v->id}/procedures", ['tooth' => 36, 'surfaces' => 'O', 'procedure_code' => '23.2', 'status' => 'external',
+            'external_clinic_name' => 'Klinik Contoh Lain', 'external_date' => '2025'])->assertCreated()->assertJsonPath('status', 'ada_di_tempat_lain');
         $post('ada_di_klinik_ini')->assertCreated()->assertJsonPath('status', 'ada_di_klinik_ini');
         $post('kacau')->assertUnprocessable()->assertJsonValidationErrors('status');
         $post('superseded')->assertUnprocessable()->assertJsonValidationErrors('status');
