@@ -88,6 +88,7 @@ Sumber: [peraturan.go.id PDF](https://peraturan.go.id/files/Salinan+UU+Nomor+27+
 - [ ] Retensi **≥25 tahun** sejak kunjungan terakhir, tanpa hapus otomatis (Permenkes 24/2022 Pasal 39).
 - [ ] Kunci edit **2x24 jam** + alur koreksi dengan persetujuan (Pasal 30).
 - [ ] Formulir **persetujuan tindakan** sesuai UU 17/2023 Pasal 293.
+- [ ] Tombol **Selesai** = tanda tangan elektronik **tidak tersertifikasi** (DEVIATIONS #54: penanda tangan, waktu server, hash SHA-256 isi kunjungan, teks pernyataan berversi, PIN opsional per klinik). Kekuatan pembuktiannya menurut UU ITE untuk rekam medis **perlu dicek** hukum; naik ke TTE tersertifikasi tetap Q-5.
 - [ ] Penilaian transfer data ke luar negeri untuk setiap penyedia AI/SaaS (UU PDP Pasal 56).
 - [ ] Dapatkan formulir **odontogram** standar resmi terbaru dan panduan rekam medis gigi.
 - [ ] (Setelah MVP, D-008) pengajuan akses bridging PCare/Antrean ke BPJS.
