@@ -8,6 +8,7 @@ use App\Modules\Patients\Models\Patient;
 use App\Shared\Audit\Audit;
 use App\Shared\Crypto\Crypto;
 use App\Shared\Http\Controller;
+use App\Shared\Identity\NikMask;
 use App\Shared\Tenancy\Ctx;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -24,7 +25,6 @@ class FamilyController extends Controller
         $p = Patient::findOrFail($id);
         $members = $p->household_id ? Patient::where('household_id', $p->household_id)->orderBy('name')->get(['tenant_id', 'id', 'name', 'dob', 'guarantor_id']) : collect();
         $guarantor = $p->guarantor_id ? Patient::find($p->guarantor_id, ['tenant_id', 'id', 'name']) : null;
-        $canNik = Ctx::current()->can('patient.read_nik');
         Audit::log('baca', 'family', $id);
 
         return response()->json([
@@ -32,7 +32,7 @@ class FamilyController extends Controller
             'household' => $p->household_id ? ['id' => $p->household_id, 'name' => Household::find($p->household_id)?->name,
                 'members' => $members->map(fn ($m) => $m->only(['id', 'name', 'dob', 'guarantor_id']))] : null,
             'guarantor' => $guarantor?->only(['id', 'name']),
-            'guardians' => Guardian::where('patient_id', $id)->orderBy('created_at')->get()->map(fn (Guardian $g) => self::guardian($g, $canNik)),
+            'guardians' => Guardian::where('patient_id', $id)->orderBy('created_at')->get()->map(fn (Guardian $g) => self::guardian($g)),
         ]);
     }
 
@@ -98,16 +98,12 @@ class FamilyController extends Controller
         $g->save();
         Audit::log('buat', 'guardian', $g->id, ['patient_id' => $id]);
 
-        return response()->json(self::guardian($g, Ctx::current()->can('patient.read_nik')), 201);
+        return response()->json(self::guardian($g), 201);
     }
 
-    private static function guardian(Guardian $g, bool $canNik): array
+    // Guardian NIK is always masked (A4); there is no unmasked guardian view.
+    private static function guardian(Guardian $g): array
     {
-        $nik = Crypto::decrypt($g->nik_enc);
-        if ($nik !== null && ! $canNik) {
-            $nik = str_repeat('*', strlen($nik) - 4).substr($nik, -4);
-        }
-
-        return [...$g->only(['id', 'name', 'relationship', 'guardian_patient_id']), 'nik' => $nik, 'phone' => Crypto::decrypt($g->phone_enc)];
+        return [...$g->only(['id', 'name', 'relationship', 'guardian_patient_id']), 'nik' => NikMask::mask(Crypto::decrypt($g->nik_enc)), 'phone' => Crypto::decrypt($g->phone_enc)];
     }
 }

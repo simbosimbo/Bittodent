@@ -14,6 +14,16 @@ return [
         'qwen.qwen3-32b-v1:0',            // light text LLM
         'deepseek.v3.2',                  // challenger, evaluation only
         'openai.gpt-oss-120b-1:0',        // challenger, evaluation only
+        'amazon.nova-lite-v1:0',          // optional KTP OCR (A4), paid switch only; in-region Jakarta, no Geo/Global
+    ],
+
+    // A4 FINAL (Yohanes, 15 Nov 2026 22:07 WIB): paid AI off for every clinic unless clinic_ai_setting.paid_enabled says otherwise.
+    'paid_ai' => ['default' => (bool) env('AI_PAID_ENABLED', false)],
+
+    // A4 FINAL: KTP = manual entry + deterministic NIK checks (no Tesseract on Hostinger). nova_lite = paid skeleton.
+    'ktp' => [
+        'extractor' => env('AI_KTP_EXTRACTOR', 'manual'), // manual | nova_lite
+        'model_id' => 'amazon.nova-lite-v1:0',
     ],
 
     'bedrock' => [

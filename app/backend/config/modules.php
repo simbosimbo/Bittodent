@@ -22,5 +22,7 @@ return [
     'Integrations' => [],
     // A0 AI foundation: agent_run/agent_draft + run recorder; reaches models only via Integrations\Contracts\ModelClient.
     'Agents' => ['Integrations'],
+    // A4 KTP: manual entry + NIK checks; optional paid OCR only via Agents\Contracts\AgentRuns. Reads the stored NIK via PatientDirectory.
+    'Ktp' => ['Patients', 'Agents', 'Tenancy', 'Identity'],
     'Reporting' => [],
 ];

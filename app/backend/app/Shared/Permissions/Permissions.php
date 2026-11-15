@@ -7,9 +7,10 @@ final class Permissions
 {
     public const MATRIX = [
         // owner: clinical read-only (never note.write/note.sign/prescription sign); every chart/baseline/medical-history read is audited.
-        'owner' => ['patient.read', 'patient.read_nik', 'patient.create', 'appointment.read', 'appointment.create',
+        // patient.ktp.view (A4): the only unmasked NIK view, GET /patients/{id}/ktp (audited ktp_lihat).
+        'owner' => ['patient.read', 'patient.read_nik', 'patient.ktp.view', 'patient.create', 'appointment.read', 'appointment.create',
             'appointment.transition', 'note.read', 'audit.read', 'correction.approve', 'patient.update', 'billing.read', 'billing.adjust', 'tariff.manage'],
-        'dentist' => ['patient.read', 'patient.read_nik', 'patient.create', 'appointment.read', 'appointment.create',
+        'dentist' => ['patient.read', 'patient.read_nik', 'patient.ktp.view', 'patient.create', 'appointment.read', 'appointment.create',
             'appointment.transition', 'note.read', 'note.write', 'note.sign', 'patient.update', 'appointment.plan',
             'ai_draft.review'], // approve/reject agent drafts (D-001); never owner/assistant
         'assistant' => ['patient.read', 'appointment.read', 'appointment.transition', 'note.read', 'note.write', 'appointment.plan'],

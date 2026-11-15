@@ -12,9 +12,10 @@ class PatientApiTest extends TestCase
 {
     public function test_front_desk_sees_masked_nik_dentist_sees_full(): void
     {
+        // A4: GET /patients/{id} is always masked (dentist too); unmasked only via GET .../ktp (tests/Modules/Ktp).
         $p = $this->patientOf($this->tenantA());
-        $this->assertSame('************0001', $this->as('depan@senyum.test')->getJson("/api/patients/{$p->id}")->assertOk()->json('nik'));
-        $this->assertSame('9901000000000001', $this->as('dokter@senyum.test')->getJson("/api/patients/{$p->id}")->assertOk()->json('nik'));
+        $this->assertSame('9901********0001', $this->as('depan@senyum.test')->getJson("/api/patients/{$p->id}")->assertOk()->json('nik'));
+        $this->assertSame('9901********0001', $this->as('dokter@senyum.test')->getJson("/api/patients/{$p->id}")->assertOk()->json('nik'));
     }
 
     public function test_create_patient_encrypts_and_rejects_duplicates_with_id_only(): void
