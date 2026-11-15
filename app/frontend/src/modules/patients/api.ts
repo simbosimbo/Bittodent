@@ -1,4 +1,4 @@
-import { api } from '../../shared/api/http'
+import { api, apiBlob } from '../../shared/api/http'
 
 export type PatientRow = { id: string; name: string; dob: string | null; sex: string | null; payer_type: string }
 export type PatientFull = PatientRow & { nik: string | null; phone: string | null; address: string | null; payer_name: string | null; payer_member_no: string | null; payer_class: string | null }
@@ -40,3 +40,6 @@ export const uploadKtpPhoto = (file: File) => {
 }
 export const saveKtp = (id: string, body: KtpCodes) => api<{ mismatches: string[]; nik: string | null }>(pid(id) + '/ktp', { method: 'PUT', body })
 export const getKtp = (id: string) => api<KtpView>(pid(id) + '/ktp')
+
+export const getKtpPhoto = (id: string) => apiBlob(pid(id) + '/ktp/photo')
+export const getKtpAttachment = (id: string) => api<{ photo: { id: string; mime: string } | null }>(pid(id) + '/ktp/attachment')

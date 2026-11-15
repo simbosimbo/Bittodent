@@ -192,4 +192,32 @@ class KtpApiTest extends TestCase
         });
         $this->assertSame(2, $this->fake->calls);
     }
+
+    public function test_photo_stream_is_audited_tenant_scoped_and_permissioned(): void
+    {
+        $pid = $this->newPatient();
+        $this->as('dokter@senyum.test')->get("/api/patients/$pid/ktp/photo")->assertNotFound();
+        $file = UploadedFile::fake()->image('ktp.jpg', 40, 25);
+        $raw = file_get_contents($file->getRealPath());
+        $photo = $this->as('depan@senyum.test')->post('/api/ktp/photos', ['photo' => $file])->assertCreated()->json('id');
+        $this->as('depan@senyum.test')->putJson("/api/patients/$pid/ktp", ['photo_id' => $photo])->assertOk();
+
+        $res = $this->as('dokter@senyum.test')->get("/api/patients/$pid/ktp/photo");
+        $res->assertOk()->assertHeader('content-type', 'image/jpeg');
+        $this->assertSame($raw, $res->getContent());
+        $this->as('depan@senyum.test')->get("/api/patients/$pid/ktp/photo")->assertForbidden();
+        $this->as('kasir@senyum.test')->get("/api/patients/$pid/ktp/photo")->assertForbidden();
+        $this->as('dokter@ceria.test')->get("/api/patients/$pid/ktp/photo")->assertNotFound();
+
+        $this->as('dokter@senyum.test')->getJson("/api/patients/$pid/ktp/attachment")
+            ->assertOk()->assertJsonPath('photo.id', $photo)->assertJsonMissing(['nik']);
+        $this->as('depan@senyum.test')->getJson("/api/patients/$pid/ktp/attachment")->assertForbidden();
+        $this->as('dokter@ceria.test')->getJson("/api/patients/$pid/ktp/attachment")->assertNotFound();
+
+        $audit = $this->inA(fn () => AuditEvent::where('action', 'ktp_foto_lihat')->where('entity_id', $pid)->get());
+        $this->assertCount(1, $audit);
+        $this->assertSame('patient', $audit[0]->entity_type);
+        $this->assertStringNotContainsString(self::NIK, json_encode($audit[0]->detail) ?: '');
+        $this->assertStringNotContainsString($raw, json_encode($audit[0]->detail) ?: '');
+    }
 }

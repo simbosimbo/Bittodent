@@ -88,7 +88,7 @@ export default function App() {
   if (chart && can('note.read')) page = <ChartPage key={hash} patientId={chart[1]} appointmentId={chart[2]} me={me} />
   else if (sub?.[1] === 'keluarga' && can('patient.read')) page = <FamilyPage key={hash} id={sub[2]} canChart={can('note.read')} />
   else if (sub?.[1] === 'riwayat-medis' && can('note.read')) page = <MedicalHistoryPage key={hash} id={sub[2]} canChart={can('note.read')} canEdit={can('note.write')} />
-  else if (hash === '/pasien/baru' && can('patient.create')) page = <PatientForm />
+  else if (hash === '/pasien/baru' && can('patient.create')) page = <PatientForm canKtp={can('patient.ktp.view')} />
   else if (hash.startsWith('/pasien/') && can('patient.read')) page = <PatientDetail key={hash} id={hash.slice(8)} canChart={can('note.read')} canKtp={can('patient.ktp.view')} />
   else if (hash === '/pasien' && can('patient.read')) page = <PatientList key={query} canCreate={can('patient.create')} initialQ={new URLSearchParams(query).get('q') ?? ''} />
   else if (hash === '/jadwal' && can('appointment.read')) page = <Schedule me={me} />

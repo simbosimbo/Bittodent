@@ -81,6 +81,38 @@ class KtpController extends Controller
         ]);
     }
 
+
+
+    /** GET /api/patients/{id}/ktp/attachment: photo metadata only (no NIK). 404 other tenant. */
+    public function attachment(string $id, PatientDirectory $patients, KtpPhotoStore $photos)
+    {
+        $patients->assertExists($id);
+        $row = PatientKtp::where('patient_id', $id)->first();
+        $photo = $row?->photo_id ? $photos->get($row->photo_id) : null;
+
+        return response()->json(['photo' => $photo ? ['id' => $photo->id, 'mime' => $photo->mime] : null]);
+    }
+
+    /** GET /api/patients/{id}/ktp/photo: stream the decrypted image (patient.ktp.view), audited as ktp_foto_lihat. */
+    public function showPhoto(string $id, PatientDirectory $patients, KtpPhotoStore $photos)
+    {
+        $patients->assertExists($id); // 404 other tenant
+        $row = PatientKtp::where('patient_id', $id)->first();
+        $bytes = $row?->photo_id ? $photos->bytes($row->photo_id) : null;
+        $meta = $row?->photo_id ? $photos->get($row->photo_id) : null;
+        if ($bytes === null || $bytes === false || $meta === null) {
+            abort(404);
+        }
+        Audit::log('ktp_foto_lihat', 'patient', $id);
+
+        return response($bytes, 200, [
+            'Content-Type' => $meta->mime,
+            'Content-Disposition' => 'inline; filename="ktp"',
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
     private static function checkJson(NikCheck $c): array
     {
         return [

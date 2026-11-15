@@ -9,11 +9,15 @@
     "test": "vitest run",
     "screenshots": "node scripts/screenshots.mjs",
     "tokens": "node scripts/gen-tokens.mjs",
-    "dev:all": "bash ../dev.sh"
+    "dev:all": "bash ../dev.sh",
+    "vendor:tesseract": "node scripts/vendor-tesseract.mjs",
+    "predev": "node scripts/vendor-tesseract.mjs",
+    "prebuild": "node scripts/vendor-tesseract.mjs"
   },
   "dependencies": {
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^7.0.1",

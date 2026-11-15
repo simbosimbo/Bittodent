@@ -32,3 +32,12 @@ export function nikMismatches(nik: string, f: { dob?: string; sex?: string; prov
   for (const k of ['province', 'regency', 'district'] as const) if (f[k] && pad(f[k]!) !== p[k]) out.push(k)
   return out
 }
+
+/** 3201********0001 (first 4 + 8 stars + last 4). */
+export function maskNik(nik: string | null | undefined): string {
+  if (nik == null || nik === '') return nik ?? ''
+  const d = nik.replace(/\D/g, '')
+  if (d.length < 8) return '*'.repeat(Math.max(d.length, 4))
+  if (d.length !== 16) return d.slice(0, 4) + '*'.repeat(Math.max(d.length - 8, 4)) + d.slice(-4)
+  return d.slice(0, 4) + '*'.repeat(8) + d.slice(-4)
+}

@@ -193,7 +193,11 @@ html { scroll-padding-top: 160px; } /* scrollIntoView lands below the pinned top
 .state-card { padding: 28px; text-align: center; }
 .state-card.error { color: var(--danger); }
 .empty { padding: 16px 0; }
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; }
+.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); gap: 0 18px; }
+.grid-2 > *, .grid-2 input, .grid-2 select { min-width: 0; max-width: 100%; }
+@media (max-width: 480px) {
+  .grid-2, .ktp-codes { grid-template-columns: 1fr; }
+}
 .shell-main > .grid-2 { gap: 18px; }
 .stat-label { color: var(--muted); font-weight: 550; }
 .stat-value { font-size: 44px; font-weight: 750; color: var(--accent-600); margin: 6px 0; }

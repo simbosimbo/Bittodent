@@ -1,13 +1,57 @@
-/* A4 KTP section: every control >= 48px (tap target); mismatch = colored chip, no paragraph. */
+/* A4 KTP: 48px targets, field-level chips, sticky dock, encrypted photo card. Header/nav left to #52. */
+.patient-form { max-width: 1100px; }
+.patient-form .ktp-daftar { padding-bottom: 72px; }
+.patient-form input,
+.patient-form select,
+.patient-form .btn { min-height: 48px; box-sizing: border-box; }
+.patient-form-tabs { display: flex; gap: 4px; margin: 0 0 16px; background: var(--color-neutral-50, #F2F5F7); border-radius: 14px; padding: 4px; width: fit-content; max-width: 100%; }
+.patient-form-tabs button { min-height: 48px; min-width: 88px; padding: 0 18px; border: none; border-radius: 10px; background: transparent; font: inherit; font-weight: 650; color: var(--color-neutral-700, #3B4752); cursor: pointer; }
+.patient-form-tabs button.is-on { background: #fff; color: var(--color-primary-700, #0B6B62); box-shadow: 0 1px 2px rgb(0 0 0 / 8%); }
+.patient-form-tabs button:disabled { opacity: 0.45; cursor: default; }
+
 .ktp { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; align-items: end; }
 .ktp-codes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 10px; align-items: end; }
+.ktp-codes > * { min-width: 0; }
 .ktp label { min-width: 0; }
 .ktp input, .ktp select { width: 100%; min-width: 0; }
-.ktp input, .ktp select, .ktp button, .ktp-reveal { min-height: 48px; box-sizing: border-box; }
-.ktp input[type="file"] { padding: 12px 8px; width: 100%; }
+.ktp-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0; }
+.ktp-head h2 { margin: 0; }
 .ktp-label { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .ktp-bad { background: var(--danger-50); color: var(--danger); }
+.ktp-enc { background: var(--accent-50, #E5F5EC); color: var(--color-primary-700, #0B6B62); }
 .ktp-nik { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.ktp-reveal { min-width: 48px; }
-.patient-form .dialog-actions .btn { min-height: 48px; }
+.ktp-nik-row { display: flex; gap: 8px; align-items: center; }
+.ktp-nik-row input { flex: 1 1 auto; min-width: 0; }
+.ktp-reveal { min-width: 48px; min-height: 48px; flex: none; padding: 0 12px; }
+
+.ktp-att { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 14px; border: 1px solid var(--color-neutral-100, #E6EBEF); border-radius: 16px; background: #fff; }
+.ktp-att-meta { display: flex; align-items: center; gap: 8px; flex: 1 1 auto; min-width: 0; flex-wrap: wrap; }
+.ktp-att-meta strong { font-size: 14px; }
+.ktp-att input[type='file'] { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.ktp-att .btn { min-height: 48px; min-width: 48px; }
+
+.ktp-hasil { display: grid; gap: 10px; margin: 0 0 16px; }
+.ktp-hasil-card { background: #0B3A4A; color: #fff; border-radius: 16px; padding: 18px 20px; min-height: 88px; }
+.ktp-hasil-card .muted { color: rgb(255 255 255 / 0.7); }
+.ktp-daftar { display: grid; gap: 16px; }
+
+.patient-form-dock {
+  position: sticky; bottom: 0; z-index: 3;
+  display: flex; justify-content: flex-end; gap: 10px;
+  padding: 12px 0 calc(12px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(to top, var(--surface, #fff) 70%, rgb(255 255 255 / 0));
+  margin-top: 8px;
+}
+
+@media (min-width: 900px) {
+  .ktp-daftar { grid-template-columns: minmax(220px, 320px) minmax(0, 1fr); align-items: start; }
+  .ktp-hasil { margin: 0; position: sticky; top: 160px; }
+}
 @media (max-width: 720px) { .ktp { grid-template-columns: 1fr; } }
+@media (max-width: 480px) { .ktp-codes { grid-template-columns: 1fr; } }
+
+.ktp-warn { background: var(--warn-50, #FEF3C7); color: var(--warn, #B45309); }
+.ktp-preview { position: relative; width: 100%; aspect-ratio: 1.586; border-radius: 12px; overflow: hidden; background: #0B3A4A; }
+.ktp-preview img { width: 100%; height: 100%; object-fit: contain; display: block; filter: contrast(1.05); }
+.ktp-guide { position: absolute; inset: 7%; border: 2px dashed rgb(255 255 255 / 0.75); border-radius: 10px; pointer-events: none; }
+.ktp-scan { position: absolute; left: 0; bottom: 0; height: 3px; width: var(--p, 0%); background: var(--color-primary-500, #0D9F8C); }

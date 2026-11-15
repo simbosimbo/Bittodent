@@ -30,3 +30,14 @@ export async function api<T = any>(path: string, opts: { method?: string; body?:
 
 export const errorText = (e: unknown) =>
   e instanceof ApiError && e.status === 403 ? 'Anda tidak punya akses untuk ini.' : 'Gagal memuat data. Coba lagi.'
+
+/** Binary GET (KTP photo). Same cookies/XSRF as api(); does not parse JSON. */
+export async function apiBlob(path: string): Promise<Blob> {
+  const res = await fetch(path, { credentials: 'same-origin', headers: { Accept: '*/*', 'X-XSRF-TOKEN': xsrf() } })
+  if (!res.ok) {
+    if (res.status === 401) window.dispatchEvent(new Event('ehr:unauthorized'))
+    const data = await res.json().catch(() => null)
+    throw new ApiError(res.status, data)
+  }
+  return res.blob()
+}
