@@ -334,4 +334,34 @@ class ChartApiTest extends TestCase
         $this->as(self::DOC)->patchJson("/api/findings/$f", ['condition' => 'perlu_dicabut', 'procedure_code' => '23.8'])
             ->assertUnprocessable()->assertJsonValidationErrors('procedure_code');
     }
+
+    public function test_finding_diagnosis_code_is_official_icd10(): void
+    {
+        $visit = $this->draftVisit();
+        $post = fn (array $extra) => $this->as(self::DOC)->postJson("/api/visits/$visit/findings",
+            ['tooth' => 46, 'surface' => 'O', 'condition' => 'karies'] + $extra);
+        $f = $post(['diagnosis_code' => 'K02.1'])->assertCreated()
+            ->assertJsonPath('diagnosis_code', 'K02.1')->assertJsonPath('diagnosis_source', 'manual')->json('id');
+        foreach (['K02.5', 'K02.7', 'k02.1', '23.2'] as $bad) { // not in 2010 list, unknown, wrong case, ICD-9-CM
+            $post(['diagnosis_code' => $bad])->assertUnprocessable()->assertJsonValidationErrors('diagnosis_code');
+        }
+        $post(['diagnosis_code' => 'K02.5'])->assertJsonPath('errors', ['diagnosis_code' => ['Kode K02.5 tidak ada di daftar resmi SATUSEHAT ICD-10 2010.']]);
+        $post(['diagnosis_code' => 'K02.1', 'diagnosis_source' => 'tebak'])->assertUnprocessable()->assertJsonValidationErrors('diagnosis_source');
+
+        $patch = fn (array $body) => $this->as(self::DOC)->patchJson("/api/findings/$f", ['condition' => 'karies'] + $body);
+        $patch([])->assertOk()->assertJsonPath('diagnosis_code', 'K02.1'); // omitted = kept
+        $patch(['diagnosis_code' => 'K02.0', 'diagnosis_source' => 'aturan'])->assertOk()->assertJsonPath('diagnosis_source', 'aturan');
+        $patch(['diagnosis_code' => 'K02.5'])->assertUnprocessable();
+        $patch(['diagnosis_code' => ''])->assertOk()->assertJsonPath('diagnosis_code', null)->assertJsonPath('diagnosis_source', null);
+        $patch(['diagnosis_code' => 'K02.1'])->assertOk()->assertJsonPath('diagnosis_source', 'manual');
+
+        $patient = $this->noteOf($visit)->patient_id;
+        $draft = collect($this->as(self::DOC)->getJson("/api/patients/$patient/chart")->assertOk()->json('drafts'))->firstWhere('id', $f);
+        $this->assertSame(['K02.1', 'manual'], [$draft['diagnosis_code'], $draft['diagnosis_source']]);
+
+        $this->sign($visit)->assertOk(); // signing freezes the finding with its diagnosis
+        $this->as(self::DOC)->patchJson("/api/findings/$f", ['condition' => 'karies', 'diagnosis_code' => 'K02.0'])->assertStatus(409);
+        $final = collect($this->as(self::DOC)->getJson("/api/patients/$patient/chart")->json('findings'))->firstWhere('id', $f);
+        $this->assertSame(['final', 'K02.1'], [$final['state'], $final['diagnosis_code']]);
+    }
 }
