@@ -22,9 +22,9 @@ test('Kasir (KL01): cards with KPI; open ones first, each card opens its tagihan
   expect(sari).toHaveTextContent('Tumpatan 26')
   expect(within(screen.getByRole('region', { name: 'Lunas / void hari ini (1)' })).getByRole('link', { name: /Dewi Contoh/ })).toHaveAttribute('href', '#/tagihan/v-b')
   fireEvent.click(screen.getByRole('radio', { name: 'BPJS' }))
-  expect(screen.getAllByRole('link').map((l) => l.textContent)).toEqual([expect.stringContaining('Hendra Contoh')])
+  expect(screen.getAllByRole('listitem').map((l) => l.textContent)).toEqual([expect.stringContaining('Hendra Contoh')])
   fireEvent.click(screen.getByRole('radio', { name: 'Tempo' }))
-  expect(screen.getAllByRole('link').map((l) => l.textContent)).toEqual([expect.stringContaining('Budi Contoh')])
+  expect(screen.getAllByRole('listitem').map((l) => l.textContent)).toEqual([expect.stringContaining('Budi Contoh')])
 })
 
 test('Kasir: empty list explains where invoices come from; an error offers retry', async () => {

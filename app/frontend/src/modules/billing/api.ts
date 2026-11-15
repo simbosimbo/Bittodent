@@ -74,6 +74,15 @@ export const getDailyRevenue = () => api<DailyRevenue>('/api/billing/daily-reven
 export type KasirRow = { id: string; visit_id: string; patient_id: string; patient_name: string | null; status: Invoice['status']; created_at: string
   payer_type?: 'umum' | 'asuransi' | 'bpjs'; items?: string[]
   lines_rp: number; adjustments_rp: number; credit_notes_rp: number; payments_rp: number; refunds_rp: number; balance_rp: number }
+/** KL06 cashier shift (own, active branch). methods = per kind (+ bank for edc/transfer); live while open, frozen at close. */
+export type ShiftMethod = { kind: PaymentAccount['kind']; bank_name: string | null; amount_rp: number; count: number }
+export type Shift = { id: string; opening_cash_rp: number; opened_at: string; closed_at: string | null; counted_cash_rp: number | null
+  difference_rp: number | null; reason: string | null; methods: ShiftMethod[]; cash_in_rp: number; expected_cash_rp: number; total_rp: number }
+export const currentShift = () => api<{ shift: Shift | null }>('/api/cash-shift/current')
+export const openShift = (opening_cash_rp: number) => api<{ shift: Shift }>('/api/cash-shift', { method: 'POST', body: { opening_cash_rp } })
+export const closeShift = (id: string, body: { counted_cash_rp: number; reason?: string }) =>
+  api<{ shift: Shift }>(`/api/cash-shift/${id}/close`, { method: 'POST', body })
+
 export type KasirList = { date: string; branch_id: string; invoices: KasirRow[] }
 export const kasirList = () => api<KasirList>('/api/billing/invoices')
 

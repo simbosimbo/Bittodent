@@ -89,3 +89,8 @@
 .paid-actions { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
 .paid .btn { min-height: 48px; }
 @media print { .kwitansi { max-width: 80mm; font-size: 12px; } } /* KL05 struk 80 mm thermal; A4 choice comes with printer settings */
+/* KL06 shift */
+.shift { max-width: 560px; display: flex; flex-direction: column; gap: var(--space-3); }
+.shift-dl { display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; margin: 0; }
+.shift-dl div { display: contents; }
+.shift-dl dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }

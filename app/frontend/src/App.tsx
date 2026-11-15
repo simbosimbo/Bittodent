@@ -13,7 +13,7 @@ import { getMe, Login, logout as apiLogout, switchBranch as apiSwitchBranch } fr
 import { AlertRibbon, FamilyPage, MedicalHistoryPage, PatientDetail, PatientForm, PatientList } from './modules/patients'
 import { Home, Schedule, usePendingConfirm } from './modules/scheduling'
 import { ChartPage, SettingsRmPage } from './modules/clinical'
-import { InvoicePage, KasirPage } from './modules/billing'
+import { InvoicePage, KasirPage, ShiftPage } from './modules/billing'
 import { ReportPage } from './modules/reporting'
 import { BookingPage, ManagePage } from './modules/booking'
 import { ClinicSettingsPage, SETTINGS_PERMS } from './modules/settings'
@@ -136,6 +136,7 @@ function StaffApp() {
   else if (hash === '/pasien' && can('patient.read')) page = <PatientList canCreate={can('patient.create')} canChart={can('note.read')} initialQ={new URLSearchParams(query).get('q') ?? ''} />
   else if (hash === '/jadwal' && can('appointment.read')) page = <Schedule me={me} />
   else if (hash === '/kasir' && can('billing.read')) page = <KasirPage />
+  else if (hash === '/shift' && can('billing.adjust')) page = <ShiftPage />
   else if (hash === '/laporan' && can('reporting.read')) page = <ReportPage />
   else if (/^\/pengaturan-klinik(\/(harga|pembayaran))?$/.test(hash) && can(SETTINGS_PERMS)) page = <ClinicSettingsPage me={me} tab={hash.split('/')[2] ?? ''} onChanged={load} />
   else if (hash === '/pengaturan-rm' && can('note.sign|settings.manage')) page = <SettingsRmPage me={me} onChanged={load} />

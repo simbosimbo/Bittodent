@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Billing\Http\Controllers\CashShiftController;
 use App\Modules\Billing\Http\Controllers\CreditNoteController;
 use App\Modules\Billing\Http\Controllers\InvoiceController;
 use App\Modules\Billing\Http\Controllers\PaymentAccountController;
@@ -36,4 +37,8 @@ Route::middleware(['auth:sanctum', '2fa', 'tenant'])->group(function () {
     Route::post('/invoices/{id}/refunds', [RefundController::class, 'store'])->middleware('perm:billing.adjust');
     Route::post('/refunds/{id}/approve', [RefundController::class, 'decide'])->defaults('decision', 'approved')->middleware('perm:billing.approve_reversal');
     Route::post('/refunds/{id}/reject', [RefundController::class, 'decide'])->defaults('decision', 'rejected')->middleware('perm:billing.approve_reversal');
+    // KL06: cashier shift in the active branch; the cashier closes alone, a difference needs a reason (DEVIATIONS #73)
+    Route::get('/cash-shift/current', [CashShiftController::class, 'current'])->middleware('perm:billing.adjust');
+    Route::post('/cash-shift', [CashShiftController::class, 'store'])->middleware('perm:billing.adjust');
+    Route::post('/cash-shift/{id}/close', [CashShiftController::class, 'close'])->middleware('perm:billing.adjust');
 });

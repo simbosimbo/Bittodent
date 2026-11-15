@@ -55,7 +55,7 @@ export default function KasirPage() {
     <div className="kasir">
       <div className="page-head">
         <div><h1>Kasir</h1><p className="muted small">Tagihan cabang aktif.</p></div>
-        <button className="btn" onClick={load}>Muat ulang</button>
+        <span className="toolbar"><a className="btn" href="#/shift">Shift</a><button className="btn" onClick={load}>Muat ulang</button></span>
       </div>
       <div className="kasir-kpi">
         <div className="card"><span className="muted small">Belum bayar</span><strong>{open.length}</strong></div>
