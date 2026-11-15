@@ -104,6 +104,11 @@ EXTRA_CSS = """
 .mu{color:var(--mu)}.wf{width:100%}
 .cnt.set{gap:16px;padding:20px 28px}.cnt.set .gd{align-items:start;flex:1}
 .crumb{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--mu)}
+.back-hint{font-size:12px;line-height:16px;color:var(--mu);padding:0 10px}
+.lock-pane{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:28px;background:var(--cv)}
+.lock-card{width:420px;background:#fff;border:1px solid var(--bd);border-radius:16px;padding:32px 28px;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center}
+.lock-ico{width:56px;height:56px;border-radius:16px;background:var(--n50);color:var(--n700);display:flex;align-items:center;justify-content:center}
+.loc{display:flex;align-items:center;gap:12px;min-height:64px;padding:12px 16px;border:1px solid var(--bd);border-radius:12px;background:#fff}
 """
 
 NAV_NOW = [
@@ -188,15 +193,16 @@ def ops_sidebar(nav, active, compact=False, syn=True):
     return out + '</aside>'
 
 
-def set_sidebar(active):
+def set_sidebar(active, back_to='Antrean'):
     out = (
         '<aside class="side set">'
         '<div class="set-brand">'
         '<div class="logo"><span class="lg">B</span>Bittodent</div>'
         '<span class="tag">PENGATURAN</span>'
-        f'<div class="back">{ico("arrow", 16)}Kembali ke klinik</div>'
+        f'<div class="back" title="Kembali ke layar operasional terakhir">{ico("arrow", 16)}Kembali ke klinik</div>'
+        f'<span class="back-hint">Ke {back_to}</span>'
         '<div class="clinic"><b>Klinik Gigi Senyum Sehat</b>'
-        '<span class="t12 mu">Tebet, Jakarta Selatan</span>'
+        '<span class="t12 mu">Berlaku untuk seluruh klinik</span>'
         '<span class="syn">DATA SINTETIS</span></div>'
         '</div>'
     )
@@ -226,13 +232,15 @@ def ops_topbar(title='Antrean', icon='menu', who='drg. Nadia Putri', role='Pemil
     )
 
 
-def set_topbar(page, who='drg. Nadia Putri', role='Pemilik', ini='NP'):
+def set_topbar(page, who='drg. Nadia Putri', role='Pemilik', ini='NP', syn=False, badge=True):
+    syn_h = '<span class="syn">DATA SINTETIS</span>' if syn else ''
+    bdg_h = '<span class="bdg">Hanya pemilik dan admin</span>' if badge else ''
     return (
         '<header class="top set-top">'
         f'{ico("cog", 24)}<div class="pt">Pengaturan</div>'
         f'<span class="mu">/</span><span class="t14" style="font-weight:700">{page}</span>'
         '<span class="w1"></span>'
-        '<span class="bdg">Hanya pemilik dan admin</span>'
+        f'{syn_h}{bdg_h}'
         f'<span class="av-hit"><span class="av">{ini}</span></span>'
         f'<div class="fc"><b class="t14">{who}</b><span class="t12 mu">{role}</span></div>'
         '</header>'
@@ -325,10 +333,9 @@ board1 = ops_shell(NAV_NOW, active='Antrean', gear=False)
 # ---------- 02 proposed sidebar ----------
 board2 = ops_shell(NAV_OPS, active='Antrean', gear=True)
 
-# ---------- 03 avatar menu entry ----------
+# ---------- 03 gear-only entry ----------
 menu_owner = menu([
     ('Profil saya', 'user', False, True),
-    ('Pengaturan', 'cog', True, True),
     ('Keluar', 'x', False, True),
 ])
 board3 = ops_shell(NAV_OPS, active='Antrean', gear=True, gear_on=True, overlay=menu_owner, menu_on=True)
@@ -427,13 +434,12 @@ rm_main = (
 )
 board5 = set_shell('Pengaturan RM', 'Pengaturan RM', rm_main)
 
-# ---------- 06 role locked: no entry ----------
+# ---------- 07 role locked: no entry ----------
 menu_doc = menu([
     ('Profil saya', 'user', False, True),
-    ('Pengaturan', 'cog', True, False),
     ('Keluar', 'x', False, True),
 ])
-board6 = ops_shell(
+board7 = ops_shell(
     NAV_OPS, active='Antrean',
     who='drg. Arif Hidayat', role='Dokter gigi', ini='AH',
     gear=False, overlay=menu_doc, menu_on=True,
@@ -454,10 +460,11 @@ mobile = (
     '<span class="syn">DATA SINTETIS</span>'
     '<span class="av-hit"><span class="av">NP</span></span></header>'
     '<main class="cnt" style="padding:16px;display:flex;flex-direction:column;gap:12px">'
-    f'<div class="back">{ico("arrow", 16)}Kembali ke klinik</div>'
+    f'<div class="back" title="Kembali ke layar operasional terakhir">{ico("arrow", 16)}Kembali ke klinik</div>'
+    '<span class="back-hint">Ke Antrean</span>'
     '<div class="list">'
     '<div class="phead">Klinik</div>'
-    + mrow('Profil klinik') + mrow('Cabang')
+    + mrow('Profil klinik') + mrow('Cabang', 'Daftar lokasi', '')
     + '<div class="phead">Rekam medis</div>'
     + mrow('Pengaturan RM')
     + mrow('Alur kunjungan', 'Hanya baca', 'bdg')
@@ -468,29 +475,62 @@ mobile = (
     + '<div class="phead">Sistem</div>'
     + mrow('Audit log')
     + '</div>'
-    '<span class="mu t12">Hanya pemilik dan admin. Alur kunjungan di ponsel tampil sebagai langkah baca saja.</span>'
+    '<span class="mu t12">Hanya pemilik dan admin. Pengaturan berlaku untuk seluruh klinik. Alur kunjungan di ponsel tampil sebagai langkah baca saja.</span>'
     '</main></div></div>'
+)
+
+# ---------- 06 cabang list, not a settings scope ----------
+cabang_main = (
+    '<main class="cnt set">'
+    '<div class="fc g4"><h1 class="t28" style="margin:0">Cabang</h1>'
+    '<span class="mu">Daftar lokasi. Pengaturan di kiri berlaku untuk seluruh klinik, bukan per cabang.</span></div>'
+    '<div class="fc g8" style="max-width:640px">'
+    '<div class="loc"><div class="fc w1"><b>Tebet, Jakarta Selatan</b>'
+    '<span class="mu t12">Cabang utama</span></div>'
+    '<span class="bdg">Utama</span></div>'
+    '<button class="btn sec" style="align-self:flex-start">Tambah cabang</button>'
+    '</div></main>'
+)
+board6 = set_shell('Cabang', 'Cabang', cabang_main, size='d')
+
+# ---------- 08 locked settings URL ----------
+locked = (
+    '<div class="scr d"><div class="app" style="width:100%">'
+    + set_topbar(
+        'Terkunci',
+        who='drg. Arif Hidayat', role='Dokter gigi', ini='AH',
+        syn=True, badge=True,
+    )
+    + '<main class="lock-pane"><div class="lock-card">'
+    f'<div class="lock-ico">{ico("lock", 24)}</div>'
+    '<h1 class="t20" style="margin:0">Pengaturan terkunci</h1>'
+    '<span class="mu">Hanya pemilik dan admin yang dapat membuka halaman ini.</span>'
+    '<button class="btn pri">Kembali ke klinik</button>'
+    '<span class="mu t12">Kembali ke Antrean, layar terakhir.</span>'
+    '</div></main></div></div>'
 )
 
 # ---------- assemble ----------
 sec_ops = section(
     'Pintu masuk, terpisah dari operasional',
-    'Sidebar operasional tidak memuat pengaturan. Pemilik dan admin masuk lewat ikon gigi atau menu avatar.',
+    'Sidebar operasional tidak memuat pengaturan. Pemilik dan admin masuk lewat ikon gigi di topbar.',
     [ab('01', 'Sekarang, pengaturan tercampur di sidebar operasional', '1440×900', board1)],
     [ab('02', 'Usulan, sidebar operasional tanpa pengaturan', '1440×900', board2)],
-    [ab('03', 'Masuk lewat ikon gigi dan menu avatar', '1440×900', board3)],
+    [ab('03', 'Masuk lewat ikon gigi. Menu avatar hanya Profil saya dan Keluar', '1440×900', board3)],
 )
 sec_set = section(
     'Area pengaturan, shell sendiri',
-    'Sidebar dan header berbeda. Tombol Kembali ke klinik selalu terlihat.',
-    [ab('04', 'Pengaturan, Editor alur', '1440×1080', board4)],
-    [ab('05', 'Pengaturan, Pengaturan RM', '1440×1080', board5)],
+    'Kembali ke klinik membuka layar operasional terakhir. Pengaturan berlaku untuk seluruh klinik, bukan per cabang.',
+    [ab('04', 'Pengaturan, Editor alur. Kembali ke Antrean', '1440×1080', board4)],
+    [ab('05', 'Pengaturan, Pengaturan RM. Berlaku untuk seluruh klinik', '1440×1080', board5)],
+    [ab('06', 'Cabang, daftar lokasi, bukan lingkup pengaturan', '1440×900', board6)],
 )
 sec_role = section(
     'Hak akses dan ponsel',
-    'Dokter dan resepsionis tidak melihat pintu masuk. Di ponsel, pengaturan berupa daftar, alur hanya baca.',
-    [ab('06', 'Peran lain, tidak ada pintu masuk', '1440×900', board6)],
-    [ab('07', 'Ponsel, daftar pengaturan', '390×960', mobile)],
+    'Dokter dan resepsionis tidak melihat ikon gigi. URL pengaturan langsung menampilkan halaman terkunci.',
+    [ab('07', 'Peran lain, tidak ada pintu masuk', '1440×900', board7)],
+    [ab('08', 'URL pengaturan dibuka oleh peran lain, halaman terkunci', '1440×900', locked)],
+    [ab('09', 'Ponsel, daftar pengaturan. Kembali ke Antrean', '390×960', mobile)],
 )
 
 html = (
