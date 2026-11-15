@@ -1,6 +1,6 @@
 <?php
 
-// Unit B koreksi (DEVIATIONS #54). Owning module: Billing. A financial correction is its own document, never a Rp0 line or a
+// Unit B koreksi (DEVIATIONS #56). Owning module: Billing. A financial correction is its own document, never a Rp0 line or a
 // 100% discount: credit_note (Nota Kredit, numbered NK-YYYY-000001 per tenant), invoice_void, line_correction ("perlu tinjau
 // koreksi" flag from a clinical correction), billing_decision (owner decisions / cashier review). All append-only except the
 // number sequence. Original invoice lines, adjustments and payments are never changed.

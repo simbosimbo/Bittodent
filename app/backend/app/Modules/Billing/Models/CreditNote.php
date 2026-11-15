@@ -5,7 +5,7 @@ namespace App\Modules\Billing\Models;
 use App\Shared\Tenancy\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 
-// Nota Kredit (unit B, DEVIATIONS #54): reduces what is owed on ONE invoice line; the line itself never changes. Append-only (trigger).
+// Nota Kredit (unit B, DEVIATIONS #56): reduces what is owed on ONE invoice line; the line itself never changes. Append-only (trigger).
 class CreditNote extends Model
 {
     use BelongsToTenant;

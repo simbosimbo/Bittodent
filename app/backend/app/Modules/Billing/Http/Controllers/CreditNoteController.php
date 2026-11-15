@@ -20,7 +20,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-// Unit B koreksi (DEVIATIONS #54): financial corrections as their own documents. Never a Rp0 line, never a 100% discount.
+// Unit B koreksi (DEVIATIONS #56): financial corrections as their own documents. Never a Rp0 line, never a 100% discount.
 // Credit note (Nota Kredit) per invoice line: partial = billing.adjust, applies at once; full (covers the rest of the line) waits for an
 // owner (billing.approve_reversal). Void = only an invoice without payments. Owner decisions reuse the unit 4 conflict-of-interest rule.
 class CreditNoteController extends Controller

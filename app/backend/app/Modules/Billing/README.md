@@ -32,7 +32,7 @@ API: `GET /api/visits/{id}/invoice`, `GET /api/invoices/{id}`, `POST /api/invoic
 - **Saldo** = baris − penyesuaian berlaku − pembayaran (dihitung). `invoice.status`: `terbuka` | `lunas` (saldo 0 dan ada baris).
   Diskon 100% yang menunggu pemilik tidak mengurangi saldo.
 
-## Koreksi finansial: nota kredit, void, koreksi baris (unit B, DEVIATIONS #54)
+## Koreksi finansial: nota kredit, void, koreksi baris (unit B, DEVIATIONS #56)
 Prinsip (Yohanes): koreksi **tidak pernah** berupa baris Rp0 atau diskon 100%. Koreksi klinis dan koreksi finansial = dokumen terpisah.
 Baris tagihan asli (kode, nama, harga), penyesuaian, dan pembayaran tidak pernah diubah atau dihapus.
 - **Nota kredit** (`credit_note`, tabel sendiri, append-only): selalu satu `invoice_line_id`; `procedure_correction_id` bila dari koreksi

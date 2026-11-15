@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\DB;
 use PragmaRX\Google2FA\Google2FA;
 use Tests\TestCase;
 
-// Unit B koreksi (DEVIATIONS #54): financial corrections are their own documents (credit note NK-..., void), never a Rp0 line or a
+// Unit B koreksi (DEVIATIONS #56): financial corrections are their own documents (credit note NK-..., void), never a Rp0 line or a
 // 100% discount; original lines never change; full reversals need an owner (conflict-of-interest rule of unit 4).
 class CreditNoteTest extends TestCase
 {

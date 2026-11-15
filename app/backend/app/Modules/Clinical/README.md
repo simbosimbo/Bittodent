@@ -48,7 +48,7 @@ Akses (U0d): pemilik hanya **membaca** (`note.read`); tidak pernah menulis draf,
 - `procedure_correction` + `procedure_correction_decision` append-only (trigger + grant SELECT, INSERT). Tabel baru, bukan `correction_request` (tabel itu khusus SOAP dan statusnya di-UPDATE).
 - `tidak_dikerjakan`: status terminal, hanya lewat koreksi (bukan `POST /status`), tidak digambar di chart kini, tetap di riwayat dan `as_of`.
 - Tidak pernah membuat `invoice_line`. Event `ProcedureCorrected` (kini juga `chainProcedureIds` = rantai koreksi dari akar, dan `newBilling` =
-  data tagih baris baru bila `selesai` berkode, tidak pernah di-dispatch) didengar Billing (unit B, DEVIATIONS #54): `tidak_dikerjakan` →
+  data tagih baris baru bila `selesai` berkode, tidak pernah di-dispatch) didengar Billing (unit B, DEVIATIONS #56): `tidak_dikerjakan` →
   nota kredit penuh menunggu pemilik; `salah_*` → baris tagihan ditandai "perlu tinjau koreksi". Penjaga tutup kunjungan: tindakan yang
   rantainya berakhir `tidak_dikerjakan` bukan pekerjaan selesai (tidak butuh tagihan).
 - Dasar hukum tenggat untuk data **klinis** (Pasal 30 ayat 6–7): perlu dicek.

@@ -16,7 +16,7 @@ use RuntimeException;
 
 // Sync listener (runs inside Clinical's signing/status transaction): one invoice per visit, one line per procedure,
 // price = Tariffs snapshot at this moment for the procedure provider's band (per-dentist > field > Spesialis > Umum). No tariff => no line (never an invented price) + audit row for the front desk.
-// Tariff Rp0 => line flagged tariff_zero, waiting for an owner (billing.approve_zero; DEVIATIONS #54), distinct from corrections.
+// Tariff Rp0 => line flagged tariff_zero, waiting for an owner (billing.approve_zero; DEVIATIONS #56), distinct from corrections.
 final class InvoiceFromProcedure
 {
     public function __construct(private VisitDirectory $visits, private PatientDirectory $patients, private PriceLookup $prices) {}

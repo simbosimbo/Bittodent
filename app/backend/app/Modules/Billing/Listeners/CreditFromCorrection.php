@@ -12,7 +12,7 @@ use App\Shared\Audit\Audit;
 use App\Shared\Tenancy\Ctx;
 use LogicException;
 
-// Unit B (DEVIATIONS #54). Sync, inside Clinical's correction transaction. Never creates an invoice line, never a discount:
+// Unit B (DEVIATIONS #56). Sync, inside Clinical's correction transaction. Never creates an invoice line, never a discount:
 // - tidak_dikerjakan: each billed line of the chain gets a PENDING full credit note (owner, billing.approve_reversal), linked to the correction.
 // - salah_kode/situs/provider: no money moves; the line is flagged "perlu tinjau koreksi" for the cashier (credit note, bill the
 //   corrected code, or mark reviewed).
