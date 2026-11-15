@@ -69,7 +69,7 @@ Setiap keputusan ditulis dengan pola ini (mirip *ADR* = Architecture Decision Re
   1. **Semua pemrosesan AI berjalan di Indonesia (Jakarta) secara default.** Tidak ada audio atau teks klinis yang dikirim ke luar negeri.
   2. **LLM**: Amazon Bedrock region Jakarta (`ap-southeast-3`) **hanya dengan inferensi in-region** (model yang tercantum "In-Region" untuk Jakarta, misal Qwen3, DeepSeek, gpt-oss, Amazon Nova). Inferensi lintas-region "Geo" dan "Global" **dilarang** lewat kebijakan akses.
   3. **Suara→teks**: tidak ada layanan suara terkelola di Jakarta dari Google/AWS/Azure (lihat bukti). Jadi: **uji banding** dua jalur dalam negeri — (a) model suara open-source di-host sendiri di GPU Jakarta, (b) vendor lokal Prosa.ai dengan deployment on-premise/dalam negeri — pakai rekaman diktasi gigi **sintetis**; pilih yang akurasinya lebih baik untuk istilah gigi.
-  4. ~~Sampai uji selesai, scribe suara jalan sebagai fitur **beta** dengan persetujuan pasien eksplisit untuk perekaman.~~ *Digantikan oleh D-048 (15 Nov 2026).*
+  4. Sampai uji selesai, scribe suara jalan sebagai fitur **beta** dengan persetujuan pasien eksplisit untuk perekaman. *Diusulkan untuk digantikan oleh D-048 (menunggu konfirmasi).*
 - Alasan: privasi di urutan pertama; menghindari pertanyaan hukum transfer lintas negara; Bedrock menyatakan penyedia model tidak punya akses ke prompt/keluaran.
 - Akibat: model frontier terbaik (yang di Jakarta hanya tersedia via inferensi Global) tidak dipakai; kualitas Bahasa Indonesia istilah gigi harus dibuktikan dengan uji; hosting model suara sendiri menambah kerja operasional.
 - Ditegaskan Jerome: **tidak ada routing Geo/Global**, dan **model top global tidak dipakai untuk data klinis**.
@@ -285,7 +285,7 @@ Setiap keputusan ditulis dengan pola ini (mirip *ADR* = Architecture Decision Re
 - Tanggal: 2026-11-14 · Status: **Diterima** (Jawaban Jerome, 14 Nov 2026)
 - Konteks: dokter ingin mendikte, bukan mengetik dari nol. Suara adalah data kesehatan (UU PDP Pasal 4). Retensi audio diputuskan terpisah di D-038 (Q-4).
 - Keputusan:
-  1. Dikte hanya boleh oleh dokter gigi yang merawat~~, dan hanya jika pasien sudah setuju direkam~~. *Syarat persetujuan pasien digantikan oleh D-048 (15 Nov 2026).*
+  1. Dikte hanya boleh oleh dokter gigi yang merawat, dan hanya jika pasien sudah setuju direkam. *Syarat persetujuan pasien diusulkan untuk digantikan oleh D-048 (menunggu konfirmasi).*
   2. Hasilnya **draf berlabel**, masuk SOAP dan/atau odontogram. Tidak pernah jadi rekam medis sebelum dokter meninjau dan menandatangani (D-001).
   3. AI hanya menuliskan ulang dan merapikan yang diucapkan. Dilarang menambah diagnosis, obat, atau kode yang tidak diucapkan.
   4. Pemrosesan hanya di Indonesia, in-region, tanpa Geo/Global (D-009). Calon: Bedrock Jakarta `mistral.voxtral-mini-3b-2507` ([kartu model](https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-mistral-ai-voxtral-mini-3b-2507.html), In-Region didukung di `ap-southeast-3`). Amazon Transcribe **tidak** tersedia di Jakarta ([daftar wilayah](https://docs.aws.amazon.com/transcribe/latest/dg/what-is.html) · [endpoint](https://docs.aws.amazon.com/general/latest/gr/transcribe.html)). Akurasi istilah gigi Bahasa Indonesia: perlu uji.
@@ -339,7 +339,7 @@ Setiap keputusan ditulis dengan pola ini (mirip *ADR* = Architecture Decision Re
 - Perlu dicek: apakah kasir boleh membuat penyesuaian (diskon/hapus piutang) atau hanya melihat.
 
 ### D-048: Scribe suara tanpa langkah persetujuan rekam pasien dan tanpa pemberitahuan privasi klinik
-- Tanggal: 2026-11-15 · Status: **Diterima** (oleh Yohanes Santoso, 15 Nov 2026 20:59 WIB)
+- Tanggal: 2026-11-15 · Status: **Usulan — menunggu konfirmasi langsung Yohanes** (disampaikan lewat agen UI/UX 15 Nov 2026 20:59 WIB; persetujuan yang diteruskan agen lain belum dihitung)
 - Konteks: papan desain "AI & input cepat" (celah KlinikMe) menaruh mikrofon scribe di HP dokter. D-009 butir 4 mewajibkan persetujuan pasien eksplisit untuk perekaman selama scribe masih beta, dan D-037 butir 1 mensyaratkan pasien sudah setuju direkam. Yohanes memutuskan langkah itu tidak dipakai.
 - Keputusan:
   1. Scribe suara (D-037) berjalan **tanpa langkah persetujuan rekam dari pasien** dan **tanpa pemberitahuan privasi klinik** khusus perekaman.
@@ -347,7 +347,7 @@ Setiap keputusan ditulis dengan pola ini (mirip *ADR* = Architecture Decision Re
   3. Keluaran scribe tetap **draf** sampai dokter menekan Setujui lalu Selesai (D-001). AI tetap hanya merapikan yang diucapkan, tanpa menambah diagnosis, obat, atau kode (D-037 butir 3).
   4. Audio dihapus setelah Selesai (D-038).
   5. Pemrosesan tetap di Indonesia, in-region, tanpa Geo/Global. Butir lain D-009 tetap berlaku.
-  6. Keputusan ini **menggantikan D-009 butir 4** dan syarat persetujuan pasien di D-037 butir 1. Teks lama dicoret, tidak dihapus.
+  6. Bila dikonfirmasi, keputusan ini **menggantikan D-009 butir 4** dan syarat persetujuan pasien di D-037 butir 1. Sampai saat itu teks lama tetap berlaku dan hanya diberi catatan; setelah konfirmasi baru dicoret (tidak dihapus).
 - Alasan: keputusan produk Yohanes agar dikte tidak menambah langkah di kursi.
 - Akibat/Risiko:
   - Dasar pemrosesan menurut UU PDP untuk perekaman suara pasien, dan ketiadaan pemberitahuan kepada pasien, **perlu dikaji konsultan hukum**.
