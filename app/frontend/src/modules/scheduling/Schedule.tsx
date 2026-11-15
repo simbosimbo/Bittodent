@@ -152,7 +152,6 @@ export default function Schedule({ me }: { me: Me }) {
   ] as (Action | false | null | undefined)[]).filter((x): x is Action => !!x)
   const sheetAppt = sheetId ? data?.chairs.flatMap((c) => c.appointments).find((a) => a.id === sheetId) : undefined
 
-  if (!me.active.branch_id) return <div className="card state-card">Belum ada cabang aktif.</div>
   const count = data ? apptCount(data) : 0
   // The selected day's dot follows the live day data (after a booking or a status change), not the week fetch.
   const weekCounts = week.counts && data && data.date === date ? { ...week.counts, [date]: count } : week.counts
@@ -174,9 +173,31 @@ export default function Schedule({ me }: { me: Me }) {
   const nowMin = mobile && isToday ? minutesOfDay(new Date(now).toISOString(), tz) - START : -1
   const nowTop = nowMin >= 0 && nowMin <= END - START ? (nowMin / STEP) * ROW : null
 
+  // Phone grid on today: open with the now-line at ~35% of the screen; a "Sekarang" chip brings it back once scrolled away.
+  const gridNow = mobile && view === 'grid' && nowTop !== null && !!data && data.date === date
+  const nowRef = useRef<HTMLDivElement>(null)
+  const [nowSeen, setNowSeen] = useState(true)
+  const toNow = (smooth: boolean) => {
+    const el = nowRef.current
+    if (!el) return
+    const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - window.innerHeight * 0.35, behavior: smooth && !still ? 'smooth' : 'auto' })
+  }
+  useEffect(() => {
+    const el = nowRef.current
+    if (!gridNow || !el) return
+    toNow(false)
+    if (typeof IntersectionObserver === 'undefined') return
+    const io = new IntersectionObserver(([e]) => setNowSeen(e.isIntersecting))
+    io.observe(el)
+    return () => { io.disconnect(); setNowSeen(true) }
+  }, [gridNow, shownChair?.id])
+
+  if (!me.active.branch_id) return <div className="card state-card">Belum ada cabang aktif.</div>
+
   const prev = <button className="btn" onClick={() => shift(-1)} aria-label="Hari sebelumnya">‹</button>
   const next = <button className="btn" onClick={() => shift(1)} aria-label="Hari berikutnya">›</button>
-  const today = <button className="btn" onClick={() => setDate(todayWib())}>Hari ini</button>
+  const today = <button className={mobile ? 'btn sched-today' : 'btn'} onClick={() => setDate(todayWib())}>Hari ini</button>
   const dateInput = <DateField aria-label="Tanggal" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} />
   const create = canCreate && <button className="btn btn-primary" onClick={() => setDialog({})}>+ Buat Janji</button>
 
@@ -264,8 +285,12 @@ export default function Schedule({ me }: { me: Me }) {
               </div>
               {chairs.map((c) => (
                 <div key={c.id} className="sched-col" style={{ height: SLOTS.length * ROW }}>
-                  {nowTop !== null && <div className="sched-now" style={{ top: nowTop }} aria-label={`Sekarang ${hhmm(nowMin + START)}`} role="img" />}
-                  {SLOTS.map((m) => (
+                  {nowTop !== null && <div ref={nowRef} className="sched-now" style={{ top: nowTop }} aria-label={`Sekarang ${hhmm(nowMin + START)}`} role="img" />}
+                  {SLOTS.map((m) => mobile && canCreate ? (
+                    // Phone: each empty half hour is a real button (44px+, labelled, visible "+") that opens Buat Janji there.
+                    <button key={m} type="button" className={'sched-slot clickable' + (m % 60 === 0 ? ' hour' : '')} style={{ height: ROW }}
+                      aria-label={`Buat janji ${dotTime(m)}, ${c.label}`} onClick={() => setDialog({ chairId: c.id, minute: m })} />
+                  ) : (
                     <div key={m} className={'sched-slot' + (m % 60 === 0 ? ' hour' : '') + (canCreate ? ' clickable' : '')} style={{ height: ROW }}
                       onClick={canCreate ? () => setDialog({ chairId: c.id, minute: m }) : undefined} />
                   ))}
@@ -324,6 +349,7 @@ export default function Schedule({ me }: { me: Me }) {
           </div>
         </Sheet>
       )}
+      {gridNow && !nowSeen && <button type="button" className="now-chip" onClick={() => toNow(true)}>Sekarang {dotTime(nowMin + START)}</button>}
       {mobile && canCreate && <button type="button" className="fab" aria-label="Buat janji" onClick={() => setDialog({})}><Icon d={ICONS.plus} size={26} /></button>}
       {data && <PlannedList sched={data} date={date} canCreate={canCreate} onScheduled={reload} />}
       {dialog && data && (
