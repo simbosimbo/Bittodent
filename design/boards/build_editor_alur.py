@@ -91,6 +91,8 @@ EXTRA_CSS = """
 .ck.on.lock{background:var(--b9);border-color:var(--b9);color:#fff}
 .ban{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;border-radius:12px;border:1px solid var(--dbd);background:var(--dbg);color:var(--dfg);font-size:13px;line-height:18px;width:360px}
 .ban.ok{border-color:var(--sbd);background:var(--sbg);color:var(--sfg)}
+.ban.info{border-color:var(--ibd);background:var(--ibg);color:var(--ifg)}
+.lockbar{display:flex;align-items:center;gap:8px;padding:10px 16px;background:var(--ibg);border-bottom:1px solid var(--ibd);color:var(--ifg);font-size:13px;line-height:18px;flex:none;min-height:44px}
 .veil{position:absolute;inset:0;background:rgba(22,33,43,.4);display:flex;align-items:center;justify-content:center;z-index:5;padding:32px}
 .modal{max-width:560px;width:100%}
 .dw-w{position:absolute;inset:0;background:rgba(22,33,43,.24);display:flex;justify-content:flex-end;z-index:5}
@@ -172,11 +174,11 @@ def topbar(title='Alur kunjungan', who='drg. Nadia Putri', role='Pemilik', ini='
     )
 
 
-def shell(inner, size='d-ed', overlay='', who='drg. Nadia Putri', role='Pemilik'):
+def shell(inner, size='d-ed', overlay='', who='drg. Nadia Putri', role='Pemilik', ini='NP'):
     ov = overlay or ''
     return (
         f'<div class="scr {size}">{sidebar("Alur kunjungan")}'
-        f'<div class="app">{topbar(who=who, role=role)}{inner}{ov}</div></div>'
+        f'<div class="app">{topbar(who=who, role=role, ini=ini)}{inner}{ov}</div></div>'
     )
 
 
@@ -221,7 +223,6 @@ ENUM = [
     ('Tindakan', 'file', True),
     ('Catatan', 'file', True),
     ('Selesai', 'lock', True),
-    ('Kasir', 'wallet', True),
 ]
 
 DEFAULT_FLOW = [
@@ -231,8 +232,16 @@ DEFAULT_FLOW = [
     ('4', 'Pemeriksaan', 'Dokter, asisten', False, False),
     ('5', 'Tindakan', 'Dokter', False, False),
     ('6', 'Catatan', 'Dokter, draf asisten', True, False),
-    ('7', 'Selesai', 'Dokter merawat', True, False),
-    ('8', 'Kasir', 'Resepsionis, kasir', False, False),
+    ('7', 'Selesai', 'Dokter merawat, lalu kasir', True, False),
+]
+
+NO_TX_FLOW = [
+    ('1', 'Datang', 'Resepsionis', True, False),
+    ('2', 'Chart', 'Dokter, asisten', False, False),
+    ('3', 'Riwayat medis', 'Dokter meninjau', True, False),
+    ('4', 'Pemeriksaan', 'Dokter, asisten', False, False),
+    ('5', 'Catatan', 'Dokter, draf asisten', True, False),
+    ('6', 'Selesai', 'Dokter merawat', True, True),
 ]
 
 
@@ -280,7 +289,7 @@ def palette(used=None):
     return out
 
 
-def inspector_selesai():
+def inspector_selesai(billing=True):
     def role(label, on, locked, note=''):
         box = 'ck on lock' if locked and on else ('ck on' if on else 'ck')
         mark = '✓' if on else ''
@@ -292,17 +301,30 @@ def inspector_selesai():
         )
 
     def fld(label, on, locked):
-        box = 'ck on lock' if locked and on else ('ck on' if on else 'ck')
+        box = 'ck on lock' if locked and on else ('ck lock' if locked else ('ck on' if on else 'ck'))
         mark = '✓' if on else ''
         lk = ico('lock', 16) if locked else ''
         return (
             f'<div class="fldl"><span class="{box}">{mark}</span>'
             f'<span class="w1">{label}</span>{lk}</div>'
         )
+
+    if billing:
+        kasir = (
+            '<div class="phead">Kasir</div>'
+            + fld('Buka kasir setelah Selesai', True, True)
+            + '<span class="mu t12">Aktif karena ada node Tindakan. Tindakan boleh dihapus; maka kasir tidak dibuka.</span>'
+        )
+    else:
+        kasir = (
+            '<div class="phead">Kasir</div>'
+            + fld('Buka kasir setelah Selesai', False, True)
+            + '<span class="mu t12">Tidak aktif: tidak ada node Tindakan. Tagihan hanya jika Tindakan ada di alur.</span>'
+        )
     return (
         '<div class="insp">'
         '<div class="f jb ac"><b>Selesai</b><span class="bdg">Tanda tangan</span></div>'
-        '<span class="mu t12">Menutup kunjungan adalah tanda tangan elektronik. Bukan langkah terpisah.</span>'
+        '<span class="mu t12">Menutup kunjungan adalah tanda tangan elektronik. Kasir terbuka dari aksi ini, bukan node terpisah.</span>'
         '<div class="phead">Peran</div>'
         '<span class="mu t12">Hanya boleh dipersempit dari RBAC. Tidak bisa menambah peran baru.</span>'
         + role('Dokter merawat', True, True, '')
@@ -316,6 +338,7 @@ def inspector_selesai():
         + fld('Hash isi catatan', True, True)
         + fld('Pernyataan Selesai', True, True)
         + fld('Kunci catatan, hanya adendum', True, True)
+        + kasir
         + '<span class="mu t12">Isi minimum Permenkes 24/2022 tidak bisa dimatikan: no. RM, nama, NIK, catatan lengkap, nama, waktu, dan tanda tangan.</span>'
         '</div>'
     )
@@ -332,6 +355,8 @@ def inspector_empty():
         '<div class="fldl"><span class="w1">Nama, waktu, tanda tangan nakes</span>' + ico('lock', 16) + '</div>'
         '<div class="fldl"><span class="w1">Kode ICD bila ada tindakan</span>' + ico('lock', 16) + '</div>'
         '<span class="mu t12">Permenkes 24/2022 Pasal 14, 16, dan 18. Selalu aktif di setiap alur.</span>'
+        '<div class="phead">Kasir</div>'
+        '<span class="mu t12">Bukan node. Selesai membuka kasir hanya jika Tindakan ada di alur.</span>'
         '</div>'
     )
 
@@ -343,41 +368,56 @@ def exceptions():
         ('Koreksi', 'Setelah Selesai, perubahan hanya lewat adendum.'),
     ]
     out = '<div class="ex"><div class="phead" style="align-self:flex-start">Jalur pengecualian, terkunci</div>'
-    for t, s in items:
+    for title, s in items:
         out += (
             f'<div class="card" style="padding:10px 12px">'
-            f'<div class="f jb ac"><b>{t}</b><span class="lk mu t12">{ico("lock", 16)} Tetap</span></div>'
+            f'<div class="f jb ac"><b>{title}</b><span class="lk mu t12">{ico("lock", 16)} Tetap</span></div>'
             f'<span class="mu t12">{s}</span></div>'
         )
     out += '</div>'
     return out
 
 
-def toolbar(state='draft', publish_on=True):
-    if state == 'draft':
+def toolbar(state='draft', publish_on=True, locked=False):
+    if locked:
+        badge = '<span class="bdg dg">Terkunci</span><span class="mu t12">Hanya pemilik dan admin</span>'
+        pub = 'btn pri is-d'
+        sec = 'btn sec is-d'
+    elif state == 'draft':
         badge = '<span class="bdg wt">Draf v3</span><span class="mu t12">2 perubahan belum diterbitkan</span>'
+        pub = 'btn pri' if publish_on else 'btn pri is-d'
+        sec = 'btn sec'
     elif state == 'invalid':
-        badge = '<span class="bdg dg">Draf v3, 3 kesalahan</span>'
+        badge = '<span class="bdg dg">Draf v3, 2 kesalahan</span>'
+        pub = 'btn pri is-d'
+        sec = 'btn sec'
     else:
         badge = '<span class="bdg ok">Terbit v2</span>'
-    pub = 'btn pri' if publish_on else 'btn pri is-d'
+        pub = 'btn pri' if publish_on else 'btn pri is-d'
+        sec = 'btn sec'
     return (
         '<div class="ed-bar">'
         '<h1>Alur kunjungan</h1>'
-        '<span class="bdg">Izin flow.manage</span>'
+        '<span class="bdg">flow.manage, pemilik dan admin</span>'
         f'{badge}'
         '<span class="w1"></span>'
-        '<button class="btn sec">Kembali ke templat default</button>'
-        f'<button class="btn sec">{ico("hist", 16)} Riwayat</button>'
+        f'<button class="{sec}">Kembali ke templat default</button>'
+        f'<button class="{sec}">{ico("hist", 16)} Riwayat</button>'
         f'<button class="{pub}">Terbitkan</button>'
         '</div>'
     )
 
 
-def editor(canvas, insp, used=None, state='draft', publish_on=True, extra_canvas=''):
+def editor(canvas, insp, used=None, state='draft', publish_on=True, extra_canvas='', locked=False):
+    bar = ''
+    if locked:
+        bar = (
+            '<div class="lockbar">' + ico('lock', 16)
+            + '<span>Hanya pemilik dan admin yang dapat mengubah alur. Izin flow.manage.</span></div>'
+        )
     body = (
         '<div class="ed">'
-        f'{toolbar(state, publish_on)}'
+        f'{toolbar(state, publish_on, locked)}{bar}'
         '<div class="ed-body">'
         f'{palette(used)}'
         f'<div class="cvs">{canvas}{extra_canvas}</div>'
@@ -387,14 +427,14 @@ def editor(canvas, insp, used=None, state='draft', publish_on=True, extra_canvas
     return body
 
 
-hint = '<p class="hint">Templat default: 7 langkah dari alur Open Dental, plus Kasir di akhir. Fase 1, garis lurus.</p>'
+hint = '<p class="hint">Templat default: 7 langkah dari alur Open Dental. Selesai membuka kasir jika ada Tindakan. Fase 1, garis lurus.</p>'
 cvs1 = hint + chain(DEFAULT_FLOW) + exceptions()
 ed1 = editor(cvs1, inspector_empty())
 board1 = shell(ed1)
 
 flow_sel = [n if n[1] != 'Selesai' else (n[0], n[1], n[2], n[3], True) for n in DEFAULT_FLOW]
 cvs2 = hint + chain(flow_sel) + exceptions()
-ed2 = editor(cvs2, inspector_selesai())
+ed2 = editor(cvs2, inspector_selesai(True))
 board2 = shell(ed2)
 
 BAD_FLOW = [
@@ -402,19 +442,18 @@ BAD_FLOW = [
     ('2', 'Datang', 'Resepsionis', True, False),
     ('3', 'Riwayat medis', 'Dokter meninjau', True, False),
     ('4', 'Pemeriksaan', 'Dokter, asisten', False, False),
-    ('5', 'Kasir', 'Resepsionis, kasir', False, True),
-    ('6', 'Tindakan', 'Dokter', False, False),
-    ('7', 'Selesai', 'Dokter merawat', True, False),
-    ('8', 'Catatan', 'Dokter, draf asisten', True, False),
+    ('5', 'Tindakan', 'Dokter', False, False),
+    ('6', 'Selesai', 'Dokter merawat, lalu kasir', True, False),
+    ('7', 'Catatan', 'Dokter, draf asisten', True, False),
 ]
-errs = {'Datang', 'Kasir', 'Selesai', 'Catatan', '5', '7'}
+errs = {'Datang', 'Selesai', 'Catatan', '2', '6'}
 bans = (
     '<div class="ban">' + ico('alert', 16)
     + '<span>Datang harus di awal alur.</span></div>'
     '<div class="ban">' + ico('alert', 16)
-    + '<span>Kasir harus setelah Tindakan.</span></div>'
-    '<div class="ban">' + ico('alert', 16)
     + '<span>Catatan harus sebelum Selesai.</span></div>'
+    '<div class="ban info">' + ico('clip', 16)
+    + '<span>Tagihan hanya dibuka dari Selesai jika ada Tindakan.</span></div>'
 )
 cvs3 = '<p class="hint">Validasi di server. Terbitkan diblokir sampai graf benar.</p>' + chain(BAD_FLOW, errs) + bans
 ed3 = editor(cvs3, inspector_empty(), state='invalid', publish_on=False)
@@ -423,9 +462,9 @@ board3 = shell(ed3)
 diff_body = (
     '<span class="mu t12">Setelah diterbitkan, versi ini tidak bisa diubah. Perubahan berikutnya lewat draf baru.</span>'
     '<table class="tbl"><thead><tr><th>Perubahan</th><th>v2 terbit</th><th>Draf v3</th></tr></thead><tbody>'
+    '<tr><td>Kasir</td><td>Node terpisah di akhir</td><td class="diff-add">Digabung ke Selesai</td></tr>'
     '<tr><td>Peran Tindakan</td><td>Dokter, asisten</td><td class="diff-del">Dokter saja, asisten dilepas</td></tr>'
-    '<tr><td>Urutan Kasir</td><td>Setelah Tindakan</td><td class="diff-add">Setelah Selesai</td></tr>'
-    '<tr><td>Selesai</td><td>Dokter merawat, terkunci</td><td>Tidak berubah</td></tr>'
+    '<tr><td>Tanpa Tindakan</td><td>Tidak diatur</td><td class="diff-add">Boleh dihapus, kasir tidak dibuka</td></tr>'
     '</tbody></table>'
     '<span class="mu t12">v2 terbit 10 Nov 2026, 09.02 WIB, oleh drg. Nadia Putri. Tidak ditimpa.</span>'
 )
@@ -453,8 +492,9 @@ hist_body = (
     '</div>'
     '<div class="card" style="padding:12px 14px">'
     '<b>Selisih v2 dan draf v3</b>'
-    '<div class="t12" style="margin-top:8px"><span class="diff-del">Asisten dilepas dari Tindakan.</span><br>'
-    '<span class="diff-add">Kasir dipindah ke setelah Selesai.</span></div>'
+    '<div class="t12" style="margin-top:8px"><span class="diff-add">Kasir digabung ke Selesai.</span><br>'
+    '<span class="diff-del">Asisten dilepas dari Tindakan.</span><br>'
+    '<span class="diff-add">Tindakan boleh dihapus; kasir tidak dibuka.</span></div>'
     '</div>'
 )
 ov5 = drawer(
@@ -474,14 +514,13 @@ ed6 = editor(ex_focus, inspector_empty())
 board6 = shell(ed6)
 
 steps_m = [
-    ('done', 'Datang', 'Selesai 09.52'),
+    ('done', 'Datang', 'Datang 09.52'),
     ('done', 'Chart', 'Dibuka'),
     ('done', 'Riwayat medis', 'Ditinjau'),
     ('done', 'Pemeriksaan', 'Kondisi dicatat'),
     ('on', 'Tindakan', 'Sedang dikerjakan'),
     ('', 'Catatan', 'Berikutnya'),
-    ('', 'Selesai', 'Dokter merawat'),
-    ('', 'Kasir', 'Setelah tindakan'),
+    ('', 'Selesai', 'Tanda tangan, lalu kasir'),
 ]
 st_html = '<div class="stepper">'
 for cls, title, meta in steps_m:
@@ -512,12 +551,23 @@ board7 = (
     f'<div class="scr m-ed"><div class="app">{mobile_top}{mobile_main}</div></div>'
 )
 
+used_no_tx = {n[1] for n in NO_TX_FLOW}
+hint8 = '<p class="hint">Tindakan dihapus. Alur valid. Selesai tidak membuka kasir.</p>'
+cvs8 = hint8 + chain(NO_TX_FLOW) + exceptions()
+ed8 = editor(cvs8, inspector_selesai(False), used=used_no_tx)
+board8 = shell(ed8)
+
+hint9 = '<p class="hint">Templat terbit, hanya baca.</p>'
+cvs9 = hint9 + chain(DEFAULT_FLOW) + exceptions()
+ed9 = editor(cvs9, inspector_empty(), state='published', publish_on=False, locked=True)
+board9 = shell(ed9, who='drg. Arif Hidayat', role='Dokter gigi', ini='AH')
+
 sec_ed = section(
     'Editor alur, desktop',
-    'Satu alur per klinik. Node hanya dari daftar tetap. Draf dulu, terbit lalu terkunci.',
-    [ab('01', 'Kanvas dan palet, templat default', '1440×1080', board1)],
-    [ab('02', 'Inspector node Selesai, peran dan isi wajib', '1440×1080', board2)],
-    [ab('03', 'Kesalahan validasi di kanvas', '1440×1080', board3)],
+    'Satu alur per klinik. Tujuh node. Selesai membuka kasir hanya jika ada Tindakan.',
+    [ab('01', 'Kanvas dan palet, templat default 7 node', '1440×1080', board1)],
+    [ab('02', 'Inspector Selesai, kasir aktif karena ada Tindakan', '1440×1080', board2)],
+    [ab('03', 'Kesalahan validasi, plus aturan tagihan', '1440×1080', board3)],
 )
 sec_ver = section(
     'Terbit, riwayat, dan jalur tetap',
@@ -526,10 +576,12 @@ sec_ver = section(
     [ab('05', 'Riwayat versi, laci', '1440×1080', board5)],
     [ab('06', 'Jalur pengecualian, terkunci', '1440×1080', board6)],
 )
-sec_m = section(
-    'Ponsel, hanya baca',
-    'Editor tidak dibuka di ponsel. Yang tampil adalah langkah kunjungan dari alur yang sudah terbit.',
-    [ab('07', 'Stepper kunjungan, hanya baca', '390×900', board7)],
+sec_var = section(
+    'Tanpa tindakan, peran, dan ponsel',
+    'Tindakan boleh dihapus. Editor terkunci untuk peran di luar pemilik dan admin. Ponsel hanya baca.',
+    [ab('07', 'Tanpa Tindakan, kasir tidak dibuka', '1440×1080', board8)],
+    [ab('08', 'Terkunci, bukan pemilik atau admin', '1440×1080', board9)],
+    [ab('09', 'Stepper kunjungan, hanya baca', '390×900', board7)],
 )
 
 html = (
@@ -543,7 +595,7 @@ html = (
     f'{SPRITE}'
     '<header class="bh"><h1>Bittodent / Editor alur kunjungan</h1>'
     '<span class="mu b6">Board statis. Klinik Gigi Senyum Sehat, 15 Nov 2026. Data sintetis.</span></header>'
-    f'{sec_ed}{sec_ver}{sec_m}'
+    f'{sec_ed}{sec_ver}{sec_var}'
     '</body></html>'
 )
 

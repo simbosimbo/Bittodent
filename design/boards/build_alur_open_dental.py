@@ -236,7 +236,7 @@ overview = (
     '<div class="card" style="padding:24px;display:flex;flex-direction:column;gap:16px">'
     '<div class="fc g8"><h1 class="t20" style="margin:0">Tujuh langkah, satu kunjungan</h1>'
     '<span class="mu">Dari ruang tunggu sampai kasir. Tanpa rencana perawatan dulu. '
-    'Dokter merawat menekan Selesai: itu tanda tangan elektroniknya.</span></div>'
+    'Dokter merawat menekan Selesai: itu tanda tangan elektroniknya. Kasir terbuka dari aksi itu jika ada tindakan.</span></div>'
     f'{chips}'
     '<div class="list">'
     '<div class="rw"><span class="beda">Beda</span><span>Selesai = tanda tangan. Bukan kotak tanda tangan terpisah seperti di Open Dental.</span></div>'
@@ -408,25 +408,26 @@ selesai_main = (
     '</div>'
     '<div class="f jb ac" style="align-items:flex-end">'
     '<span class="mu t12" style="max-width:280px">Hanya dokter merawat yang dapat menekan Selesai. '
-    'Sistem mencatat nama, waktu, dan hash isi, lalu mengunci catatan.</span>'
+    'Mencatat nama, waktu, dan hash, mengunci catatan, lalu membuka kasir jika ada tindakan.</span>'
     '<div class="sel-wrap">'
     '<button class="btn pri">Selesai</button>'
     '<span class="legal">Dengan menekan Selesai, saya menyatakan catatan ini benar</span>'
     '</div></div>'
 )
 after_body = (
-    '<div class="f jb ac"><div class="fc g4"><b>Kunjungan ditutup</b>'
-    '<span class="mu t12">15 Nov 2026, 11.42 WIB (UTC+7)</span></div>'
-    f'<span class="bdg ok">{ico("lock", 16)} Terkunci</span></div>'
+    '<div class="f jb ac"><div class="fc g4"><b>Kasir terbuka</b>'
+    '<span class="mu t12">Dibuka dari Selesai. 15 Nov 2026, 11.42 WIB</span></div>'
+    f'<span class="bdg ok">{ico("lock", 16)} Catatan terkunci</span></div>'
     '<div class="card" style="padding:12px 16px">'
     '<div class="kv"><span class="mu">Ditutup oleh</span><b>drg. Nadia Putri</b></div>'
-    '<div class="kv"><span class="mu">Waktu</span><span>15 Nov 2026, 11.42 WIB</span></div>'
     '<div class="kv"><span class="mu">Hash isi</span><span>sha256:7c3a91e2...b04d</span></div>'
+    '<div class="kv"><span class="mu">Tagihan</span><b>Kontrol 15, Rp 150.000</b></div>'
+    '<div class="kv"><span class="mu">Metode</span><span>QRIS klinik, tunai, EDC, transfer</span></div>'
     '</div>'
-    '<span class="mu t12">Perubahan hanya lewat adendum. Lanjut ke kasir untuk tagihan.</span>'
-    '<div class="f g8" style="justify-content:flex-end">'
-    '<button class="btn pri">Buka kasir</button></div>'
+    '<span class="mu t12">Kasir terbuka dari aksi Selesai karena ada tindakan. Jika tidak ada tindakan, kasir tidak dibuka.</span>'
 )
+
+
 agent_body = (
     '<div class="f jb ac"><b>Draf agen</b><span class="bdg wt">Belum disetujui</span></div>'
     '<div class="note">S: Ngilu pada 15 mereda.\n'
@@ -450,7 +451,7 @@ right7 = pane_bd('Bittodent', bt('Selesai kunjungan', selesai_main))
 step7_main = flow(
     left7, right7,
     'Di Open Dental, tanda tangan ada di kotak terpisah pada prosedur, lalu janji di-Complete dan tagihan di Account. '
-    'Di Bittodent, dokter merawat menekan Selesai: itu tanda tangannya, catatan terkunci, lalu kasir.',
+    'Di Bittodent, Selesai adalah tanda tangan: catatan terkunci, dan kasir terbuka dari aksi itu jika ada tindakan.',
     src_link('Procedure Lock, hanya adendum setelah kunci', 'https://www.opendental.com/manual/procedurelocking.html'),
     beda='<span class="beda">Beda</span>',
 )
