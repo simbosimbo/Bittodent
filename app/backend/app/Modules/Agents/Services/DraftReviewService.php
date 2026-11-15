@@ -75,6 +75,20 @@ final class DraftReviewService implements AgentDrafts
         return $n;
     }
 
+    public function supersede(string $draftId): bool
+    {
+        return DB::transaction(function () use ($draftId) {
+            $d = AgentDraft::lockForUpdate()->findOrFail($draftId);
+            if ($d->state !== DraftState::MenungguReview) {
+                return false;
+            }
+            $d->update(['state' => DraftState::Digantikan]);
+            Audit::log('ai_draf_ganti', 'agent_draft', $d->id, ['kind' => $d->kind->value]);
+
+            return true;
+        });
+    }
+
     public function forTarget(DraftKind $kind, string $targetType, string $targetId): array
     {
         return AgentDraft::where('kind', $kind)->where('target_type', $targetType)->where('target_id', $targetId)
@@ -98,12 +112,12 @@ final class DraftReviewService implements AgentDrafts
             ->where('state', DraftState::MenungguReview)->whereIn('run_id', AgentRun::select('id')->where('requested_by', $requestedBy));
     }
 
-    public function approve(string $draftId): array
+    public function approve(string $draftId, ?DraftKind $as = null): array
     {
         $this->authorize($draftId);
 
-        return DB::transaction(function () use ($draftId) {
-            $draft = $this->reviewable($draftId, DraftState::Disetujui);
+        return DB::transaction(function () use ($draftId, $as) {
+            $draft = $this->reviewable($draftId, DraftState::Disetujui, $as);
             $draft->update(['state' => DraftState::Disetujui, 'reviewer_id' => Ctx::current()->userId, 'reviewed_at' => now()]);
             Audit::log('ai_draf_setujui', 'agent_draft', $draft->id, ['kind' => $draft->kind->value, 'run_id' => $draft->run_id]);
 
@@ -111,11 +125,11 @@ final class DraftReviewService implements AgentDrafts
         });
     }
 
-    public function reject(string $draftId, string $reason): void
+    public function reject(string $draftId, string $reason, ?DraftKind $as = null): void
     {
         $this->authorize($draftId);
-        DB::transaction(function () use ($draftId, $reason) {
-            $draft = $this->reviewable($draftId, DraftState::Ditolak);
+        DB::transaction(function () use ($draftId, $reason, $as) {
+            $draft = $this->reviewable($draftId, DraftState::Ditolak, $as);
             $draft->update(['state' => DraftState::Ditolak, 'reviewer_id' => Ctx::current()->userId, 'reviewed_at' => now(),
                 'reject_reason_enc' => Crypto::encrypt($reason)]);
             Audit::log('ai_draf_tolak', 'agent_draft', $draft->id, ['kind' => $draft->kind->value, 'run_id' => $draft->run_id]);
@@ -132,9 +146,15 @@ final class DraftReviewService implements AgentDrafts
         }
     }
 
-    private function reviewable(string $draftId, DraftState $to): AgentDraft
+    private function reviewable(string $draftId, DraftState $to, ?DraftKind $as): AgentDraft
     {
         $draft = AgentDraft::lockForUpdate()->findOrFail($draftId);
+        if ($as !== null && $draft->kind !== $as) {
+            throw new DraftReviewDenied(DraftReviewDenied::WRONG_KIND);
+        }
+        if ($as === null && $draft->kind->ownFlow()) {
+            throw new DraftReviewDenied(DraftReviewDenied::OWN_FLOW);
+        }
         if ($to === DraftState::Disetujui && ! $draft->kind->approvable()) {
             throw new DraftReviewDenied(DraftReviewDenied::NOT_APPROVABLE);
         }

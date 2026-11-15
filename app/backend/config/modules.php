@@ -22,5 +22,7 @@ return [
     'Integrations' => [],
     // A0 AI foundation: agent_run/agent_draft + run recorder; reaches models only via Integrations\Contracts\ModelClient.
     'Agents' => ['Integrations'],
+    // A1: ICD-10 / ICD-9-CM suggestions. Clinical only via VisitCoding (codes on the DRAFT SOAP), Agents for runs/drafts.
+    'IcdSuggestions' => ['Clinical', 'Agents'],
     'Reporting' => [],
 ];

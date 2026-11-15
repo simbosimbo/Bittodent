@@ -16,6 +16,12 @@ return [
         'openai.gpt-oss-120b-1:0',        // challenger, evaluation only
     ],
 
+    // Paid AI off for every clinic unless clinic_ai_setting.paid_enabled says otherwise. Same key as A4 (KTP).
+    'paid_ai' => ['default' => (bool) env('AI_PAID_ENABLED', false)],
+
+    // A1: optional model re-pick of ICD candidates (paid switch only). Must be an exact allowed_model_ids entry.
+    'icd' => ['model_id' => 'qwen.qwen3-32b-v1:0'],
+
     'bedrock' => [
         'region' => env('AI_BEDROCK_REGION', 'ap-southeast-3'),
         'model_id' => env('AI_BEDROCK_MODEL_ID', ''), // must be one of allowed_model_ids

@@ -86,6 +86,7 @@ class DatabaseSeeder extends Seeder
             $this->appointments([$b1], $users['dokter@ceria.test'], $patients);
             $this->c3Demo($b1, $users['dokter@ceria.test'], $patients, 2);
         }, $users['dokter@ceria.test']->id);
+        $this->call(IcdSampleSeeder::class); // global sample ICD dictionary (A1)
     }
 
     public static function user(string $email, string $name, string $license = 'lainnya', bool $twoFactor = true): User

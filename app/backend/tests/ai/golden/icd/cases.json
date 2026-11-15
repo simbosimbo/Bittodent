@@ -1,0 +1,263 @@
+{
+ "about": "Kasus sintetis A1 (bukan data pasien). Kode dan judul dari kamus resmi SATUSEHAT (database/data/icd/SOURCE.md); pemetaan istilah Indonesia ke kode = contoh, perlu dicek dokter gigi.",
+ "cases": [
+  {
+   "id": "gigi-berlubang",
+   "query": "gigi berlubang 36",
+   "expected": {
+    "icd10": [
+     "K02.1",
+     "K02.9"
+    ]
+   },
+   "note": "istilah awam",
+   "source": "SATUSEHAT ICD10_2010 K02.1 \"Caries of dentine\"; SATUSEHAT ICD10_2010 K02.9 \"Dental caries, unspecified\""
+  },
+  {
+   "id": "cabut",
+   "query": "cabut gigi 46",
+   "expected": {
+    "icd9cm": [
+     "23.09"
+    ]
+   },
+   "note": "istilah awam",
+   "source": "SATUSEHAT ICD9CM_2010 23.09 \"Extraction of other tooth\""
+  },
+  {
+   "id": "karies-dentin",
+   "query": "karies dentin 26 oklusal",
+   "expected": {
+    "icd10": [
+     "K02.1"
+    ]
+   },
+   "note": "",
+   "source": "SATUSEHAT ICD10_2010 K02.1 \"Caries of dentine\""
+  },
+  {
+   "id": "karies-email",
+   "query": "karies email gigi 11",
+   "expected": {
+    "icd10": [
+     "K02.0"
+    ]
+   },
+   "note": "",
+   "source": "SATUSEHAT ICD10_2010 K02.0 \"Caries limited to enamel\""
+  },
+  {
+   "id": "sisa-akar",
+   "query": "sisa akar 36, rencana cabut sisa akar",
+   "expected": {
+    "icd10": [
+     "K08.3"
+    ],
+    "icd9cm": [
+     "23.11"
+    ]
+   },
+   "note": "",
+   "source": "SATUSEHAT ICD10_2010 K08.3 \"Retained dental root\"; SATUSEHAT ICD9CM_2010 23.11 \"Removal of residual root\""
+  },
+  {
+   "id": "impaksi",
+   "query": "gigi bungsu impaksi 38 mesioangular",
+   "expected": {
+    "icd10": [
+     "K01.1"
+    ]
+   },
+   "note": "",
+   "source": "SATUSEHAT ICD10_2010 K01.1 \"Impacted teeth\""
+  },
+  {
+   "id": "odontektomi",
+   "query": "odontektomi 48",
+   "expected": {
+    "icd9cm": [
+     "23.19"
+    ]
+   },
+   "note": "",
+   "source": "SATUSEHAT ICD9CM_2010 23.19 \"Other surgical extraction of tooth\""
+  },
+  {
+   "id": "tumpat",
+   "query": "tumpat komposit 21 kelas III",
+   "expected": {
+    "icd9cm": [
+     "23.2"
+    ]
+   },
+   "note": "",
+   "source": "SATUSEHAT ICD9CM_2010 23.2 \"Restoration of tooth by filling\""
+  },
+  {
+   "id": "tambal-regional",
+   "query": "tambal gigi geraham bawah",
+   "expected": {
+    "icd9cm": [
+     "23.2"
+    ]
+   },
+   "note": "istilah daerah/awam",
+   "source": "SATUSEHAT ICD9CM_2010 23.2 \"Restoration of tooth by filling\""
+  },
+  {
+   "id": "scaling-typo",
+   "query": "scalling RA RB",
+   "expected": {
+    "icd9cm": [
+     "96.54"
+    ]
+   },
+   "note": "jebakan: salah ketik",
+   "source": "SATUSEHAT ICD9CM_2010 96.54 \"Dental scaling, polishing, and debridement\""
+  },
+  {
+   "id": "karang-gusi",
+   "query": "karang gigi banyak, gusi berdarah",
+   "expected": {
+    "icd10": [
+     "K03.6",
+     "K05.1"
+    ]
+   },
+   "note": "istilah awam",
+   "source": "SATUSEHAT ICD10_2010 K03.6 \"Deposits [accretions] on teeth\"; SATUSEHAT ICD10_2010 K05.1 \"Chronic gingivitis\""
+  },
+  {
+   "id": "pulpitis",
+   "query": "pulpitis ireversibel 46",
+   "expected": {
+    "icd10": [
+     "K04.0"
+    ]
+   },
+   "note": "",
+   "source": "SATUSEHAT ICD10_2010 K04.0 \"Pulpitis\""
+  },
+  {
+   "id": "psa",
+   "query": "perawatan saluran akar 46 kunjungan 1",
+   "expected": {
+    "icd9cm": [
+     "23.70",
+     "23.71"
+    ]
+   },
+   "note": "",
+   "source": "SATUSEHAT ICD9CM_2010 23.70 \"Root canal, not otherwise specified\"; SATUSEHAT ICD9CM_2010 23.71 \"Root canal therapy with irrigation\""
+  },
+  {
+   "id": "abses",
+   "query": "abses periapikal 36 tanpa fistula",
+   "expected": {
+    "icd10": [
+     "K04.7"
+    ]
+   },
+   "note": "jebakan: kata fistula",
+   "source": "SATUSEHAT ICD10_2010 K04.7 \"Periapical abscess without sinus\""
+  },
+  {
+   "id": "perio-kronis",
+   "query": "periodontitis kronis generalisata",
+   "expected": {
+    "icd10": [
+     "K05.3"
+    ]
+   },
+   "note": "",
+   "source": "SATUSEHAT ICD10_2010 K05.3 \"Chronic periodontitis\""
+  },
+  {
+   "id": "berlubang-typo",
+   "query": "gigi berlobang besar",
+   "expected": {
+    "icd10": [
+     "K02.1",
+     "K02.9"
+    ]
+   },
+   "note": "jebakan: salah ketik",
+   "source": "SATUSEHAT ICD10_2010 K02.1 \"Caries of dentine\"; SATUSEHAT ICD10_2010 K02.9 \"Dental caries, unspecified\""
+  },
+  {
+   "id": "gigi-susu",
+   "query": "cabut gigi susu 85 goyang",
+   "expected": {
+    "icd9cm": [
+     "23.01"
+    ]
+   },
+   "note": "jebakan: gigi sulung bukan 23.09",
+   "source": "SATUSEHAT ICD9CM_2010 23.01 \"Extraction of deciduous tooth\""
+  },
+  {
+   "id": "diagnosis-kosong",
+   "query": "",
+   "expected": {
+    "icd10": []
+   },
+   "note": "jebakan: diagnosis kosong, harus tanpa saran",
+   "source": "Tanpa kode: tidak ada teks diagnosis (aturan A1, bukan judul resmi)"
+  },
+  {
+   "id": "sudah-berkode",
+   "query": "K04.1 nekrosis pulpa 21",
+   "expected": {
+    "icd10": [
+     "K04.1"
+    ]
+   },
+   "note": "jebakan: catatan sudah berkode",
+   "source": "SATUSEHAT ICD10_2010 K04.1 \"Necrosis of pulp\""
+  },
+  {
+   "id": "bahasa-inggris",
+   "query": "chronic gingivitis",
+   "expected": {
+    "icd10": [
+     "K05.1"
+    ]
+   },
+   "note": "judul resmi bahasa Inggris",
+   "source": "SATUSEHAT ICD10_2010 K05.1 \"Chronic gingivitis\""
+  },
+  {
+   "id": "sariawan",
+   "query": "sariawan berulang di pipi",
+   "expected": {
+    "icd10": [
+     "K12.0"
+    ]
+   },
+   "note": "istilah awam",
+   "source": "SATUSEHAT ICD10_2010 K12.0 \"Recurrent oral aphthae\""
+  },
+  {
+   "id": "dry-socket",
+   "query": "dry socket pasca ekstraksi 38",
+   "expected": {
+    "icd10": [
+     "K10.3"
+    ]
+   },
+   "note": "",
+   "source": "SATUSEHAT ICD10_2010 K10.3 \"Alveolitis of jaws\""
+  },
+  {
+   "id": "keropos",
+   "query": "gigi keropos dan ngilu",
+   "expected": {
+    "icd10": [
+     "K02.9"
+    ]
+   },
+   "note": "jebakan: istilah awam belum ada di sinonim (diharapkan meleset)",
+   "source": "SATUSEHAT ICD10_2010 K02.9 \"Dental caries, unspecified\""
+  }
+ ]
+}
