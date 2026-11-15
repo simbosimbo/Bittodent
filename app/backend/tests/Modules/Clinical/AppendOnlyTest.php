@@ -5,6 +5,7 @@ namespace Tests\Modules\Clinical;
 use App\Modules\Clinical\Domain\Soap;
 use App\Modules\Clinical\Models\ClinicalNote;
 use App\Modules\Clinical\Models\ClinicalNoteVersion;
+use App\Modules\Clinical\Models\ProcedureRecord;
 use App\Modules\Clinical\Models\ToothFinding;
 use App\Shared\Tenancy\Ctx;
 use Database\Seeders\DatabaseSeeder;
@@ -87,6 +88,22 @@ class AppendOnlyTest extends TestCase
             $this->assertSame('sisa_akar', $draft->fresh()->condition);
 
             $this->assertSame('karies', $f->fresh()->condition);
+        });
+    }
+
+    public function test_final_procedure_is_frozen_and_drafts_stay_editable(): void
+    {
+        Ctx::runAs($this->tenantA()->id, function () {
+            $p = ProcedureRecord::where('state', 'final')->firstOrFail();
+            $this->rejects('UPDATE procedure_record SET surfaces = ? WHERE tenant_id = ? AND id = ?', ['MOD', $p->tenant_id, $p->id]);
+            $this->rejects('UPDATE procedure_record SET status = ? WHERE tenant_id = ? AND id = ?', ['cancelled', $p->tenant_id, $p->id]);
+            $this->rejects('DELETE FROM procedure_record WHERE tenant_id = ? AND id = ?', [$p->tenant_id, $p->id]);
+            $this->assertSame($p->status, $p->fresh()->status);
+
+            $draft = ProcedureRecord::create([...$p->only(['patient_id', 'visit_id', 'treat_area', 'tooth', 'surfaces', 'provider_id', 'created_by']),
+                'status' => 'direncanakan', 'procedure_code' => '23.2']);
+            $draft->update(['status' => 'cancelled']);
+            $this->assertSame(['cancelled', 'draft'], [$draft->fresh()->status, $draft->fresh()->state]);
         });
     }
 

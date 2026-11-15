@@ -10,6 +10,7 @@ use App\Modules\Clinical\Http\Requests\SignRequest;
 use App\Modules\Clinical\Models\ClinicalNote;
 use App\Modules\Clinical\Models\ClinicalNoteVersion;
 use App\Modules\Clinical\Models\CorrectionRequest;
+use App\Modules\Clinical\Models\ProcedureRecord;
 use App\Modules\Clinical\Models\ToothFinding;
 use App\Modules\Clinical\Models\Visit;
 use App\Modules\Identity\Contracts\UserDirectory;
@@ -86,7 +87,8 @@ class NoteController extends Controller
                 return self::conflict('stale', 'Draf berubah sejak Anda membacanya. Periksa lagi sebelum tanda tangan.', ['revision' => $draft->revision]);
             }
             $drafts = ToothFinding::where('visit_id', $id)->where('state', 'draft')->get();
-            $check = SignCheck::run($drafts, $draft->soap(), $visit->patient_id);
+            $procedures = ProcedureRecord::where('visit_id', $id)->where('state', 'draft')->orderBy('id')->get();
+            $check = SignCheck::run($drafts, $procedures, $draft->soap(), $visit->patient_id);
             if ($check['blocks']) {
                 Audit::log('tanda_tangan_ditolak', 'clinical_note_version', $draft->id, ['why' => 'validasi', 'rules' => array_column($check['blocks'], 'rule')]);
 
@@ -104,12 +106,15 @@ class NoteController extends Controller
             $draft->forceFill(['content_hash' => Soap::hash($draft->soap()), 'state' => 'signed', 'signed_by' => $ctx->userId, 'signed_at' => $now])->save();
             $findings = ToothFinding::where('visit_id', $id)->where('state', 'draft')
                 ->update(['state' => 'final', 'finalized_by' => $ctx->userId, 'finalized_at' => $now]);
-            $drafts->where('status', 'selesai')->each(fn ($f) => FindingController::recorded($f));
+            $locked = ['state' => 'final', 'finalized_by' => $ctx->userId, 'finalized_at' => $now];
+            ProcedureRecord::where('visit_id', $id)->where('state', 'draft')->update($locked);
+            // billing: only procedures (never findings); recorded() bills `selesai` + code once (unique invoice_line.procedure_id)
+            $procedures->each(fn ($p) => ProcedureController::recorded($p->forceFill($locked)));
             $this->outbox->enqueue('satusehat', 'satusehat:note_version:'.$draft->id, ['note_version_id' => $draft->id, 'visit_id' => $id]);
-            Audit::log('tanda_tangan', 'clinical_note_version', $draft->id, ['visit_id' => $id, 'findings' => $findings,
+            Audit::log('tanda_tangan', 'clinical_note_version', $draft->id, ['visit_id' => $id, 'findings' => $findings, 'procedures' => $procedures->count(),
                 ...($accepted ? ['warnings_accepted' => array_column($check['warnings'], 'rule'), 'reason' => $request->input('reason')] : [])]);
 
-            return response()->json(['version_id' => $draft->id, 'signed_at' => $now, 'content_hash' => $draft->content_hash, 'findings_locked' => $findings]);
+            return response()->json(['version_id' => $draft->id, 'signed_at' => $now, 'content_hash' => $draft->content_hash, 'findings_locked' => $findings, 'procedures_locked' => $procedures->count()]);
         });
     }
 

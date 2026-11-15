@@ -15,7 +15,7 @@ use LogicException;
 use RuntimeException;
 
 // Sync listener (runs inside Clinical's signing/status transaction): one invoice per visit, one line per procedure,
-// price = Tariffs snapshot at this moment for the visit dentist's band (per-dentist > field > Spesialis > Umum). No tariff => no line (never an invented price) + audit row for the front desk.
+// price = Tariffs snapshot at this moment for the procedure provider's band (per-dentist > field > Spesialis > Umum). No tariff => no line (never an invented price) + audit row for the front desk.
 final class InvoiceFromProcedure
 {
     public function __construct(private VisitDirectory $visits, private PatientDirectory $patients, private PriceLookup $prices) {}
@@ -30,7 +30,7 @@ final class InvoiceFromProcedure
             'visit_id' => $visit['id'], 'patient_id' => $visit['patient_id'], 'branch_id' => $visit['branch_id'],
             'payer_patient_id' => $this->patients->payerOf($visit['patient_id']), 'created_by' => Ctx::current()->userId ?? $visit['dentist_id'],
         ]);
-        if (InvoiceLine::where('finding_id', $e->findingId)->exists()) {
+        if (InvoiceLine::where('procedure_id', $e->procedureId)->exists()) {
             return; // idempotent: the same procedure is billed once
         }
         try {
@@ -40,9 +40,9 @@ final class InvoiceFromProcedure
 
             return;
         }
-        InvoiceLine::create(['invoice_id' => $invoice->id, 'finding_id' => $e->findingId, 'procedure_code' => $e->procedureCode,
+        InvoiceLine::create(['invoice_id' => $invoice->id, 'procedure_id' => $e->procedureId, 'procedure_code' => $e->procedureCode,
             'procedure_name' => $quote['name'], 'variant' => $e->variant, 'tooth' => $e->tooth === null || $e->tooth === '' ? null : (int) $e->tooth,
-            'surface' => $e->surface, 'doctor_id' => $e->dentistId, 'dentist_category' => $e->dentistCategory, 'dentist_field' => $e->dentistField,
+            'surface' => $e->surfaces, 'doctor_id' => $e->dentistId, 'dentist_category' => $e->dentistCategory, 'dentist_field' => $e->dentistField,
             'price_rp' => $quote['price_rp']]);
     }
 }

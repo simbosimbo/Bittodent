@@ -285,7 +285,8 @@ class ChartApiTest extends TestCase
         // chart: my drafts only; sign summary (visit.draft_findings) shows every author's drafts
         $patient = $this->noteOf($visit)->patient_id;
         $c = $this->as(self::DOC)->getJson("/api/patients/$patient/chart")->assertOk();
-        $this->assertCount(2, $c->json('drafts'));
+        $this->assertCount(1, $c->json('drafts')); // 26 karies; the 11 filling is a procedure draft now
+        $this->assertCount(1, $c->json('procedure_drafts'));
         $this->assertCount(0, $this->as('asisten@senyum.test')->getJson("/api/patients/$patient/chart")->json('drafts'));
     }
 
@@ -321,18 +322,23 @@ class ChartApiTest extends TestCase
         $this->assertTrue(Icd10Code::on('mysql_admin')->findOrFail('K02.0')->valid);
     }
 
-    public function test_finding_procedure_code_must_be_in_official_list(): void
+    public function test_procedure_code_must_be_in_official_list(): void
     {
         $visit = $this->draftVisit();
-        $post = fn (int $tooth, ?string $code) => $this->as(self::DOC)->postJson("/api/visits/$visit/findings",
-            ['tooth' => $tooth, 'surface' => null, 'condition' => 'perlu_dicabut', 'status' => 'direncanakan', 'procedure_code' => $code]);
-        $post(48, '23.19')->assertCreated()->assertJsonPath('procedure_code', '23.19');
+        $post = fn (int $tooth, ?string $code, array $x = []) => $this->as(self::DOC)->postJson("/api/visits/$visit/procedures",
+            ['tooth' => $tooth, 'status' => 'direncanakan', 'procedure_code' => $code] + $x);
+        $post(48, '23.19')->assertCreated()->assertJsonPath('procedure_code', '23.19')->assertJsonPath('treat_area', 'tooth');
         $post(85, '23.01')->assertCreated()->assertJsonPath('procedure_code', '23.01');
-        $post(47, null)->assertCreated();
+        $post(47, null, ['treat_area' => 'tooth'])->assertCreated()->assertJsonPath('paint_type', 'Text'); // no code: client gives the area
         $post(46, '23.99')->assertUnprocessable()->assertJsonValidationErrors('procedure_code');
-        $f = $post(45, '23.09')->assertCreated()->json('id');
-        $this->as(self::DOC)->patchJson("/api/findings/$f", ['condition' => 'perlu_dicabut', 'procedure_code' => '23.8'])
-            ->assertUnprocessable()->assertJsonValidationErrors('procedure_code');
+        $p = $post(45, '23.09')->assertCreated()->json('id');
+        $this->as(self::DOC)->patchJson("/api/procedures/$p", ['procedure_code' => '23.8'])->assertUnprocessable()->assertJsonValidationErrors('procedure_code');
+        // findings no longer carry treatments: clear 422 pointing at the procedure API
+        $this->as(self::DOC)->postJson("/api/visits/$visit/findings", ['tooth' => 45, 'surface' => null, 'condition' => 'perlu_dicabut', 'procedure_code' => '23.09'])
+            ->assertUnprocessable()->assertJsonValidationErrors('procedure_code')
+            ->assertJsonPath('errors.procedure_code.0', 'Tindakan dicatat lewat POST /api/visits/{id}/procedures, bukan sebagai temuan.');
+        $this->as(self::DOC)->postJson("/api/visits/$visit/findings", ['tooth' => 45, 'surface' => null, 'condition' => 'perlu_dicabut', 'status' => 'selesai'])
+            ->assertUnprocessable()->assertJsonValidationErrors('status');
     }
 
     public function test_finding_diagnosis_code_is_official_icd10(): void

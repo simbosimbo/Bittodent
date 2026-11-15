@@ -6,9 +6,11 @@ use App\Modules\Billing\Models\Invoice;
 use App\Modules\Billing\Models\InvoiceAdjustment;
 use App\Modules\Billing\Models\InvoiceLine;
 use App\Modules\Clinical\Domain\CodingTemplate;
+use App\Modules\Clinical\Domain\ProcedureCatalog;
 use App\Modules\Clinical\Models\ClinicalNote;
 use App\Modules\Clinical\Models\ClinicalNoteVersion;
 use App\Modules\Clinical\Models\ConsentRecord;
+use App\Modules\Clinical\Models\ProcedureRecord;
 use App\Modules\Clinical\Models\ToothBaseline;
 use App\Modules\Clinical\Models\ToothFinding;
 use App\Modules\Clinical\Models\Visit;
@@ -184,11 +186,13 @@ class DatabaseSeeder extends Seeder
             'ended_at' => $daysAgo ? now()->subDays($daysAgo)->addHour() : null, 'status' => $daysAgo ? 'selesai' : 'berlangsung']);
         $note = fn (Visit $v) => ClinicalNote::create(['visit_id' => $v->id, 'patient_id' => $patient->id, 'author_id' => $dentist->id,
             'first_input_at' => $v->started_at]);
-        $finding = fn (Visit $v, int $tooth, ?string $surface, string $cond, string $state = 'final', string $source = 'manual', string $status = 'kondisi_pantau', ?string $code = null, ?string $dx = null) => ToothFinding::create([
+        $finding = fn (Visit $v, int $tooth, ?string $surface, string $cond, string $state = 'final', string $source = 'manual') => ToothFinding::create([
             'patient_id' => $patient->id, 'visit_id' => $v->id, 'tooth' => $tooth, 'surface' => $surface, 'condition' => $cond,
-            'status' => $status, 'procedure_code' => $code, 'diagnosis_code' => $dx, 'diagnosis_source' => $dx ? 'manual' : null,
             'state' => $state, 'source' => $source, 'created_by' => $dentist->id,
             'finalized_by' => $state === 'final' ? $dentist->id : null, 'finalized_at' => $state === 'final' ? $v->started_at : null]);
+        // treatments (DEVIATIONS #47): one procedure_record per act; surfaces is a combination, e.g. "MOD"
+        $procedure = fn (Visit $v, int $tooth, ?string $surfaces, string $status, string $code, ?string $dx = null, string $state = 'final') => self::procedure(
+            $v, $tooth, $surfaces, $status, $code, $dx, $state, $dentist);
         $soap = fn (string $s, string $o, string $a, array $icd10, string $p, array $icd9 = []) => ['S' => $s, 'O' => $o,
             'A' => ['codes' => $icd10, 'text' => $a], 'P' => ['codes' => $icd9, 'text' => $p]];
 
@@ -196,11 +200,12 @@ class DatabaseSeeder extends Seeder
         $n1 = $note($v1);
         $x1 = self::version($n1, 1, null, $soap('Ngilu gigi kanan bawah saat minum dingin.', 'Karies dentin gigi 36 oklusal.', 'Karies dentin', ['K02.1'], 'Tumpatan komposit.', ['23.2']), $dentist, at: $v1->started_at);
         self::version($n1, 2, $x1, $soap('Ngilu gigi kanan bawah saat minum dingin.', 'Karies dentin gigi 46 oklusal.', 'Karies dentin', ['K02.1'], 'Tumpatan komposit.', ['23.2']), $dentist, 'Salah nomor gigi (36 -> 46)', $v1->started_at->addHours(3));
-        $finding($v1, 46, 'O', 'tambalan', status: 'selesai', code: '23.2');
+        $procedure($v1, 46, 'O', 'selesai', '23.2');
 
         $v2 = $visit(2);
         self::version($note($v2), 1, null, $soap('Kontrol tumpatan, tidak ada keluhan.', 'Tumpatan 46 baik. Gigi 18 goyang derajat 3.', 'Periodontitis kronis', ['K05.3'], 'Rencana cabut 18.'), $dentist, at: $v2->started_at);
-        $finding($v2, 18, null, 'perlu_dicabut', status: 'direncanakan', code: '23.09');
+        $finding($v2, 18, null, 'perlu_dicabut');
+        $procedure($v2, 18, null, 'direncanakan', '23.09');
         $finding($v2, 11, 'I', 'karies');
 
         $appt = Appointment::where('patient_id', $patient->id)->orderBy('starts_at')->firstOrFail();
@@ -208,7 +213,7 @@ class DatabaseSeeder extends Seeder
         $draft = (new ClinicalNoteVersion(['note_id' => $note($v3)->id, 'version' => 1, 'revision' => 1, 'state' => 'draft',
             'source' => 'manual', 'created_by' => $dentist->id]))->setSoap($soap('Gigi depan atas berlubang.', 'Karies email 11 insisal, 26 oklusal.', 'Karies email', ['K02.0'], 'Tumpatan 11 dan 26.', ['23.2']));
         $draft->save();
-        $finding($v3, 11, 'I', 'tambalan', 'draft', status: 'selesai', code: '23.2', dx: 'K02.0');
+        $procedure($v3, 11, 'I', 'selesai', '23.2', 'K02.0', 'draft');
         $finding($v3, 26, 'O', 'karies', 'draft', 'ai_draft');
     }
 
@@ -221,6 +226,7 @@ class DatabaseSeeder extends Seeder
     {
         DifficultyTemplate::seed('2026-01-01');
         CodingTemplate::seed(); // usulan condition -> ICD mapping (not a national standard)
+        ProcedureCatalog::seed(); // how codes are charted (treat_area / paint_type); not prices
         Tariff::create(['procedure_code' => '23.2', 'name' => 'Tumpatan (contoh)', 'variant' => 'standar', 'level_label' => '1 permukaan',
             'price_rp' => 200000, 'valid_from' => '2025-01-01', 'valid_to' => '2026-01-01']);
 
@@ -259,10 +265,9 @@ class DatabaseSeeder extends Seeder
         $p1 = $patients[1];
         $visit = Visit::create(['patient_id' => $p1->id, 'branch_id' => $branch->id, 'dentist_id' => $dentist->id, 'started_at' => now()->subDays(10),
             'ended_at' => now()->subDays(10)->addHour(), 'status' => 'selesai']);
-        $done = ToothFinding::create(['patient_id' => $p1->id, 'visit_id' => $visit->id, 'tooth' => 36, 'surface' => 'O', 'condition' => 'tambalan',
-            'status' => 'selesai', 'procedure_code' => '23.2', 'state' => 'final', 'created_by' => $dentist->id, 'finalized_by' => $dentist->id, 'finalized_at' => $visit->started_at]);
+        $done = self::procedure($visit, 36, 'O', 'selesai', '23.2', null, 'final', $dentist);
         $invoice = Invoice::create(['visit_id' => $visit->id, 'patient_id' => $p1->id, 'payer_patient_id' => $p1->id, 'branch_id' => $branch->id, 'created_by' => $dentist->id]);
-        InvoiceLine::create(['invoice_id' => $invoice->id, 'finding_id' => $done->id, 'procedure_code' => '23.2', 'variant' => 'standar', 'tooth' => 36, 'price_rp' => 250000]);
+        InvoiceLine::create(['invoice_id' => $invoice->id, 'procedure_id' => $done->id, 'procedure_code' => '23.2', 'variant' => 'standar', 'tooth' => 36, 'price_rp' => 250000]);
         InvoiceAdjustment::create(['invoice_id' => $invoice->id, 'kind' => 'discount', 'amount_rp' => 25000, 'reason' => 'Diskon pelanggan lama (contoh)', 'created_by' => $dentist->id]);
 
         // U0c prescription (D-036): #1 signed, voided with a reason, reissued as #2 (supersedes #1). KFA codes are synthetic.
@@ -276,6 +281,14 @@ class DatabaseSeeder extends Seeder
         $sign($rx1, ['dose' => '500 mg', 'route' => 'oral', 'frequency' => '3x sehari', 'duration_days' => 3]);
         PrescriptionVoid::create(['prescription_id' => $rx1->id, 'reason_enc' => Crypto::encrypt('Salah durasi (contoh)'), 'voided_by' => $dentist->id]);
         $sign($rx("R-$seed-0002", $rx1->id), ['dose' => '500 mg', 'route' => 'oral', 'frequency' => '3x sehari', 'duration_days' => 5]);
+    }
+
+    public static function procedure(Visit $v, int $tooth, ?string $surfaces, string $status, string $code, ?string $dx, string $state, User $dentist): ProcedureRecord
+    {
+        return ProcedureRecord::create(['patient_id' => $v->patient_id, 'visit_id' => $v->id, 'treat_area' => $surfaces ? 'surface' : 'tooth',
+            'tooth' => $tooth, 'surfaces' => $surfaces, 'status' => $status, 'procedure_code' => $code, 'diagnosis_code' => $dx,
+            'diagnosis_source' => $dx ? 'manual' : null, 'provider_id' => $v->dentist_id, 'state' => $state, 'created_by' => $dentist->id,
+            'finalized_by' => $state === 'final' ? $dentist->id : null, 'finalized_at' => $state === 'final' ? $v->started_at : null]);
     }
 
     public static function version(ClinicalNote $note, int $n, ?ClinicalNoteVersion $supersedes, array $soap, User $signer, ?string $reason = null, $at = null): ClinicalNoteVersion

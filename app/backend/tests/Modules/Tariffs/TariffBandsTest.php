@@ -3,7 +3,7 @@
 namespace Tests\Modules\Tariffs;
 
 use App\Modules\Billing\Models\InvoiceLine;
-use App\Modules\Clinical\Models\ToothFinding;
+use App\Modules\Clinical\Models\ProcedureRecord;
 use App\Modules\Clinical\Models\Visit;
 use App\Modules\Tariffs\Contracts\PriceContext;
 use App\Modules\Tariffs\Contracts\PriceLookup;
@@ -150,9 +150,9 @@ class TariffBandsTest extends TestCase
     {
         $this->rate('specialist', 300000)->assertOk(); // must not reach a general dentist
         $doc = $this->user(self::DOC)->id;
-        $old = $this->inA(fn () => ToothFinding::where('tooth', 18)->where('state', 'final')->firstOrFail());
-        $new = $this->as(self::DOC)->postJson("/api/findings/{$old->id}/status", ['to' => 'selesai'])->assertCreated()->json('id');
-        $line = $this->inA(fn () => InvoiceLine::where('finding_id', $new)->firstOrFail());
+        $old = $this->inA(fn () => ProcedureRecord::where('tooth', 18)->where('state', 'final')->firstOrFail());
+        $new = $this->as(self::DOC)->postJson("/api/procedures/{$old->id}/status", ['to' => 'selesai'])->assertCreated()->json('id');
+        $line = $this->inA(fn () => InvoiceLine::where('procedure_id', $new)->firstOrFail());
         $this->assertSame([150000, $doc, 'general', null], [$line->price_rp, $line->doctor_id, $line->dentist_category, $line->dentist_field]);
     }
 }
