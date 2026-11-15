@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent, type KeyboardEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent, type KeyboardEvent, type ReactNode, useRef } from 'react'
+import { useDialog } from '../../shared/ui/Sheet'
 import { ApiError, errorText } from '../../shared/api/http'
 import { setActivePatient } from '../../shared/activePatient'
 import { fmtDateTime, fmtDay, fmtTime } from '../../shared/format'
@@ -115,9 +116,12 @@ function CorrectionDialog({ note, solo, onDone, onClose }: { note: Note; solo: b
       setBusy(false)
     }
   }
+  // Phone: bottom sheet (styles.css) with modal focus/Escape/scroll lock; desktop behaviour unchanged.
+  const dlg = useRef<HTMLFormElement>(null)
+  useDialog(dlg, onClose, useIsMobile())
   return (
     <div className="overlay" onClick={onClose}>
-      <form className="card dialog dialog-wide" role="dialog" aria-modal="true" aria-labelledby="fix-title" onClick={(e) => e.stopPropagation()} onSubmit={submit} noValidate>
+      <form ref={dlg} className="card dialog dialog-wide" role="dialog" aria-modal="true" aria-labelledby="fix-title" onClick={(e) => e.stopPropagation()} onSubmit={submit} noValidate>
         <h2 id="fix-title">Koreksi catatan (versi {current.version} → {Math.max(...note.versions.map((v) => v.version)) + 1})</h2>
         <p className={late ? 'notice notice-warn' : 'notice'}>{info}</p>
         <label>Alasan koreksi *<textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} aria-invalid={!!error} /></label>
@@ -208,9 +212,12 @@ export function ProcedureFixDialog({ p, mode, visitId, onDone, onClose }: { p: P
       setBusy(false)
     }
   }
+  // Phone: bottom sheet (styles.css) with modal focus/Escape/scroll lock; desktop behaviour unchanged.
+  const dlg = useRef<HTMLFormElement>(null)
+  useDialog(dlg, onClose, useIsMobile())
   return (
     <div className="overlay" onClick={onClose}>
-      <form className="card dialog" role="dialog" aria-modal="true" aria-labelledby="pfix-title" onClick={(e) => e.stopPropagation()} onSubmit={submit} noValidate>
+      <form ref={dlg} className="card dialog" role="dialog" aria-modal="true" aria-labelledby="pfix-title" onClick={(e) => e.stopPropagation()} onSubmit={submit} noValidate>
         <h2 id="pfix-title">{mode === 'ganti' ? 'Ganti tindakan' : 'Koreksi tindakan'}: {procedureText(p)}</h2>
         {mode === 'koreksi' && <label>Jenis koreksi * <select value={type} onChange={(e) => setType(e.target.value as CorrectionType)}>
           <option value="">Pilih…</option>

@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState, type FormEvent, useRef } from 'react'
 import { ApiError, errorText } from '../../shared/api/http'
 import { fmtDate, fmtTime, todayWib } from '../../shared/format'
 import type { Me } from '../../shared/session'
 import { Icon, ICONS } from '../../shared/ui/Icon'
-import { Sheet } from '../../shared/ui/Sheet'
+import { Sheet, useDialog } from '../../shared/ui/Sheet'
 import { useIsMobile } from '../../shared/useIsMobile'
 import { PatientPicker } from '../patients'
 import './scheduling.css'
@@ -278,9 +278,12 @@ function BookDialog({ sched, date, me, initial, onClose, onSaved }: {
     }
   }
 
+  // Phone: bottom sheet (styles.css) with modal focus/Escape/scroll lock; desktop behaviour unchanged.
+  const dlg = useRef<HTMLFormElement>(null)
+  useDialog(dlg, onClose, useIsMobile())
   return (
     <div className="overlay" onClick={onClose}>
-      <form className="card dialog" role="dialog" aria-modal="true" aria-labelledby="book-title" onClick={(e) => e.stopPropagation()} onSubmit={submit} noValidate>
+      <form ref={dlg} className="card dialog" role="dialog" aria-modal="true" aria-labelledby="book-title" onClick={(e) => e.stopPropagation()} onSubmit={submit} noValidate>
         <h2 id="book-title">Buat Janji</h2>
         <p className="muted">{fmtDate(date)} · {sched.branch.name}</p>
         <PatientPicker value={patient} onChange={setPatient} />

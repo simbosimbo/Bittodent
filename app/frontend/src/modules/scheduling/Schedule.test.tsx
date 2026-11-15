@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
+import baseCss from '../../shared/ui/styles.css?raw'
 import type { Me } from '../../shared/session'
 import Schedule from './Schedule'
 
@@ -218,4 +219,31 @@ test('HP: Tab tetap di dalam sheet; klik latar menutup', async () => {
   expect(document.activeElement).toBe(controls[controls.length - 1])
   fireEvent.click(container.ownerDocument.querySelector('.sheet-backdrop') as HTMLElement)
   expect(screen.queryByRole('dialog')).toBeNull()
+})
+
+// ---- Stage 5: Buat Janji as a modal bottom sheet on a phone ----
+test.each([[412, true], [1280, false]])('%ipx: Buat Janji Escape/scroll-lock only on a phone', async (w, modal) => {
+  viewport(w)
+  mockOne(() => [])
+  render(<Schedule me={ME_CHART} />)
+  fireEvent.click(await screen.findByRole('button', { name: '+ Buat Janji' }))
+  const dialog = screen.getByRole('dialog', { name: 'Buat Janji' })
+  expect(dialog.contains(document.activeElement)).toBe(modal)
+  expect(document.body.style.overflow).toBe(modal ? 'hidden' : '')
+  fireEvent.keyDown(document, { key: 'Escape' })
+  expect(!screen.queryByRole('dialog')).toBe(modal)
+})
+
+test.each([[390, '44px', '16px'], [1280, '40px', '']])('%ipx: form fields min-height %s (styles.css)', (w, minH, font) => {
+  const style = document.head.appendChild(document.createElement('style'))
+  style.textContent = baseCss.replace(/@media[^{]+/g, (m) => m.replace(/(\d+)px/g, (_, n) => `${Number(n) - (w - 1024)}px`))
+  try {
+    const { container } = render(<form><select aria-label="x"><option>a</option></select><input aria-label="y" /><label className="check"><input type="checkbox" /> z</label></form>)
+    for (const el of container.querySelectorAll<HTMLElement>('select, input:not([type=checkbox])')) {
+      expect(getComputedStyle(el).minHeight).toBe(minH)
+      if (font) expect(getComputedStyle(el).fontSize).toBe(font)
+    }
+    expect(getComputedStyle(container.querySelector('input[type=checkbox]')!).minHeight).not.toBe('44px')
+    expect(getComputedStyle(container.querySelector('label.check')!).minHeight).toBe(w <= 720 ? '44px' : 'auto')
+  } finally { style.remove() }
 })

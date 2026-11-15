@@ -475,3 +475,26 @@ label.check input { min-height: 0; }
   position: absolute; inset: 0 40px 0 0; display: flex; align-items: center; padding-left: 13px; pointer-events: none;
   font-weight: 400; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+
+/* Phone overlays and touch targets (≤720px). */
+@media (max-width: 720px) {
+  /* Dialogs become bottom sheets above the bottom nav (20) and other sheets (31); actions stay pinned at the sheet bottom. */
+  .overlay { z-index: 32; place-items: end stretch; }
+  .overlay > .dialog {
+    width: 100%; max-width: none; max-height: calc(100dvh - var(--space-6, 24px)); overflow-y: auto; overscroll-behavior: contain;
+    padding-bottom: 0; border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+  .overlay > .dialog .dialog-actions {
+    position: sticky; bottom: 0; z-index: 1; margin: var(--space-2) calc(-1 * var(--space-4)) 0;
+    padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom)); background: var(--surface); border-top: 1px solid var(--border);
+  }
+  .overlay > .dialog .dialog-actions .btn { flex: 1; }
+  /* 44px fields; 16px text so iOS does not zoom on focus. */
+  input:where(:not([type='checkbox'], [type='radio'], [type='range'])), select, textarea { min-height: 44px; font-size: 16px; }
+  label.check { min-height: 44px; }
+  .picker-list button { min-height: 44px; align-items: center; }
+  label.check input { width: 20px; height: 20px; flex: none; }
+  /* Ribbon "Riwayat medis →" and back links: 44px tall target without making the ribbon taller. */
+  .alert-link { display: inline-flex; align-items: center; min-height: 44px; margin-block: -14px; }
+  .page-head a.small { display: inline-flex; align-items: center; min-height: 44px; }
+}

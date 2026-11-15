@@ -5,6 +5,7 @@ import { ROLE_LABELS, type Me } from '../session'
 import { Icon, ICONS } from '../ui/Icon'
 import { Menu } from '../ui/Menu'
 import { useScrollHints } from '../ui/scrollHint'
+import { useDialog } from '../ui/Sheet'
 import { useIsMobile } from '../useIsMobile'
 
 // Mobile bottom tabs, in order; every other nav item goes in the "Lainnya" sheet (with branch + Keluar).
@@ -56,6 +57,8 @@ export function Shell({ me, nav, active, title = '', ribbon, onSwitchBranch, onL
   useScrollHints(mobile)
   const [q, setQ] = useState('')
   const [more, setMore] = useState(false)
+  const moreRef = useRef<HTMLDivElement>(null)
+  useDialog(moreRef, () => setMore(false), mobile && more) // modal: focus in/trapped/back to Lainnya, Escape, no page scroll
   // Pinned top bar height -> --shell-sticky-h, so the chart's sticky patient header (allergies) sits right below it.
   const sticky = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -177,7 +180,7 @@ export function Shell({ me, nav, active, title = '', ribbon, onSwitchBranch, onL
       {mobile && more && (
         <>
           <div className="sheet-backdrop" onClick={() => setMore(false)} />
-          <div className="sheet more-sheet" role="dialog" aria-label="Menu lainnya" onKeyDown={(e) => e.key === 'Escape' && setMore(false)}>
+          <div ref={moreRef} className="sheet more-sheet" role="dialog" aria-modal="true" aria-label="Menu lainnya">
             {rest.map((n) => link(n, <><Icon d={n.icon} /> {n.label}</>))}
             <Branch me={me} onSwitchBranch={(id) => { setMore(false); onSwitchBranch(id) }} />
             <button type="button" className="btn" onClick={() => { setMore(false); onLogout() }}>Keluar</button>
