@@ -7,7 +7,9 @@ import { CONDITIONS, conditionOf, STATUSES, statusOf, isAnterior, isUpper, LOWER
 // data-status (legend.json statuses) is a separate layer from data-condition; data-baseline="missing" ghosts a tooth absent at baseline.
 export type Mark = { condition: string; state: 'draft' | 'signed'; source: Source; status?: string }
 type Props = { marks: Record<string, Mark>; selected?: string | null; onPick?: (tooth: number, surface: Surface) => void
-  baseline?: Record<string, ToothPresence>; dentition?: string; compact?: boolean }
+  baseline?: Record<string, ToothPresence>; dentition?: string; compact?: boolean
+  /** Phone: draw one jaw only (tight viewBox). Omitted = both jaws in one SVG, as on desktop. */
+  arch?: 'upper' | 'lower' }
 const DENTITION: Record<string, string> = { tetap: 'permanent', sulung: 'primary', campuran: 'mixed' }
 
 const S = 44
@@ -78,10 +80,12 @@ export function Odontogram(props: Props) {
   const xOf = (i: number) => 12 + i * (S + gap) + (i >= 8 ? mid : 0)
   const width = 16 * (S + gap) + mid + 24
   // Only the rows of the chosen dentition (undefined = all four, as before); kept rows close up vertically.
-  const all: [number[], boolean][] = [[UPPER, false], [UPPER_PRIMARY, true], [LOWER_PRIMARY, true], [LOWER, false]]
-  const rows = all.filter(([, primary]) => props.dentition === 'tetap' ? !primary : props.dentition === 'sulung' ? primary : true)
+  const all: [number[], boolean, 'upper' | 'lower'][] = [[UPPER, false, 'upper'], [UPPER_PRIMARY, true, 'upper'], [LOWER_PRIMARY, true, 'lower'], [LOWER, false, 'lower']]
+  const rows = all.filter(([, primary, arch]) => (!props.arch || arch === props.arch)
+    && (props.dentition === 'tetap' ? !primary : props.dentition === 'sulung' ? primary : true))
+  const name = props.arch ? `Rahang ${props.arch === 'upper' ? 'atas' : 'bawah'}` : 'Odontogram'
   return (
-    <svg className={`odontogram${props.compact ? ' is-compact' : ''}`} data-dentition={props.dentition ? DENTITION[props.dentition] : 'mixed'} viewBox={`-6 -6 ${width} ${rows.length * row + 30}`} role="group" aria-label="Odontogram (FDI). Pilih permukaan untuk mengisi kondisi.">
+    <svg className={`odontogram${props.compact ? ' is-compact' : ''}`} data-dentition={props.dentition ? DENTITION[props.dentition] : 'mixed'} viewBox={`-6 -6 ${width} ${rows.length * row + 30}`} role="group" aria-label={`${name} (FDI). Pilih permukaan untuk mengisi kondisi.`}>
       <defs>
         {/* karies always carries dots (colour is never the only signal) */}
         <pattern id="odo-dots" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" fill="#BE123C" /><circle cx="3" cy="3" r="1.3" fill="#fff" /></pattern>

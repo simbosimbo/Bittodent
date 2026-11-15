@@ -3,7 +3,7 @@ import { ApiError, errorText } from '../../shared/api/http'
 import { setActivePatient } from '../../shared/activePatient'
 import { fmtDateTime, fmtDay, fmtTime } from '../../shared/format'
 import type { Me } from '../../shared/session'
-import { useIsMobile } from '../../shared/useIsMobile'
+import { PHONE_QUERY, useIsMobile, useMedia } from '../../shared/useIsMobile'
 import { AlertRibbon, ageTahun, PatientPage, SEX } from '../patients'
 import type { PatientFull } from '../patients'
 import {
@@ -249,6 +249,12 @@ function BaselineEditor({ value, onSave, onClose }: { value: Baseline | null; on
   )
 }
 
+const DENT_HINT: Record<string, string> = { tetap: 'FDI dewasa', sulung: 'FDI sulung' }
+/** Scroll a sideways chart to its middle (the midline) once per dentition; scrollWidth forces layout, so it is ready here. */
+const centre = (el: HTMLDivElement | null, key: string) => {
+  if (el && el.dataset.centred !== key) { el.dataset.centred = key; el.scrollLeft = (el.scrollWidth - el.clientWidth) / 2 }
+}
+
 export default function ChartPage({ patientId, appointmentId, me }: { patientId: string; appointmentId?: string; me: Me }) {
   const [chart, setChart] = useState<Chart | null>(null)
   const [visitId, setVisitId] = useState<string | null>(null)
@@ -269,6 +275,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const [allFor, setAllFor] = useState<number | null>(null)
   const [view, setView] = useState<'2d' | '3d'>('2d') // not persisted: 2D every time
   const mobile = useIsMobile()
+  const phone = useMedia(PHONE_QUERY)
   const [legendOpen, setLegendOpen] = useState(!mobile) // phone: chart first, legend on demand
   const [tab, setTab] = useState<(typeof INNER)[number][0]>('odo')
   // 3D needs the vertical space: legends collapse on 3D, reopen on 2D; manual toggle still works in both.
@@ -482,10 +489,23 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
                 <p className="muted small odo3d-note">Tampilan 3D hanya baca; overlay mengikuti data bagan dan legenda internal. Ketuk gigi/permukaan di 3D untuk memilih, atau pakai bagan 2D di bawah untuk input per permukaan.</p>
               </>
             )}
-            {/* Mobile: the chart keeps its size and scrolls sideways; opens centred on the midline (11|21). */}
-            <div className="odo2d-wrap" ref={(el) => { if (el && mobile && !el.dataset.centred) { el.dataset.centred = '1'; el.scrollLeft = (el.scrollWidth - el.clientWidth) / 2 } }}>
+            {phone ? <>
+              {/* Phone (≤480px, sketch 06): one sideways scroller per jaw; each opens centred on its midline (11|21, 41|31; 51|61, 81|71). */}
+              <p className="muted small odo-jaw-hint">{DENT_HINT[dent ?? ''] ?? 'FDI dewasa + sulung'} · geser rahang, ketuk gigi untuk detail</p>
+              {(['upper', 'lower'] as const).map((arch) => (
+                <div key={arch} className="odo-jaw">
+                  <p className="odo-jaw-head"><span id={`jaw-${arch}`}>{arch === 'upper' ? 'Rahang atas' : 'Rahang bawah'}</span> <span className="muted">kanan ← kiri pasien</span></p>
+                  <div className="odo2d-wrap odo-jaw-scroll" role="group" aria-labelledby={`jaw-${arch}`} ref={(el) => centre(el, String(dent))}>
+                    <Odontogram arch={arch} marks={marks} baseline={chart.baseline?.teeth} dentition={dent} compact={view === '3d'} selected={pick ? `t${pick.tooth}-${pick.surface}` : null} onPick={onPick} />
+                  </div>
+                </div>
+              ))}
+            </> : (
+            // ≤720px: the chart keeps its size and scrolls sideways; opens centred on the midline (11|21).
+            <div className="odo2d-wrap" ref={(el) => { if (mobile) centre(el, String(dent)) }}>
               <Odontogram marks={marks} baseline={chart.baseline?.teeth} dentition={dent} compact={view === '3d'} selected={pick ? `t${pick.tooth}-${pick.surface}` : null} onPick={onPick} />
             </div>
+            )}
             {!editable && (visit ? <p className="muted small">Kunjungan ini sudah ditandatangani.</p> : (
               <div className="chart-cta small">
                 <p>Belum ada kunjungan aktif. Mulai kunjungan hari ini (tanpa janji juga bisa) untuk mengisi odontogram dan SOAP.</p>
