@@ -1,6 +1,6 @@
 // A1 screenshots (synthetic data): "Saran ICD" panel in the chart, phone 390px + desktop 1280, plus a 48px tap-target check.
 // Expects a seeded backend + vite dev server (BASE) and a patient whose open visit has ICD suggestions (PATIENT).
-// Does not approve anything. Output: OUT (default /workspace/audit/ai), files a1-*.png.
+// Does not approve anything. Output: OUT (default /workspace/audit/ai), files a1v2-*.png.
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { chromium } from 'playwright-core'
@@ -40,7 +40,7 @@ try {
   await tapCheck(desk, 'desktop-1280')
   await desk.evaluate(() => { document.querySelector('.chart-icd')?.scrollIntoView({ block: 'start' }); window.scrollBy(0, -170) })
   await desk.waitForTimeout(300)
-  await desk.screenshot({ path: join(out, 'a1-desktop-1280.png') })
+  await desk.screenshot({ path: join(out, 'a1v2-desktop-1280.png') })
 
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, locale: 'id-ID', timezoneId: 'Asia/Jakarta' })
   const hp = await ctx.newPage()
@@ -52,13 +52,13 @@ try {
   }
   await hp.evaluate((fn) => { const h = new Function('return (' + fn + ')()')(); const el = document.querySelector('.chart-icd-panel'); if (el) window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - h - 8) }, below.toString())
   await hp.waitForTimeout(300)
-  await hp.screenshot({ path: join(out, 'a1-hp-390.png') })
+  await hp.screenshot({ path: join(out, 'a1v2-hp-390.png') })
   const chip = p2.locator('.ic-cite').first()
   await chip.evaluate((e) => e.click())
   await hp.evaluate(() => document.querySelector('.odontogram')?.scrollIntoView({ block: 'center' }))
   await hp.waitForTimeout(300)
-  await hp.screenshot({ path: join(out, 'a1-hp-390-sitasi.png') })
-  console.log('saved a1-desktop-1280.png, a1-hp-390.png, a1-hp-390-sitasi.png')
+  await hp.screenshot({ path: join(out, 'a1v2-hp-390-sitasi.png') })
+  console.log('saved a1v2-desktop-1280.png, a1v2-hp-390.png, a1v2-hp-390-sitasi.png')
 } finally {
   await browser.close()
 }

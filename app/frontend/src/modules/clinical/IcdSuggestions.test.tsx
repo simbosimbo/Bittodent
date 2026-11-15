@@ -43,6 +43,7 @@ test('one tap approves: chip counts update, toast shows, chart reloads, zero rej
   render(<IcdSuggestions patientId="p1" visitId="v1" onChanged={onChanged} />)
 
   expect(await screen.findByText('✎ 2 draf')).toBeInTheDocument()
+  expect(screen.queryByText(/disetujui/)).not.toBeInTheDocument()
   expect(screen.queryByText(/ditolak/)).not.toBeInTheDocument()
   const card = screen.getByRole('listitem', { name: 'ICD-10 K02.1' })
   expect(within(card).getByText('Caries of dentine')).toBeInTheDocument()
@@ -112,10 +113,68 @@ test('every button and summary uses a 48px target class', async () => {
   server([...two(), item('c', { state: 'ditolak', code: 'K02.9' })])
   const { container } = render(<IcdSuggestions patientId="p1" visitId="v1" />)
   await screen.findByText('✕ 1 ditolak')
+  fireEvent.click(screen.getAllByRole('button', { name: 'Alasan' })[0])
+  await screen.findByRole('dialog', { name: 'Alasan' })
   const targets = [...container.querySelectorAll('button, summary')]
   expect(targets.length).toBeGreaterThan(5)
   for (const el of targets) {
     expect(el.tagName === 'SUMMARY' ? el.closest('.ic-done') : el.className, el.textContent ?? '').toBeTruthy()
-    if (el.tagName === 'BUTTON') expect(el.className).toMatch(/\bic-(info|cite|btn)\b/)
+    if (el.tagName === 'BUTTON') expect(el.className).toMatch(/\bic-(info|cite|btn|tab)\b/)
   }
+})
+
+test('hides a zero disetujui chip the same way as ditolak, then shows it after approve', async () => {
+  server(two())
+  render(<IcdSuggestions patientId="p1" visitId="v1" />)
+  await screen.findByText('✎ 2 draf')
+  expect(screen.queryByText('✓ 0 disetujui')).not.toBeInTheDocument()
+  expect(screen.queryByText('✕ 0 ditolak')).not.toBeInTheDocument()
+  fireEvent.click(within(screen.getByRole('listitem', { name: 'ICD-10 K02.1' })).getByRole('button', { name: '✓ Setujui' }))
+  expect(await screen.findByText('✓ 1 disetujui')).toBeInTheDocument()
+  expect(screen.queryByText(/ditolak/)).not.toBeInTheDocument()
+})
+
+test('Semua / Draf / Diulas tabs match A2: semua lists open items plus reviewed under details', async () => {
+  server([...two(), item('c', { state: 'disetujui', code: 'K02.9' })])
+  render(<IcdSuggestions patientId="p1" visitId="v1" />)
+  await screen.findByText('✓ 1 disetujui')
+  const tabs = screen.getByRole('radiogroup', { name: 'Tampilkan' })
+  expect(within(tabs).getByRole('radio', { name: 'Semua' })).toHaveAttribute('aria-checked', 'true')
+  expect(screen.getByRole('listitem', { name: 'ICD-10 K02.1' })).toBeInTheDocument()
+  expect(screen.getByText('1 sudah diulas')).toBeInTheDocument()
+
+  fireEvent.click(within(tabs).getByRole('radio', { name: 'Diulas' }))
+  expect(screen.queryByRole('listitem', { name: 'ICD-10 K02.1' })).not.toBeInTheDocument()
+  expect(screen.getByRole('listitem', { name: 'ICD-10 K02.9' })).toBeInTheDocument()
+  expect(screen.queryByText('sudah diulas')).not.toBeInTheDocument()
+
+  fireEvent.click(within(tabs).getByRole('radio', { name: 'Draf' }))
+  expect(screen.getByRole('listitem', { name: 'ICD-10 K02.1' })).toBeInTheDocument()
+  expect(screen.queryByRole('listitem', { name: 'ICD-10 K02.9' })).not.toBeInTheDocument()
+})
+
+test('Tolak is one tap (no reason body); the alasan sheet sends a picked reason', async () => {
+  const calls = server(two())
+  render(<IcdSuggestions patientId="p1" visitId="v1" />)
+  const card = await screen.findByRole('listitem', { name: 'ICD-10 K02.1' })
+  expect(screen.queryByRole('dialog', { name: 'Alasan' })).not.toBeInTheDocument()
+  fireEvent.click(within(card).getByRole('button', { name: 'Alasan' }))
+  const sheet = screen.getByRole('dialog', { name: 'Alasan' })
+  expect(within(sheet).getByRole('button', { name: 'Tidak sesuai' })).toBeInTheDocument()
+  expect(within(sheet).getAllByRole('button')).toHaveLength(5)
+  fireEvent.click(within(sheet).getByRole('button', { name: 'Sudah dicatat' }))
+
+  expect(await screen.findByText('✕ 1 ditolak')).toBeInTheDocument()
+  expect(screen.getByRole('status')).toHaveTextContent('Sudah dicatat')
+  expect(calls.some((c) => c.startsWith('POST /api/icd-suggestions/a/reject') && c.includes('sudah_dicatat'))).toBe(true)
+  expect(screen.queryByRole('dialog', { name: 'Alasan' })).not.toBeInTheDocument()
+})
+
+test('ICD codes render as K02.9 without spaces around the dot', async () => {
+  server([item('c', { code: 'K02.9' })])
+  render(<IcdSuggestions patientId="p1" visitId="v1" />)
+  const code = await screen.findByText('K02.9')
+  expect(code).toHaveClass('ic-code')
+  expect(code.textContent).toBe('K02.9')
+  expect(code.textContent).not.toMatch(/\s/)
 })
