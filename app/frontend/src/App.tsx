@@ -9,6 +9,7 @@ import { getMe, Login, logout as apiLogout, switchBranch as apiSwitchBranch } fr
 import { AlertRibbon, FamilyPage, MedicalHistoryPage, PatientDetail, PatientForm, PatientList } from './modules/patients'
 import { Home, Schedule } from './modules/scheduling'
 import { ChartPage } from './modules/clinical'
+import { InvoicePage } from './modules/billing'
 
 const useHash = () => {
   const [hash, setHash] = useState(location.hash.slice(1) || '/')
@@ -86,6 +87,7 @@ export default function App() {
   let page
   const chart = hash.match(/^\/rekam-medis\/([\w-]+)(?:\/janji\/([\w-]+))?$/)
   if (chart && can('note.read')) page = <ChartPage key={hash} patientId={chart[1]} appointmentId={chart[2]} me={me} />
+  else if (hash.startsWith('/tagihan/') && can('billing.read')) page = <InvoicePage key={hash} visitId={hash.slice(9)} me={me} />
   else if (sub?.[1] === 'keluarga' && can('patient.read')) page = <FamilyPage key={hash} id={sub[2]} canChart={can('note.read')} />
   else if (sub?.[1] === 'riwayat-medis' && can('note.read')) page = <MedicalHistoryPage key={hash} id={sub[2]} canChart={can('note.read')} canEdit={can('note.write')} />
   else if (hash === '/pasien/baru' && can('patient.create')) page = <PatientForm />

@@ -40,7 +40,7 @@ export type Note = {
   pending_correction: { id: string; reason: string; requested_by: string; requested_by_name: string | null; created_at: string } | null
 }
 export type ChartVisit = {
-  id: string; appointment_id: string | null; branch_id: string; started_at: string; status: string
+  id: string; appointment_id: string | null; branch_id: string; started_at: string; status: string; attendance_cancelled_at?: string | null
   dentist: { id: string; name: string | null }; notes: Note[]; draft_findings: Finding[]; draft_procedures: Procedure[]
 }
 export type Chart = {
@@ -60,6 +60,11 @@ export const replaceProcedure = (procedureId: string, body: { visit_id: string; 
 /** Correct a signed record (not its status): new row, old one stays readable. Never bills. Dentist only. */
 export const correctProcedure = (procedureId: string, body: { reason: string; procedure_code?: string; surfaces?: string | null }) =>
   api<Procedure>(`/api/procedures/${procedureId}/corrections`, { method: 'POST', body })
+/** Close a visit (unit 4): 409 invoice_required when completed work has no invoice line; reason required when attendance was cancelled. */
+export const closeVisit = (visitId: string, reason?: string) =>
+  api<{ id: string; status: string; closed_without_invoice: boolean }>(`/api/visits/${visitId}/close`, { method: 'POST', body: { reason: reason || null } })
+/** Walk-in only: record that attendance was cancelled (then the visit may close without an invoice, with a reason). */
+export const cancelAttendance = (visitId: string, reason: string) => api(`/api/visits/${visitId}/cancel-attendance`, { method: 'POST', body: { reason } })
 export const visitFromAppointment = (appointmentId: string) => api<{ id: string }>(`/api/appointments/${appointmentId}/visit`, { method: 'POST' })
 /** Visual condition only (karies, hilang, ...). Treatments go through saveProcedure. */
 export const saveFinding = (visitId: string, body: { tooth: number; surface: Surface | null; condition: string }) =>

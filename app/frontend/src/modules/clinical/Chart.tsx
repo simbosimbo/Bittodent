@@ -9,6 +9,7 @@ import {
 import { AI_BADGE, CHOOSABLE, CONDITIONS, findingText, paintCondition, PRESENCE, procedureText, sameSite, statusOf, surfaceLabel, surfaceName, surfacesOf } from './legend'
 import { Legend, Odontogram, type Mark } from './Odontogram'
 import { SignDialog } from './SignDialog'
+import { CloseVisit } from './CloseVisit'
 import './clinical.css'
 
 type Form = { S: string; O: string; A: { codes: string; text: string }; P: { codes: string; text: string } }
@@ -477,6 +478,10 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
             </div>
           )}
         </div>
+      )}
+
+      {visit && visit.status === 'berlangsung' && !asOf && can('appointment.transition') && (
+        <CloseVisit visit={visit} canBilling={can('billing.read')} onDone={async () => { await load(); setMsg('Kunjungan diperbarui.') }} />
       )}
 
       <div className="card">
