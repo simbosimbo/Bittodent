@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Papan mode Kasir, laporan HP, unduh dokumen, dan Profil klinik.
+"""Papan mode Kasir, laporan HP, unduh dokumen, Profil klinik, pembayaran, dan printer.
 
 Hasil: design/boards/kasir-laporan.html
 dan /workspace/artifacts/kasir-laporan.html
@@ -69,6 +69,9 @@ ICONS = {
     "split": '<path d="M16 3h5v5M21 3 9 15M8 13H3v5M3 18l8-8"/>',
     "alert": '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
     "excel": '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13l3 3 5-6"/>',
+    "bpjs": '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M12 9v6M9 12h6"/>',
+    "bluetooth": '<path d="M7 7l10 10-5 5V2l5 5L7 17"/>',
+    "usb": '<path d="M12 2v14M9 5l3-3 3 3M8 16a4 4 0 1 0 8 0 4 4 0 0 0-8 0z"/>',
 
 }
 
@@ -79,7 +82,7 @@ BASE_CSS = r"""
 *{box-sizing:border-box}
 html,body{margin:0;background:#E8EEF0;color:var(--color-neutral-800);font-family:var(--font-family-sans);-webkit-font-smoothing:antialiased}
 body{padding:48px 40px 80px}
-.wrap{max-width:1760px;margin:0 auto}
+.wrap{max-width:2100px;margin:0 auto}
 h1.page{font-size:28px;font-weight:700;letter-spacing:-.02em;margin:0 0 8px;color:var(--color-neutral-900)}
 .lede{margin:0 0 40px;color:var(--color-neutral-600);font-size:14px;font-weight:500;max-width:880px;line-height:1.5}
 .ab{margin:0 0 64px;width:max-content;padding:8px 8px 8px 16px}
@@ -357,6 +360,18 @@ EXTRA_CSS = r"""
 .warn-box{background:var(--color-warning-bg);border:1px solid var(--color-warning-border);color:var(--color-warning-fg);border-radius:14px;padding:12px 16px;display:flex;gap:12px;align-items:flex-start;font-size:13px;font-weight:600}
 .ok-box{background:var(--color-success-bg);color:var(--color-success-fg);border-radius:14px;padding:12px 16px;font-size:13px;font-weight:600}
 .newtag{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;background:var(--color-primary-50);color:var(--color-primary-800);font-size:10px;font-weight:700;letter-spacing:.04em}
+.chips.wrap{flex-wrap:wrap;overflow:visible}
+.line.tight{font-size:13px;align-items:center;white-space:nowrap}
+.warn-box{padding:10px 12px}
+.chips.wrap .fchip{padding:0 12px}
+.meth .ro{min-height:72px}
+.acts-row.two{grid-template-columns:1fr 1fr}
+.qr-poster{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center}
+.qr-box{width:200px;height:200px;padding:12px;background:#fff;border:1px solid var(--color-neutral-200);border-radius:16px;box-shadow:0 4px 16px rgba(22,33,43,.06)}
+.qr-box img{width:100%;height:100%;display:block;image-rendering:pixelated}
+.soon{border:1px dashed var(--color-neutral-300);background:var(--color-neutral-50);border-radius:16px;padding:12px 16px;font-size:13px;font-weight:500;color:var(--color-neutral-500)}
+.soon b{display:block;color:var(--color-neutral-700);font-weight:700;margin:0 0 2px}
+.qris-thumb{width:48px;height:48px;border-radius:8px;object-fit:cover;border:1px solid var(--color-neutral-200);background:#fff;flex:none}
 body.board{background:#E8EEF0}
 """
 def make_logo() -> str:
@@ -371,6 +386,57 @@ def make_logo() -> str:
 
 
 LOGO = make_logo()
+
+
+def make_qris() -> str:
+    """Pola menyerupai QR, bukan kode bayar yang valid. DATA SINTETIS."""
+    n, scale, pad = 29, 8, 16
+    canvas = n * scale + pad * 2
+    im = Image.new("RGB", (canvas, canvas), "#FFFFFF")
+    d = ImageDraw.Draw(im)
+
+    def cell(x: int, y: int, color: str = "#102028") -> None:
+        x0 = pad + x * scale
+        y0 = pad + y * scale
+        d.rectangle((x0, y0, x0 + scale - 1, y0 + scale - 1), fill=color)
+
+    def finder(x: int, y: int) -> None:
+        for dy in range(7):
+            for dx in range(7):
+                edge = dx in (0, 6) or dy in (0, 6)
+                inner = 2 <= dx <= 4 and 2 <= dy <= 4
+                if edge or inner:
+                    cell(x + dx, y + dy)
+
+    finder(0, 0)
+    finder(n - 7, 0)
+    finder(0, n - 7)
+    reserved = set()
+    for y in range(7):
+        for x in range(7):
+            reserved.add((x, y))
+            reserved.add((n - 7 + x, y))
+            reserved.add((x, n - 7 + y))
+    seed = 0xC0FFEE
+    for y in range(n):
+        for x in range(n):
+            if (x, y) in reserved:
+                continue
+            seed = (seed * 1103515245 + 12345) & 0x7FFFFFFF
+            if seed & 1:
+                cell(x, y)
+    # Center mark so it is clearly a sample, not a live code
+    cx0, cy0 = 10, 10
+    for y in range(9):
+        for x in range(9):
+            color = "#0B6B62" if min(x, y, 8 - x, 8 - y) == 0 or (3 <= x <= 5 and 3 <= y <= 5) else "#FFFFFF"
+            cell(cx0 + x, cy0 + y, color)
+    buf = io.BytesIO()
+    im.save(buf, format="PNG")
+    return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
+
+
+QRIS = make_qris()
 
 
 def ico(name: str, cls: str = "ic") -> str:
@@ -456,41 +522,65 @@ def fchips(*pairs: tuple[str, bool]) -> str:
     return f'<div class="chips">{"".join(out)}</div>'
 
 
-def kop(size: int = 40) -> str:
-    return (f'<div class="kop"><img src="{LOGO}" alt="" width="{size}" height="{size}">'
-            '<div><div class="nm">Klinik Gigi Senyum Sehat</div>'
-            '<div class="ad">Jl. Kemang Raya No. 18, Jakarta Selatan 12730<br>'
-            'Tel (021) 7182-4410 · NPWP 10.0.1.3-012.000</div></div></div>')
+BRANCHES = {
+    "Kemang": "Jl. Kemang Raya No. 18, Jakarta Selatan 12730",
+    "Tebet": "Jl. Tebet Raya No. 21, Jakarta Selatan 12810",
+}
+
+
+def kop(size: int = 40, cabang: str = "Kemang") -> str:
+    addr = BRANCHES[cabang]
+    return (
+        f'<div class="kop"><img src="{LOGO}" alt="" width="{size}" height="{size}">'
+        '<div><div class="nm">Klinik Gigi Senyum Sehat</div>'
+        f'<div class="ad">{addr}<br>'
+        "Tel (021) 7182-4410 · NPWP 10.0.1.3-012.000</div></div></div>"
+    )
 
 
 def ro(icon: str, label: str, sub: str = "", on: bool = False) -> str:
-    return (f'<div class="ro{" on" if on else ""}"><span class="lead">{ico(icon)}</span>'
-            f'<span class="rt">{label}{"<small>"+sub+"</small>" if sub else ""}</span><span class="dot"></span></div>')
+    return (
+        f'<div class="ro{" on" if on else ""}"><span class="lead">{ico(icon)}</span>'
+        f'<span class="rt">{label}{"<small>"+sub+"</small>" if sub else ""}</span><span class="dot"></span></div>'
+    )
 
 
 def ab(num: str, title: str, desc: str, inner: str) -> str:
-    return (f'<section class="ab" id="ab-{num}"><div class="ab-k"><span class="ab-n">{num}</span>'
-            f'<span class="ab-t">{title}</span></div><p class="ab-d">{desc}</p><div class="row">{inner}</div></section>')
+    return (
+        f'<section class="ab" id="ab-{num}"><div class="ab-k"><span class="ab-n">{num}</span>'
+        f'<span class="ab-t">{title}</span></div><p class="ab-d">{desc}</p><div class="row">{inner}</div></section>'
+    )
+
+
+def bank_chips(active: str = "BCA") -> str:
+    out = []
+    for lab in ("BCA", "Mandiri", "BRI", "BNI", "Lainnya"):
+        on = " on" if lab == active else ""
+        out.append(f'<button class="fchip{on}" type="button">{lab}</button>')
+    return f'<div class="chips wrap">{"".join(out)}</div>'
 
 
 # ----- artboards -----
 
 def ab01() -> str:
-    kpi = ('<div class="kpi-row"><div class="kpi"><small>Belum bayar</small><b>3</b></div>'
-           '<div class="kpi"><small>Diterima hari ini</small><b>Rp 2,15 jt</b></div></div>')
+    kpi = (
+        '<div class="kpi-row"><div class="kpi"><small>Belum bayar</small><b>3</b></div>'
+        '<div class="kpi"><small>Diterima hari ini</small><b>Rp 2,15 jt</b></div></div>'
+    )
     chips = fchips(("Semua", False), ("Belum", True), ("BPJS", False), ("Tempo", False))
     rows = [
         ("SN", "Sari Nugroho", "09.20 · Andi · Tumpatan 26", "Rp 450.000", "Belum bayar", "warn"),
-        ("HH", "Hendra Hidayat", "10.05 · Andi · Scaling, klaim BPJS", "Rp 150.000", "Sisa", "warn"),
+        ("HH", "Hendra Hidayat", "10.05 · Andi · Scaling · BPJS", "Rp 400.000", "Belum bayar", "warn"),
         ("BS", "Budi Santoso", "11.00 · Bunga · Kontrol", "Rp 250.000", "Belum bayar", "warn"),
     ]
     bills = []
     for av, who, sub, amt, st, tone in rows:
-        bills.append(f'<div class="bill"><span class="av sm">{av}</span><span class="who">{who}<small>{sub}</small></span>'
-                     f'<span class="amt">{amt}{chip(st, tone)}</span></div>')
+        bills.append(
+            f'<div class="bill"><span class="av sm">{av}</span><span class="who">{who}<small>{sub}</small></span>'
+            f'<span class="amt">{amt}{chip(st, tone)}</span></div>'
+        )
     body = kpi + chips + "".join(bills)
     p1 = phone(header_home(right=icon_btn("logout", "Tutup shift")), body, bnav("Kasir", "Kasir", {"Kasir": 3}))
-    # Lainnya: Kasir hides Laporan, Pemilik has it as a tab already - show Lainnya lists
     kasir_lain = phone(
         header_home("Rudi Hartono", "Kasir · Kemang", "RH", icon_btn("x", "Tutup")),
         '<p class="grp-t">Menu</p><div class="card">'
@@ -499,22 +589,25 @@ def ab01() -> str:
         + li("Pengaturan", "settings", "Tampilan, PIN")
         + "</div>",
         bnav("Kasir", "Lainnya", {"Kasir": 3}),
-        white=False,
     )
     mil = phone(
         header_home("Andi Contoh", "Pemilik · Kemang", "AC", icon_btn("x", "Tutup")),
         '<p class="grp-t">Menu</p><div class="card">'
         + li("Kasir", "card", "3 belum bayar")
-        + li("Pengaturan", "settings", "Profil klinik, pengguna")
+        + li("Pengaturan", "settings", "Profil klinik, pembayaran, printer")
         + "</div>",
         bnav("Pemilik", "Lainnya"),
     )
-    return ab("01", "Antrean tagihan, mode Kasir",
-              "Beranda Kasir di HP. Tab Kasir / Antrean / Pasien / Lainnya, lencana 3 belum bayar. "
-              "Kartu tagihan, bukan tabel. Laporan tidak tampil di bar Kasir (disembunyikan), tampil sebagai tab pada pemilik.",
-              ph_col(p1, "<b>Antrean.</b> Satu titik fokus: siapa yang belum bayar. Tutup shift di ikon header.")
-              + ph_col(kasir_lain, "<b>Lainnya, Kasir.</b> Tidak ada baris Laporan.")
-              + ph_col(mil, "<b>Lainnya, Pemilik.</b> Laporan tetap di tab bar, bukan dikunci di sini."))
+    return ab(
+        "01",
+        "Antrean tagihan, mode Kasir",
+        "Beranda Kasir di HP. Tab Kasir / Antrean / Pasien / Lainnya, lencana 3 belum bayar. "
+        "Kartu tagihan, bukan tabel. Laporan tidak tampil di bar Kasir (disembunyikan), tampil sebagai tab pada pemilik. "
+        "Tagihan Hendra tampil penuh, BPJS belum dipotong.",
+        ph_col(p1, "<b>Antrean.</b> Satu titik fokus: siapa yang belum bayar. Tutup shift di ikon header.")
+        + ph_col(kasir_lain, "<b>Lainnya, Kasir.</b> Tidak ada baris Laporan.")
+        + ph_col(mil, "<b>Lainnya, Pemilik.</b> Laporan tetap di tab bar, bukan dikunci di sini."),
+    )
 
 
 def ab02() -> str:
@@ -523,236 +616,416 @@ def ab02() -> str:
         '<div class="line"><span>Tumpatan komposit 26 MOD<small>Dari RM · Andi · 26 MOD</small></span><span class="r">Rp 350.000</span></div>'
         '<div class="line"><span>Scaling<small>Dari RM · Andi</small></span><span class="r">Rp 150.000</span></div>'
         '<div class="line"><span>Diskon anggota 10%</span><span class="r">- Rp 50.000</span></div>'
-        '<div class="line"><span>Asuransi / BPJS</span><span class="r">Tidak dipakai</span></div>'
         '<div class="line tot"><span>Tagihan</span><span class="r">Rp 450.000</span></div></div>'
     )
     body = (
         '<div class="bill" style="margin:0"><span class="av sm">SN</span>'
         '<span class="who">Sari Nugroho<small>BT-000040 · 13 th · Umum</small></span></div>'
-        + lines +
-        '<button class="button button--secondary" type="button">Tambah diskon atau klaim</button>'
+        + lines
+        + '<button class="button button--secondary" type="button">Tambah diskon</button>'
     )
     dock = '<div class="dock">' + btn("Bayar Rp 450.000", "primary", extra="button--full") + "</div>"
     p = phone(header_back("Tagihan TG-2415"), body, bnav("Kasir", "Kasir", {"Kasir": 3}), dock=dock)
-    # BPJS variant
     lines2 = (
         '<div class="card" style="padding:16px;display:flex;flex-direction:column;gap:12px">'
         '<div class="line"><span>Scaling<small>Dari RM · Andi</small></span><span class="r">Rp 400.000</span></div>'
-        '<div class="line"><span>Klaim BPJS<small>Disetujui sebagian</small></span><span class="r">- Rp 250.000</span></div>'
-        '<div class="line tot"><span>Sisa dibayar pasien</span><span class="r">Rp 150.000</span></div></div>'
+        '<div class="line tot"><span>Tagihan</span><span class="r">Rp 400.000</span></div></div>'
+        '<p style="margin:0;font-size:13px;font-weight:500;color:var(--color-neutral-500)">'
+        "Pasien terdaftar BPJS. Metode bayar, termasuk BPJS atau asuransi, dipilih di langkah berikutnya.</p>"
     )
     body2 = (
         '<div class="bill" style="margin:0"><span class="av sm">HH</span>'
         '<span class="who">Hendra Hidayat<small>BT-000009 · 65 th · BPJS</small></span></div>'
         + lines2
     )
-    dock2 = '<div class="dock">' + btn("Bayar sisa Rp 150.000", "primary", extra="button--full") + "</div>"
+    dock2 = '<div class="dock">' + btn("Bayar Rp 400.000", "primary", extra="button--full") + "</div>"
     p2 = phone(header_back("Tagihan TG-2416"), body2, bnav("Kasir", "Kasir", {"Kasir": 3}), dock=dock2)
-    return ab("02", "Detail tagihan: tindakan RM, diskon, BPJS",
-              "Rincian hanya dari tindakan yang sudah dicatat di rekam medis. Diskon dan klaim terlihat sebelum bayar. Satu tombol primer.",
-              ph_col(p, "<b>Umum.</b> Dua tindakan dari RM, diskon 10 persen, total Rp 450.000.")
-              + ph_col(p2, "<b>BPJS.</b> Klaim mengurangi tagihan. Yang dibayar kasir hanya sisanya."))
+    return ab(
+        "02",
+        "Detail tagihan: tindakan RM dan diskon",
+        "Rincian hanya dari tindakan yang sudah dicatat di rekam medis. Diskon terlihat sebelum bayar. "
+        "BPJS dan asuransi bukan pengurang di rincian; keduanya dipilih sebagai metode saat bayar. Satu tombol primer.",
+        ph_col(p, "<b>Umum.</b> Dua tindakan dari RM, diskon 10 persen, total penuh Rp 450.000.")
+        + ph_col(p2, "<b>Peserta BPJS.</b> Total tetap penuh Rp 400.000. Klaim dipilih nanti sebagai metode."),
+    )
 
 
 def ab03() -> str:
-    methods = ('<div class="meth">'
-               + ro("cash", "Tunai", "Kembalian dihitung", True)
-               + ro("scan", "QRIS", "QR statis cabang")
-               + ro("card", "Debit", "EDC")
-               + ro("bank", "Transfer", "Rekening klinik")
-               + "</div>")
+    methods = (
+        '<div class="meth">'
+        + ro("cash", "Tunai", "Kembalian dihitung", True)
+        + ro("scan", "QRIS", "QR statis cabang")
+        + ro("card", "Debit", "Pilih bank")
+        + ro("bank", "Transfer", "Pilih bank")
+        + ro("bpjs", "BPJS", "Klaim sebagai bayar")
+        + ro("shield", "Asuransi", "Klaim sebagai bayar")
+        + "</div>"
+    )
     body = (
-        '<div><small class="k">Sisa tagihan</small><div class="big">Rp 450.000</div></div>'
-        + methods +
-        '<div class="card" style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between">'
-        '<span class="lt" style="display:flex;flex-direction:column;gap:2px;font-size:15px;font-weight:700">Pecah pembayaran<small style="font-weight:500;color:var(--color-neutral-500);font-size:12px">Tunai plus QRIS atau debit</small></span>'
-        + sw(False) + "</div>"
+        '<div><small class="k">Total tagihan</small><div class="big">Rp 450.000</div></div>'
+        + methods
+        + '<div class="card" style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px">'
+        '<span style="font-size:15px;font-weight:700">Pecah pembayaran</span>'
+        + sw(False)
+        + "</div>"
         '<div class="field"><label>Uang diterima</label><div class="inp">Rp 500.000</div></div>'
         '<div class="line"><span class="mu" style="font-weight:600">Kembalian</span><span class="r">Rp 50.000</span></div>'
     )
     dock = '<div class="dock">' + btn("Terima Rp 450.000", "primary", extra="button--full") + "</div>"
-    p1 = phone(header_back("Bayar"), body, bnav("Kasir", "Kasir", {"Kasir": 3}), dock=dock)
+    p1 = phone(header_back("Bayar"), body, bnav("Kasir", "Kasir", {"Kasir": 3}), dock=dock, compact=True)
     body2 = (
-        '<div><small class="k">Sisa tagihan</small><div class="big">Rp 450.000</div></div>'
+        '<div><small class="k">Total tagihan</small><div class="big">Rp 400.000</div></div>'
         '<div class="card" style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between">'
-        '<span style="font-size:15px;font-weight:700">Pecah pembayaran</span>' + sw(True) + "</div>"
-        + ro("cash", "Tunai", "Rp 200.000", True)
-        + ro("scan", "QRIS", "Rp 250.000", True)
-        + '<div class="line tot"><span>Diterima</span><span class="r">Rp 450.000</span></div>'
+        '<span style="font-size:15px;font-weight:700">Pecah pembayaran</span>'
+        + sw(True)
+        + "</div>"
+        + ro("bpjs", "BPJS", "Rp 250.000", True)
+        + ro("cash", "Tunai", "Rp 150.000", True)
+        + '<div class="line tot"><span>Diterima</span><span class="r">Rp 400.000</span></div>'
     )
-    dock2 = '<div class="dock">' + btn("Terima Rp 450.000", "primary", extra="button--full") + "</div>"
+    dock2 = '<div class="dock">' + btn("Terima Rp 400.000", "primary", extra="button--full") + "</div>"
     p2 = phone(header_back("Bayar"), body2, bnav("Kasir", "Kasir", {"Kasir": 3}), dock=dock2)
-    return ab("03", "Pembayaran: tunai, QRIS, debit, transfer, pecah",
-              "Empat metode sebagai RadioGroup kartu berikon, bukan deretan tombol primer. Pecah pembayaran memakai sakelar, lalu dua metode aktif.",
-              ph_col(p1, "<b>Tunai penuh.</b> Uang diterima dan kembalian. Satu primer Terima.")
-              + ph_col(p2, "<b>Pecah.</b> Tunai Rp 200.000 plus QRIS Rp 250.000."))
+    return ab(
+        "03",
+        "Pembayaran: enam metode dan pecah bayar",
+        "Kisi 2 kolom: Tunai, QRIS, Debit, Transfer, BPJS, Asuransi. Kartu 72 px, target di atas 48 px, RadioGroup berikon, bukan deretan tombol primer. "
+        "Pecah pembayaran memakai sakelar, misalnya BPJS sebagian plus tunai sisa.",
+        ph_col(p1, "<b>Tunai penuh.</b> Enam metode terlihat. Uang diterima dan kembalian. Satu primer Terima.")
+        + ph_col(p2, "<b>Pecah.</b> Hendra: BPJS Rp 250.000 plus tunai Rp 150.000. Bukan pengurang di rincian."),
+    )
 
 
 def ab04() -> str:
-    acts = ('<div class="acts-row">'
-            f'<button class="button" type="button">{ico("print")}Cetak</button>'
-            f'<button class="button" type="button">{ico("wa")}WhatsApp</button>'
-            f'<button class="button" type="button">{ico("download")}PDF</button></div>')
+    body_debit = (
+        '<div><small class="k">Total tagihan</small><div class="big">Rp 450.000</div></div>'
+        + ro("card", "Debit", "EDC cabang", True)
+        + '<p class="grp-t">Pilih bank</p>'
+        + bank_chips("BCA")
+        + '<p style="margin:0;font-size:13px;font-weight:500;color:var(--color-neutral-500)">Bank tercatat di struk dan di rekap tutup shift. Pola yang sama untuk transfer.</p>'
+    )
+    p1 = phone(
+        header_back("Bayar"),
+        body_debit,
+        bnav("Kasir", "Kasir", {"Kasir": 3}),
+        dock='<div class="dock">' + btn("Terima debit BCA Rp 450.000", "primary", extra="button--full") + "</div>",
+    )
+    body_trf = (
+        '<div><small class="k">Total tagihan</small><div class="big">Rp 450.000</div></div>'
+        + ro("bank", "Transfer", "Rekening klinik", True)
+        + '<p class="grp-t">Pilih bank</p>'
+        + bank_chips("Mandiri")
+        + '<div class="field"><label>Nomor rekening (terlihat oleh kasir)</label><div class="inp">Mandiri 127-00-1234567-8</div></div>'
+    )
+    p2 = phone(
+        header_back("Bayar"),
+        body_trf,
+        bnav("Kasir", "Kasir", {"Kasir": 3}),
+        dock='<div class="dock">' + btn("Terima transfer Mandiri Rp 450.000", "primary", extra="button--full") + "</div>",
+    )
+    qris_body = (
+        '<div class="qr-poster">'
+        '<div style="font-size:13px;font-weight:600;color:var(--color-neutral-500)">QRIS statis · Cabang Kemang</div>'
+        f'<div class="qr-box"><img src="{QRIS}" alt="Contoh QRIS, data sintetis"></div>'
+        '<div class="big">Rp 450.000</div>'
+        f'<div style="font-size:12px;font-weight:600">{syn()} Minta pasien memindai, lalu konfirmasi.</div>'
+        "</div>"
+        '<div class="soon"><b>QRIS dinamis menyusul</b>QR dengan nominal tertanam, tanpa unggah foto. Ruang ini sudah disiapkan, bukan dikunci.</div>'
+    )
+    p3 = phone(
+        header_back("Bayar QRIS"),
+        qris_body,
+        bnav("Kasir", "Kasir", {"Kasir": 3}),
+        dock='<div class="dock">' + btn("Sudah dibayar", "primary", extra="button--full") + "</div>",
+        compact=True,
+    )
+    return ab(
+        "04",
+        "Debit dan transfer pilih bank, QRIS statis",
+        "Setelah Debit atau Transfer, kasir memilih bank lewat chip 48 px: BCA, Mandiri, BRI, BNI, Lainnya. "
+        "Untuk QRIS, tampil QR statis cabang aktif, nominal, dan tombol Sudah dibayar (konfirmasi manual). "
+        "QRIS dinamis disiapkan di kartu terpisah, belum aktif.",
+        ph_col(p1, "<b>Debit.</b> Bank wajib dipilih. Primer menyebut bank.")
+        + ph_col(p2, "<b>Transfer.</b> Chip bank yang sama, plus nomor rekening klinik.")
+        + ph_col(p3, "<b>QRIS statis.</b> QR besar untuk dipindai pasien. Satu primer: Sudah dibayar."),
+    )
+
+
+def ab05() -> str:
+    acts = (
+        '<div class="acts-row two">'
+        f'<button class="button" type="button">{ico("print")}Cetak</button>'
+        f'<button class="button" type="button">{ico("wa")}WhatsApp</button></div>'
+    )
     body = (
         f'<div class="ok-mark">{ico("check")}</div>'
-        '<div style="text-align:center"><div class="big">Rp 450.000</div>'
-        '<div style="font-size:13px;font-weight:600;color:var(--color-neutral-500);margin-top:4px">Sari Nugroho · Lunas · Tunai</div></div>'
+        '<div style="text-align:center"><div class="big">Rp 400.000</div>'
+        '<div style="font-size:13px;font-weight:600;color:var(--color-neutral-500);margin-top:4px">'
+        "Hendra Hidayat · Lunas · BPJS + Tunai</div></div>"
         + acts
     )
-    dock = '<div class="dock">' + btn("Selesai", "primary", extra="button--full") + "</div>"
-    p1 = phone(header_back("Pembayaran diterima"), body, bnav("Kasir", "Kasir", {"Kasir": 2}), dock=dock)
-    rec = (
-        '<div class="receipt">' + kop()
+    p1 = phone(
+        header_back("Pembayaran diterima", icon_btn("more", "Lainnya")),
+        body,
+        bnav("Kasir", "Kasir", {"Kasir": 2}),
+        dock='<div class="dock">' + btn("Selesai", "primary", extra="button--full") + "</div>",
+    )
+    rec_hendra = (
+        '<div class="receipt">' + kop(cabang="Kemang")
+        + '<div style="font-weight:700;margin:0 0 8px">Kuitansi TG-2416</div>'
+        '<div class="line"><span>Pasien</span><span class="r">Hendra Hidayat</span></div>'
+        '<div class="line"><span>Scaling</span><span class="r">Rp 400.000</span></div>'
+        '<div class="line tot"><span>Tagihan</span><span class="r">Rp 400.000</span></div>'
+        '<div class="line"><span>BPJS</span><span class="r">Rp 250.000</span></div>'
+        '<div class="line"><span>Tunai</span><span class="r">Rp 150.000</span></div>'
+        '<div style="margin-top:12px;font-size:11px;color:var(--color-neutral-500)">15 Nov 2026, 09.41 · Kasir Rudi Hartono · Kemang</div></div>'
+    )
+    p2 = phone(header_back("Struk"), rec_hendra, bnav("Kasir", "Kasir", {"Kasir": 2}), white=True)
+    rec_sari = (
+        '<div class="receipt">' + kop(cabang="Kemang")
         + '<div style="font-weight:700;margin:0 0 8px">Kuitansi TG-2415</div>'
         '<div class="line"><span>Pasien</span><span class="r">Sari Nugroho</span></div>'
         '<div class="line"><span>Tumpatan 26 MOD</span><span class="r">Rp 350.000</span></div>'
         '<div class="line"><span>Scaling</span><span class="r">Rp 150.000</span></div>'
         '<div class="line"><span>Diskon 10%</span><span class="r">- Rp 50.000</span></div>'
-        '<div class="line tot"><span>Diterima tunai</span><span class="r">Rp 450.000</span></div>'
-        '<div class="line"><span>Kembalian</span><span class="r">Rp 50.000</span></div>'
-        '<div style="margin-top:12px;font-size:11px;color:var(--color-neutral-500)">15 Nov 2026, 09.41 · Kasir Rudi Hartono · Kemang</div></div>'
+        '<div class="line tot"><span>Tagihan</span><span class="r">Rp 450.000</span></div>'
+        '<div class="line"><span>Debit BCA</span><span class="r">Rp 450.000</span></div>'
+        '<div style="margin-top:12px;font-size:11px;color:var(--color-neutral-500)">15 Nov 2026, 09.48 · Kasir Rudi Hartono · Kemang</div></div>'
     )
-    p2 = phone(header_back("Struk"), rec, bnav("Kasir", "Kasir", {"Kasir": 2}), white=True)
-    wa = phone(
-        header_back("Kirim struk"),
-        '<div class="field"><label>WhatsApp pasien</label><div class="inp">+62 812-0000-1940</div></div>'
-        '<div class="field"><label>Pesan</label><div class="inp" style="height:auto;min-height:72px;align-items:flex-start;padding:12px 16px;white-space:normal;font-size:13px;font-weight:500">Kuitansi Senyum Sehat Kemang, TG-2415, Rp 450.000. Lampiran PDF.</div></div>',
+    p3 = phone(header_back("Struk"), rec_sari, bnav("Kasir", "Kasir", {"Kasir": 2}), white=True)
+    more_sheet = (
+        '<div class="scrim"></div><div class="sheet" style="padding-bottom:12px">'
+        '<div class="handle-hit"><div class="handle"></div></div>'
+        "<h2>Lainnya</h2>"
+        '<p class="sub">Aksi tambahan, bukan jalan utama.</p>'
+        '<div class="card">'
+        + li("Unduh PDF", "download", "Opsi sekunder")
+        + li("Bagikan", "share", "Jika perangkat mendukung")
+        + "</div>"
+        + btn("Tutup", "ghost", extra="button--full")
+        + "</div>"
+    )
+    print_sheet = (
+        '<div class="scrim"></div><div class="sheet" style="padding-bottom:12px">'
+        '<div class="handle-hit"><div class="handle"></div></div>'
+        "<h2>Cetak struk</h2>"
+        '<p class="sub">Printer diatur di Pengaturan, lalu dipilih di sini.</p>'
+        + ro("print", "RPP02N", "Bluetooth · 80 mm · default", True)
+        + ro("desk", "Printer sistem", "A4, kuitansi biasa")
+        + btn("Cetak", "primary", extra="button--full")
+        + btn("Batal", "ghost", extra="button--full")
+        + "</div>"
+    )
+    p4 = phone(
+        header_back("Pembayaran diterima", icon_btn("more", "Lainnya")),
+        f'<div class="ok-mark">{ico("check")}</div>'
+        '<div style="text-align:center"><div class="big">Rp 400.000</div>'
+        '<div style="font-size:13px;font-weight:600;color:var(--color-neutral-500);margin-top:4px">Hendra Hidayat · Lunas</div></div>',
         bnav("Kasir", "Kasir", {"Kasir": 2}),
-        dock='<div class="dock">' + btn("Kirim WhatsApp", "primary", extra="button--full") + btn("Batal", "secondary", extra="button--full") + "</div>",
+        overlay=print_sheet,
     )
-    return ab("04", "Berhasil, lalu struk: cetak, WhatsApp, PDF",
-              "Sukses bukan akhir. Tiga aksi sekunder berikon, satu primer Selesai. Struk memakai kop yang sama dengan laporan: logo, nama, alamat, telepon, NPWP.",
-              ph_col(p1, "<b>Berhasil.</b> Jumlah dan metode di tengah. Cetak, WA, PDF bukan tombol primer.")
-              + ph_col(p2, "<b>Struk.</b> Kop klinik, rincian, kasir, cabang.")
-              + ph_col(wa, "<b>Kirim WA.</b> Nomor terisi dari data pasien, PDF terlampir."))
+    p5 = phone(
+        header_back("Pembayaran diterima", icon_btn("more", "Lainnya")),
+        f'<div class="ok-mark">{ico("check")}</div>'
+        '<div style="text-align:center"><div class="big">Rp 400.000</div></div>',
+        bnav("Kasir", "Kasir", {"Kasir": 2}),
+        overlay=more_sheet,
+    )
+    # 5 phones might be a lot. Keep print + PDF as two overlays is important.
+    # I'll return 4: success, hendra receipt, sari debit receipt, and a row with print? 
+    # Use 4 phones: success, two receipts, print sheet. PDF sheet can be a fifth or we skip visual of PDF sheet and mention in caption.
+    # Task: PDF is secondary in more menu - should show it. 5 phones is wide but OK.
+    return ab(
+        "05",
+        "Berhasil, struk, cetak, dan WhatsApp",
+        "Dua aksi utama setelah lunas: Cetak ke printer, dan Kirim via WhatsApp. PDF ada di menu Lainnya, bukan tombol setara. "
+        "Struk memakai satu logo dan nama klinik, alamat cabang aktif (Kemang). Metode tercatat apa adanya: BPJS plus tunai, atau debit BCA.",
+        ph_col(p1, "<b>Berhasil.</b> Cetak dan WhatsApp berdampingan. PDF di ikon Lainnya. Satu primer Selesai.")
+        + ph_col(p2, "<b>Struk pecah.</b> BPJS dan tunai sebagai metode, bukan pengurang. Kop alamat Kemang.")
+        + ph_col(p3, "<b>Struk debit.</b> Bank tercatat: Debit BCA.")
+        + ph_col(p4, "<b>Cetak.</b> Pilih printer thermal 80 mm atau printer sistem.")
+        + ph_col(p5, "<b>Lainnya.</b> Unduh PDF di sini, opsi sekunder."),
+    )
 
 
-def ab05() -> str:
-    rows = (
-        '<div class="card" style="padding:16px;display:flex;flex-direction:column;gap:10px">'
+def ab06() -> str:
+    kas = (
+        '<div class="card" style="padding:12px 16px;display:flex;flex-direction:column;gap:8px">'
         '<div class="line"><span>Kas awal</span><span class="r">Rp 1.000.000</span></div>'
         '<div class="line"><span>Tunai masuk</span><span class="r">Rp 1.250.000</span></div>'
-        '<div class="line"><span>QRIS</span><span class="r">Rp 800.000</span></div>'
-        '<div class="line"><span>Debit</span><span class="r">Rp 450.000</span></div>'
-        '<div class="line"><span>Transfer</span><span class="r">Rp 200.000</span></div>'
         '<div class="line tot"><span>Seharusnya di laci</span><span class="r">Rp 2.250.000</span></div>'
-        '<div class="field"><label>Kas dihitung</label><div class="inp">Rp 2.240.000</div></div>'
-        '</div>'
-        '<div class="warn-box">' + ico("alert") + '<span>Selisih kurang Rp 10.000. Isi alasan sebelum menutup, atau hitung ulang.</span></div>'
-        '<div class="field"><label>Alasan selisih</label><div class="inp" style="color:var(--color-neutral-500);font-weight:500">Kembalian salah hitung, sudah dicatat</div></div>'
+        '<div class="line" style="align-items:center"><span>Kas dihitung</span>'
+        '<div class="inp" style="width:156px;justify-content:flex-end;flex:none">Rp 2.240.000</div></div></div>'
     )
-    dock = '<div class="dock">' + btn("Tutup shift", "primary", extra="button--full") + "</div>"
-    p1 = phone(header_back("Tutup shift"), '<div><small class="k">Rudi Hartono · 08.00–14.00</small><div style="font-size:15px;font-weight:700">Minggu, 15 Nov 2026</div></div>' + rows,
-               bnav("Kasir", "Kasir"), dock=dock)
+    lain = (
+        '<p class="grp-t">Metode lain, bukan kas</p>'
+        '<div class="card" style="padding:10px 16px;display:flex;flex-direction:column;gap:4px">'
+        '<div class="line tight"><span>QRIS</span><span class="r">Rp 800.000</span></div>'
+        '<div class="line tight"><span>Debit BCA</span><span class="r">Rp 300.000</span></div>'
+        '<div class="line tight"><span>Debit Mandiri</span><span class="r">Rp 150.000</span></div>'
+        '<div class="line tight"><span>Transfer BRI</span><span class="r">Rp 200.000</span></div>'
+        '<div class="line tight"><span>BPJS</span><span class="r">Rp 250.000</span></div>'
+        '<div class="line tight"><span>Asuransi</span><span class="r">Rp 400.000</span></div></div>'
+    )
+    rows = (
+        kas
+        + lain
+        + '<div class="warn-box">'
+        + ico("alert")
+        + "<span>Selisih kurang Rp 10.000. Isi alasan, lalu tutup sendiri. Tidak perlu persetujuan pemilik.</span></div>"
+        '<div class="field"><label>Alasan selisih</label>'
+        '<div class="inp" style="color:var(--color-neutral-500);font-weight:500">Kembalian salah hitung, sudah dicatat</div></div>'
+    )
+    p1 = phone(
+        header_back("Tutup shift"),
+        '<div><small class="k">Rudi Hartono · 08.00-14.00</small>'
+        '<div style="font-size:15px;font-weight:700">Minggu, 15 Nov 2026</div></div>' + rows,
+        bnav("Kasir", "Kasir"),
+        dock='<div class="dock">' + btn("Tutup shift", "primary", extra="button--full") + "</div>",
+        compact=True,
+    )
     p2 = phone(
         header_back("Shift ditutup"),
         f'<div class="ok-mark">{ico("check")}</div>'
         '<div style="text-align:center;font-size:15px;font-weight:700">Shift 15 Nov ditutup</div>'
-        '<div class="card" style="padding:16px;display:flex;flex-direction:column;gap:10px">'
-        '<div class="line"><span>Diterima</span><span class="r">Rp 2.700.000</span></div>'
+        '<div class="card" style="padding:16px;display:flex;flex-direction:column;gap:8px">'
+        '<div class="line tot"><span>Diterima</span><span class="r">Rp 3.350.000</span></div>'
         '<div class="line"><span>Tunai di laci</span><span class="r">Rp 2.240.000</span></div>'
-        '<div class="line"><span>Selisih</span><span class="r" style="color:var(--color-warning-fg)">- Rp 10.000</span></div></div>'
-        '<p style="margin:0;font-size:13px;font-weight:500;color:var(--color-neutral-500)">Rekap masuk laporan harian pemilik. Kasir tidak melihat laporan ringkas di tab bar.</p>',
+        '<div class="line"><span>QRIS</span><span class="r">Rp 800.000</span></div>'
+        '<div class="line"><span>Debit · BCA</span><span class="r">Rp 300.000</span></div>'
+        '<div class="line"><span>Debit · Mandiri</span><span class="r">Rp 150.000</span></div>'
+        '<div class="line"><span>Transfer · BRI</span><span class="r">Rp 200.000</span></div>'
+        '<div class="line"><span>BPJS</span><span class="r">Rp 250.000</span></div>'
+        '<div class="line"><span>Asuransi</span><span class="r">Rp 400.000</span></div>'
+        '<div class="line"><span>Selisih kas</span><span class="r" style="color:var(--color-warning-fg)">- Rp 10.000</span></div></div>'
+        '<p style="margin:0;font-size:13px;font-weight:500;color:var(--color-neutral-500)">'
+        "Kasir sudah menutup sendiri. Pemilik melihat selisih ini di laporan harian, tanpa menyetujui.</p>",
         bnav("Kasir", "Kasir"),
         dock='<div class="dock">' + btn("Selesai", "primary", extra="button--full") + "</div>",
+        compact=True,
     )
-    return ab("05", "Tutup shift: rekap metode dan selisih kas",
-              "Rekap per metode, kas awal, kas dihitung, selisih. Jika kurang atau lebih, alasan wajib sebelum primer Tutup shift aktif dalam produk (di papan sudah terisi).",
-              ph_col(p1, "<b>Hitung.</b> Selisih kurang Rp 10.000, alasan terlihat, primer tetap satu.")
-              + ph_col(p2, "<b>Sesudah tutup.</b> Ringkasan singkat, bukan laporan lengkap."))
+    return ab(
+        "06",
+        "Tutup shift: rekap metode, bank, dan selisih kas",
+        "Kas di laci terpisah dari QRIS, debit, transfer, BPJS, dan asuransi. Debit dan transfer dipecah per bank. "
+        "Jika ada selisih, kasir wajib mengisi alasan lalu menutup sendiri. Tidak ada langkah persetujuan pemilik.",
+        ph_col(p1, "<b>Hitung.</b> Selisih -Rp 10.000, alasan terisi, satu primer Tutup shift.")
+        + ph_col(p2, "<b>Sesudah tutup.</b> Rekap per metode dan per bank. Pemilik melihat selisih di laporan."),
+    )
 
 
-def ab06() -> str:
-    kpis = ('<div class="kpi-row">'
-            '<div class="kpi"><small>Pendapatan</small><b>Rp 18,4 jt</b><span class="up">+8% vs 1-15 Okt</span></div>'
-            '<div class="kpi"><small>Transaksi</small><b>86</b><span class="up">+5</span></div>'
-            '<div class="kpi"><small>Piutang</small><b>Rp 2,10 jt</b></div>'
-            '<div class="kpi"><small>Kunjungan</small><b>79</b></div></div>')
-    bars = ('<div class="card" style="padding:16px"><div style="font-size:13px;font-weight:700;margin:0 0 8px">Pendapatan 7 hari</div>'
-            '<div class="bars">' + "".join(f'<i style="height:{h}%" class="{"on" if i==6 else ""}"></i>' for i, h in enumerate([40, 55, 48, 70, 62, 80, 90])) + "</div>"
-            '<div class="bars-lab"><span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span><span>Min</span></div></div>')
+def ab07() -> str:
+    kpis = (
+        '<div class="kpi-row">'
+        '<div class="kpi"><small>Pendapatan</small><b>Rp 18,4 jt</b><span class="up">+8% vs 1-15 Okt</span></div>'
+        '<div class="kpi"><small>Transaksi</small><b>86</b><span class="up">+5</span></div>'
+        '<div class="kpi"><small>Piutang</small><b>Rp 2,10 jt</b></div>'
+        '<div class="kpi"><small>Kunjungan</small><b>79</b></div></div>'
+    )
+    bars = (
+        '<div class="card" style="padding:16px"><div style="font-size:13px;font-weight:700;margin:0 0 8px">Pendapatan 7 hari</div>'
+        '<div class="bars">'
+        + "".join(f'<i style="height:{h}%" class="{"on" if i==6 else ""}"></i>' for i, h in enumerate([40, 55, 48, 70, 62, 80, 90]))
+        + "</div>"
+        '<div class="bars-lab"><span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span><span>Min</span></div></div>'
+    )
+    selisih = (
+        '<div class="rep"><span class="lt">Selisih kas 15 Nov<small>Rudi Hartono · Kemang</small></span>'
+        '<b style="color:var(--color-warning-fg);font-variant-numeric:tabular-nums">- Rp 10.000</b></div>'
+    )
     reps = (
-        '<div class="rep">' + f'<span class="lead" style="width:40px;height:40px;border-radius:12px;background:var(--color-neutral-100);display:grid;place-items:center">{ico("chart")}</span>'
-        '<span class="lt">Pendapatan<small>Per hari dan per metode</small></span>' + ico("chev-r", "ic chev") + "</div>"
-        '<div class="rep">' + f'<span class="lead" style="width:40px;height:40px;border-radius:12px;background:var(--color-neutral-100);display:grid;place-items:center">{ico("user")}</span>'
-        '<span class="lt">Per dokter<small>Andi, Bunga</small></span>' + ico("chev-r", "ic chev") + "</div>"
-        '<div class="rep">' + f'<span class="lead" style="width:40px;height:40px;border-radius:12px;background:var(--color-neutral-100);display:grid;place-items:center">{ico("tooth")}</span>'
-        '<span class="lt">Per tindakan<small>Tumpatan, scaling, mahkota</small></span>' + ico("chev-r", "ic chev") + "</div>"
-        '<div class="rep">' + f'<span class="lead" style="width:40px;height:40px;border-radius:12px;background:var(--color-neutral-100);display:grid;place-items:center">{ico("alert")}</span>'
-        '<span class="lt">Piutang<small>3 pasien, Rp 2,10 jt</small></span>' + ico("chev-r", "ic chev") + "</div>"
-        '<div class="rep">' + f'<span class="lead" style="width:40px;height:40px;border-radius:12px;background:var(--color-neutral-100);display:grid;place-items:center">{ico("calendar")}</span>'
-        '<span class="lt">Kunjungan<small>79 hadir, 4 tidak hadir</small></span>' + ico("chev-r", "ic chev") + "</div>"
+        '<div class="rep">'
+        f'<span class="lead" style="width:40px;height:40px;border-radius:12px;background:var(--color-neutral-100);display:grid;place-items:center">{ico("chart")}</span>'
+        '<span class="lt">Pendapatan<small>Per hari, metode, dan bank</small></span>'
+        + ico("chev-r", "ic chev")
+        + "</div>"
+        '<div class="rep">'
+        f'<span class="lead" style="width:40px;height:40px;border-radius:12px;background:var(--color-neutral-100);display:grid;place-items:center">{ico("user")}</span>'
+        '<span class="lt">Per dokter<small>Andi, Bunga, Citra</small></span>'
+        + ico("chev-r", "ic chev")
+        + "</div>"
+        '<div class="rep">'
+        f'<span class="lead" style="width:40px;height:40px;border-radius:12px;background:var(--color-neutral-100);display:grid;place-items:center">{ico("tooth")}</span>'
+        '<span class="lt">Per tindakan<small>Tumpatan, scaling, mahkota</small></span>'
+        + ico("chev-r", "ic chev")
+        + "</div>"
+        '<div class="rep">'
+        f'<span class="lead" style="width:40px;height:40px;border-radius:12px;background:var(--color-neutral-100);display:grid;place-items:center">{ico("alert")}</span>'
+        '<span class="lt">Piutang<small>3 pasien, Rp 2,10 jt</small></span>'
+        + ico("chev-r", "ic chev")
+        + "</div>"
+        '<div class="rep">'
+        f'<span class="lead" style="width:40px;height:40px;border-radius:12px;background:var(--color-neutral-100);display:grid;place-items:center">{ico("calendar")}</span>'
+        '<span class="lt">Kunjungan<small>79 hadir, 4 tidak hadir</small></span>'
+        + ico("chev-r", "ic chev")
+        + "</div>"
     )
-    body = fchips(("Hari ini", False), ("7 hari", False), ("Bulan ini", True), ("Pilih", False)) + kpis + bars
-    # period is in body, reports list too - might overflow 800. Split: overview on this phone, types are the cards - maybe drop chart labels or shrink.
-    p = phone(
-        header_back("Laporan", icon_btn("download", "Unduh")),
-        fchips(("Hari ini", False), ("7 hari", False), ("Bulan ini", True), ("Pilih", False)) + kpis + bars +
-        '<p class="grp-t">Jenis</p>' + reps,
-        bnav("Pemilik", "Laporan"),
-    )
-    # This might overflow the phone body. body has overflow hidden. Need to be careful.
-    # 800 - 32 bar - 56 hd - 80 bnav-safe = ~632. chips 48 + kpi 2 rows ~152 + chart ~140 + 5 reps 320 = too much.
-    # Split: phone 1 is KPI+chart, phone 2 is jenis list. Yes.
     p1 = phone(
         header_back("Laporan", icon_btn("download", "Unduh")),
-        fchips(("Hari ini", False), ("7 hari", False), ("Bulan ini", True), ("Pilih", False)) + kpis + bars +
-        '<p style="margin:0;font-size:12px;font-weight:600;color:var(--color-neutral-500)">1-15 Nov 2026 · Cabang Kemang</p>',
+        fchips(("Hari ini", False), ("7 hari", False), ("Bulan ini", True), ("Pilih", False))
+        + kpis
+        + bars
+        + selisih
+        + '<p style="margin:0;font-size:12px;font-weight:600;color:var(--color-neutral-500)">1-15 Nov 2026 · Cabang Kemang</p>',
         bnav("Pemilik", "Laporan"),
+        compact=True,
     )
     p2 = phone(
         header_back("Laporan", icon_btn("download", "Unduh")),
         '<p class="grp-t">Pilih jenis, lalu unduh atau buka</p>' + reps,
         bnav("Pemilik", "Laporan"),
     )
-    return ab("06", "Laporan HP: KPI, periode, grafik, jenis",
-              "Untuk pemilik (tab Laporan). Chip periode 48 px, empat KPI, grafik batang 7 hari, jenis sebagai kartu. Bukan tabel lebar. Kasir tidak punya tab ini.",
-              ph_col(p1, "<b>Ringkasan.</b> Bisa dipindai dalam satu lipatan: periode, angka, tren.")
-              + ph_col(p2, "<b>Jenis.</b> Pendapatan, per dokter, per tindakan, piutang, kunjungan."))
+    return ab(
+        "07",
+        "Laporan HP: KPI, periode, grafik, jenis",
+        "Untuk pemilik (tab Laporan). Chip periode 48 px, empat KPI, grafik batang 7 hari, jenis sebagai kartu. "
+        "Selisih kas shift terlihat di sini, hanya untuk peran yang berhak. Kasir tidak punya tab ini.",
+        ph_col(p1, "<b>Ringkasan.</b> Periode, angka, tren, plus selisih kas 15 Nov.")
+        + ph_col(p2, "<b>Jenis.</b> Pendapatan, per dokter, per tindakan, piutang, kunjungan."),
+    )
 
 
-def ab07() -> str:
-    docs = [
-        ("Andi Contoh", "52 tindakan · 41 pasien", "Rp 11,20 jt"),
-        ("Bunga Lestari", "28 tindakan · 22 pasien", "Rp 5,40 jt"),
-        ("Pemilik, tindakan sendiri", "6 tindakan", "Rp 1,80 jt"),
-    ]
-    cards = []
-    for n, s, a in docs:
-        cards.append(f'<div class="rep"><span class="av sm">{n[0]}{n.split()[0][1] if False else n.split()[0][0:1]}{n.split()[1][0]}</span>'
-                     f'<span class="lt">{n}<small>{s}</small></span><b style="font-variant-numeric:tabular-nums">{a}</b></div>')
-    # fix initials properly
+def ab08() -> str:
     cards = [
         '<div class="rep"><span class="av sm">AC</span><span class="lt">Andi Contoh<small>52 tindakan · 41 pasien</small></span><b style="font-variant-numeric:tabular-nums">Rp 11,20 jt</b></div>',
         '<div class="rep"><span class="av sm">BL</span><span class="lt">Bunga Lestari<small>28 tindakan · 22 pasien</small></span><b style="font-variant-numeric:tabular-nums">Rp 5,40 jt</b></div>',
         '<div class="rep"><span class="av sm">CM</span><span class="lt">Citra Maharani<small>6 tindakan · 5 pasien</small></span><b style="font-variant-numeric:tabular-nums">Rp 1,80 jt</b></div>',
     ]
-    p1 = phone(header_back("Per dokter", icon_btn("download", "Unduh")),
-               fchips(("Bulan ini", True), ("Kemang", True)) + "".join(cards),
-               bnav("Pemilik", "Laporan"))
+    p1 = phone(
+        header_back("Per dokter", icon_btn("download", "Unduh")),
+        fchips(("Bulan ini", True), ("Kemang", True)) + "".join(cards),
+        bnav("Pemilik", "Laporan"),
+    )
     piut = [
         '<div class="rep"><span class="av sm">BS</span><span class="lt">Budi Santoso<small>3 hari · Kontrol</small></span><b>Rp 250.000</b></div>',
-        '<div class="rep"><span class="av sm">HH</span><span class="lt">Hendra Hidayat<small>Sisa klaim · 1 hari</small></span><b>Rp 150.000</b></div>',
+        '<div class="rep"><span class="av sm">DK</span><span class="lt">Dewi Kartika<small>3 hari · Scaling</small></span><b>Rp 150.000</b></div>',
         '<div class="rep"><span class="av sm">RL</span><span class="lt">Rina Lestari<small>12 hari · Mahkota</small></span><b>Rp 1.700.000</b></div>',
     ]
-    p2 = phone(header_back("Piutang", icon_btn("download", "Unduh")),
-               '<div class="kpi"><small>Total piutang</small><b>Rp 2,10 jt</b><span style="font-size:12px;font-weight:600;color:var(--color-neutral-500)">3 pasien</span></div>'
-               + "".join(piut)
-               + '<div class="dock" style="border:0;padding:0">' + btn("Ingatkan lewat WA", "secondary", extra="button--full") + "</div>",
-               bnav("Pemilik", "Laporan"))
-    return ab("07", "Drill-down: per dokter dan piutang, list kartu",
-              "Angka dokter dan piutang sebagai kartu, bisa diketuk. Tombol Ingatkan hanya di piutang, sekunder. Unduh tetap di header.",
-              ph_col(p1, "<b>Per dokter.</b> Andi menanggung sebagian besar pendapatan bulan ini.")
-              + ph_col(p2, "<b>Piutang.</b> Nama, umur piutang, nominal. Satu aksi sekunder untuk mengingatkan."))
+    p2 = phone(
+        header_back("Piutang", icon_btn("download", "Unduh")),
+        '<div class="kpi"><small>Total piutang</small><b>Rp 2,10 jt</b>'
+        '<span style="font-size:12px;font-weight:600;color:var(--color-neutral-500)">3 pasien</span></div>'
+        + "".join(piut)
+        + '<div class="dock" style="border:0;padding:0">'
+        + btn("Ingatkan lewat WA", "secondary", extra="button--full")
+        + "</div>",
+        bnav("Pemilik", "Laporan"),
+    )
+    return ab(
+        "08",
+        "Drill-down: per dokter dan piutang, list kartu",
+        "Angka dokter dan piutang sebagai kartu, bisa diketuk. Tombol Ingatkan hanya di piutang, sekunder. Unduh tetap di header.",
+        ph_col(p1, "<b>Per dokter.</b> Andi menanggung sebagian besar pendapatan bulan ini.")
+        + ph_col(p2, "<b>Piutang.</b> Nama, umur piutang, nominal. Satu aksi sekunder untuk mengingatkan."),
+    )
 
 
-def ab08() -> str:
+def ab09() -> str:
     checks = [
         ("Tanggal dan nomor", True),
         ("Pasien dan dokter", True),
         ("Tindakan", True),
-        ("Metode bayar", True),
-        ("Diskon dan klaim", True),
+        ("Metode bayar dan bank", True),
+        ("Diskon", True),
         ("Kasir", False),
     ]
     ch = []
@@ -767,7 +1040,9 @@ def ab08() -> str:
         '<p class="grp-t">Format</p>'
         + ro("file", "PDF", "Untuk cetak dan arsip, ukuran A4", True)
         + ro("excel", "Excel", "Untuk diolah di lembar kerja")
-        + '<p class="grp-t">Kolom</p><div class="ingrp">' + "".join(ch) + "</div>"
+        + '<p class="grp-t">Kolom</p><div class="ingrp">'
+        + "".join(ch)
+        + "</div>"
         + btn("Unduh PDF", "primary", extra="button--full")
         + btn("Batal", "ghost", extra="button--full")
         + "</div>"
@@ -779,7 +1054,7 @@ def ab08() -> str:
         overlay=sheet,
     )
     a4 = (
-        f'<div class="a4">{kop(36)}'
+        f'<div class="a4">{kop(36, "Kemang")}'
         "<h2>Laporan Pendapatan</h2>"
         '<div class="period">1-15 November 2026 · Cabang Kemang · DATA SINTETIS</div>'
         '<div class="sum"><div><small>Pendapatan</small><b>Rp 18.400.000</b></div>'
@@ -788,28 +1063,36 @@ def ab08() -> str:
         "<table><thead><tr><th>Tanggal</th><th>Metode</th><th class='r'>Jumlah</th></tr></thead><tbody>"
         "<tr><td>3 Nov</td><td>Tunai</td><td class='r'>Rp 1.250.000</td></tr>"
         "<tr><td>3 Nov</td><td>QRIS</td><td class='r'>Rp 800.000</td></tr>"
-        "<tr><td>7 Nov</td><td>Debit</td><td class='r'>Rp 1.100.000</td></tr>"
-        "<tr><td>10 Nov</td><td>Transfer</td><td class='r'>Rp 600.000</td></tr>"
-        "<tr><td>15 Nov</td><td>Tunai</td><td class='r'>Rp 1.250.000</td></tr>"
+        "<tr><td>7 Nov</td><td>Debit BCA</td><td class='r'>Rp 1.100.000</td></tr>"
+        "<tr><td>10 Nov</td><td>BPJS</td><td class='r'>Rp 600.000</td></tr>"
+        "<tr><td>15 Nov</td><td>Asuransi</td><td class='r'>Rp 1.250.000</td></tr>"
         "<tr><td colspan='2'>Subtotal halaman</td><td class='r'>Rp 5.000.000</td></tr>"
         "</tbody></table>"
-        '<div class="ft"><span>Dicetak 15 Nov 2026, 21.10 WIB · Andi Contoh</span><span>Halaman 1 dari 3</span></div></div>'
+        '<div class="ft"><span>Dicetak 15 Nov 2026, 21.10 WIB · Andi Contoh · Kemang</span>'
+        "<span>Halaman 1 dari 3</span></div></div>"
     )
-    return ab("08", "Unduh laporan dan pratinjau PDF A4",
-              "Sheet: PDF utama, Excel kedua, periode dari layar sebelumnya, kolom bisa dipilih. Pratinjau A4 memakai kop yang sama dengan struk: logo, nama, alamat, telepon, NPWP, lalu judul, periode, ringkasan, tabel, footer waktu cetak, pencetak, nomor halaman.",
-              ph_col(p1, "<b>Sheet unduh.</b> Satu primer Unduh PDF. Excel tidak disembunyikan.")
-              + f'<div class="ph-col">{a4}<p class="ph-cap"><b>Pratinjau A4.</b> Dokumen siap cetak, bukan tangkapan layar tabel.</p></div>')
+    return ab(
+        "09",
+        "Unduh laporan dan pratinjau PDF A4",
+        "Sheet: PDF utama, Excel kedua, periode dari layar sebelumnya, kolom bisa dipilih termasuk metode dan bank. "
+        "Pratinjau A4: satu logo dan nama klinik, alamat cabang aktif (Kemang), telepon, NPWP, judul, periode, ringkasan, tabel, "
+        "footer waktu cetak, pencetak, nomor halaman.",
+        ph_col(p1, "<b>Sheet unduh.</b> Satu primer Unduh PDF. Excel tidak disembunyikan.")
+        + f'<div class="ph-col">{a4}<p class="ph-cap"><b>Pratinjau A4.</b> Kop memakai alamat Kemang, cabang yang dipilih di laporan.</p></div>',
+    )
 
 
-def ab09() -> str:
+def ab10() -> str:
     groups = (
         '<p class="grp-t">Saya</p><div class="card">'
         + li("Profil saya", "user", "Nama, PIN, kata sandi")
         + li("Tampilan dan mode", "settings")
         + "</div>"
         '<p class="grp-t">Klinik</p><div class="card">'
-        + li("Profil klinik", "building", "Logo, alamat, kop dokumen", cls="on", right='<span class="newtag">BARU</span>')
+        + li("Profil klinik", "building", "Logo, alamat, kop dokumen", cls="on")
         + li("Tarif dan tagihan", "tag")
+        + li("Pembayaran", "scan", "QRIS statis per cabang", right='<span class="newtag">BARU</span>')
+        + li("Printer", "print", "Thermal 58/80 mm, sistem", right='<span class="newtag">BARU</span>')
         + li("Pengguna dan peran", "users")
         + "</div>"
     )
@@ -828,23 +1111,40 @@ def ab09() -> str:
         + li("Tebet", "building", "Jl. Tebet Raya No. 21, Jakarta Selatan")
         + "</div>"
     )
-    dock = '<div class="dock">' + btn("Simpan", "primary", extra="button--full") + "</div>"
-    p2 = phone(header_back("Profil klinik"), form, bnav("Pemilik", "Lainnya"), dock=dock, compact=True)
-    crop = (
-        '<div class="crop"><img src="' + LOGO + '" alt=""><div class="frame"></div></div>'
-        '<p style="margin:0;text-align:center;font-size:13px;font-weight:500;color:var(--color-neutral-500)">Geser dan cubit. Rasio 1:1, dipakai di kop.</p>'
+    p2 = phone(
+        header_back("Profil klinik"),
+        form,
+        bnav("Pemilik", "Lainnya"),
+        dock='<div class="dock">' + btn("Simpan", "primary", extra="button--full") + "</div>",
+        compact=True,
     )
-    p3 = phone(header_back("Potong logo"), crop, bnav("Pemilik", "Lainnya"),
-               dock='<div class="dock">' + btn("Pakai logo", "primary", extra="button--full") + btn("Batal", "secondary", extra="button--full") + "</div>",
-               white=True)
-    return ab("09", "Pengaturan: Profil klinik di HP",
-              "Grup baru di level 1 Pengaturan (menggantikan nama Klinik dan cabang yang terlalu sempit). Unggah logo, potong 1:1, nama, telepon, email, NPWP, alamat per cabang. Pratinjau kop menyusul di desktop agar tidak menumpuk di 360.",
-              ph_col(p1, "<b>Level 1.</b> Profil klinik di grup Klinik, lencana BARU hanya di papan ini.")
-              + ph_col(p2, "<b>Isian.</b> Logo di atas, cabang sebagai daftar, satu primer Simpan.")
-              + ph_col(p3, "<b>Potong.</b> Bingkai 1:1, primer Pakai logo."))
+    crop = (
+        f'<div class="crop"><img src="{LOGO}" alt=""><div class="frame"></div></div>'
+        '<p style="margin:0;text-align:center;font-size:13px;font-weight:500;color:var(--color-neutral-500)">'
+        "Geser dan cubit. Rasio 1:1, satu logo dipakai di kop semua cabang.</p>"
+    )
+    p3 = phone(
+        header_back("Potong logo"),
+        crop,
+        bnav("Pemilik", "Lainnya"),
+        dock='<div class="dock">'
+        + btn("Pakai logo", "primary", extra="button--full")
+        + btn("Batal", "secondary", extra="button--full")
+        + "</div>",
+        white=True,
+    )
+    return ab(
+        "10",
+        "Pengaturan: Profil klinik di HP",
+        "Grup baru di level 1: Profil klinik, plus Pembayaran dan Printer. "
+        "Satu logo dan nama klinik. Alamat per cabang. Kop memakai alamat cabang aktif, bukan logo per cabang.",
+        ph_col(p1, "<b>Level 1.</b> Profil, Pembayaran, dan Printer berdampingan.")
+        + ph_col(p2, "<b>Isian.</b> Logo di tingkat klinik, cabang hanya untuk alamat.")
+        + ph_col(p3, "<b>Potong.</b> Satu logo untuk semua cabang. Primer Pakai logo."),
+    )
 
 
-def ab10() -> str:
+def ab11() -> str:
     left = (
         '<div class="glist"><p class="grp-t">Saya</p>'
         + li("Profil saya", "user", chev=False)
@@ -852,12 +1152,14 @@ def ab10() -> str:
         + '<p class="grp-t">Klinik</p>'
         + li("Profil klinik", "building", "Logo, alamat, kop", chev=False, cls="on")
         + li("Tarif dan tagihan", "tag", chev=False)
+        + li("Pembayaran", "scan", "QRIS statis", chev=False)
+        + li("Printer", "print", "Thermal dan sistem", chev=False)
         + li("Pengguna dan peran", "users", chev=False)
         + "</div>"
     )
     form = (
         '<div class="form"><h3>Profil klinik</h3>'
-        '<p class="mu">Dipakai di struk, kuitansi, dan laporan PDF. Berlaku per cabang untuk alamat.</p>'
+        '<p class="mu">Logo dan nama sama di semua cabang. Alamat pada kop mengikuti cabang aktif.</p>'
         '<div style="display:flex;gap:16px;align-items:center">'
         f'<div class="logo-up"><img src="{LOGO}" alt="Logo klinik"></div>'
         + btn("Ganti logo", "secondary", "camera")
@@ -866,7 +1168,8 @@ def ab10() -> str:
         '<div class="field"><label>Telepon</label><div class="inp">(021) 7182-4410</div></div>'
         '<div class="field"><label>Email</label><div class="inp">halo@senyumsehat.contoh</div></div>'
         '<div class="field"><label>NPWP</label><div class="inp">10.0.1.3-012.000</div></div>'
-        '<div class="field"><label>SIP atau izin (opsional, tampil di kop)</label><div class="inp" style="color:var(--color-neutral-500);font-weight:500">Kosongkan jika tidak dipakai</div></div>'
+        '<div class="field"><label>SIP atau izin (opsional, tampil di kop)</label>'
+        '<div class="inp" style="color:var(--color-neutral-500);font-weight:500">Kosongkan jika tidak dipakai</div></div>'
         '<p class="grp-t">Cabang</p><div class="card">'
         + li("Kemang", sub="Jl. Kemang Raya No. 18, Jakarta Selatan 12730", chev=True)
         + li("Tebet", sub="Jl. Tebet Raya No. 21, Jakarta Selatan 12810", chev=True)
@@ -875,10 +1178,16 @@ def ab10() -> str:
         + "</div>"
     )
     preview = (
-        '<div class="preview-col"><p class="grp-t">Pratinjau kop</p>'
-        f'<div class="receipt">{kop()}<div style="font-weight:700">Laporan Pendapatan</div>'
-        '<div class="period" style="margin-top:4px">1-15 Nov 2026 · Kemang</div>'
-        '<div style="margin-top:12px;font-size:11px;color:var(--color-neutral-500)">Perubahan logo dan alamat langsung terlihat di sini.</div></div></div>'
+        '<div class="preview-col"><p class="grp-t">Pratinjau kop · Kemang</p>'
+        f'<div class="receipt">{kop(cabang="Kemang")}'
+        '<div style="font-weight:700">Laporan Pendapatan</div>'
+        '<div class="period" style="margin-top:4px">1-15 Nov 2026 · Kemang</div></div>'
+        '<p class="grp-t" style="margin-top:16px">Pratinjau kop · Tebet</p>'
+        f'<div class="receipt">{kop(cabang="Tebet")}'
+        '<div style="font-weight:700">Laporan Pendapatan</div>'
+        '<div class="period" style="margin-top:4px">1-15 Nov 2026 · Tebet</div>'
+        '<div style="margin-top:12px;font-size:11px;color:var(--color-neutral-500)">'
+        "Logo dan nama sama. Alamat mengikuti cabang.</div></div></div>"
     )
     desk = (
         '<div class="desk tall"><aside class="side"><div class="brand"><i>B</i>Bittodent</div>'
@@ -886,18 +1195,120 @@ def ab10() -> str:
         f'<a>{ico("users")}Pasien</a><div class="cap">KEUANGAN</div>'
         f'<a>{ico("card")}Kasir</a><a>{ico("chart")}Laporan</a>'
         f'<div class="cap">SISTEM</div><a class="on">{ico("settings")}Pengaturan</a></aside>'
-        '<div class="dcol"><div class="dtop"><h2>Pengaturan</h2>' + syn() +
-        '<div class="who"><span class="av sm">AC</span><div>Andi Contoh<small>Pemilik · Kemang</small></div></div></div>'
+        '<div class="dcol"><div class="dtop"><h2>Pengaturan</h2>'
+        + syn()
+        + '<div class="who"><span class="av sm">AC</span><div>Andi Contoh<small>Pemilik · Kemang</small></div></div></div>'
         f'<div class="split">{left}<div class="detail rowish">{form}{preview}</div></div></div></div>'
     )
-    return ab("10", "Profil klinik di desktop, dua kolom",
-              "Daftar grup kiri 320 px, isian dan pratinjau kop berdampingan. Klik grup tidak pindah halaman. SIP opsional di kop. Satu primer Simpan.",
-              desk)
+    return ab(
+        "11",
+        "Profil klinik di desktop, dua kolom",
+        "Daftar grup kiri 320 px, termasuk Pembayaran dan Printer. Isian dan dua pratinjau kop berdampingan: Kemang dan Tebet. "
+        "Satu logo, alamat berbeda. SIP opsional. Satu primer Simpan.",
+        desk,
+    )
+
+
+def ab12() -> str:
+    items = (
+        '<p class="grp-t">QRIS statis</p>'
+        '<div class="card">'
+        f'<div class="li"><img class="qris-thumb" src="{QRIS}" alt="">'
+        '<span class="lt">Kemang<small>Dipakai saat kasir cabang ini memilih QRIS</small></span>'
+        + ico("chev-r", "ic chev")
+        + "</div>"
+        f'<div class="li"><img class="qris-thumb" src="{QRIS}" alt="">'
+        '<span class="lt">Tebet<small>Foto terpisah, logo klinik tetap sama</small></span>'
+        + ico("chev-r", "ic chev")
+        + "</div></div>"
+        + btn("Unggah foto QRIS", "secondary", "camera", extra="button--full")
+        + '<div class="soon" style="margin-top:8px"><b>QRIS dinamis menyusul</b>'
+        "Kasir akan menampilkan QR dengan nominal tertanam, tanpa unggah foto. Baris ini sudah disiapkan.</div>"
+    )
+    p1 = phone(
+        header_back("Pembayaran"),
+        items,
+        bnav("Pemilik", "Lainnya"),
+        dock='<div class="dock">' + btn("Simpan", "primary", extra="button--full") + "</div>",
+    )
+    preview = (
+        '<p style="margin:0;font-size:13px;font-weight:600;color:var(--color-neutral-500)">Foto untuk cabang Kemang</p>'
+        f'<div class="qr-poster"><div class="qr-box" style="width:240px;height:240px"><img src="{QRIS}" alt="Pratinjau QRIS sintetis"></div></div>'
+        f'<p style="margin:0;text-align:center;font-size:12px;font-weight:500;color:var(--color-neutral-500)">{syn()} Foto kode, bukan logo klinik.</p>'
+    )
+    p2 = phone(
+        header_back("Unggah QRIS"),
+        preview,
+        bnav("Pemilik", "Lainnya"),
+        dock='<div class="dock">'
+        + btn("Pakai foto", "primary", extra="button--full")
+        + btn("Batal", "secondary", extra="button--full")
+        + "</div>",
+        white=True,
+    )
+    return ab(
+        "12",
+        "Pengaturan: Pembayaran dan QRIS statis",
+        "Pemilik mengunggah foto QRIS statis, bisa lebih dari satu, masing-masing terikat ke cabang. "
+        "Logo klinik tidak diganti dari sini. Ruang untuk QRIS dinamis sudah ada, belum aktif.",
+        ph_col(p1, "<b>Daftar.</b> Satu foto per cabang, unggah sekunder, satu primer Simpan.")
+        + ph_col(p2, "<b>Unggah.</b> Pratinjau foto QR, primer Pakai foto."),
+    )
+
+
+def ab13() -> str:
+    body = (
+        '<p class="grp-t">Printer struk</p>'
+        '<div class="card">'
+        + li("RPP02N", "print", "Bluetooth · 80 mm", cls="on", right='<span class="chip">Default</span>')
+        + li("Tambah printer Bluetooth", "bluetooth", "Thermal 58 atau 80 mm")
+        + li("Tambah printer USB", "usb", "Thermal 58 atau 80 mm")
+        + "</div>"
+        '<p class="grp-t">Ukuran kertas thermal</p>'
+        + fchips(("58 mm", False), ("80 mm", True))
+        + '<p class="grp-t">Lainnya</p><div class="card">'
+        + li("Printer sistem", "desk", "A4, laporan dan kuitansi biasa")
+        + "</div>"
+        '<p style="margin:0;font-size:13px;font-weight:500;color:var(--color-neutral-500)">'
+        "Struk kasir memakai printer thermal yang dipilih. Laporan PDF dan kuitansi biasa bisa ke printer sistem.</p>"
+    )
+    p1 = phone(
+        header_back("Printer"),
+        body,
+        bnav("Pemilik", "Lainnya"),
+        dock='<div class="dock">' + btn("Simpan", "primary", extra="button--full") + "</div>",
+    )
+    # Pair with the print sheet already shown in ab05; here just the settings + maybe a 58mm option state
+    body2 = (
+        '<p class="grp-t">Printer struk</p>'
+        + ro("print", "RPP02N", "Bluetooth · 80 mm", True)
+        + ro("usb", "EPSON TM-T82", "USB · 58 mm")
+        + ro("desk", "Printer sistem", "A4")
+        + '<p style="margin:0;font-size:13px;font-weight:500;color:var(--color-neutral-500)">'
+        "Kasir memilih printer pada saat Cetak, default mengikuti pengaturan ini.</p>"
+    )
+    p2 = phone(
+        header_back("Printer"),
+        body2,
+        bnav("Pemilik", "Lainnya"),
+        dock='<div class="dock">' + btn("Simpan", "primary", extra="button--full") + "</div>",
+    )
+    return ab(
+        "13",
+        "Pengaturan: Printer thermal dan sistem",
+        "Pemilik menambah printer thermal Bluetooth atau USB, memilih 58 mm atau 80 mm, dan menetapkan default. "
+        "Printer sistem tetap ada untuk A4. Kasir memilih printer saat menekan Cetak.",
+        ph_col(p1, "<b>Daftar dan ukuran.</b> Default RPP02N 80 mm Bluetooth. Chip ukuran 48 px.")
+        + ph_col(p2, "<b>Beberapa perangkat.</b> Thermal 80 mm, thermal 58 mm USB, dan printer sistem."),
+    )
 
 
 def build() -> str:
     css = TOKENS + "\n" + BASE_CSS + "\n" + EXTRA_CSS
-    body = "\n".join([ab01(), ab02(), ab03(), ab04(), ab05(), ab06(), ab07(), ab08(), ab09(), ab10()])
+    body = "\n".join([
+        ab01(), ab02(), ab03(), ab04(), ab05(), ab06(), ab07(),
+        ab08(), ab09(), ab10(), ab11(), ab12(), ab13(),
+    ])
     return f"""<!doctype html>
 <html lang="id">
 <head>
@@ -914,7 +1325,7 @@ def build() -> str:
 <body class="board">
   <div class="wrap">
     <h1 class="page">Mode Kasir, laporan HP, unduh, dan profil klinik</h1>
-    <p class="lede">Papan untuk kasir di HP (antrean sampai struk dan tutup shift), laporan yang nyaman dibaca di 360, unduh PDF A4 berkop, dan pengaturan logo plus alamat. Pola HeroUI v3, token Bittodent, teal hanya tombol primer, grid 8pt, target 48 px. {syn()}</p>
+    <p class="lede">Papan untuk kasir di HP (antrean sampai struk, tutup shift, QRIS statis, dan pilih bank), laporan yang nyaman dibaca di 360, unduh PDF A4 berkop, plus pengaturan logo, alamat cabang, pembayaran, dan printer. Pola HeroUI v3, token Bittodent, teal hanya tombol primer, grid 8pt, target 48 px. {syn()}</p>
     {body}
   </div>
 </body>
