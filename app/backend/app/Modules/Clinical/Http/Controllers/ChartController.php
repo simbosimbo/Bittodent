@@ -2,6 +2,7 @@
 
 namespace App\Modules\Clinical\Http\Controllers;
 
+use App\Modules\Clinical\Domain\ProcedureStatus;
 use App\Modules\Clinical\Models\ClinicalNote;
 use App\Modules\Clinical\Models\CorrectionRequest;
 use App\Modules\Clinical\Models\ProcedureDefinition;
@@ -16,13 +17,22 @@ use App\Modules\Tenancy\Contracts\TenancyDirectory;
 use App\Shared\Audit\Audit;
 use App\Shared\Http\Controller;
 use App\Shared\Tenancy\Ctx;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Http\Request;
 
 class ChartController extends Controller
 {
-    /** GET /api/patients/{id}/chart: current odontogram + my drafts + visits with note versions (status derived). */
-    public function show(string $id, PatientDirectory $patients, UserDirectory $users, TenancyDirectory $tenancy)
+    /**
+     * GET /api/patients/{id}/chart[?as_of=YYYY-MM-DD]: current odontogram + my drafts + visits with note versions (status derived).
+     * as_of = the chart as it stood at the end of that local day (branch timezone, default Asia/Jakarta); see effectiveAt().
+     * A future date is allowed and equals the current chart.
+     */
+    public function show(Request $request, string $id, PatientDirectory $patients, UserDirectory $users, TenancyDirectory $tenancy)
     {
+        $asOf = $request->has('as_of') ? $request->validate(['as_of' => ['required', 'date_format:Y-m-d']])['as_of'] : null;
+        $cut = $asOf === null ? null : CarbonImmutable::createFromFormat('Y-m-d', $asOf,
+            $tenancy->branchOrFail(Ctx::current()->branchId)['timezone'] ?: 'Asia/Jakarta')->endOfDay();
         $patient = $patients->summary($id);
         $me = Ctx::current()->userId;
         $visits = Visit::where('patient_id', $id)->orderByDesc('started_at')->get();
@@ -35,9 +45,16 @@ class ChartController extends Controller
         $requests = CorrectionRequest::whereIn('note_id', $notes->pluck('id'))->where('state', 'diajukan')->get()->keyBy('note_id');
 
         // Current odontogram: latest final finding per tooth+surface (not superseded). D-021 does this with DISTINCT ON in PG.
-        $superseded = $findings->pluck('supersedes_id')->filter()->flip();
-        $current = $findings->where('state', 'final')->reject(fn ($f) => $superseded->has($f->id))
-            ->keyBy(fn ($f) => $f->tooth.'-'.$f->surface)->values();
+        // With as_of, rows (and the successors that supersede them) count only from their effective time on.
+        $inForce = fn ($p) => $cut === null || self::effectiveAt($p)->lessThanOrEqualTo($cut);
+        $finalFindings = $findings->where('state', 'final')->filter($inForce);
+        $superseded = $finalFindings->pluck('supersedes_id')->filter()->flip();
+        $current = $finalFindings->reject(fn ($f) => $superseded->has($f->id))->keyBy(fn ($f) => $f->tooth.'-'.$f->surface)->values();
+
+        // an external waiting for confirmation (or rejected) is not chart history: it never hides or replaces today's work (unit 2)
+        $history = $procedures->where('state', 'final')->reject(fn ($p) => in_array($p->external_confirmation, ['pending', 'rejected'], true))
+            ->filter($inForce)->values();
+        $successor = $history->whereNotNull('supersedes_id')->keyBy('supersedes_id');
 
         $names = collect($users->namesByIds($visits->pluck('dentist_id')->merge($notes->flatMap->versions->pluck('signed_by'))
             ->merge($requests->pluck('requested_by'))->filter()->unique()->values()->all()))->pluck('name', 'id');
@@ -51,22 +68,51 @@ class ChartController extends Controller
         ]);
 
         $crossBranch = $visits->contains(fn ($v) => $v->branch_id !== Ctx::current()->branchId);
-        Audit::log('baca', 'chart', $id, ['visits' => $visits->count(), 'cross_branch' => $crossBranch]); // D-027
+        Audit::log('baca', 'chart', $id, ['visits' => $visits->count(), 'cross_branch' => $crossBranch, 'as_of' => $asOf]); // D-027
 
         return response()->json([
+            'as_of' => $asOf,
             'patient' => $patient,
             'solo_practice' => $tenancy->activeDentistCount() === 1, // >2x24h corrections: self-approve (D-013) vs owner approval
-            'baseline' => ($b = ToothBaseline::where('patient_id', $id)->orderByDesc('version')->first()) ? BaselineController::out($b) : null,
+            'baseline' => ($b = ToothBaseline::where('patient_id', $id)->when($cut, fn ($q) => $q->where('created_at', '<=', $cut->utc()))
+                ->orderByDesc('version')->first()) ? BaselineController::out($b) : null,
             'findings' => $current->map(self::finding(...)),
-            'drafts' => $findings->where('state', 'draft')->where('created_by', $me)->values()->map(self::finding(...)),
-            // treatments: every current (final, not superseded) procedure, several per tooth allowed; findings stay the visual layer
-            // an external waiting for confirmation (or rejected) is not chart history: it never hides or replaces today's work (unit 2)
-            'procedures' => $procedures->where('state', 'final')->reject(fn ($p) => $procedures->contains('supersedes_id', $p->id)
-                || in_array($p->external_confirmation, ['pending', 'rejected'], true))->values()->map($proc),
-            'pending_externals' => $procedures->where('external_confirmation', 'pending')->values()->map($proc),
-            'procedure_drafts' => $procedures->where('state', 'draft')->where('created_by', $me)->values()->map($proc),
+            // drafts and the confirmation queue are work in progress, never part of a past chart
+            'drafts' => $cut ? [] : $findings->where('state', 'draft')->where('created_by', $me)->values()->map(self::finding(...)),
+            // treatments: every current (final, not superseded, not a `superseded` marker) procedure, several per tooth allowed;
+            // findings stay the visual layer
+            'procedures' => $history->reject(fn ($p) => $successor->has($p->id) || $p->status === ProcedureStatus::SUPERSEDED)->values()->map($proc),
+            // every final row in force, oldest first; superseded_by: the row that replaced/corrected/moved it (as of the cut)
+            'procedure_history' => $history->map(fn ($p) => $proc($p) + ['effective_at' => self::effectiveAt($p)->toIso8601String(),
+                'superseded_by' => $successor->get($p->id)?->id, 'change' => self::change($successor->get($p->id))]),
+            'pending_externals' => $cut ? [] : $procedures->where('external_confirmation', 'pending')->values()->map($proc),
+            'procedure_drafts' => $cut ? [] : $procedures->where('state', 'draft')->where('created_by', $me)->values()->map($proc),
             'visits' => $out,
         ]);
+    }
+
+    /**
+     * When a final row took effect on the chart: finalized_at (signing / the dentist's status, replace or correction write), and for
+     * a confirmed external the later of that and the confirmation. Not external_date (an approximate date of work elsewhere):
+     * the as-of chart is what this clinic's record showed then. created_at only for migrated rows without finalized_at.
+     */
+    private static function effectiveAt(ProcedureRecord|ToothFinding $p): CarbonImmutable
+    {
+        $at = CarbonImmutable::parse($p->finalized_at ?? $p->created_at);
+        $ok = $p instanceof ProcedureRecord && $p->external_confirmation === 'confirmed' && $p->external_confirmed_at;
+
+        return $ok ? $at->max(CarbonImmutable::parse($p->external_confirmed_at)) : $at;
+    }
+
+    /** How a row was superseded: replaced (`superseded` marker), corrected (same status + reason) or a status change. */
+    private static function change(?ProcedureRecord $next): ?string
+    {
+        return match (true) {
+            $next === null => null,
+            $next->status === ProcedureStatus::SUPERSEDED => 'digantikan',
+            $next->reason !== null => 'koreksi',
+            default => 'status',
+        };
     }
 
     /** POST /api/appointments/{id}/visit: idempotent (unique tenant_id+appointment_id). */
