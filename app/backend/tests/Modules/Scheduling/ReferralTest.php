@@ -98,9 +98,8 @@ class ReferralTest extends TestCase
     {
         [$chairs, $doc, $doc2] = $this->setUpClinic();
         $id = $this->book($chairs[0], $doc);
-        foreach (['kasir@senyum.test', 'depan@senyum.test', 'asisten@senyum.test'] as $who) { // booking staff cannot refer
-            $this->as($who)->postJson("/api/appointments/$id/refer", ['dentist_id' => $doc2, 'reason' => 'Perlu spesialis'])->assertForbidden();
-        }
+        // assistant: no appointment.refer
+        $this->as('asisten@senyum.test')->postJson("/api/appointments/$id/refer", ['dentist_id' => $doc2, 'reason' => 'Perlu spesialis'])->assertForbidden();
         $this->as('dokter@senyum.test')->postJson("/api/appointments/$id/refer", ['dentist_id' => $doc2])->assertStatus(422)->assertJsonValidationErrors('reason');
         $this->as('dokter@senyum.test')->postJson("/api/appointments/$id/refer", ['dentist_id' => $doc, 'reason' => 'Perlu spesialis'])->assertStatus(422);
         $this->assertSame($doc, $this->appt($id)->dentist_id);
@@ -133,5 +132,21 @@ class ReferralTest extends TestCase
         }
         $this->as('pemilik@senyum.test')->postJson("/api/appointments/$late/refer", ['dentist_id' => $doc2, 'reason' => 'Perlu spesialis'])
             ->assertStatus(409)->assertJsonPath('error', 'not_referable');
+    }
+
+    /** Yohanes 15-11-2026: front desk (depan) and kasir may move any appointment when the dentist is unavailable; reason + clash check stay. */
+    public function test_front_desk_and_kasir_refer_when_the_dentist_is_unavailable(): void
+    {
+        [$chairs, $doc, $doc2] = $this->setUpClinic();
+        foreach (['depan@senyum.test', 'kasir@senyum.test'] as $i => $who) {
+            $id = $this->book($chairs[$i], $doc, 60 * $i);
+            $this->as($who)->postJson("/api/appointments/$id/refer", ['dentist_id' => $doc2, 'reason' => ''])->assertStatus(422)->assertJsonValidationErrors('reason');
+            $this->as($who)->postJson("/api/appointments/$id/refer", ['dentist_id' => $doc2, 'reason' => 'Dokter berhalangan: sakit'])->assertOk();
+            $this->assertSame($doc2, $this->appt($id)->dentist_id);
+            $this->assertEquals(['from_dentist' => $doc, 'to_dentist' => $doc2, 'reason' => 'Dokter berhalangan: sakit'], $this->audit('rujuk', $id)->detail);
+        }
+        // clash check stays: dentist 2 already has 10:00 (moved above), so another 10:00 cannot go to them
+        $clash = $this->book($chairs[2], $doc, 0, 30, 'pemilik@senyum.test');
+        $this->assertSame(409, $this->as('kasir@senyum.test')->postJson("/api/appointments/$clash/refer", ['dentist_id' => $doc2, 'reason' => 'Dokter berhalangan'])->status());
     }
 }

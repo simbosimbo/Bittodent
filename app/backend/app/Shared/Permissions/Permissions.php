@@ -23,11 +23,12 @@ final class Permissions
         'assistant' => ['patient.read', 'appointment.read', 'appointment.transition', 'note.read', 'note.write', 'appointment.plan',
             'procedure.confirm_external'],
         'front_desk' => ['patient.read', 'patient.create', 'appointment.read', 'appointment.create', 'appointment.transition', 'appointment.confirm',
-            'patient.update', 'billing.read', 'billing.adjust', 'procedure.confirm_external'],
+            'patient.update', 'billing.read', 'billing.adjust', 'procedure.confirm_external',
+            'appointment.refer'], // DEVIATIONS #68: move any appointment to another dentist (e.g. dokter berhalangan), reason + audit
         // kasir = kasir + manajemen booking (DEVIATIONS #67): buat/konfirmasi/check-in/ubah jadwal janji dan daftarkan pasien baru.
         // Tetap tanpa klinis (note.*, appointment.plan) dan tanpa patient.update / read_nik.
         'kasir' => ['patient.read', 'patient.create', 'appointment.read', 'appointment.create', 'appointment.transition', 'appointment.confirm',
-            'billing.read', 'billing.adjust'],
+            'billing.read', 'billing.adjust', 'appointment.refer'], // #68: kasir = front desk too (Yohanes 15-11-2026)
     ];
 
     public const LABELS = [

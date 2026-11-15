@@ -192,7 +192,7 @@ class AppointmentController extends Controller
 
     /**
      * POST /api/appointments/{id}/refer {dentist_id, reason}: "Rujuk" = the only way to move an appointment to another dentist
-     * (DEVIATIONS #68). Reason required; owner any appointment, a dentist only their own; before treatment starts only
+     * (DEVIATIONS #68). Reason required; owner/front desk/kasir any appointment, a dentist only their own; before treatment starts only
      * (pending_confirmation, booked, checked_in). Same chair/time; the new dentist's double-booking check applies. Audited with the reason.
      */
     public function refer(Request $request, string $id)
@@ -205,8 +205,9 @@ class AppointmentController extends Controller
             if (! $ctx->coversBranch($a->branch_id)) {
                 return Audit::denied('branch:'.$a->branch_id);
             }
-            if (! in_array('owner', $ctx->roles, true) && $a->dentist_id !== $ctx->userId) {
-                return Audit::denied('appointment.refer'); // a dentist refers only their own patients
+            // owner and front desk (front_desk, kasir): any appointment, e.g. "Dokter berhalangan"; a dentist only their own patients.
+            if (! array_intersect(['owner', 'front_desk', 'kasir'], $ctx->roles) && $a->dentist_id !== $ctx->userId) {
+                return Audit::denied('appointment.refer');
             }
             if (! in_array($a->status, ['pending_confirmation', 'booked', 'checked_in'], true)) {
                 return response()->json(['error' => 'not_referable', 'message' => 'Hanya janji yang belum mulai perawatan yang bisa dirujuk.'], 409);

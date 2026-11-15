@@ -390,8 +390,8 @@ test('HP: memuat hari lain menampilkan status memuat, bukan agenda hari sebelumn
 const PERMS = {
   owner: ['patient.read', 'patient.create', 'appointment.read', 'appointment.create', 'appointment.transition', 'appointment.confirm', 'note.read', 'billing.read', 'billing.adjust'],
   dentist: ['patient.read', 'patient.create', 'appointment.read', 'appointment.create', 'appointment.transition', 'appointment.confirm', 'note.read', 'note.write', 'note.sign'],
-  front_desk: ['patient.read', 'patient.create', 'appointment.read', 'appointment.create', 'appointment.transition', 'appointment.confirm', 'billing.read', 'billing.adjust'],
-  kasir: ['patient.read', 'patient.create', 'appointment.read', 'appointment.create', 'appointment.transition', 'appointment.confirm', 'billing.read', 'billing.adjust'], // #67
+  front_desk: ['patient.read', 'patient.create', 'appointment.read', 'appointment.create', 'appointment.transition', 'appointment.confirm', 'billing.read', 'billing.adjust', 'appointment.refer'],
+  kasir: ['patient.read', 'patient.create', 'appointment.read', 'appointment.create', 'appointment.transition', 'appointment.confirm', 'billing.read', 'billing.adjust', 'appointment.refer'], // #67, #68
 }
 const who = (roles: (keyof typeof PERMS)[], id = 'd1'): Me => ({
   ...ME, user: { id, name: 'Staf Contoh', email: `${id}@contoh.test` }, roles, permissions: [...new Set(roles.flatMap((r) => PERMS[r]))],
@@ -508,7 +508,7 @@ test('HP Meja depan: Perlu konfirmasi -> Belum bayar -> Berikutnya -> Selesai (t
   expect(screen.getByText('Pasien c')).toBeInTheDocument()
 })
 
-test('HP Kasir (#67 kasir + manajemen booking): Konfirmasi, Check-in, FAB, Ubah jadwal, Ganti kursi; tanpa Rujuk/Buka RM', async () => {
+test('HP Kasir (#67/#68 kasir = meja depan): Konfirmasi, Check-in, FAB, Ubah jadwal, Ganti kursi, Rujuk; tanpa Buka RM', async () => {
   phoneToday()
   mockApi(() => [ap('p', 'pending_confirmation', '13:00', { source: 'online' }), ap('u', 'done', '08:00', { visit_id: 'vu' }), ap('b', 'booked', '11:00')],
     { invoices: { vu: 'terbuka' } })
@@ -520,7 +520,7 @@ test('HP Kasir (#67 kasir + manajemen booking): Konfirmasi, Check-in, FAB, Ubah 
   expect(screen.getByRole('button', { name: 'Buat janji' })).toHaveClass('fab')
   fireEvent.click(screen.getByRole('button', { name: /^11\.00.*Pasien b/ }))
   const sheet = screen.getByRole('dialog', { name: 'Pasien b' })
-  expect(within(sheet).getAllByRole('button').map((b) => b.textContent)).toEqual(['Tutup', 'Check-in', 'Ubah jadwal', 'Ganti kursi', 'No-show', 'Batalkan'])
+  expect(within(sheet).getAllByRole('button').map((b) => b.textContent)).toEqual(['Tutup', 'Check-in', 'Ubah jadwal', 'Ganti kursi', 'Rujuk ke dokter lain', 'No-show', 'Batalkan'])
   expect(within(sheet).queryByRole('link', { name: /Buka RM/ })).toBeNull()
 })
 
@@ -550,12 +550,38 @@ test('HP: Ganti kursi kirim /chair (dokter tetap); Rujuk hanya untuk dokter janj
   await vi.waitFor(() => expect(posts.at(-1)).toEqual({ url: '/api/appointments/b/refer', body: { dentist_id: 'd2', reason: 'Perlu bedah mulut' } }))
   doc.unmount()
 
-  // another dentist with the permission: no Rujuk on someone else's appointment
-  render(<Schedule me={{ ...who(['dentist', 'front_desk'], 'd2'), permissions: [...PERMS.dentist, ...PERMS.front_desk, 'appointment.refer'] }} />)
-  const mode = await screen.findByRole('radiogroup', { name: 'Mode' })
-  fireEvent.click(within(mode).getByRole('radio', { name: /Meja depan/ }))
+  // another dentist: no Rujuk on someone else's appointment (dentists refer only their own)
+  // (dentist + assistant: sees the desk agenda through the mode toggle, but assistant is not front desk)
+  render(<Schedule me={{ ...who(['dentist'], 'd2'), roles: ['dentist', 'assistant'], permissions: [...PERMS.dentist, 'appointment.refer'] }} />)
+  fireEvent.click(within(await screen.findByRole('radiogroup', { name: 'Mode' })).getByRole('radio', { name: /Meja depan/ }))
   fireEvent.click(await screen.findByRole('button', { name: /^11\.00.*Pasien b/ }))
   expect(within(screen.getByRole('dialog', { name: 'Pasien b' })).queryByRole('button', { name: 'Rujuk ke dokter lain' })).toBeNull()
+})
+
+test.each([['front_desk'], ['kasir']] as const)('HP %s: Rujuk "Dokter berhalangan" (preset aktif) + keterangan -> /refer', async (role) => {
+  phoneToday()
+  const posts = mockApi(() => [ap('b', 'booked', '11:00')]) // drg. Bunga (d1)
+  render(<Schedule me={who([role], 'k9')} />)
+  fireEvent.click(await screen.findByRole('button', { name: /^11\.00.*Pasien b/ }))
+  fireEvent.click(within(screen.getByRole('dialog', { name: 'Pasien b' })).getByRole('button', { name: 'Rujuk ke dokter lain' }))
+  const form = screen.getByRole('dialog', { name: 'Rujuk ke dokter lain' })
+  expect(within(form).getByRole('button', { name: 'Dokter berhalangan' })).toHaveAttribute('aria-pressed', 'true')
+  fireEvent.change(within(form).getByRole('textbox', { name: 'Keterangan (opsional)' }), { target: { value: 'sakit' } })
+  fireEvent.click(within(form).getByRole('button', { name: 'Rujuk' }))
+  await vi.waitFor(() => expect(posts.at(-1)).toEqual({ url: '/api/appointments/b/refer', body: { dentist_id: 'd2', reason: 'Dokter berhalangan: sakit' } }))
+})
+
+test('HP Rujuk: preset dimatikan & alasan kosong -> galat, tanpa kirim', async () => {
+  phoneToday()
+  const posts = mockApi(() => [ap('b', 'booked', '11:00')])
+  render(<Schedule me={who(['front_desk'], 'k9')} />)
+  fireEvent.click(await screen.findByRole('button', { name: /^11\.00.*Pasien b/ }))
+  fireEvent.click(within(screen.getByRole('dialog', { name: 'Pasien b' })).getByRole('button', { name: 'Rujuk ke dokter lain' }))
+  const form = screen.getByRole('dialog', { name: 'Rujuk ke dokter lain' })
+  fireEvent.click(within(form).getByRole('button', { name: 'Dokter berhalangan' }))
+  fireEvent.click(within(form).getByRole('button', { name: 'Rujuk' }))
+  expect(within(form).getByRole('alert')).toHaveTextContent('Tulis alasan rujukan')
+  expect(posts).toEqual([])
 })
 
 test('HP: aksi diblokir sesi impersonasi disembunyikan (bukan dinonaktifkan)', async () => {
@@ -583,7 +609,7 @@ test('HP: sheet Meja depan – Ubah jadwal kirim reschedule; Batalkan perlu konf
   render(<Schedule me={who(['front_desk'])} />)
   const open = async () => { fireEvent.click(await screen.findByRole('button', { name: /^11\.00.*Pasien b/ })); return screen.getByRole('dialog', { name: 'Pasien b' }) }
   let sheet = await open()
-  expect(within(sheet).getAllByRole('button').map((b) => b.textContent)).toEqual(['Tutup', 'Check-in', 'Ubah jadwal', 'Ganti kursi', 'No-show', 'Batalkan'])
+  expect(within(sheet).getAllByRole('button').map((b) => b.textContent)).toEqual(['Tutup', 'Check-in', 'Ubah jadwal', 'Ganti kursi', 'Rujuk ke dokter lain', 'No-show', 'Batalkan'])
   fireEvent.click(within(sheet).getByRole('button', { name: 'Batalkan' }))
   expect(posts).toEqual([])
   fireEvent.click(within(sheet).getByRole('button', { name: 'Ya, batalkan' }))

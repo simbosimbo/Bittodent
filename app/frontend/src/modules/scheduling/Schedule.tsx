@@ -162,6 +162,8 @@ export default function Schedule({ me }: { me: Me }) {
   const [form, setForm] = useState<{ kind: 'chair' | 'refer'; id: string } | null>(null) // Ganti kursi / Rujuk sheet
   const canRefer = can('appointment.refer')
   const ownerRole = me.roles.includes('owner')
+  // Front desk (front_desk, kasir) may move any appointment to another dentist, e.g. "Dokter berhalangan" (DEVIATIONS #68).
+  const deskRole = me.roles.some((r) => r === 'front_desk' || r === 'kasir')
 
   async function move(a: Appointment, to: string) {
     setActionError('')
@@ -236,7 +238,7 @@ export default function Schedule({ me }: { me: Me }) {
     mode === 'depan' && a.status === 'booked' && canCreate && { key: 'reschedule', label: 'Ubah jadwal' },
     canMove && ['pending_confirmation', 'booked', 'checked_in', 'in_treatment'].includes(a.status) && (data?.chairs.length ?? 0) > 1 &&
       { key: 'chair', label: 'Ganti kursi' },
-    canRefer && (ownerRole || a.dentist?.id === me.user.id) && ['pending_confirmation', 'booked', 'checked_in'].includes(a.status) &&
+    canRefer && (ownerRole || deskRole || a.dentist?.id === me.user.id) && ['pending_confirmation', 'booked', 'checked_in'].includes(a.status) &&
       (data?.dentists.some((d) => d.id !== a.dentist?.id) ?? false) && { key: 'refer', label: 'Rujuk ke dokter lain' },
     mode === 'depan' && a.status === 'booked' && canMove && date <= todayWib() && { key: 'noshow', label: 'No-show', run: () => move(a, 'no_show') },
     mode === 'depan' && ((a.status === 'booked' && canMove) || (a.status === 'pending_confirmation' && canMove && canConfirm)) &&
@@ -277,6 +279,7 @@ export default function Schedule({ me }: { me: Me }) {
   }
   const shownCol = mobile ? (cols.find((c) => c.id === docPick) ?? cols.find((c) => c.id === nextDoc())) : undefined
   const chairs = shownCol ? [shownCol] : cols
+  const isNotOwn = (id: string) => all.find((x) => x.id === id)?.dentist?.id !== me.user.id
   const chairLabel = (a: Appointment) => data?.chairs.find((c) => c.id === a.chair_id)?.label
   const dokter = mode === 'dokter'
   const agendaList = dokter ? all.filter((a) => a.dentist?.id === me.user.id) : all.filter((a) => !docPick || a.dentist?.id === docPick)
@@ -503,7 +506,7 @@ export default function Schedule({ me }: { me: Me }) {
       {mobile && form && data && all.find((a) => a.id === form.id) && (form.kind === 'chair'
         ? <ChairSheet a={all.find((a) => a.id === form.id)!} chairs={data.chairs} save={changeChair}
             onClose={() => setForm(null)} onSaved={() => { setForm(null); reload(); changed(); say('Kursi diganti') }} />
-        : <ReferSheet a={all.find((a) => a.id === form.id)!} dentists={data.dentists} save={refer}
+        : <ReferSheet a={all.find((a) => a.id === form.id)!} dentists={data.dentists} save={refer} unavailable={deskRole && isNotOwn(form.id)}
             onClose={() => setForm(null)} onSaved={() => { setForm(null); reload(); changed(); say('Janji dirujuk') }} />)}
       {mobile && payFor && all.find((a) => a.id === payFor)?.visit_id && (
         <PayPrompt onLater={() => setPayFor(null)} onPay={() => {

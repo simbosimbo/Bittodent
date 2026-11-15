@@ -344,23 +344,31 @@ export function ChairSheet({ a, chairs, save, onClose, onSaved }: {
   )
 }
 
-/** Rujuk: the only way to give an appointment to another dentist; reason required, audited (POST /appointments/{id}/refer). */
-export function ReferSheet({ a, dentists, save, onClose, onSaved }: {
+/** "Dokter berhalangan": the front desk's preset reason (DEVIATIONS #68); free text is added after it. */
+export const UNAVAILABLE = 'Dokter berhalangan'
+
+/**
+ * Rujuk: the only way to give an appointment to another dentist; reason required, audited (POST /appointments/{id}/refer).
+ * Preset "Dokter berhalangan" (on by default for the front desk moving someone else's patient) + free text.
+ */
+export function ReferSheet({ a, dentists, save, unavailable = false, onClose, onSaved }: {
   a: Appointment; dentists: Sched['dentists']; save: (id: string, body: { dentist_id: string; reason: string }) => Promise<unknown>
-  onClose: () => void; onSaved: () => void
+  unavailable?: boolean; onClose: () => void; onSaved: () => void
 }) {
   const others = dentists.filter((d) => d.id !== a.dentist?.id)
   const [dentist, setDentist] = useState(others[0]?.id ?? '')
-  const [reason, setReason] = useState('')
+  const [preset, setPreset] = useState(unavailable)
+  const [note, setNote] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const reason = preset ? (note.trim() ? `${UNAVAILABLE}: ${note.trim()}` : UNAVAILABLE) : note.trim()
   async function submit(e: FormEvent) {
     e.preventDefault()
-    if (reason.trim().length < 5) return setError('Tulis alasan rujukan (minimal 5 huruf).')
+    if (reason.length < 5) return setError('Tulis alasan rujukan (minimal 5 huruf).')
     setBusy(true)
     setError('')
     try {
-      await save(a.id, { dentist_id: dentist, reason: reason.trim() })
+      await save(a.id, { dentist_id: dentist, reason })
       onSaved()
     } catch (err) {
       setError(saveError(err, 'Janji tidak bisa dirujuk.'))
@@ -375,7 +383,11 @@ export function ReferSheet({ a, dentists, save, onClose, onSaved }: {
         <label>Dokter gigi tujuan<select value={dentist} onChange={(e) => setDentist(e.target.value)}>
           {others.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
         </select></label>
-        <label>Alasan rujukan<textarea value={reason} maxLength={500} rows={3} required onChange={(e) => { setReason(e.target.value); setError('') }} placeholder="mis. Perlu penanganan bedah mulut" /></label>
+        <div className="refer-presets" role="group" aria-label="Alasan cepat">
+          <button type="button" className="chip-toggle" aria-pressed={preset} onClick={() => { setPreset(!preset); setError('') }}>{UNAVAILABLE}</button>
+        </div>
+        <label>{preset ? 'Keterangan (opsional)' : 'Alasan rujukan'}<textarea value={note} maxLength={450} rows={3}
+          onChange={(e) => { setNote(e.target.value); setError('') }} placeholder={preset ? 'mis. sakit, cuti' : 'mis. Perlu penanganan bedah mulut'} /></label>
         {error && <p className="form-error" role="alert">{error}</p>}
         <div className="appt-sheet-actions">
           <button className="btn btn-primary" disabled={busy || !dentist}>{busy ? 'Menyimpan…' : 'Rujuk'}</button>
