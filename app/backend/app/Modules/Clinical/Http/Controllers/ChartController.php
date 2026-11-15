@@ -10,6 +10,7 @@ use App\Modules\Clinical\Models\ProcedureRecord;
 use App\Modules\Clinical\Models\ToothBaseline;
 use App\Modules\Clinical\Models\ToothFinding;
 use App\Modules\Clinical\Models\Visit;
+use App\Modules\Clinical\Services\VisitCloser;
 use App\Modules\Identity\Contracts\UserDirectory;
 use App\Modules\Patients\Contracts\PatientDirectory;
 use App\Modules\Scheduling\Contracts\AppointmentDirectory;
@@ -59,12 +60,15 @@ class ChartController extends Controller
         $names = collect($users->namesByIds($visits->pluck('dentist_id')->merge($notes->flatMap->versions->pluck('signed_by'))
             ->merge($requests->pluck('requested_by'))->filter()->unique()->values()->all()))->pluck('name', 'id');
 
+        $closer = app(VisitCloser::class);
         $out = $visits->map(fn (Visit $v) => [
             'id' => $v->id, 'appointment_id' => $v->appointment_id, 'branch_id' => $v->branch_id, 'started_at' => $v->started_at,
             'status' => $v->status, 'attendance_cancelled_at' => $v->attendance_cancelled_at, 'dentist' => ['id' => $v->dentist_id, 'name' => $names[$v->dentist_id] ?? null],
             'notes' => $notes->where('visit_id', $v->id)->values()->map(fn ($n) => self::note($n, $names, $requests->get($n->id))),
             'draft_findings' => $findings->where('visit_id', $v->id)->where('state', 'draft')->values()->map(self::finding(...)),
             'draft_procedures' => $procedures->where('visit_id', $v->id)->where('state', 'draft')->values()->map($proc),
+            // open visits only (#54): unsigned clinical work closes through Selesai; cancelled attendance may close via /close
+            ...($v->status === 'berlangsung' ? ['needs_selesai' => VisitCloser::needsSelesai($v), 'attendance_cancelled' => $closer->attendanceCancelled($v)] : []),
         ]);
 
         $crossBranch = $visits->contains(fn ($v) => $v->branch_id !== Ctx::current()->branchId);

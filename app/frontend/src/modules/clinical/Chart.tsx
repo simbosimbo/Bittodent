@@ -3,12 +3,12 @@ import { ApiError, errorText } from '../../shared/api/http'
 import { setActivePatient } from '../../shared/activePatient'
 import type { Me } from '../../shared/session'
 import {
-  approveCorrection, changeStatus, confirmExternal, correctNote, correctProcedure, replaceProcedure, discardFinding, discardProcedure, getChart, saveBaseline, saveFinding, saveNote, saveProcedure, signVisit,
+  approveCorrection, changeStatus, confirmExternal, correctNote, correctProcedure, replaceProcedure, discardFinding, discardProcedure, getChart, saveBaseline, saveFinding, saveNote, saveProcedure, selesaiVisit, approveDrafts,
   visitFromAppointment, type Baseline, type Chart, type CorrectionType, type ChartVisit, type Note, type ProcStatus, type Procedure, type ProcedureHistoryRow, type Soap, type Surface, type ToothPresence, type Version,
 } from './api'
 import { AI_BADGE, CHOOSABLE, CONDITIONS, CORRECTION_LABEL, findingText, paintCondition, PRESENCE, procedureText, sameSite, statusOf, surfaceLabel, surfaceName, surfacesOf } from './legend'
 import { Legend, Odontogram, type Mark } from './Odontogram'
-import { SignDialog } from './SignDialog'
+import { SelesaiDialog } from './SelesaiDialog'
 import { CloseVisit } from './CloseVisit'
 import './clinical.css'
 
@@ -25,7 +25,7 @@ function StatusBadge({ v }: { v: Version }) {
   return (
     <>
       {v.status === 'draf' ? <span className="badge badge-draft">Draf</span>
-        : v.status === 'berlaku' ? <span className="badge badge-signed">🔒 Ditandatangani</span>
+        : v.status === 'berlaku' ? <span className="badge badge-signed">🔒 Selesai</span>
         : <span className="badge badge-old">Digantikan</span>}
       {v.status === 'draf' && v.source === 'ai_draft' && <span className="badge badge-ai">{AI_BADGE}</span>}
     </>
@@ -366,17 +366,22 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
     external && selesaiToday.length ? 'Tersimpan; menunggu konfirmasi resepsionis/asisten.' : 'Tindakan tersimpan sebagai draf.')
   const myDraftAt = (whole: boolean) => pick && mine.find((d) => d.tooth === pick.tooth && d.surface === (whole ? null : pick.surface))
 
-  async function sign(code: string) {
+  // agent drafts still waiting for "Setujui" (Selesai is refused until none are left; the server checks too)
+  const unapproved = visit ? [...(draft?.source === 'ai_draft' && !draft.approved_at ? [draft] : []),
+    ...visit.draft_findings.filter((f) => f.source === 'ai_draft' && !f.approved_at),
+    ...visit.draft_procedures.filter((x) => x.source === 'ai_draft' && !x.approved_at)].length : 0
+  const isDpjp = !!visit && visit.dentist.id === me.user.id && can('note.sign')
+
+  async function selesai(pin?: string) {
     if (!visit || !draft) return
     setSigning({ busy: true, error: '' })
     try {
-      await signVisit(visit.id, { revision: draft.revision, confirm: true, code })
+      await selesaiVisit(visit.id, { revision: draft.revision, confirm: true, ...(pin ? { pin } : {}) })
       setSigning(null)
-      setMsg('Rekam medis ditandatangani dan terkunci.')
+      setMsg('Selesai: rekam medis terkunci dan kunjungan ditutup.')
       await load()
     } catch (e) {
-      setSigning({ busy: false, error: e instanceof ApiError && e.status === 403 ? 'Kode salah atau Anda bukan dokter penulis catatan ini.'
-        : e instanceof ApiError && e.status === 409 ? 'Draf berubah. Tutup, periksa lagi, lalu tanda tangani.' : errorText(e) })
+      setSigning({ busy: false, error: e instanceof ApiError && [403, 409, 422].includes(e.status) ? e.data?.message ?? 'Tidak bisa diproses.' : errorText(e) })
     }
   }
 
@@ -412,7 +417,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
           onSave={(b) => run(async () => { await saveBaseline(p.id, { base_version: chart.baseline?.version ?? null, ...b }); setBaselineOpen(false) }, 'Keadaan awal tersimpan (versi baru).')} />}
         <Odontogram marks={marks} baseline={chart.baseline?.teeth} dentition={chart.baseline?.dentition} selected={pick ? `t${pick.tooth}-${pick.surface}` : null}
           onPick={editable ? (tooth, surface) => { setSurfs(pick?.tooth === tooth ? (surfs.includes(surface) ? surfs : [...surfs, surface]) : [surface]); setPick({ tooth, surface }) } : undefined} />
-        {!editable && <p className="muted small">{visit ? 'Kunjungan ini sudah ditandatangani.' : 'Tidak ada kunjungan aktif. Buka dari kartu janji untuk mengisi.'}</p>}
+        {!editable && <p className="muted small">{visit ? 'Kunjungan ini sudah Selesai.' : 'Tidak ada kunjungan aktif. Buka dari kartu janji untuk mengisi.'}</p>}
         {pick && editable && (
           <div className="picker-pop" role="group" aria-label="Pilih kondisi">
             <strong>Gigi {pick.tooth} · {surfaceName(pick.tooth, pick.surface)} ({surfaceLabel(pick.tooth, pick.surface)})</strong>
@@ -485,8 +490,12 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
           {editable && (
             <div className="dialog-actions">
               <button className="btn" disabled={!dirty} onClick={() => run(() => saveNote(visit.id, { revision: draft?.revision ?? null, soap: toSoap(form) }), 'Draf tersimpan.')}>Simpan draf</button>
-              {can('note.sign') && note?.author_id === me.user.id && draft && (
-                <button className="btn btn-primary" disabled={dirty} title={dirty ? 'Simpan draf dulu' : undefined} onClick={() => setSigning({ busy: false, error: '' })}>Tanda Tangani</button>
+              {isDpjp && draft && unapproved > 0 && (
+                <button className="btn" onClick={() => run(() => approveDrafts(visit.id), 'Draf agen disetujui.')}>Setujui draf agen ({unapproved})</button>
+              )}
+              {isDpjp && draft && (
+                <button className="btn btn-primary" disabled={dirty || unapproved > 0}
+                  title={dirty ? 'Simpan draf dulu' : unapproved > 0 ? 'Setujui draf agen dulu' : undefined} onClick={() => setSigning({ busy: false, error: '' })}>Selesai</button>
               )}
             </div>
           )}
@@ -494,7 +503,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
       )}
 
       {visit && visit.status === 'berlangsung' && !asOf && can('appointment.transition') && (
-        <CloseVisit visit={visit} canBilling={can('billing.read')} onDone={async () => { await load(); setMsg('Kunjungan diperbarui.') }} />
+        <CloseVisit visit={visit} needsSelesai={!!visit.needs_selesai && !visit.attendance_cancelled} canBilling={can('billing.read')} onDone={async () => { await load(); setMsg('Kunjungan diperbarui.') }} />
       )}
 
       <div className="card">
@@ -503,7 +512,8 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
       </div>
 
       {signing && visit && draft && (
-        <SignDialog busy={signing.busy} error={signing.error} onClose={() => setSigning(null)} onConfirm={sign}
+        <SelesaiDialog busy={signing.busy} error={signing.error} onClose={() => setSigning(null)} onConfirm={selesai}
+          pinRequired={!!me.selesai?.pin_required} hasPin={!!me.selesai?.has_pin}
           lines={[`Catatan SOAP versi ${draft.version} (revisi ${draft.revision})${draft.soap.A.codes.length ? ' · ICD-10 ' + draft.soap.A.codes.join(', ') : ''}`,
             ...visit.draft_findings.map((f) => findingText(f) + (f.created_by !== me.user.id ? ' (draf pengguna lain)' : '')),
             ...visit.draft_procedures.map((p) => procedureText(p) + ` · ${statusOf(p.status)?.label ?? p.status}` + (p.created_by !== me.user.id ? ' (draf pengguna lain)' : ''))]} />

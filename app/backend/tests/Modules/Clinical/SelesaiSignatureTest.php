@@ -73,6 +73,9 @@ class SelesaiSignatureTest extends TestCase
         $this->selesai($visit, email: $doc2->email)->assertForbidden(); // a dentist, but not this visit's DPJP
         $this->as($doc2->email)->postJson("/api/visits/$visit/approve-drafts")->assertForbidden();
         $this->assertSame('draft', $this->version($visit)->state);
+        $patient = $this->inA(fn () => Visit::findOrFail($visit)->patient_id);
+        $open = collect($this->as(self::DOC)->getJson("/api/patients/$patient/chart")->json('visits'))->firstWhere('id', $visit);
+        $this->assertSame([true, false], [$open['needs_selesai'], $open['attendance_cancelled']]); // SPA hides "Tutup kunjungan"
 
         $r = $this->selesai($visit, ['attestation_text' => 'Teks dari klien'])->assertOk()
             ->assertJsonPath('signed_by', $this->user(self::DOC)->id)->assertJsonPath('visit.status', 'selesai')
