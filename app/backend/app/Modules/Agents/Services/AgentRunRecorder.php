@@ -114,7 +114,16 @@ final class AgentRunRecorder implements AgentRuns
         return $run->id;
     }
 
-    /** Keep only {type, id, version} scalars so no content can slip into input_refs. */
+    public function tokensUsedThisMonth(): int
+    {
+        $start = now('Asia/Jakarta')->startOfMonth()->utc();
+        $end = now('Asia/Jakarta')->endOfMonth()->utc();
+
+        return (int) AgentRun::query()->where('started_at', '>=', $start)->where('started_at', '<=', $end)->sum('tokens_in')
+            + (int) AgentRun::query()->where('started_at', '>=', $start)->where('started_at', '<=', $end)->sum('tokens_out');
+    }
+
+        /** Keep only {type, id, version} scalars so no content can slip into input_refs. */
     private static function refsOnly(array $refs): array
     {
         return array_values(array_map(fn ($r) => array_filter([

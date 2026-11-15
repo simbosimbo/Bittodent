@@ -22,6 +22,7 @@ import { Legend, Odontogram, StatusLegend, type Mark } from './Odontogram'
 import { dentitionFromDob, Odontogram3D } from './Odontogram3D'
 import { SelesaiDialog } from './SelesaiDialog'
 import { CloseVisit } from './CloseVisit'
+import Scribe from './Scribe'
 import { fillEmpty, quickProcs, rememberProc, SOAP_TEMPLATES, type QuickProc } from './quick'
 import './clinical.css'
 
@@ -855,6 +856,16 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
                 <h2>Catatan SOAP</h2>
                 {draft ? <StatusBadge v={draft} /> : note ? <span className="badge badge-signed">🔒 Selesai</span> : <span className="badge badge-old">Belum ada</span>}
               </div>
+              {isDpjp && visit && (
+                <Scribe visitId={visit.id} onAccept={(section, text) => {
+                  setForm((f) => {
+                    if (section === 'S' || section === 'O') return { ...f, [section]: f[section] ? `${f[section]}\n${text}` : text }
+                    const block = section === 'A' ? f.A : f.P
+                    return { ...f, [section]: { ...block, text: block.text ? `${block.text}\n${text}` : text } }
+                  })
+                  setDirty(true)
+                }} />
+              )}
               {editable && (
                 <div className="soap-quick" role="group" aria-label="Template catatan">
                   {SOAP_TEMPLATES.map((t) => <button key={t.key} type="button" className="btn chip-quick" onClick={() => { setForm(toForm(fillEmpty(toSoap(form), t.soap))); setDirty(true) }}>{t.label}</button>)}

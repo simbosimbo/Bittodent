@@ -2,6 +2,7 @@
 
 // Owning module: Agents (agent_run, agent_draft). MySQL only.
 
+use Database\Support\MysqlGrants;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 
@@ -13,11 +14,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        $db = DB::connection()->getDatabaseName();
-        $grantee = sprintf("'%s'@'%s'", config('database.connections.mysql.username'), env('DB_APP_GRANT_HOST', '127.0.0.1'));
-        foreach (['agent_run', 'agent_draft'] as $t) {
-            DB::statement("GRANT SELECT, INSERT, UPDATE ON `$db`.`$t` TO $grantee");
-        }
+        MysqlGrants::grant('SELECT, INSERT, UPDATE', 'agent_run', 'agent_draft');
 
         $regions = implode(', ', array_map(fn ($r) => "'".str_replace("'", '', $r)."'", config('ai.allowed_regions')));
         $sql = [

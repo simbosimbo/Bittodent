@@ -24,6 +24,8 @@ return [
     'Integrations' => [],
     // A0 AI foundation: agent_run/agent_draft + run recorder; reaches models only via Integrations\Contracts\ModelClient.
     'Agents' => ['Integrations'],
+    // A3 scribe: dictation aid (D-048). Uses Agents for runs/drafts, Clinical/Patients contracts, Integrations ModelClient.
+    'Scribe' => ['Agents', 'Clinical', 'Patients', 'Integrations'],
     // Unit 6 owner integrity report: reads facts only through each module's Contracts (no Models).
     'Reporting' => ['Clinical', 'Billing', 'Scheduling', 'Identity', 'Patients', 'Tenancy'],
 ];

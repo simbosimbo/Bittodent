@@ -22,4 +22,7 @@ interface AgentRuns
      * region id-lokal) + one audit row, so every AI-labelled output has a run. @param list<array{type: string, id: string, version?: int}> $inputRefs
      */
     public function recordDeterministic(AgentKind $agent, string $promptVersion, array $inputRefs, string $inputHash, ?string $patientId = null, bool $crossBranch = false): string;
+
+    /** Sum of tokens_in + tokens_out for this tenant in the current calendar month (Asia/Jakarta). */
+    public function tokensUsedThisMonth(): int;
 }
