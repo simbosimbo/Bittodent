@@ -47,6 +47,12 @@ final class OdontogramTaxonomy
         return array_column(self::table()['groups'], 'area', 'key')[$group] ?? null;
     }
 
+    /** Official condition codes (lowercase), e.g. car, cof, rct, ipx. */
+    public static function codes(): array
+    {
+        return array_values(array_filter(array_column(self::table()['conditions'], 'code')));
+    }
+
     public static function spanRoles(): array
     {
         return array_column(self::table()['span_roles'], 'key');

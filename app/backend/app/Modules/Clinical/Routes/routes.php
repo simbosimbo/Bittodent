@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Clinical\Http\Controllers\BaselineController;
+use App\Modules\Clinical\Http\Controllers\CatalogController;
 use App\Modules\Clinical\Http\Controllers\ChartController;
 use App\Modules\Clinical\Http\Controllers\CodingSuggestionController;
 use App\Modules\Clinical\Http\Controllers\ConsentController;
@@ -48,4 +49,7 @@ Route::middleware(['auth:sanctum', '2fa', 'tenant'])->group(function () {
     Route::post('/visits/{id}/approve-drafts', [NoteController::class, 'approveDrafts'])->middleware('perm:note.sign');
     Route::post('/notes/{id}/corrections', [NoteController::class, 'correct'])->middleware('perm:note.sign');
     Route::post('/correction-requests/{id}/approve', [NoteController::class, 'approve'])->middleware('perm:correction.approve');
+    // odontogram v2: condition codes <-> clinic procedure codes (a finished tooth entry bills the mapped code)
+    Route::get('/procedure-catalog', [CatalogController::class, 'index'])->middleware('perm:note.read');
+    Route::put('/procedure-catalog/{code}/conditions', [CatalogController::class, 'update'])->middleware('perm:tariff.manage');
 });

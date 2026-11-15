@@ -17,33 +17,44 @@ final class ProcedureCatalog
 
     public const DEFAULT_PAINT = 'Text';
 
-    /** code => [treat_area, paint_type, name, layman] */
+    /** code => [treat_area, paint_type, name, layman, odontogram condition codes (starter mapping, the owner edits it)] */
     public const STARTER = [
-        '23.2' => ['surface', 'Filling', 'Tumpatan', 'Tambal gigi'],
-        '23.3' => ['surface', 'Filling', 'Inlay', 'Tambal inlay'],
-        '23.41' => ['tooth', 'Crown', 'Mahkota', 'Mahkota / selubung gigi'],
-        '23.42' => ['range', 'Bridge', 'Jembatan cekat', 'Gigi tiruan jembatan'],
-        '23.43' => ['arch', 'Denture', 'Gigi tiruan lepasan', 'Gigi palsu lepas'],
-        '23.01' => ['tooth', 'Extraction', 'Pencabutan gigi sulung', 'Cabut gigi susu'],
-        '23.09' => ['tooth', 'Extraction', 'Pencabutan gigi', 'Cabut gigi'],
-        '23.11' => ['tooth', 'Extraction', 'Pengambilan sisa akar', 'Cabut sisa akar'],
-        '23.19' => ['tooth', 'Extraction', 'Pencabutan bedah', 'Cabut gigi dengan bedah kecil'],
-        '23.5' => ['tooth', 'Implant', 'Implantasi gigi', 'Tanam gigi'],
-        '23.6' => ['tooth', 'Implant', 'Implan gigi prostetik', 'Implan gigi'],
-        '23.70' => ['tooth', 'RCT', 'Perawatan saluran akar', 'Perawatan akar gigi'],
-        '23.71' => ['tooth', 'RCT', 'Perawatan saluran akar dengan irigasi', 'Perawatan akar gigi'],
-        '96.54' => ['mouth', 'Text', 'Scaling', 'Pembersihan karang gigi'],
+        '23.2' => ['surface', 'Filling', 'Tumpatan', 'Tambal gigi', ['amf', 'cof', 'gif']],
+        '23.3' => ['surface', 'Filling', 'Inlay', 'Tambal inlay', ['inl', 'onl']],
+        '23.41' => ['tooth', 'Crown', 'Mahkota', 'Mahkota / selubung gigi', ['fmc', 'poc', 'mpc', 'gmc']],
+        '23.42' => ['range', 'Bridge', 'Jembatan cekat', 'Gigi tiruan jembatan', ['meb', 'pob']],
+        '23.43' => ['arch', 'Denture', 'Gigi tiruan lepasan', 'Gigi palsu lepas', ['prd', 'fld']],
+        '23.01' => ['tooth', 'Extraction', 'Pencabutan gigi sulung', 'Cabut gigi susu', ['mis']],
+        '23.09' => ['tooth', 'Extraction', 'Pencabutan gigi', 'Cabut gigi', ['mis']],
+        '23.11' => ['tooth', 'Extraction', 'Pengambilan sisa akar', 'Cabut sisa akar', ['mis']],
+        '23.19' => ['tooth', 'Extraction', 'Pencabutan bedah', 'Cabut gigi dengan bedah kecil', ['mis']],
+        '23.5' => ['tooth', 'Implant', 'Implantasi gigi', 'Tanam gigi', ['ipx']],
+        '23.6' => ['tooth', 'Implant', 'Implan gigi prostetik', 'Implan gigi', ['ipx']],
+        '23.70' => ['tooth', 'RCT', 'Perawatan saluran akar', 'Perawatan akar gigi', ['rct']],
+        '23.71' => ['tooth', 'RCT', 'Perawatan saluran akar dengan irigasi', 'Perawatan akar gigi', ['rct']],
+        '96.54' => ['mouth', 'Text', 'Scaling', 'Pembersihan karang gigi', []],
     ];
 
     /** Idempotent for the current tenant (Ctx): existing rows are left as the clinic edited them. Fails closed on a non-official code. */
     public static function seed(): void
     {
         $icd = app(IcdCatalog::class);
-        foreach (self::STARTER as $code => [$area, $paint, $name, $layman]) {
+        foreach (self::STARTER as $code => [$area, $paint, $name, $layman, $conditions]) {
             if (! $icd->icd9cmExists($code)) {
                 throw new LogicException("Kode $code tidak ada di daftar resmi ICD-9-CM 2010.");
             }
-            ProcedureDefinition::firstOrCreate(['procedure_code' => $code], ['treat_area' => $area, 'paint_type' => $paint, 'name' => $name, 'layman' => $layman]);
+            $d = ProcedureDefinition::firstOrCreate(['procedure_code' => $code], ['treat_area' => $area, 'paint_type' => $paint, 'name' => $name,
+                'layman' => $layman, 'conditions' => $conditions]);
+            if ($d->conditions === null) { // rows from before the v2 mapping: give them the starter mapping once
+                $d->update(['conditions' => $conditions]);
+            }
         }
+    }
+
+    /** Odontogram v2: procedure codes whose mapping contains this condition code (the candidates to bill a finished entry). */
+    public static function codesFor(string $conditionCode): array
+    {
+        return ProcedureDefinition::orderBy('procedure_code')->get(['procedure_code', 'conditions'])
+            ->filter(fn ($d) => in_array($conditionCode, $d->conditions ?? [], true))->pluck('procedure_code')->values()->all();
     }
 }

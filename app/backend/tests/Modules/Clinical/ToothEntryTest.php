@@ -48,8 +48,8 @@ class ToothEntryTest extends TestCase
     {
         $v = $this->visit();
         $res = $this->as(self::DOC)->postJson("/api/visits/{$v->id}/tooth-entries", ['tooth' => 46, 'surfaces' => ['M', 'O', 'V'],
-            'condition' => 'karies', 'status' => 'selesai', 'procedure_code' => '23.2'])->assertCreated()
-            ->assertJsonPath('status', 'selesai')->assertJsonPath('surfaces', 'MOB')->assertJsonPath('condition', 'karies')
+            'condition' => 'tambalan_komposit', 'status' => 'selesai'])->assertCreated() // code from the mapping, not typed
+            ->assertJsonPath('status', 'selesai')->assertJsonPath('surfaces', 'MOB')->assertJsonPath('condition', 'tambalan_komposit')
             ->assertJsonPath('state', 'draft')->assertJsonPath('procedure_code', '23.2');
         $id = $res->json('id');
         $this->assertTrue($this->inA(fn () => AuditEvent::where('entity_id', $id)->where('action', 'buat')->exists()));
@@ -96,5 +96,29 @@ class ToothEntryTest extends TestCase
         }
         $this->as('dokter@ceria.test')->postJson("/api/visits/{$v->id}/tooth-entries", $body)->assertNotFound();
         $this->assertSame(0, $this->inA(fn () => ProcedureRecord::where('visit_id', $v->id)->whereNotNull('condition')->count()));
+    }
+
+    public function test_tindakan_dulu_a_finished_entry_bills_the_code_mapped_to_its_condition(): void
+    {
+        $v = $this->visit();
+        $post = fn (array $b) => $this->as(self::DOC)->postJson("/api/visits/{$v->id}/tooth-entries", $b + ['status' => 'selesai']);
+        // one candidate: picked automatically (cof -> 23.2 in the starter mapping)
+        $post(['tooth' => 26, 'surfaces' => ['O'], 'condition' => 'tambalan_komposit'])->assertCreated()->assertJsonPath('procedure_code', '23.2');
+        // several candidates (cabut: 23.01/23.09/23.11/23.19 record "mis"): the dentist picks one; a code outside the mapping is refused
+        $pick = $post(['tooth' => 48, 'condition' => 'hilang'])->assertUnprocessable()->assertJsonPath('error', 'pick_code');
+        $this->assertContains('23.09', collect($pick->json('candidates'))->pluck('procedure_code')->all());
+        $post(['tooth' => 48, 'condition' => 'hilang', 'procedure_code' => '23.2'])->assertUnprocessable()->assertJsonValidationErrors('procedure_code');
+        $post(['tooth' => 48, 'condition' => 'hilang', 'procedure_code' => '23.09'])->assertCreated()->assertJsonPath('procedure_code', '23.09');
+        // not mapped yet (sealant fis): refused with a message for the owner; planned/existing entries need no code
+        $post(['tooth' => 37, 'surfaces' => ['O'], 'condition' => 'sealant'])->assertUnprocessable()->assertJsonValidationErrors('condition');
+        $post(['tooth' => 37, 'surfaces' => ['O'], 'condition' => 'sealant', 'status' => 'rencana'])->assertCreated();
+
+        // the owner maps it in Pengaturan > Harga (dentist cannot); then it bills
+        $this->as(self::DOC)->putJson('/api/procedure-catalog/23.2/conditions', ['conditions' => ['amf', 'cof', 'gif', 'fis']])->assertForbidden();
+        $this->as('pemilik@senyum.test')->putJson('/api/procedure-catalog/23.2/conditions', ['conditions' => ['amf', 'xyz']])->assertUnprocessable();
+        $this->as('pemilik@senyum.test')->putJson('/api/procedure-catalog/23.2/conditions', ['conditions' => ['amf', 'cof', 'gif', 'fis']])->assertOk()
+            ->assertJsonPath('conditions.3', 'fis');
+        $post(['tooth' => 47, 'surfaces' => ['O'], 'condition' => 'sealant'])->assertCreated()->assertJsonPath('procedure_code', '23.2');
+        $this->assertContains('cof', collect($this->as(self::DOC)->getJson('/api/procedure-catalog')->assertOk()->json())->firstWhere('procedure_code', '23.2')['conditions']);
     }
 }

@@ -104,6 +104,23 @@ class ProcedureController extends Controller
             return $bad('span_to', 'Rentang hanya untuk kondisi rentang (bridge).');
         }
         $surfs = array_map(fn ($s) => $tax::storedSurface($s), $d['surfaces'] ?? []);
+        // "Tindakan dulu": a finished entry bills the clinic code mapped to its condition (Pengaturan > Harga), never a typed guess.
+        if ($d['status'] === 'selesai') {
+            $codes = $cond['code'] ? ProcedureCatalog::codesFor($cond['code']) : [];
+            $sent = $d['procedure_code'] ?? null;
+            if ($codes === []) {
+                return $bad('condition', "Kondisi {$cond['label']} ({$cond['code']}) belum dipetakan ke tindakan klinik, jadi tidak bisa ditagih. Minta pemilik memetakannya di Pengaturan > Harga.");
+            }
+            if ($sent !== null && ! in_array($sent, $codes, true)) {
+                return $bad('procedure_code', 'Kode tindakan bukan salah satu yang dipetakan untuk kondisi ini.');
+            }
+            if ($sent === null && count($codes) > 1) {
+                return response()->json(['error' => 'pick_code', 'message' => 'Pilih tindakan yang dikerjakan.', 'candidates' => ProcedureDefinition::whereIn('procedure_code', $codes)
+                    ->orderBy('procedure_code')->get(['procedure_code', 'name'])->map->only(['procedure_code', 'name'])->values(),
+                    'errors' => ['procedure_code' => ['Pilih salah satu tindakan.']]], 422);
+            }
+            $d['procedure_code'] = $sent ?? $codes[0];
+        }
         $p = ['status' => $tax::procedureStatus($d['status']), 'procedure_code' => $d['procedure_code'] ?? null,
             'external_clinic_name' => $d['external_clinic_name'] ?? null, 'external_date' => $d['external_date'] ?? null];
         $roles = null;
