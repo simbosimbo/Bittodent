@@ -633,3 +633,27 @@ test('usePendingConfirm: jumlah booking online menunggu hari ini; dibaca ulang s
   const off = renderHook(() => usePendingConfirm('b1', false))
   expect(off.result.current).toBe(0)
 })
+
+test('HP: geser kiri/kanan di konten ganti hari; geser vertikal & baris chip diabaikan; klik akhir geser tidak membuka kartu', async () => {
+  phoneToday()
+  mockApi((d) => d === DAY ? [ap('b', 'booked', '11:00')] : [])
+  const { container } = render(<Schedule me={who(['front_desk'])} />)
+  const card = await screen.findByRole('button', { name: /^11\.00.*Pasien b/ })
+  const area = container.querySelector('.sched-swipe') as HTMLElement
+  const day = (n: number) => screen.getByRole('button', { name: new RegExp(`^\\w+, ${n} Januari 2030`) })
+  const drag = (el: Element, dx: number, dy: number) => {
+    fireEvent.pointerDown(el, { clientX: 200, clientY: 300, pointerId: 1 })
+    fireEvent.pointerUp(el, { clientX: 200 + dx, clientY: 300 + dy, pointerId: 1 })
+  }
+  drag(card, -50, 120) // mostly vertical: a scroll, not a swipe
+  expect(day(9)).toHaveAttribute('aria-pressed', 'true')
+  drag(card, -120, 10)
+  fireEvent.click(card) // the click that ends the gesture
+  expect(screen.queryByRole('dialog')).toBeNull()
+  expect(day(10)).toHaveAttribute('aria-pressed', 'true')
+  await screen.findByText('Belum ada janji.')
+  drag(area, 120, 0)
+  expect(day(9)).toHaveAttribute('aria-pressed', 'true')
+  drag(within(await screen.findByRole('group', { name: 'Pilih kursi' })).getAllByRole('button')[0], -150, 0) // chip row scrolls itself
+  expect(day(9)).toHaveAttribute('aria-pressed', 'true')
+})
