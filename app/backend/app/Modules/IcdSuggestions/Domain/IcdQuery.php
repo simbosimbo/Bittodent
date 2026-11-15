@@ -27,6 +27,8 @@ final readonly class IcdQuery
 
     public function hash(): string
     {
-        return hash('sha256', json_encode([array_map(fn (QuerySpan $s) => [$s->ref, $s->text, $s->source], $this->spans), $this->coded], JSON_THROW_ON_ERROR));
+        // Same text = same input, whatever the draft revision; codes on the draft are a filter, not an input.
+        return hash('sha256', json_encode(array_map(fn (QuerySpan $s) => [$s->ref, $s->text, $s->source['type'] === 'finding' ? $s->source : $s->source['id']],
+            $this->spans), JSON_THROW_ON_ERROR));
     }
 }

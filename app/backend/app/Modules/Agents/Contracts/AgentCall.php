@@ -16,4 +16,11 @@ final readonly class AgentCall
         public bool $crossBranch = false,   // D-027: reading another branch's data (audited)
         public ?int $redactions = null,     // PII replacements made before sending (count only)
     ) {}
+
+    /** For feature modules without an Integrations edge: builds the ModelRequest here. */
+    public static function prompt(AgentKind $agent, string $promptVersion, string $system, string $input, int $maxOutputTokens, float $temperature,
+        array $inputRefs = [], ?string $patientId = null, ?int $redactions = null): self
+    {
+        return new self($agent, $promptVersion, new ModelRequest($system, $input, $maxOutputTokens, $temperature), $inputRefs, $patientId, redactions: $redactions);
+    }
 }

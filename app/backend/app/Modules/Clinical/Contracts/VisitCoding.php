@@ -29,6 +29,12 @@ interface VisitCoding
     public function openDraftNote(string $visitId): ?array;
 
     /**
+     * Identifying strings to scrub from free text before a model sees it (patient name and its words, the dentist's name).
+     * In memory only: never stored, logged or sent. @return list<string>
+     */
+    public function redactionTerms(string $visitId): array;
+
+    /**
      * Appends $code to the open visit's draft SOAP (ICD-10 -> A.codes, ICD-9-CM -> P.codes), creating the draft when there is
      * none. Locks the visit row; bumps the draft revision. Idempotent: a code already present changes nothing.
      *
