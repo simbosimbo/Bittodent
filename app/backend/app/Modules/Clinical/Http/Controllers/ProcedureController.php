@@ -3,10 +3,12 @@
 namespace App\Modules\Clinical\Http\Controllers;
 
 use App\Modules\Clinical\Domain\ApproxDate;
+use App\Modules\Clinical\Domain\OdontogramTaxonomy;
 use App\Modules\Clinical\Domain\ProcedureCatalog;
 use App\Modules\Clinical\Domain\ProcedureLocation;
 use App\Modules\Clinical\Domain\ProcedureSite;
 use App\Modules\Clinical\Domain\ProcedureStatus;
+use App\Modules\Clinical\Domain\Soap;
 use App\Modules\Clinical\Events\ProcedureCorrected;
 use App\Modules\Clinical\Events\ProcedureRecorded;
 use App\Modules\Clinical\Http\Requests\ProcedureHistoryRequest;
@@ -24,6 +26,7 @@ use App\Shared\Audit\Audit;
 use App\Shared\Crypto\Crypto;
 use App\Shared\Http\Controller;
 use App\Shared\Tenancy\Ctx;
+use App\Shared\Terminology\OfficialIcdCode;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -64,6 +67,85 @@ class ProcedureController extends Controller
             Audit::log('buat', 'procedure_record', $p->id, ['tooth' => $p->tooth, 'surfaces' => $p->surfaces, ...self::externalAudit($p)]);
 
             return response()->json(self::out($p), 201);
+        });
+    }
+
+    /**
+     * POST /api/visits/{id}/tooth-entries (odontogram v2, board 09): tooth -> condition/procedure -> surfaces -> status -> Simpan as ONE
+     * draft procedure row. Dentist only (route perm note.sign; assistants keep the draft procedure endpoint). Vocabulary comes from
+     * OdontogramTaxonomy (resources/odontogram/taxonomy.json): v2 status => procedure status, V => stored B, group => treat area.
+     * A bridge is one range row (tooth_range "34-36") with the role per tooth and the material. The usual location, provider, external
+     * and signed-visit rules apply (same attributes() as store()); a `selesai` row with a tariffed code bills on Selesai as before.
+     */
+    public function storeEntry(Request $request, string $id, TenancyDirectory $tenancy)
+    {
+        $tax = OdontogramTaxonomy::class;
+        $d = $request->validate([
+            'tooth' => ['required', 'integer', 'in:'.implode(',', $tax::teeth())],
+            'condition' => ['required', 'string', 'in:'.implode(',', array_keys($tax::conditions()))],
+            'status' => ['required', 'string', 'in:'.implode(',', $tax::statuses())],
+            'surfaces' => ['sometimes', 'array', 'max:5'],
+            'surfaces.*' => ['string', 'in:M,O,I,D,V,L'],
+            'procedure_code' => ['bail', 'sometimes', 'nullable', 'string', 'regex:'.Soap::ICD9CM, OfficialIcdCode::icd9cm()],
+            'span_to' => ['sometimes', 'nullable', 'integer', 'in:'.implode(',', $tax::teeth())],
+            'span_roles' => ['sometimes', 'nullable', 'array'],
+            'span_roles.*' => ['string', 'in:'.implode(',', $tax::spanRoles())],
+            'material' => ['sometimes', 'nullable', 'string', 'in:'.implode(',', $tax::materials())],
+            'external_clinic_name' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'external_date' => ['sometimes', 'nullable', 'string', 'max:10'],
+        ]);
+        $cond = $tax::condition($d['condition']);
+        $span = $cond['group'] === 'span';
+        $bad = fn (string $f, string $m) => response()->json(['message' => $m, 'errors' => [$f => [$m]]], 422);
+        if ($span && empty($d['span_to'])) {
+            return $bad('span_to', 'Rentang wajib: ketuk gigi akhir rentang.');
+        }
+        if (! $span && (isset($d['span_to']) || isset($d['span_roles']) || isset($d['material']))) {
+            return $bad('span_to', 'Rentang hanya untuk kondisi rentang (bridge).');
+        }
+        $surfs = array_map(fn ($s) => $tax::storedSurface($s), $d['surfaces'] ?? []);
+        $p = ['status' => $tax::procedureStatus($d['status']), 'procedure_code' => $d['procedure_code'] ?? null,
+            'external_clinic_name' => $d['external_clinic_name'] ?? null, 'external_date' => $d['external_date'] ?? null];
+        $roles = null;
+        if ($span) {
+            $upper = fn (int $t) => in_array(intdiv($t, 10), [1, 2, 5, 6], true);
+            if ($upper($d['tooth']) !== $upper($d['span_to'])) {
+                return $bad('span_to', 'Rentang harus pada satu rahang.');
+            }
+            $p += ['tooth_range' => "{$d['tooth']}-{$d['span_to']}"];
+            $roles = $d['span_roles'] ?? null;
+            foreach (array_keys($roles ?? []) as $t) {
+                if (! in_array((int) $t, $tax::teeth(), true)) {
+                    return $bad('span_roles', 'Peran rentang hanya untuk nomor gigi FDI.');
+                }
+            }
+        } else {
+            $p += ['tooth' => $d['tooth'], 'surfaces' => $surfs ?: null];
+        }
+        if ($p['procedure_code'] === null) {
+            $p['treat_area'] = $cond['group'] === 'surface' ? 'surface' : $tax::area($cond['group']);
+        }
+        $ctx = Ctx::current();
+
+        return DB::transaction(function () use ($p, $d, $id, $ctx, $tenancy, $roles) {
+            $visit = Visit::lockForUpdate()->findOrFail($id);
+            if (! $ctx->coversBranch($visit->branch_id)) {
+                return Audit::denied('branch:'.$visit->branch_id);
+            }
+            if ($visit->isSigned()) {
+                return self::locked();
+            }
+            $attrs = self::attributes($p, $visit, $tenancy);
+            if (! is_array($attrs)) {
+                return $attrs;
+            }
+            $r = ProcedureRecord::create([...$attrs, 'patient_id' => $visit->patient_id, 'visit_id' => $visit->id, 'state' => 'draft',
+                'source' => 'manual', 'created_by' => $ctx->userId, 'condition' => $d['condition'],
+                'span_roles' => $roles ?: null, 'material' => $d['material'] ?? null]);
+            Audit::log('buat', 'procedure_record', $r->id, ['entry' => 'odontogram_v2', 'tooth' => $r->tooth, 'tooth_range' => $r->tooth_range,
+                'surfaces' => $r->surfaces, 'condition' => $d['condition'], 'status' => $r->status, ...self::externalAudit($r)]);
+
+            return response()->json(self::out($r), 201);
         });
     }
 
@@ -410,7 +492,7 @@ class ProcedureController extends Controller
 
         return $p->only(['id', 'visit_id', 'patient_id', 'treat_area', 'tooth', 'surfaces', 'tooth_range', 'quadrant', 'arch', 'status',
             'procedure_code', 'variant', 'diagnosis_code', 'diagnosis_source', 'provider_id', 'state', 'source', 'approved_at', 'supersedes_id', 'reason', 'replaces_id',
-            'created_by', 'finalized_by', 'finalized_at', 'external_clinic_name', 'external_date_precision', 'external_confirmation',
+            'created_by', 'finalized_by', 'finalized_at', 'condition', 'span_roles', 'material', 'external_clinic_name', 'external_date_precision', 'external_confirmation',
             'external_confirmed_by', 'external_confirmed_at', 'external_confirmation_reason'])
             + ['external_date' => $p->external_date ? substr((string) $p->external_date, 0, 10) : null]
             + ['paint_type' => $def?->paint_type ?? ProcedureCatalog::DEFAULT_PAINT, 'name' => $def?->name, 'layman' => $def?->layman];
