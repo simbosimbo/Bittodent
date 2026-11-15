@@ -19,6 +19,9 @@ interface TenancyDirectory
     /** @return list<string> distinct user ids with an active membership of $role in this tenant (e.g. owners, unit 4 approvals) */
     public function activeUserIdsWithRole(string $role): array;
 
+    /** PLATFORM ONLY (DEVIATIONS #61): every clinic, across tenants. @return list<array{id: string, name: string}> ordered by name */
+    public function allTenants(): array;
+
     /** Free-edit window for procedure corrections in hours (tenant setting, default 48; DEVIATIONS #53). */
     public function correctionWindowHours(): int;
 

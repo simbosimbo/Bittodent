@@ -1,7 +1,9 @@
 <?php
 
 use App\Modules\Identity\Http\Middleware\NoRememberMe;
+use App\Modules\Platform\Http\Middleware\LoadImpersonation;
 use App\Shared\Http\Middleware\NoStore;
+use App\Shared\Http\Middleware\NotImpersonating;
 use Laravel\Fortify\Features;
 
 return [
@@ -103,7 +105,8 @@ return [
     |
     */
 
-    'middleware' => ['web', NoRememberMe::class, NoStore::class],
+    // DEVIATIONS #61: no Fortify route (login, TOTP setup, password confirm) while a platform admin impersonates
+    'middleware' => ['web', LoadImpersonation::class, NotImpersonating::class, NoRememberMe::class, NoStore::class],
 
     /*
     |--------------------------------------------------------------------------

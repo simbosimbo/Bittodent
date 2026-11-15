@@ -22,6 +22,8 @@ return [
     'Inventory' => [],
     'Recall' => ['Scheduling'], // C3: reminder_log reads appointments via Scheduling\Contracts\AppointmentDirectory
     'Integrations' => [],
+    // DEVIATIONS #61: platform superadmin impersonates a clinic owner. Tenancy = clinic list + active owners; Identity = owner names.
+    'Platform' => ['Tenancy', 'Identity'],
     // Unit 6 owner integrity report: reads facts only through each module's Contracts (no Models).
     'Reporting' => ['Clinical', 'Billing', 'Scheduling', 'Identity', 'Patients', 'Tenancy'],
 ];

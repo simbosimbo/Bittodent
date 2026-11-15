@@ -36,6 +36,11 @@ final class TenancyDirectoryService implements TenancyDirectory
         return Membership::where('role', $role)->whereNull('revoked_at')->distinct()->pluck('user_id')->all();
     }
 
+    public function allTenants(): array
+    {
+        return Tenant::orderBy('name')->get(['id', 'name'])->map(fn ($t) => ['id' => $t->id, 'name' => $t->name])->all();
+    }
+
     public function correctionWindowHours(): int
     {
         return (int) Tenant::findOrFail(Ctx::current()->tenant())->correction_window_hours;

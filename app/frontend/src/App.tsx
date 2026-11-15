@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { ApiError } from './shared/api/http'
 import { setActivePatient, useActivePatient } from './shared/activePatient'
 import { Shell, type NavItem } from './shared/layout/Shell'
-import type { Me } from './shared/session'
+import { applyImpersonation, type Me } from './shared/session'
 import { ICONS } from './shared/ui/Icon'
 import { getMe, Login, logout as apiLogout, switchBranch as apiSwitchBranch } from './modules/auth'
 import { AlertRibbon, FamilyPage, MedicalHistoryPage, PatientDetail, PatientForm, PatientList } from './modules/patients'
@@ -11,6 +11,7 @@ import { Home, Schedule } from './modules/scheduling'
 import { ChartPage, SettingsRmPage } from './modules/clinical'
 import { InvoicePage } from './modules/billing'
 import { ReportPage } from './modules/reporting'
+import { PlatformPage } from './modules/platform'
 
 const useHash = () => {
   const [hash, setHash] = useState(location.hash.slice(1) || '/')
@@ -41,7 +42,7 @@ export default function App() {
 
   const load = useCallback(async () => {
     try {
-      setMe(await getMe())
+      setMe(applyImpersonation(await getMe())) // #61: buttons of blocked actions hide while a platform admin acts as this user
       setState('ready')
     } catch (e) {
       setMe(null)
@@ -70,6 +71,7 @@ export default function App() {
     await load()
   }
 
+  if (hash.startsWith('/platform')) return <PlatformPage onEnterClinic={() => { location.hash = '/'; load() }} />
   if (state === 'loading') return <div className="center muted">Memuat…</div>
   if (state === 'guest') return <Login onLoggedIn={load} />
   if (state === 'no2fa' || state === 'error' || !me)
