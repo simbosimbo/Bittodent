@@ -103,3 +103,28 @@ test('overpaid after a credit note: "kelebihan bayar", refund to the original ac
     reason: 'Tindakan tidak dikerjakan, uang kembali' }))
   expect(await screen.findByText(/Refund diajukan/)).toBeInTheDocument()
 })
+
+test('kwitansi (#69): offered once money was received; shows clinic, patient, lines, payment and LUNAS; Cetak prints', async () => {
+  current = { ...inv, status: 'lunas', adjustments: [], balance_rp: 0, payments_rp: 100000, patient_name: 'Sari Contoh',
+    payments: [{ id: 'p1', payment_account_id: 'k1', amount_rp: 100000, paid_at: '2026-11-15T03:00:00Z', refunded_rp: 0,
+      account: { name: 'Kas Kemang', kind: 'tunai', bank_name: null, account_last4: null } }] }
+  const print = vi.spyOn(window, 'print').mockImplementation(() => {})
+  render(<InvoicePage visitId="v1" me={{ ...me(['billing.read', 'billing.adjust']), user: { id: 'u1', name: 'Pemilik Contoh', email: '' },
+    active: { tenant_id: 't', tenant_name: 'Klinik Contoh', branch_id: 'b1', branch_name: 'Cabang A', timezone: null } } as Me} />)
+  expect(await screen.findByRole('heading', { name: 'Tagihan · Sari Contoh' })).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Kwitansi' }))
+  const k = screen.getByRole('region', { name: 'Kwitansi' })
+  expect(k).toHaveTextContent('Klinik Contoh · Cabang A')
+  expect(k).toHaveTextContent('Telah diterima dari Sari Contoh')
+  expect(k).toHaveTextContent('Tumpatan · gigi 16')
+  expect(k).toHaveTextContent('Dibayar · Kas Kemang')
+  expect(within(k).getByText('LUNAS')).toBeInTheDocument()
+  fireEvent.click(within(k).getByRole('button', { name: 'Cetak' }))
+  expect(print).toHaveBeenCalled()
+})
+
+test('kwitansi is not offered before any payment', async () => {
+  render(<InvoicePage visitId="v1" me={me(['billing.read', 'billing.adjust'])} />)
+  await screen.findByText('Menunggu pemilik')
+  expect(screen.queryByRole('button', { name: 'Kwitansi' })).toBeNull()
+})

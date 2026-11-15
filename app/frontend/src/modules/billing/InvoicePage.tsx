@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { ApiError, errorText } from '../../shared/api/http'
-import { rp } from '../../shared/format'
+import { fmtDateTime, rp } from '../../shared/format'
 import type { Me } from '../../shared/session'
 import { addAdjustment, addCreditNote, addPayment, addRefund, approveZeroTariff, billFromCorrection, decideAdjustment, decideCreditNote, decideRefund, decideVoid, invoiceForVisit,
   paymentAccounts, reviewCorrection, voidInvoice, type Adjustment, type Invoice, type InvoiceLine, type PaymentAccount } from './api'
+import './billing.css'
 
 const KIND: Record<PaymentAccount['kind'], string> = { tunai: 'Tunai', qris: 'QRIS', edc: 'EDC', transfer: 'Transfer' }
 const accountLabel = (a: Pick<PaymentAccount, 'name' | 'kind' | 'bank_name' | 'account_last4'>) =>
@@ -31,6 +32,7 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
   const [lineForm, setLineForm] = useState<LineForm | null>(null)
   const [voidReason, setVoidReason] = useState('')
   const [refund, setRefund] = useState<RefundForm | null>(null)
+  const [receipt, setReceipt] = useState(false)
   const can = (p: string) => me.permissions.includes(p)
 
   const load = useCallback(() => invoiceForVisit(visitId).then(setInv, (e) => setError(e instanceof ApiError && e.status === 404 ? 'Belum ada tagihan untuk kunjungan ini.' : errorText(e))), [visitId])
@@ -118,9 +120,12 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
   if (!inv) return <div className="card state-card">{error || 'Memuat tagihan…'}</div>
   return (
     <>
-      <div className="page-head"><div><h1>Tagihan</h1><p className="muted small">Saldo {rp(inv.balance_rp)} · baris {rp(inv.lines_rp)} · penyesuaian {rp(inv.adjustments_rp)} · nota kredit {rp(inv.credit_notes_rp ?? 0)} · dibayar {rp(inv.payments_rp)}{(inv.refunds_rp ?? 0) > 0 && ` · refund ${rp(inv.refunds_rp)}`} · {INV_STATUS[inv.status]}</p></div></div>
+      <div className="page-head"><div><h1>Tagihan{inv.patient_name ? ` · ${inv.patient_name}` : ''}</h1><p className="muted small">Saldo {rp(inv.balance_rp)} · baris {rp(inv.lines_rp)} · penyesuaian {rp(inv.adjustments_rp)} · nota kredit {rp(inv.credit_notes_rp ?? 0)} · dibayar {rp(inv.payments_rp)}{(inv.refunds_rp ?? 0) > 0 && ` · refund ${rp(inv.refunds_rp)}`} · {INV_STATUS[inv.status]}</p></div></div>
       {msg && <p className="notice" role="status">{msg}</p>}
       {error && <p className="form-error" role="alert">{error}</p>}
+      {inv.payments.length > 0 && inv.status !== 'void' && (receipt ? <Kwitansi inv={inv} me={me} onClose={() => setReceipt(false)} />
+        : <p className="kwitansi-actions"><button className="btn btn-primary" onClick={() => setReceipt(true)}>Kwitansi</button>
+          <a className="btn btn-ghost" href="#/kasir">Kembali ke Kasir</a></p>)}
       <div className="card">
         <h2>Tindakan</h2>
         <ul>
@@ -296,5 +301,42 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
         )}
       </div>
     </>
+  )
+}
+
+/**
+ * Kwitansi (#69): a printable receipt of the money received on this invoice. Minimal: clinic + branch, patient, lines, deductions,
+ * payments, balance; no own number series (the reference is the invoice id) and no tax lines. Print = the browser's print dialog,
+ * the rest of the page is hidden by @media print in billing.css.
+ */
+export function Kwitansi({ inv, me, onClose }: { inv: Invoice; me: Me; onClose: () => void }) {
+  const deductions = inv.adjustments_rp + (inv.credit_notes_rp ?? 0)
+  const lastPaid = inv.payments.map((p) => p.paid_at).sort().at(-1)
+  return (
+    <section className="card kwitansi" aria-label="Kwitansi">
+      <div className="kwitansi-head">
+        <div>
+          <h2>KWITANSI</h2>
+          <p className="muted small">{me.active.tenant_name}{me.active.branch_name ? ` · ${me.active.branch_name}` : ''}</p>
+        </div>
+        {inv.status === 'lunas' && <span className="kwitansi-stamp">LUNAS</span>}
+      </div>
+      <p>Telah diterima dari <strong>{inv.patient_name ?? 'Pasien'}</strong>{lastPaid && <> pada {fmtDateTime(lastPaid)}</>}.</p>
+      <table>
+        <tbody>
+          {inv.lines.map((l) => <tr key={l.id}><td>{l.procedure_name}{l.tooth ? ` · gigi ${l.tooth}` : ''}</td><td>{rp(l.price_rp)}</td></tr>)}
+          {deductions !== 0 && <tr><td>Penyesuaian / nota kredit</td><td>-{rp(deductions)}</td></tr>}
+          <tr className="sum"><td>Total tagihan</td><td>{rp(inv.lines_rp - deductions)}</td></tr>
+          {inv.payments.map((p) => <tr key={p.id}><td>Dibayar · {p.account.name} · {fmtDateTime(p.paid_at)}</td><td>{rp(p.amount_rp)}</td></tr>)}
+          {(inv.refunds_rp ?? 0) > 0 && <tr><td>Refund</td><td>-{rp(inv.refunds_rp)}</td></tr>}
+          <tr className="sum"><td>Sisa</td><td>{rp(Math.max(0, inv.balance_rp))}</td></tr>
+        </tbody>
+      </table>
+      <p className="muted small">Ref. tagihan {inv.id.slice(0, 8).toUpperCase()} · dicetak oleh {me.user.name}</p>
+      <div className="kwitansi-actions">
+        <button className="btn btn-primary" onClick={() => window.print()}>Cetak</button>
+        <button className="btn btn-ghost" onClick={onClose}>Tutup</button>
+      </div>
+    </section>
   )
 }

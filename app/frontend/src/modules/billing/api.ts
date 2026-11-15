@@ -20,6 +20,7 @@ export type CorrectionReview = { id: string; procedure_correction_id: string; re
 export type InvoiceLine = { id: string; procedure_code: string; procedure_name: string; tooth: number | null; price_rp: number
   credited_rp: number; credit_note_numbers: string[]; tariff_zero: 'pending' | 'approved' | null; correction_reviews: CorrectionReview[] }
 export type Invoice = { id: string; visit_id: string; branch_id: string; status: 'terbuka' | 'lunas' | 'void'
+  patient_name?: string | null; created_at?: string
   lines_rp: number; adjustments_rp: number; credit_notes_rp: number; payments_rp: number; refunds_rp: number; balance_rp: number; overpaid_rp: number
   lines: InvoiceLine[]; credit_notes: CreditNote[]; voids: { id: string; reason: string; created_at: string; status: DocStatus }[]
   adjustments: Adjustment[]; payments: Payment[]; refunds: Refund[] }
@@ -65,5 +66,11 @@ export type DailyRevenue = { date: string; branch_id: string; amount_rp: number;
 
 // Payments collected today (Asia/Jakarta) in the active branch (server-side session); integer rupiah.
 export const getDailyRevenue = () => api<DailyRevenue>('/api/billing/daily-revenue')
+
+/** Kasir worklist (#69): every open invoice of the active branch + today's; newest first. */
+export type KasirRow = { id: string; visit_id: string; patient_id: string; patient_name: string | null; status: Invoice['status']; created_at: string
+  lines_rp: number; adjustments_rp: number; credit_notes_rp: number; payments_rp: number; refunds_rp: number; balance_rp: number }
+export type KasirList = { date: string; branch_id: string; invoices: KasirRow[] }
+export const kasirList = () => api<KasirList>('/api/billing/invoices')
 
 export const fmtRp = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)

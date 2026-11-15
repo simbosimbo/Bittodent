@@ -173,6 +173,20 @@ test('desktop: kartu tetap punya tombol Check-in + Buka Rekam Medis inline, tanp
   expect(container.querySelector('button.appt')).toBeNull()
 })
 
+test('desktop (#69): a finished visit card links to its Tagihan for billing readers only', async () => {
+  viewport(1280)
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date('2030-01-07T01:00:00Z'))
+  mockOne(() => [{ ...appt('a3', 'done', 'staff', 'Sari Contoh', '09:00'), visit_id: 'v3' }])
+  const { container, unmount } = render(<Schedule me={{ ...ME_CHART, permissions: [...ME_CHART.permissions, 'billing.read'] }} />)
+  await screen.findByText('Sari Contoh')
+  expect(within(container.querySelector('div.appt-done') as HTMLElement).getByRole('link', { name: 'Tagihan' })).toHaveAttribute('href', '#/tagihan/v3')
+  unmount()
+  const r = render(<Schedule me={ME_CHART} />)
+  await screen.findByText('Sari Contoh')
+  expect(within(r.container.querySelector('div.appt-done') as HTMLElement).queryByRole('link', { name: 'Tagihan' })).toBeNull()
+})
+
 test('HP: ketuk kartu membuka sheet aksi; aksi memanggil transisi yang sama; Escape/Tutup menutup dan fokus kembali', async () => {
   viewport(412)
   vi.useFakeTimers({ toFake: ['Date'] })

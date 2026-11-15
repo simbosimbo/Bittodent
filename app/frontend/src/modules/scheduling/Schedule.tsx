@@ -187,6 +187,8 @@ export default function Schedule({ me }: { me: Me }) {
     canMove && a.status === 'in_treatment' && { label: 'Selesai', run: () => move(a, 'done') },
     canChart && a.patient && !['cancelled', 'no_show', 'rejected', 'pending_confirmation'].includes(a.status) &&
       { label: 'Buka Rekam Medis', href: `#/rekam-medis/${a.patient.id}${canVisit ? `/janji/${a.id}` : ''}` },
+    // Desktop path to payment (#69): a finished visit opens its Tagihan (the page says when there is none).
+    canBill && a.status === 'done' && a.visit_id && { label: 'Tagihan', href: `#/tagihan/${a.visit_id}` },
     canConfirm && a.status === 'pending_confirmation' && a.source === 'online' && { label: 'Konfirmasi', run: () => move(a, 'booked'), primary: true, sheetOnly: true },
     canConfirm && a.status === 'pending_confirmation' && a.source === 'online' && { label: 'Tolak', run: () => move(a, 'rejected'), sheetOnly: true },
   ] as (Action | false | null | undefined)[]).filter((x): x is Action => !!x)

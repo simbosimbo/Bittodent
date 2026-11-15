@@ -12,7 +12,7 @@ import { getMe, Login, logout as apiLogout, switchBranch as apiSwitchBranch } fr
 import { AlertRibbon, FamilyPage, MedicalHistoryPage, PatientDetail, PatientForm, PatientList } from './modules/patients'
 import { Home, Schedule, usePendingConfirm } from './modules/scheduling'
 import { ChartPage, SettingsRmPage } from './modules/clinical'
-import { InvoicePage } from './modules/billing'
+import { InvoicePage, KasirPage } from './modules/billing'
 import { ReportPage } from './modules/reporting'
 import { BookingPage, ManagePage } from './modules/booking'
 
@@ -118,7 +118,7 @@ function StaffApp() {
   // Keluarga / Riwayat Medis are patient screens without a nav item: they count as Pasien.
   const navHash = hash.replace(/^\/(keluarga|riwayat-medis)\//, '/pasien/')
   const active = nav.find((n) => n.path === '/' ? hash === '/' : navHash === n.path || navHash.startsWith(n.path + '/'))
-  const soon = nav.find((n) => ['/antrean', '/resep', '/kasir'].includes(n.path) && hash === n.path)
+  const soon = nav.find((n) => ['/antrean', '/resep'].includes(n.path) && hash === n.path)
   const sub = hash.match(/^\/(keluarga|riwayat-medis)\/([\w-]+)$/)
 
   const ribbonId = ribbonPatientId(hash)
@@ -132,6 +132,7 @@ function StaffApp() {
   else if (hash.startsWith('/pasien/') && can('patient.read')) page = <PatientDetail key={hash} id={hash.slice(8)} canChart={can('note.read')} />
   else if (hash === '/pasien' && can('patient.read')) page = <PatientList key={query} canCreate={can('patient.create')} canChart={can('note.read')} initialQ={new URLSearchParams(query).get('q') ?? ''} />
   else if (hash === '/jadwal' && can('appointment.read')) page = <Schedule me={me} />
+  else if (hash === '/kasir' && can('billing.read')) page = <KasirPage />
   else if (hash === '/laporan' && can('reporting.read')) page = <ReportPage />
   else if (hash === '/pengaturan-rm' && can('note.sign|settings.manage')) page = <SettingsRmPage me={me} onChanged={load} />
   else if (soon) page = <ComingSoon title={soon.label} />

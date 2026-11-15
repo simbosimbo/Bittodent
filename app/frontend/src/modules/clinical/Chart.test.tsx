@@ -608,3 +608,39 @@ test.each([[390, true], [1280, false]])('%ipx: walk-in "Mulai kunjungan" pinned 
   expect(!!start.closest('.walk-in-bar')).toBe(pinned)
   expect(screen.getAllByRole('button', { name: 'Mulai kunjungan' })).toHaveLength(1)
 })
+
+// --- #69: from the RM to the Tagihan (billing readers, e.g. an owner who is also a dentist) ---
+test('Selesai offers "Lanjut ke tagihan" to billing readers; RM > Billing lists visits with "Buka tagihan"', async () => {
+  const draftNote = { id: 'n1', author_id: 'u1', created_at: '2026-01-05T03:00:00Z', pending_correction: null, versions: [{ id: 'nv1', version: 1, revision: 1,
+    supersedes_id: null, status: 'draf', source: 'manual', signed_by: null, signed_by_name: null, signed_at: null, reason: null, correction_request_id: null,
+    content_hash: 'h', soap: { S: 'Nyeri.', O: 'Karies.', A: { codes: ['K02.1'], text: '' }, P: { codes: [], text: '' } } }] }
+  let closed = false
+  const owner: Me = { ...me, roles: ['owner', 'dentist'], permissions: [...me.permissions, 'billing.read', 'billing.adjust', 'appointment.transition'] }
+  vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+    if (url.endsWith('/selesai') && init?.method === 'POST') { closed = true; return new Response('{}', { status: 200 }) }
+    const v = closed ? { ...visit, status: 'selesai', notes: [] } : { ...visit, notes: [draftNote] }
+    return new Response(JSON.stringify(url.endsWith('manifest.json') ? manifest : url.endsWith('/chart') ? { ...chart, findings, visits: [v] }
+      : url.endsWith('/alerts') ? alerts : full), { status: 200 })
+  }))
+  window.Tooth3D = mockTooth3D
+  render(<ChartPage patientId="p1" me={owner} />)
+  await screen.findByRole('region', { name: 'Odontogram' })
+  fireEvent.click(screen.getByRole('tab', { name: 'Catatan Klinis' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Selesai' }))
+  const dlg = screen.getByRole('dialog')
+  fireEvent.click(within(dlg).getByRole('checkbox'))
+  fireEvent.click(within(dlg).getByRole('button', { name: 'Selesai' }))
+  expect(await screen.findByRole('link', { name: 'Lanjut ke tagihan' })).toHaveAttribute('href', '#/tagihan/v1')
+
+  fireEvent.click(screen.getByRole('tab', { name: 'Billing' }))
+  expect(screen.getByRole('heading', { name: 'Tagihan per kunjungan' })).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: 'Buka tagihan' })).toHaveAttribute('href', '#/tagihan/v1')
+})
+
+test('RM > Billing without billing.read stays "Belum tersedia"', async () => {
+  renderChart({ visits: [visit] })
+  await screen.findByRole('region', { name: 'Odontogram' })
+  fireEvent.click(screen.getByRole('tab', { name: 'Billing' }))
+  expect(document.body).toHaveTextContent('Belum tersedia')
+  expect(screen.queryByRole('link', { name: 'Buka tagihan' })).toBeNull()
+})

@@ -225,3 +225,10 @@ label.check { flex-direction: row; gap: 8px; align-items: flex-start; font-weigh
 .temuan-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
 .temuan-head h2 { margin: 0; }
 .tooth-save { width: 100%; min-height: var(--shells-a-size-touch); }
+
+/* RM > Billing (#69): one row per visit, opening its Tagihan */
+.bill-visits { list-style: none; margin: 0; padding: 0; }
+.bill-visits li { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-2) 0;
+  border-top: 1px solid var(--shells-a-color-border); }
+.bill-visits li:first-child { border-top: 0; }
+.bill-visits .btn { min-height: var(--size-touch); white-space: nowrap; }

@@ -376,6 +376,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const [error, setError] = useState('')
   const [msg, setMsg] = useState('')
   const [signing, setSigning] = useState<{ busy: boolean; error: string } | null>(null)
+  const [billFor, setBillFor] = useState<string | null>(null) // visit just closed by Selesai -> "Lanjut ke tagihan" (#69)
   const [fixing, setFixing] = useState<Note | null>(null)
   const [status, setStatus] = useState<ProcStatus>('selesai')
   const [surfs, setSurfs] = useState<Surface[]>([])
@@ -532,6 +533,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
       await selesaiVisit(visit.id, { revision: draft.revision, confirm: true, ...(pin ? { pin } : {}) })
       setSigning(null)
       setMsg('Selesai: rekam medis terkunci dan kunjungan ditutup.')
+      setBillFor(visit.id)
       await load()
     } catch (e) {
       if (e instanceof ApiError && e.data?.signed) { // #55: signed, but the invoice guard kept the visit open
@@ -626,6 +628,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
     </div>,
     (pp: PatientFull) => <>
       {msg && <p className="notice" role="status">{msg}</p>}
+      {billFor && can('billing.read') && <p className="toolbar"><a className="btn btn-primary" href={`#/tagihan/${billFor}`}>Lanjut ke tagihan</a></p>}
 
       <div role="tablist" aria-label="Bagian rekam medis" className="tabs chart-tabs">
         {INNER.map(([k, label]) => (
@@ -783,7 +786,8 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
           </div>
         </div>
       )}
-      {(tab === 'plan' || tab === 'rx' || tab === 'bill') && <div className="card state-card muted">Belum tersedia.</div>}
+      {(tab === 'plan' || tab === 'rx' || (tab === 'bill' && !can('billing.read'))) && <div className="card state-card muted">Belum tersedia.</div>}
+      {tab === 'bill' && can('billing.read') && <BillingTab visits={chart.visits} />}
       </div>
 
       {signing && visit && draft && (
@@ -799,5 +803,26 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
     </>,
     visit?.status === 'berlangsung' && !visit.notes.some((n) => n.versions.some((x) => x.signed_at))
       ? <span className="visit-chip" role="note" aria-label="Status kunjungan">{visitStatusText(visit, mobile)}</span> : null,
+  )
+}
+
+/** RM > Billing (#69, billing readers): this patient's visits, newest first, each opening its Tagihan (payment + kwitansi). */
+function BillingTab({ visits }: { visits: ChartVisit[] }) {
+  const rows = [...visits].sort((a, b) => b.started_at.localeCompare(a.started_at)).slice(0, 20)
+  return (
+    <div className="card">
+      <h2>Tagihan per kunjungan</h2>
+      {rows.length === 0 ? <p className="muted">Belum ada kunjungan.</p> : (
+        <ul className="bill-visits">
+          {rows.map((v) => (
+            <li key={v.id}>
+              <span>{fmtDateTime(v.started_at)} · {v.dentist.name ?? 'Dokter'} · {v.status === 'berlangsung' ? 'berlangsung' : 'selesai'}</span>
+              <a className="btn btn-xs" href={`#/tagihan/${v.id}`}>Buka tagihan</a>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="muted small">Tagihan dibuat otomatis dari tindakan berstatus selesai; kunjungan tanpa tindakan tidak punya tagihan.</p>
+    </div>
   )
 }

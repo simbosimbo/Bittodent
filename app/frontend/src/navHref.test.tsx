@@ -215,11 +215,11 @@ test('placeholder routes render "Segera hadir"', async () => {
   viewport(1280)
   document.cookie = 'XSRF-TOKEN=abc'
   vi.stubGlobal('fetch', vi.fn(async (url: string) => new Response(JSON.stringify(url === '/api/me' ? me : {}), { status: url === '/api/me' ? 200 : 404 })))
-  location.hash = '/kasir'
+  location.hash = '/antrean'
   render(<App />)
   expect(await screen.findByText('Segera hadir')).toBeInTheDocument()
-  expect(screen.getByRole('heading', { level: 1, name: 'Kasir' })).toBeInTheDocument()
-  expect(screen.getByRole('link', { name: 'Kasir' })).toHaveAttribute('aria-current', 'page')
+  expect(screen.getByRole('heading', { level: 1, name: 'Antrean' })).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: 'Antrean' })).toHaveAttribute('aria-current', 'page')
   document.cookie = 'XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 GMT'
 })
 
@@ -257,9 +257,10 @@ test('route without permission: Beranda shown and the URL replaced with #/ (no e
 test('allowed route keeps its URL', async () => {
   viewport(1280)
   serveApp(me)
-  location.hash = '/kasir'
+  location.hash = '/kasir' // Kasir is a real page now (#69), no longer "Segera hadir"
   render(<App />)
-  expect(await screen.findByText('Segera hadir')).toBeInTheDocument()
+  expect(await screen.findByRole('button', { name: 'Coba lagi' })).toBeInTheDocument() // this stub serves no invoices
+  expect(screen.queryByText('Segera hadir')).toBeNull()
   expect(location.hash).toBe('#/kasir')
   document.cookie = 'XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 GMT'
 })
