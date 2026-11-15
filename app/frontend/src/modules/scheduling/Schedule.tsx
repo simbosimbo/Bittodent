@@ -53,13 +53,15 @@ export default function Schedule({ me }: { me: Me }) {
     setDate(d.toISOString().slice(0, 10))
   }
 
-  async function checkIn(a: Appointment) {
+  async function move(a: Appointment, to: 'checked_in' | 'done') {
     setActionError('')
     try {
-      await transition(a.id, 'checked_in')
+      await transition(a.id, to)
       await reload()
     } catch (e) {
-      setActionError(e instanceof ApiError && e.status === 422 ? 'Status janji tidak bisa diubah.' : errorText(e))
+      // 409 invoice_required: done also closes the visit; completed work without an invoice line blocks it (unit 4)
+      setActionError(e instanceof ApiError && e.status === 409 && e.data?.message ? e.data.message
+        : e instanceof ApiError && e.status === 422 ? 'Status janji tidak bisa diubah.' : errorText(e))
     }
   }
 
@@ -111,7 +113,10 @@ export default function Schedule({ me }: { me: Me }) {
                         <div className="appt-bottom">
                           <span className="appt-meta">{a.reason ?? a.dentist?.name}</span>
                           {canMove && a.status === 'booked' && date === todayWib() && (
-                            <button className="btn btn-xs" onClick={() => checkIn(a)}>Check-in</button>
+                            <button className="btn btn-xs" onClick={() => move(a, 'checked_in')}>Check-in</button>
+                          )}
+                          {canMove && a.status === 'in_treatment' && (
+                            <button className="btn btn-xs" onClick={() => move(a, 'done')}>Selesai</button>
                           )}
                           {canChart && a.patient && !['cancelled', 'no_show'].includes(a.status) && (
                             <a className="btn btn-xs" href={`#/rekam-medis/${a.patient.id}${canVisit ? `/janji/${a.id}` : ''}`}>Buka Rekam Medis</a>
