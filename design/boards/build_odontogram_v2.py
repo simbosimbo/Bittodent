@@ -649,11 +649,11 @@ def ab04() -> str:
 
 def ab05() -> str:
     img3d_hp = (
-        f'<img class="view-3d hp" src="{img_data_uri("odontogram-3d-blender-full.png")}" '
+        f'<img class="view-3d hp" src="{img_data_uri("odontogram-3d-app-360.png")}" '
         'alt="Pratinjau odontogram 3D, hanya baca">'
     )
     img3d_desk = (
-        f'<img class="view-3d" src="{img_data_uri("odontogram-3d-full.png")}" '
+        f'<img class="view-3d" src="{img_data_uri("odontogram-3d-app-1280.png")}" '
         'alt="Pratinjau odontogram 3D, hanya baca">'
     )
     ph_2d = phone(
@@ -679,7 +679,7 @@ def ab05() -> str:
     body = (
         '<div class="row">'
         + ph_col(ph_2d, "HP, toggle 2D. Input ketuk gigi, 48-56px.")
-        + ph_col(ph_3d, "HP, toggle 3D. Hanya baca, aset 3D yang sudah ada. Lazy, bukan input.")
+        + ph_col(ph_3d, "HP, toggle 3D. Render app terbaru (fix/mobile-ui 697577a): rahang pas lebar kartu. Hanya baca.")
         + "</div>"
         + '<div class="row" style="margin-top:24px">'
         + desk_3d
@@ -688,7 +688,7 @@ def ab05() -> str:
     return ab(
         "05",
         "Toggle 2D atau 3D",
-        "2D tetap input utama di HP dan desktop. 3D memakai aset port yang sudah ada, untuk baca dan edukasi pasien. Jika gerakan dikurangi atau 3D gagal muat, bagan tetap 2D.",
+        "2D tetap input utama di HP dan desktop. 3D memakai render komponen Odontogram3D terbaru (697577a, 873279e, 79215f8) di 360 dan 1280, untuk baca dan edukasi pasien. Jika gerakan dikurangi atau 3D gagal muat, bagan tetap 2D.",
         body,
     )
 
