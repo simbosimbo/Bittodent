@@ -437,6 +437,9 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const note = visit?.notes[0] ?? null
   const draft = note?.versions.find((x) => x.status === 'draf') ?? null
   const editable = !asOf && !!visit && can('note.write') && !note?.versions.some((x) => x.signed_at)
+  // Why the chart is read-only, in that order: history view, a role that never writes clinical records (e.g. pemilik), a signed visit.
+  // "Selesai" only when the visit really is closed; a permission limit must not read as "visit finished".
+  const readOnlyWhy = asOf ? 'Tampilan riwayat: hanya baca.' : !can('note.write') ? 'Hanya lihat: peran Anda tidak mengisi rekam medis.' : 'Kunjungan ini sudah Selesai.'
   const mine = useMemo(() => chart?.drafts.filter((d) => d.visit_id === visitId) ?? [], [chart, visitId])
   const myProcs = useMemo(() => chart?.procedure_drafts.filter((d) => d.visit_id === visitId) ?? [], [chart, visitId])
   const marks = useMemo(() => {
@@ -547,7 +550,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const only = pick && allFor !== pick.tooth ? pick.tooth : null
   const shownItems = only ? items.filter((f) => f.tooth === only) : items
   const shownProcs = only ? procs.filter((x) => x.tooth === only) : procs
-  const saveWhy = !visit ? 'Belum ada kunjungan aktif. Mulai kunjungan dulu.' : !editable ? asOf ? 'Tampilan riwayat: hanya baca.' : 'Hanya lihat: kunjungan ini sudah Selesai atau Anda tidak berhak menulis.'
+  const saveWhy = !visit ? 'Belum ada kunjungan aktif. Mulai kunjungan dulu.' : !editable ? readOnlyWhy
     : !chosen ? 'Pilih kondisi terlebih dahulu' : ''
   const center: Surface | null = pick && (isAnterior(pick.tooth) ? 'I' : 'O')
   const panel = !pick ? <p className="muted tooth-empty">Pilih gigi untuk melihat detail.</p> : (
@@ -609,7 +612,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
             {myDraftAt(true) && <button className="btn btn-xs btn-ghost" onClick={() => run(() => discardFinding(myDraftAt(true)!.id))}>Hapus draf gigi</button>}
           </div>
         </div>
-      ) : <p className="muted small">Hanya lihat: kondisi dan tindakan diisi dari kunjungan aktif yang belum Selesai.</p>}
+      ) : <p className="muted small">{visit ? readOnlyWhy : 'Hanya lihat: kondisi dan tindakan diisi dari kunjungan aktif yang belum Selesai.'}</p>}
       {startCtl}
       <button type="button" className="btn btn-primary tooth-save" disabled={!!saveWhy || saving} title={saveWhy || undefined} aria-describedby={saveWhy ? 'save-why' : undefined}
         onClick={saveChosen}>{saving ? 'Menyimpan…' : 'Simpan ke kunjungan hari ini'}</button>
@@ -687,7 +690,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
               <Odontogram marks={marks} baseline={chart.baseline?.teeth} dentition={dent} compact={view === '3d'} selected={pick ? `t${pick.tooth}-${pick.surface}` : null} onPick={onPick} />
             </div>
             )}
-            {!editable && (visit ? <p className="muted small">{asOf ? 'Tampilan riwayat: hanya baca.' : 'Kunjungan ini sudah Selesai.'}</p> : (
+            {!editable && (visit ? <p className="muted small">{readOnlyWhy}</p> : (
               <div className="chart-cta small">
                 <p>Belum ada kunjungan aktif. Mulai kunjungan hari ini (tanpa janji juga bisa) untuk mengisi odontogram dan SOAP.</p>
                 {/* with a tooth picked the control sits in the tooth panel/sheet instead; phone: pinned above the bottom nav */}
