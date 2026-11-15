@@ -19,7 +19,7 @@ class AgentDraft extends Model
 
     protected $hidden = ['payload_enc', 'source_spans_enc', 'reject_reason_enc'];
 
-    protected $casts = ['kind' => DraftKind::class, 'state' => DraftState::class, 'reviewed_at' => 'datetime'];
+    protected $casts = ['kind' => DraftKind::class, 'state' => DraftState::class, 'reviewed_at' => 'datetime', 'expires_at' => 'datetime', 'purged_at' => 'datetime'];
 
     public function payload(): array
     {
