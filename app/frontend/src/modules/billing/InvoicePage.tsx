@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { ApiError, errorText } from '../../shared/api/http'
 import { fmtDateTime, rp } from '../../shared/format'
+import { PageSkeleton } from '../../shared/ui/Skeleton'
 import type { Me } from '../../shared/session'
 import { addAdjustment, addCreditNote, addPayment, addRefund, approveZeroTariff, billFromCorrection, decideAdjustment, decideCreditNote, decideRefund, decideVoid, invoiceForVisit,
   paymentAccounts, reviewCorrection, voidInvoice, type Adjustment, type Invoice, type InvoiceLine, type PaymentAccount } from './api'
@@ -40,8 +41,16 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
   const [split, setSplit] = useState(false) // #70: one method as chips by default; "Split" opens the per-row selects
   const can = (p: string) => me.permissions.includes(p)
 
-  const load = useCallback(() => invoiceForVisit(visitId).then(setInv, (e) => setError(e instanceof ApiError && e.status === 404 ? 'Belum ada tagihan untuk kunjungan ini.' : errorText(e))), [visitId])
-  useEffect(() => { load() }, [load])
+  const vid = useRef(visitId)
+  vid.current = visitId
+  const load = useCallback(() => {
+    const id = visitId
+    return invoiceForVisit(id).then((inv) => { if (vid.current === id) setInv(inv) }, (e) => {
+      if (vid.current !== id) return
+      setError(e instanceof ApiError && e.status === 404 ? 'Belum ada tagihan untuk kunjungan ini.' : errorText(e))
+    })
+  }, [visitId])
+  useEffect(() => { setInvRaw(null); setError(''); setMsg(''); load() }, [load])
   useEffect(() => { paymentAccounts().then(setAccounts, () => setAccounts([])) }, [])
   // #70: the single, untouched payment row starts at the remaining balance (no typing for the usual full payment; still editable).
   const balance = inv && inv.status !== 'void' ? inv.balance_rp : 0
@@ -126,7 +135,7 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
   }
 
   const payable = accounts.filter((a) => a.is_active && (!inv || a.branch_id === null || a.branch_id === inv.branch_id))
-  if (!inv) return <div className="card state-card">{error || 'Memuat tagihan…'}</div>
+  if (!inv) return error ? <div className="card state-card">{error}</div> : <PageSkeleton variant="invoice" label="Memuat tagihan…" />
   return (
     <>
       {/* #70 decluttered: name, status, sisa (big) and the payment; every secondary amount sits in "Rincian" (non-zero only). */}

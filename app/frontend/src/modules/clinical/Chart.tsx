@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type KeyboardEvent, type ReactNode, useRef } from 'react'
 import { DateField } from '../../shared/ui/DateField'
 import { useDialog } from '../../shared/ui/Sheet'
+import { Presence, usePresenceClass } from '../../shared/ui/presence'
+import { PageSkeleton } from '../../shared/ui/Skeleton'
 import { ApiError, errorText } from '../../shared/api/http'
 import { setActivePatient } from '../../shared/activePatient'
 import { fmtDateTime, fmtDay, fmtTime } from '../../shared/format'
@@ -132,9 +134,10 @@ function CorrectionDialog({ note, solo, onDone, onClose }: { note: Note; solo: b
   }
   // Phone: bottom sheet (styles.css) with modal focus/Escape/scroll lock; desktop behaviour unchanged.
   const dlg = useRef<HTMLFormElement>(null)
+  const phase = usePresenceClass()
   useDialog(dlg, onClose, useIsMobile())
   return (
-    <div className="overlay" onClick={onClose}>
+    <div className={`overlay ${phase}`} onClick={onClose}>
       <form ref={dlg} className="card dialog dialog-wide" role="dialog" aria-modal="true" aria-labelledby="fix-title" onClick={(e) => e.stopPropagation()} onSubmit={submit} noValidate>
         <h2 id="fix-title">Koreksi catatan (versi {current.version} → {Math.max(...note.versions.map((v) => v.version)) + 1})</h2>
         <p className={late ? 'notice notice-warn' : 'notice'}>{info}</p>
@@ -228,9 +231,10 @@ export function ProcedureFixDialog({ p, mode, visitId, onDone, onClose }: { p: P
   }
   // Phone: bottom sheet (styles.css) with modal focus/Escape/scroll lock; desktop behaviour unchanged.
   const dlg = useRef<HTMLFormElement>(null)
+  const phase = usePresenceClass()
   useDialog(dlg, onClose, useIsMobile())
   return (
-    <div className="overlay" onClick={onClose}>
+    <div className={`overlay ${phase}`} onClick={onClose}>
       <form ref={dlg} className="card dialog" role="dialog" aria-modal="true" aria-labelledby="pfix-title" onClick={(e) => e.stopPropagation()} onSubmit={submit} noValidate>
         <h2 id="pfix-title">{mode === 'ganti' ? 'Ganti tindakan' : 'Koreksi tindakan'}: {procedureText(p)}</h2>
         {mode === 'koreksi' && <label>Jenis koreksi * <select value={type} onChange={(e) => setType(e.target.value as CorrectionType)}>
@@ -433,10 +437,14 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const [starting, setStarting] = useState(false)
   useEffect(() => { if (pickDentist) getDentists().then((r) => setDentists(r.data), () => setDentists([])) }, [pickDentist])
 
+  const want = useRef({ patientId, appointmentId, asOf })
+  want.current = { patientId, appointmentId, asOf }
   const load = useCallback(async () => {
+    const req = { patientId, appointmentId, asOf }
     try {
       const vid = appointmentId && can('note.write') ? (await visitFromAppointment(appointmentId)).id : null
       const c = await getChart(patientId, asOf || null)
+      if (want.current.patientId !== req.patientId || want.current.appointmentId !== req.appointmentId || want.current.asOf !== req.asOf) return
       setChart(c)
       setActivePatient({ id: c.patient.id, name: c.patient.name })
       const open = vid ?? c.visits.find((v) => v.status === 'berlangsung' && !v.notes.some((n) => n.versions.some((x) => x.signed_at)))?.id ?? null
@@ -445,9 +453,23 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
       setForm(shown ? toForm(shown.soap) : EMPTY)
       setDirty(false)
     } catch (e) {
+      if (want.current.patientId !== req.patientId || want.current.appointmentId !== req.appointmentId || want.current.asOf !== req.asOf) return
       setError(e instanceof ApiError && e.status === 404 ? 'Pasien atau janji tidak ditemukan.' : errorText(e))
     }
   }, [patientId, appointmentId, asOf]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    setChart(null)
+    setError('')
+    setPick(null)
+    setSigning(null)
+    setBillFor(null)
+    setFixing(null)
+    setProcFix(null)
+    setDirty(false)
+    setForm(EMPTY)
+    setMsg('')
+    setPending(null)
+  }, [patientId, appointmentId])
   useEffect(() => { load() }, [load])
 
   const visit = chart?.visits.find((v) => v.id === visitId) ?? null
@@ -481,7 +503,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const page = (actions: ReactNode, body: ReactNode | ((pp: PatientFull) => ReactNode), status?: ReactNode) =>
     <PatientPage id={patientId} tab="rekam-medis" canChart alerts actions={actions} status={status}>{(pp) => typeof body === 'function' ? body(pp) : body}</PatientPage>
   if (error) return page(null, <div className="card state-card error">{error} <a href="#/pasien">Kembali</a></div>)
-  if (!chart) return page(null, <div className="card state-card muted">Memuat rekam medis…</div>)
+  if (!chart) return page(null, <PageSkeleton variant="record" label="Memuat rekam medis…" />)
   const p = chart.patient
 
   async function run(fn: () => Promise<unknown>, ok = '') {
@@ -780,21 +802,10 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
               </div>
             ))}
           </section>
-          {!mobile ? <aside className="card span-4 tooth-panel" aria-label="Detail gigi">{panel}</aside> : pick && (
-            // Mobile: tooth detail is a bottom sheet. Backdrop tap / × / Esc close it and clear the pick (same as × on desktop).
-            <>
-              <div className="sheet-backdrop" onClick={() => setPick(null)} />
-              <aside className="card tooth-panel sheet tooth-sheet" role="dialog" aria-modal="true" aria-label={`Detail gigi ${pick.tooth}`}
-                onKeyDown={(e) => { if (e.key === 'Escape') setPick(null); else trapTab(e) }}>
-                {/* Designer note: patient + allergies pinned at the top of the sheet while recording a finding. Header patient, no refetch. */}
-                <div className="sheet-strip">
-                  <p><strong>{pp.name}</strong> <span className="muted small">{[ageTahun(pp.dob), pp.sex && (SEX[pp.sex] ?? pp.sex)].filter(Boolean).map((x) => x + ' · ')}
-                    <span className="patient-mrn">No. RM <strong>{pp.mrn ?? 'belum ada'}</strong></span></span></p>
-                  <AlertRibbon patientId={pp.id} compactDefault label="Peringatan medis di detail gigi" only={['premedikasi', 'catatan_penting', 'alergi', 'kosong']} />
-                </div>
-                {panel}
-              </aside>
-            </>
+          {!mobile ? <aside className="card span-4 tooth-panel" aria-label="Detail gigi">{panel}</aside> : (
+            <Presence open={!!pick} exitMs={200}>
+              {pick && <ToothSheet tooth={pick.tooth} name={pp.name} dob={pp.dob} sex={pp.sex} mrn={pp.mrn} id={pp.id} panel={panel} onClose={() => setPick(null)} trapTab={trapTab} />}
+            </Presence>
           )}
           <section className="card span-12" aria-labelledby="temuan-title">
             <div className="temuan-head">
@@ -888,16 +899,22 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
             : <button className="btn btn-primary" onClick={openSelesai}>Selesai</button>}
         </div>
       )}
-      {signing && visit && draft && (
+      <Presence open={!!(signing && visit && draft)} exitMs={200}>
+        {signing && visit && draft && (
         <SelesaiDialog busy={signing.busy} error={signing.error} warnings={signing.warnings} onClose={() => setSigning(null)} onConfirm={selesai}
           pinRequired={!!me.selesai?.pin_required} hasPin={!!me.selesai?.has_pin}
           lines={[`Catatan SOAP versi ${draft.version} (revisi ${draft.revision})${draft.soap.A.codes.length ? ' · ICD-10 ' + draft.soap.A.codes.join(', ') : ''}`,
             ...visit.draft_findings.map((f) => findingText(f) + (f.created_by !== me.user.id ? ' (draf pengguna lain)' : '')),
             ...visit.draft_procedures.map((x) => procedureText(x) + ` · ${statusOf(x.status)?.label ?? x.status}` + (x.created_by !== me.user.id ? ' (draf pengguna lain)' : ''))]} />
-      )}
-      {procFix && <ProcedureFixDialog p={procFix.p} mode={procFix.mode} visitId={visit?.id ?? null} onClose={() => setProcFix(null)}
-        onDone={async (m) => { setProcFix(null); await load(); setMsg(m) }} />}
-      {fixing && <CorrectionDialog note={fixing} solo={chart.solo_practice} onClose={() => setFixing(null)} onDone={async () => { setFixing(null); await load(); setMsg('Koreksi tersimpan.') }} />}
+        )}
+      </Presence>
+      <Presence open={!!procFix} exitMs={200}>
+        {procFix && <ProcedureFixDialog p={procFix.p} mode={procFix.mode} visitId={visit?.id ?? null} onClose={() => setProcFix(null)}
+          onDone={async (m) => { setProcFix(null); await load(); setMsg(m) }} />}
+      </Presence>
+      <Presence open={!!fixing} exitMs={200}>
+        {fixing && <CorrectionDialog note={fixing} solo={chart.solo_practice} onClose={() => setFixing(null)} onDone={async () => { setFixing(null); await load(); setMsg('Koreksi tersimpan.') }} />}
+      </Presence>
     </>,
     visit?.status === 'berlangsung' && !visit.notes.some((n) => n.versions.some((x) => x.signed_at))
       ? <span className="visit-chip" role="note" aria-label="Status kunjungan">{visitStatusText(visit, mobile)}</span> : null,
@@ -924,3 +941,26 @@ function BillingTab({ visits }: { visits: ChartVisit[] }) {
     </div>
   )
 }
+
+function ToothSheet({ tooth, name, dob, sex, mrn, id, panel, onClose, trapTab }: {
+  tooth: number; name: string; dob: string | null; sex: string | null; mrn: string | null; id: string
+  panel: ReactNode; onClose: () => void; trapTab: (e: KeyboardEvent<HTMLElement>) => void
+}) {
+  const phase = usePresenceClass()
+  return (
+    <>
+      <div className={`sheet-backdrop ${phase}`} onClick={onClose} />
+      <aside className={`card tooth-panel sheet tooth-sheet ${phase}`} role="dialog" aria-modal="true" aria-label={`Detail gigi ${tooth}`}
+        onKeyDown={(e) => { if (e.key === 'Escape') onClose(); else trapTab(e) }}>
+        <div className="sheet-strip">
+          <div className="sheet-handle" aria-hidden="true" />
+          <p><strong>{name}</strong> <span className="muted small">{[ageTahun(dob), sex && (SEX[sex] ?? sex)].filter(Boolean).map((x) => x + ' · ')}
+            <span className="patient-mrn">No. RM <strong>{mrn ?? 'belum ada'}</strong></span></span></p>
+          <AlertRibbon patientId={id} compactDefault label="Peringatan medis di detail gigi" only={['premedikasi', 'catatan_penting', 'alergi', 'kosong']} />
+        </div>
+        {panel}
+      </aside>
+    </>
+  )
+}
+

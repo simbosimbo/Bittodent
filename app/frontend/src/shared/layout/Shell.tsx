@@ -1,9 +1,10 @@
-import { Fragment, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { Fragment, useEffect, useRef, useState, type FormEvent, type ReactNode, type RefObject } from 'react'
 import { useActivePatient } from '../activePatient'
 import { initials } from '../format'
 import { ROLE_LABELS, type Me } from '../session'
 import { Icon, ICONS } from '../ui/Icon'
 import { Menu } from '../ui/Menu'
+import { PageStage, Presence, usePresenceClass } from '../ui/presence'
 import { useScrollHints } from '../ui/scrollHint'
 import { useDialog } from '../ui/Sheet'
 import { useIsMobile } from '../useIsMobile'
@@ -170,7 +171,7 @@ export function Shell({ me, nav, active, title = '', ribbon, badges, onSwitchBra
         )}
         {patient && ribbon}
         </div>
-        <main className="shell-main" key={me.active.branch_id}>{children}</main>
+        <main className="shell-main" key={me.active.branch_id}><PageStage route={route}>{children}</PageStage></main>
       </div>
       {mobile && (
         <nav className="bottom-nav" aria-label="Navigasi utama">
@@ -184,17 +185,38 @@ export function Shell({ me, nav, active, title = '', ribbon, badges, onSwitchBra
           </button>
         </nav>
       )}
-      {mobile && more && (
-        <>
-          <div className="sheet-backdrop" onClick={() => setMore(false)} />
-          <div ref={moreRef} className="sheet more-sheet" role="dialog" aria-modal="true" aria-label="Menu lainnya">
-            {rest.map((n) => link(n, <><Icon d={n.icon} /> {n.label}</>))}
-            <Branch me={me} onSwitchBranch={(id) => { setMore(false); onSwitchBranch(id) }} />
-            <button type="button" className="btn" onClick={() => { setMore(false); onLogout() }}>Keluar</button>
-            <button type="button" className="btn btn-ghost" autoFocus onClick={() => setMore(false)}>Tutup</button>
-          </div>
-        </>
+      {mobile && (
+        <Presence open={more} exitMs={200}>
+          <LainnyaSheet sheetRef={moreRef} rest={rest} link={link} me={me}
+            onSwitchBranch={(id) => { setMore(false); onSwitchBranch(id) }}
+            onLogout={() => { setMore(false); onLogout() }}
+            onClose={() => setMore(false)} />
+        </Presence>
       )}
     </div>
+  )
+}
+
+function LainnyaSheet({ sheetRef, rest, link, me, onSwitchBranch, onLogout, onClose }: {
+  sheetRef: RefObject<HTMLDivElement | null>
+  rest: NavItem[]
+  link: (n: NavItem, extra?: ReactNode) => ReactNode
+  me: Me
+  onSwitchBranch: (id: string) => void
+  onLogout: () => void
+  onClose: () => void
+}) {
+  const phase = usePresenceClass()
+  return (
+    <>
+      <div className={`sheet-backdrop ${phase}`} onClick={onClose} />
+      <div ref={sheetRef} className={`sheet more-sheet ${phase}`} role="dialog" aria-modal="true" aria-label="Menu lainnya">
+        <div className="sheet-handle" aria-hidden="true" />
+        {rest.map((n) => link(n, <><Icon d={n.icon} /> {n.label}</>))}
+        <Branch me={me} onSwitchBranch={onSwitchBranch} />
+        <button type="button" className="btn" onClick={onLogout}>Keluar</button>
+        <button type="button" className="btn btn-ghost" autoFocus onClick={onClose}>Tutup</button>
+      </div>
+    </>
   )
 }

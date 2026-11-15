@@ -3,6 +3,7 @@ import { fmtDate, fmtTime, initials, todayWib, TZ } from '../../shared/format'
 import type { Me } from '../../shared/session'
 import { RevenueCard } from '../billing'
 import { Icon, ICONS } from '../../shared/ui/Icon'
+import { PageSkeleton } from '../../shared/ui/Skeleton'
 import { useIsMobile } from '../../shared/useIsMobile'
 import type { Appointment } from './api'
 import Schedule, { minutesOfDay, StatusChip, useSchedule } from './Schedule'
@@ -95,7 +96,7 @@ function DeskHome({ me }: { me: Me }) {
         </div>
         {!mobile && toolbar}
       </div>
-      {error ? <div className="card state-card error">{error}</div> : loading && !data ? <div className="card state-card muted">Memuat…</div> : (
+      {error ? <div className="card state-card error">{error}</div> : loading && !data ? <PageSkeleton variant="home" /> : (
         <div className="grid-12">
           {kpis.map((k) => (
             <section key={k.label} className="card stat span-3" aria-label={k.label}>

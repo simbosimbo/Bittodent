@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { useIsMobile } from '../../shared/useIsMobile'
 import { useDialog } from '../../shared/ui/Sheet'
+import { usePresenceClass } from '../../shared/ui/presence'
 import { ATTESTATION } from './api'
 import { WARNING_REASONS } from './quick'
 
@@ -19,9 +20,10 @@ export function SelesaiDialog({ lines, pinRequired, hasPin, busy, error, warning
   const ready = checked && !busy && (!pinRequired || (hasPin && /^\d{6}$/.test(pin))) && (!warned || reason.trim().length >= 10)
   // Phone: bottom sheet (styles.css) with modal focus/Escape/scroll lock; desktop behaviour unchanged.
   const dlg = useRef<HTMLFormElement>(null)
+  const phase = usePresenceClass()
   useDialog(dlg, onClose, useIsMobile())
   return (
-    <div className="overlay" onClick={onClose}>
+    <div className={`overlay ${phase}`} onClick={onClose}>
       <form ref={dlg} className="card dialog" role="dialog" aria-modal="true" aria-labelledby="selesai-title" onClick={(e) => e.stopPropagation()}
         onSubmit={(e) => { e.preventDefault(); if (ready) onConfirm(needPin ? pin : undefined, warned ? reason.trim() : undefined) }}>
         <h2 id="selesai-title">Selesai: kunci rekam medis dan tutup kunjungan</h2>

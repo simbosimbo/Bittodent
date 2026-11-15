@@ -5,6 +5,7 @@ import { clearActivePatients, useActivePatient } from './shared/activePatient'
 import { pageTitle, Shell, withActivePatientHref, type NavItem } from './shared/layout/Shell'
 import type { Me } from './shared/session'
 import { ComingSoon } from './shared/ui/ComingSoon'
+import { PageSkeleton } from './shared/ui/Skeleton'
 import { ICONS } from './shared/ui/Icon'
 import { useIsMobile } from './shared/useIsMobile'
 import { ribbonPatientId } from './shared/ribbonRoute'
@@ -101,7 +102,7 @@ function StaffApp() {
     await load()
   }
 
-  if (state === 'loading') return <div className="center muted">Memuat…</div>
+  if (state === 'loading') return <PageSkeleton variant="app" />
   if (state === 'guest') return <Login onLoggedIn={load} />
   if (state === 'no2fa' || state === 'error' || !me)
     return (
@@ -124,13 +125,13 @@ function StaffApp() {
   const ribbonId = ribbonPatientId(hash)
   let page
   const chart = hash.match(/^\/rekam-medis\/([\w-]+)(?:\/janji\/([\w-]+))?$/)
-  if (chart && can('note.read')) page = <ChartPage key={hash} patientId={chart[1]} appointmentId={chart[2]} me={me} />
-  else if (hash.startsWith('/tagihan/') && can('billing.read')) page = <InvoicePage key={hash} visitId={hash.slice(9)} me={me} />
-  else if (sub?.[1] === 'keluarga' && can('patient.read')) page = <FamilyPage key={hash} id={sub[2]} canChart={can('note.read')} />
-  else if (sub?.[1] === 'riwayat-medis' && can('note.read')) page = <MedicalHistoryPage key={hash} id={sub[2]} canChart={can('note.read')} canEdit={can('note.write')} />
+  if (chart && can('note.read')) page = <ChartPage patientId={chart[1]} appointmentId={chart[2]} me={me} />
+  else if (hash.startsWith('/tagihan/') && can('billing.read')) page = <InvoicePage visitId={hash.slice(9)} me={me} />
+  else if (sub?.[1] === 'keluarga' && can('patient.read')) page = <FamilyPage id={sub[2]} canChart={can('note.read')} />
+  else if (sub?.[1] === 'riwayat-medis' && can('note.read')) page = <MedicalHistoryPage id={sub[2]} canChart={can('note.read')} canEdit={can('note.write')} />
   else if (hash === '/pasien/baru' && can('patient.create')) page = <PatientForm />
-  else if (hash.startsWith('/pasien/') && can('patient.read')) page = <PatientDetail key={hash} id={hash.slice(8)} canChart={can('note.read')} />
-  else if (hash === '/pasien' && can('patient.read')) page = <PatientList key={query} canCreate={can('patient.create')} canChart={can('note.read')} initialQ={new URLSearchParams(query).get('q') ?? ''} />
+  else if (hash.startsWith('/pasien/') && can('patient.read')) page = <PatientDetail id={hash.slice(8)} canChart={can('note.read')} />
+  else if (hash === '/pasien' && can('patient.read')) page = <PatientList canCreate={can('patient.create')} canChart={can('note.read')} initialQ={new URLSearchParams(query).get('q') ?? ''} />
   else if (hash === '/jadwal' && can('appointment.read')) page = <Schedule me={me} />
   else if (hash === '/kasir' && can('billing.read')) page = <KasirPage />
   else if (hash === '/laporan' && can('reporting.read')) page = <ReportPage />
