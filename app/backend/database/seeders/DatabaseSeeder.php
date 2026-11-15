@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Modules\Billing\Models\Invoice;
 use App\Modules\Billing\Models\InvoiceAdjustment;
 use App\Modules\Billing\Models\InvoiceLine;
+use App\Modules\Clinical\Domain\CodingTemplate;
 use App\Modules\Clinical\Models\ClinicalNote;
 use App\Modules\Clinical\Models\ClinicalNoteVersion;
 use App\Modules\Clinical\Models\ConsentRecord;
@@ -216,6 +217,7 @@ class DatabaseSeeder extends Seeder
     private function c3Demo(Branch $branch, User $dentist, array $patients, int $seed): void
     {
         DifficultyTemplate::seed('2026-01-01');
+        CodingTemplate::seed(); // usulan condition -> ICD mapping (not a national standard)
         Tariff::create(['procedure_code' => '23.2', 'name' => 'Tumpatan (contoh)', 'variant' => 'standar', 'level_label' => '1 permukaan',
             'price_rp' => 200000, 'valid_from' => '2025-01-01', 'valid_to' => '2026-01-01']);
 

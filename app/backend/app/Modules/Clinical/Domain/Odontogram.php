@@ -28,6 +28,25 @@ final class Odontogram
         return $t % 10 <= 3;
     }
 
+    /** Primary (sulung) teeth 51-85. */
+    public static function isPrimary(int $t): bool
+    {
+        return intdiv($t, 10) >= 5;
+    }
+
+    /** Third molars 18, 28, 38, 48. */
+    public static function isThirdMolar(int $t): bool
+    {
+        return $t % 10 === 8 && ! self::isPrimary($t);
+    }
+
+    /** coding_rule.tooth_group values that apply to a valid tooth, most specific first: m3 > sulung > anterior|posterior > any. */
+    public static function toothGroups(int $t): array
+    {
+        return [...(self::isThirdMolar($t) ? ['m3'] : []), ...(self::isPrimary($t) ? ['sulung'] : []),
+            self::isAnterior($t) ? 'anterior' : 'posterior', 'any'];
+    }
+
     /** Null when valid, else an Indonesian message. */
     public static function error(int $tooth, ?string $surface, string $condition): ?string
     {
