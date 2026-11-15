@@ -471,6 +471,8 @@ label.check input { min-height: 0; }
 .date-field input { width: 100%; min-width: 0; color: transparent; }
 .date-field input::-webkit-datetime-edit { color: transparent; }
 .date-field input:focus { color: transparent; }
+.date-field-desk:focus-within input, .date-field-desk:focus-within input::-webkit-datetime-edit { color: var(--text); }
+.date-field-desk:focus-within .date-field-text { display: none; }
 .date-field-text {
   position: absolute; inset: 0 40px 0 0; display: flex; align-items: center; padding-left: 13px; pointer-events: none;
   font-weight: 400; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;

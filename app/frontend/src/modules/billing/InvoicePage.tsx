@@ -55,6 +55,10 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
   // #70: the single, untouched payment row starts at the remaining balance (no typing for the usual full payment; still editable).
   const balance = inv && inv.status !== 'void' ? inv.balance_rp : 0
   useEffect(() => { if (balance > 0) setRows((rs) => rs.length === 1 && rs[0].amount === '' ? [{ ...rs[0], amount: String(balance) }] : rs) }, [balance])
+  // review-3: the usual method (Tunai of this branch, else a clinic-wide Tunai) is preselected, so Terima is active right away.
+  const tunai = accounts.find((a) => a.is_active && a.kind === 'tunai' && inv && a.branch_id === inv.branch_id)
+    ?? accounts.find((a) => a.is_active && a.kind === 'tunai' && a.branch_id === null)
+  useEffect(() => { if (tunai) setRows((rs) => rs.length === 1 && rs[0].account === '' ? [{ ...rs[0], account: tunai.id }] : rs) }, [tunai?.id])
 
   async function run(fn: () => Promise<Invoice>, ok: (i: Invoice) => string) {
     setError('')

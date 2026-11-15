@@ -70,7 +70,8 @@ function useWeekCounts(branchId: string | null, from: string, on: boolean) {
 
 /** Mobile: Mon–Sun of the selected date's week; tap a day to select it. Dots = appointments that day (max 3). */
 /** "drg. Clara Wijaya, Sp.KGA" -> "Clara Wijaya": chips show the short name, the full one is the aria-label/tooltip. */
-export const shortName = (n: string) => n.replace(/^drg\.\s*/i, '').replace(/,.*$/, '')
+/** Chip label (review-3, board 01): first name only ("Andi", "Bunga"), so chips never truncate; the full name is the aria-label. */
+export const shortName = (n: string) => n.replace(/^drg\.\s*/i, '').replace(/,.*$/, '').trim().split(/\s+/)[0]
 
 function WeekStrip({ date, counts, error, onPick, onRetry }: {
   date: string; counts: Record<string, number> | null; error: boolean; onPick: (d: string) => void; onRetry: () => void

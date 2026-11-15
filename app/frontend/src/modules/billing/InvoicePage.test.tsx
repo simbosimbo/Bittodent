@@ -171,10 +171,12 @@ test('#70 decluttered Tagihan: sisa big + status chip, method chips; lines, hist
   expect(hist.querySelector('summary')).toHaveTextContent('Riwayat bayar (1)')
   const terima = screen.getByRole('button', { name: 'Terima pembayaran' })
   await waitFor(() => expect(methods.getAllByRole('radio').length).toBeGreaterThan(0))
-  expect(terima).toBeDisabled()
-  fireEvent.click(methods.getAllByRole('radio')[0])
-  expect(methods.getAllByRole('radio')[0]).toHaveAttribute('aria-checked', 'true')
+  // review-3: Tunai is preselected, so Terima is active without a tap; another method is one tap.
+  const tunai = methods.getAllByRole('radio').find((r) => r.textContent === 'Tunai')!
+  await waitFor(() => expect(tunai).toHaveAttribute('aria-checked', 'true'))
   expect(terima).toBeEnabled()
+  const other = methods.getAllByRole('radio').find((r) => r !== tunai)
+  if (other) { fireEvent.click(other); expect(other).toHaveAttribute('aria-checked', 'true'); expect(tunai).toHaveAttribute('aria-checked', 'false') }
 })
 
 test('#70 kwitansi right after paying still names the patient (payment response has no patient_name)', async () => {
