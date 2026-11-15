@@ -10,7 +10,7 @@ import { AlertRibbon, ageTahun, PatientPage, SEX } from '../patients'
 import type { PatientFull } from '../patients'
 import {
   approveCorrection, approveDrafts, changeStatus, confirmExternal, correctNote, correctProcedure, discardFinding, discardProcedure, getChart, getDentists,
-  replaceProcedure, saveBaseline, saveFinding, saveNote, saveProcedure, selesaiVisit, startWalkInVisit, visitFromAppointment,
+  replaceProcedure, saveBaseline, saveFinding, saveNote, saveProcedure, selesaiVisit, startWalkInVisit, visitFromAppointment, appointmentDone,
   type Baseline, type Chart, type ChartVisit, type CorrectionType, type Finding, type Note, type ProcStatus, type Procedure, type ProcedureHistoryRow,
   type Soap, type Surface, type ToothPresence, type Version,
 } from './api'
@@ -578,6 +578,8 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
       setSigning(null)
       setMsg('Selesai: rekam medis terkunci, pasien masuk antrean bayar.')
       setBillFor(visit.id)
+      // The chair is free too: move the appointment to done (best effort; the server checks the transition + permission).
+      if (appointmentId && can('appointment.transition')) await appointmentDone(appointmentId).catch(() => undefined)
       await load()
     } catch (e) {
       if (e instanceof ApiError && e.data?.signed) { // #55: signed, but the invoice guard kept the visit open

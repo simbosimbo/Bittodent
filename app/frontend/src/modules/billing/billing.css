@@ -39,3 +39,4 @@
   .pay-submit .btn { min-height: 48px; }
   .inv-more > summary { min-height: 48px; }
 }
+.inv-pay .toolbar > select, .inv-pay .toolbar > input { min-width: 0; max-width: 100%; flex: 1 1 140px; }
