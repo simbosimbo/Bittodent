@@ -5,6 +5,8 @@ namespace App\Modules\Tenancy\Services;
 use App\Modules\Tenancy\Contracts\TenancyDirectory;
 use App\Modules\Tenancy\Models\Branch;
 use App\Modules\Tenancy\Models\Membership;
+use App\Modules\Tenancy\Models\Tenant;
+use App\Shared\Tenancy\Ctx;
 
 final class TenancyDirectoryService implements TenancyDirectory
 {
@@ -32,6 +34,11 @@ final class TenancyDirectoryService implements TenancyDirectory
     public function activeUserIdsWithRole(string $role): array
     {
         return Membership::where('role', $role)->whereNull('revoked_at')->distinct()->pluck('user_id')->all();
+    }
+
+    public function correctionWindowHours(): int
+    {
+        return (int) Tenant::findOrFail(Ctx::current()->tenant())->correction_window_hours;
     }
 
     public function dentistIdsForBranch(string $branchId): array

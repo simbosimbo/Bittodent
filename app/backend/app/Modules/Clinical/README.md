@@ -33,11 +33,22 @@ Akses (U0d): pemilik hanya **membaca** (`note.read`); tidak pernah menulis draf,
 - Baris final tidak pernah diubah. Tiga cara menulis riwayat, semuanya baris final baru, hanya dokter (`note.sign`):
   - **Ubah status** `POST /api/procedures/{id}/status` (unit 1): baris baru `supersedes_id`, hanya sepanjang `TRANSITIONS`.
   - **Ganti restorasi** `POST /api/procedures/{id}/replace {visit_id, status direncanakan|selesai, reason, kode + situs}`: untuk pekerjaan yang sudah ada (`selesai`, `ada_di_klinik_ini`, `ada_di_tempat_lain`). Penanda `superseded` (salinan lama, `supersedes_id`) + tindakan baru (`replaces_id` = lama). Tagihan lama tetap; yang baru menagih bila `selesai`.
-  - **Koreksi** `POST /api/procedures/{id}/corrections {reason, field yang dikoreksi}`: status sama, `supersedes_id`, tidak menagih. Belum memakai `correction_request`/2x24 jam.
+  - **Koreksi** `POST /api/procedures/{id}/corrections {reason_type, reason, field yang dikoreksi}`: status sama (atau `tidak_dikerjakan`), `supersedes_id`, tidak menagih. Tenggat per klinik, lihat bagian Koreksi tindakan (DEVIATIONS #53).
+  - `/replace` = pekerjaan ulang yang sungguh dikerjakan (boleh menagih). Salah catat = koreksi (tidak menagih).
 - Alasan wajib ≥10 huruf untuk ganti dan koreksi (kolom `reason`).
 - Chart: `procedures` = baris final terkini (tidak digantikan, bukan penanda, bukan luar pending/ditolak). `procedure_history` = semua baris final yang berlaku, dengan `superseded_by` + `change` (`digantikan`/`koreksi`/`status`, diturunkan).
 - `GET /api/patients/{id}/chart?as_of=YYYY-MM-DD`: akhir hari lokal cabang. Waktu berlaku = `finalized_at` (luar terkonfirmasi: yang lebih akhir dengan `external_confirmed_at`), bukan `external_date`. Masa depan = sekarang; kosong/salah = 422. Draf dan antrean konfirmasi kosong. Diaudit (`baca` chart, `as_of`).
 - UI bot masih memegang: slider tanggal, linimasa, panel riwayat per gigi.
+
+## Koreksi tindakan, tenggat per klinik (DEVIATIONS #53)
+- Tenggat = `tenant.correction_window_hours` (bawaan 48 jam, 1–720), diatur pemilik di `PUT /api/settings/clinic` (`settings.manage`).
+- **Acuan = `procedure_record.finalized_at`** dari baris pertama rantai koreksi (koreksi atas koreksi tidak memulai ulang tenggat; ubah status memulai tenggat baru).
+- `reason_type`: `salah_kode` | `salah_situs` | `salah_provider` | `tidak_dikerjakan` (hanya dari `selesai`, tanpa field lain). Alasan ≥10, disimpan terenkripsi di `procedure_correction.reason_enc`.
+- Dalam tenggat: langsung diterapkan (201). Di luar: 202 `pending`; pemilik `GET /api/procedure-corrections/pending`, `POST .../{id}/approve|reject` (`correction.approve`). Konflik kepentingan seperti unit 4 (`self_approved_sole_owner`).
+- `procedure_correction` + `procedure_correction_decision` append-only (trigger + grant SELECT, INSERT). Tabel baru, bukan `correction_request` (tabel itu khusus SOAP dan statusnya di-UPDATE).
+- `tidak_dikerjakan`: status terminal, hanya lewat koreksi (bukan `POST /status`), tidak digambar di chart kini, tetap di riwayat dan `as_of`.
+- Tidak pernah membuat `invoice_line`. Event `ProcedureCorrected` untuk Billing (unit B); belum ada listener.
+- Dasar hukum tenggat untuk data **klinis** (Pasal 30 ayat 6–7): perlu dicek.
 
 ## Tutup kunjungan (unit 4, DEVIATIONS #50)
 - `POST /api/visits/{id}/close {reason?}` dan janji → `done` (listener `CloseVisitOnAppointmentDone`) memakai `Services\VisitCloser`.

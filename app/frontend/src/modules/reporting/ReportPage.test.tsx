@@ -15,6 +15,7 @@ const audit: AuditPage = { page: 1, last_page: 1, total: 1, per_page: 50,
     entity_type: 'procedure_record', entity_id: 'abcdef12-0000', branch_id: null, detail: null }] }
 vi.mock('./api', async (orig) => ({ ...(await orig<typeof import('./api')>()),
   integrityReport: () => Promise.resolve(report), auditEvents: () => Promise.resolve(audit) }))
+vi.mock('../clinical', () => ({ CorrectionApprovals: () => null }))
 const { default: ReportPage } = await import('./ReportPage')
 
 test('owner page shows per-dentist counts, alerts with batal as an exception, and a read-only audit log', async () => {

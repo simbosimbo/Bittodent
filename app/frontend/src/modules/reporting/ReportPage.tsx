@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { errorText } from '../../shared/api/http'
 import { fmtDateTime, todayWib } from '../../shared/format'
+import { CorrectionApprovals } from '../clinical'
 import { auditEvents, integrityReport, type Alert, type AuditPage, type IntegrityReport } from './api'
 
 const rp = (n: number) => 'Rp' + n.toLocaleString('id-ID')
@@ -59,6 +60,8 @@ export default function ReportPage() {
           ))}
         </ul>
       </div>
+
+      <CorrectionApprovals />
 
       <div className="card">
         <h2>Audit log</h2>

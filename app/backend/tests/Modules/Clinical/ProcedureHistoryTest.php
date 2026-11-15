@@ -124,7 +124,7 @@ class ProcedureHistoryTest extends TestCase
     public function test_correction_is_a_new_row_old_stays_readable_never_bills_and_raw_update_is_still_refused(): void
     {
         [$visit, $filling, $patient] = $this->filling();
-        $correct = fn (array $b) => $this->as(self::DOC)->postJson("/api/procedures/$filling/corrections", $b);
+        $correct = fn (array $b) => $this->as(self::DOC)->postJson("/api/procedures/$filling/corrections", $b + ['reason_type' => 'salah_situs']);
         $correct(['diagnosis_code' => 'K02.2'])->assertUnprocessable()->assertJsonValidationErrors('reason');
         $correct(['surfaces' => 'MO', 'status' => 'cancelled', 'reason' => self::REASON])->assertUnprocessable()->assertJsonValidationErrors('status');
         $this->as('asisten@senyum.test')->postJson("/api/procedures/$filling/corrections", ['surfaces' => 'MO', 'reason' => self::REASON])->assertForbidden();
@@ -140,7 +140,7 @@ class ProcedureHistoryTest extends TestCase
         $old = collect($chart['procedure_history'])->firstWhere('id', $filling);
         $this->assertSame(['MOD', $new, 'koreksi'], [$old['surfaces'], $old['superseded_by'], $old['change']]);
         $correct(['surfaces' => 'O', 'reason' => self::REASON])->assertConflict()->assertJsonPath('error', 'superseded');
-        $this->assertSame(['surfaces'], $this->inA(fn () => AuditEvent::where('action', 'koreksi_tindakan')->where('entity_id', $new)->sole()->detail['fields']));
+        $this->assertSame(['surfaces'], $this->inA(fn () => AuditEvent::where('action', 'koreksi_tindakan.diterapkan')->where('entity_id', $new)->sole()->detail['fields']));
 
         $this->inA(function () use ($new) {
             foreach (['surfaces' => 'O', 'reason' => 'diubah langsung', 'replaces_id' => $new] as $col => $val) {
@@ -187,7 +187,7 @@ class ProcedureHistoryTest extends TestCase
         $this->chart($patient, '2026-01-01', 'dokter@ceria.test')->assertNotFound();
         $this->as('dokter@ceria.test')->postJson("/api/procedures/$filling/replace", ['visit_id' => $visit, 'status' => 'direncanakan',
             'tooth' => 26, 'procedure_code' => '23.41', 'reason' => self::REASON])->assertNotFound();
-        $this->as('dokter@ceria.test')->postJson("/api/procedures/$filling/corrections", ['surfaces' => 'MO', 'reason' => self::REASON])->assertNotFound();
+        $this->as('dokter@ceria.test')->postJson("/api/procedures/$filling/corrections", ['reason_type' => 'salah_situs', 'surfaces' => 'MO', 'reason' => self::REASON])->assertNotFound();
 
         $this->chart($patient, '2026-01-01', 'pemilik@senyum.test')->assertOk()->assertJsonPath('procedures', []);
         $audit = $this->inA(fn () => AuditEvent::where('action', 'baca')->where('entity_id', $patient)->latest('id')->firstOrFail());

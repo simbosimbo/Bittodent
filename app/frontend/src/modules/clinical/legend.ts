@@ -1,4 +1,4 @@
-import type { ProcStatus, Surface } from './api'
+import type { CorrectionType, ProcStatus, Surface } from './api'
 
 // Copied from design/odontogram/legend.json (internal legend, not an official Kemenkes/PDGI form). Backend validates the same keys.
 export const CONDITIONS = [
@@ -41,9 +41,13 @@ export const STATUSES: { key: ProcStatus; label: string; legend: string; next: P
   { key: 'dirujuk', label: 'Dirujuk', legend: 'dirujuk', next: ['direncanakan'] },
   { key: 'cancelled', label: 'Dibatalkan', legend: 'batal', next: [] },
   { key: 'superseded', label: 'Digantikan', legend: 'digantikan', next: [] }, // written by the server only, never chosen
+  { key: 'tidak_dikerjakan', label: 'Tidak dikerjakan', legend: 'batal', next: [] }, // only via a correction, never chosen
 ]
+/** Procedure correction kinds (server ProcedureCorrection::REASON_TYPES). */
+export const CORRECTION_LABEL: Record<CorrectionType, string> = { salah_kode: 'Salah kode', salah_situs: 'Salah gigi/permukaan',
+  salah_provider: 'Salah dokter pelaksana', tidak_dikerjakan: 'Ternyata tidak dikerjakan' }
 /** Statuses a user may choose for a new treatment (server also accepts `external` as an alias of ada_di_tempat_lain). */
-export const CHOOSABLE = STATUSES.filter((s) => s.key !== 'superseded')
+export const CHOOSABLE = STATUSES.filter((s) => s.key !== 'superseded' && s.key !== 'tidak_dikerjakan')
 
 // paint_type (clinical catalog) -> legend condition used for colour/glyph until the odontogram has its own paint shapes.
 const PAINT_CONDITION: Record<string, string> = { Filling: 'tambalan', Sealant: 'tambalan', Veneer: 'tambalan', Crown: 'mahkota', Bridge: 'mahkota',

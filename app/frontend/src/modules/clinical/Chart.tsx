@@ -4,9 +4,9 @@ import { setActivePatient } from '../../shared/activePatient'
 import type { Me } from '../../shared/session'
 import {
   approveCorrection, changeStatus, confirmExternal, correctNote, correctProcedure, replaceProcedure, discardFinding, discardProcedure, getChart, saveBaseline, saveFinding, saveNote, saveProcedure, signVisit,
-  visitFromAppointment, type Baseline, type Chart, type ChartVisit, type Note, type ProcStatus, type Procedure, type ProcedureHistoryRow, type Soap, type Surface, type ToothPresence, type Version,
+  visitFromAppointment, type Baseline, type Chart, type CorrectionType, type ChartVisit, type Note, type ProcStatus, type Procedure, type ProcedureHistoryRow, type Soap, type Surface, type ToothPresence, type Version,
 } from './api'
-import { AI_BADGE, CHOOSABLE, CONDITIONS, findingText, paintCondition, PRESENCE, procedureText, sameSite, statusOf, surfaceLabel, surfaceName, surfacesOf } from './legend'
+import { AI_BADGE, CHOOSABLE, CONDITIONS, CORRECTION_LABEL, findingText, paintCondition, PRESENCE, procedureText, sameSite, statusOf, surfaceLabel, surfaceName, surfacesOf } from './legend'
 import { Legend, Odontogram, type Mark } from './Odontogram'
 import { SignDialog } from './SignDialog'
 import { CloseVisit } from './CloseVisit'
@@ -153,18 +153,25 @@ export function ProcedureFixDialog({ p, mode, visitId, onDone, onClose }: { p: P
   const [code, setCode] = useState(mode === 'koreksi' ? p.procedure_code ?? '' : '')
   const [surfaces, setSurfaces] = useState(mode === 'koreksi' ? p.surfaces ?? '' : '') // a crown is whole-tooth; a re-filling types its surfaces
   const [to, setTo] = useState<'direncanakan' | 'selesai'>('direncanakan')
+  const [type, setType] = useState<CorrectionType | ''>('')
+  const notDone = type === 'tidak_dikerjakan'
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   async function submit(e: FormEvent) {
     e.preventDefault()
     if (reason.trim().length < 10) return setError('Alasan wajib, minimal 10 huruf.')
+    if (mode === 'koreksi' && !type) return setError('Pilih jenis koreksi.')
     if (mode === 'ganti' && (!visitId || !code.trim())) return setError(visitId ? 'Kode tindakan pengganti wajib.' : 'Buka kunjungan aktif dulu.')
     setBusy(true)
     try {
       const sf = surfaces.trim().toUpperCase() || null
       if (mode === 'ganti') await replaceProcedure(p.id, { visit_id: visitId!, status: to, procedure_code: code.trim(), tooth: p.tooth, surfaces: sf, reason: reason.trim() })
-      else await correctProcedure(p.id, { reason: reason.trim(), procedure_code: code.trim() || undefined, surfaces: sf })
-      onDone(mode === 'ganti' ? 'Tindakan lama ditandai Digantikan; tindakan baru tercatat.' : 'Koreksi tersimpan (baris baru; versi lama tetap).')
+      else {
+        const r = await correctProcedure(p.id, notDone ? { reason_type: 'tidak_dikerjakan', reason: reason.trim() }
+          : { reason_type: type as CorrectionType, reason: reason.trim(), procedure_code: code.trim() || undefined, surfaces: sf })
+        return onDone(r.approval === 'pending' ? `Di luar tenggat ${r.window_hours} jam: Menunggu persetujuan pemilik.` : 'Koreksi tersimpan (baris baru; versi lama tetap).')
+      }
+      onDone('Tindakan lama ditandai Digantikan; tindakan baru tercatat.')
     } catch (err) {
       setError(err instanceof ApiError && (err.status === 409 || err.status === 422) ? err.data?.message ?? 'Data tidak valid.' : errorText(err))
       setBusy(false)
@@ -174,12 +181,18 @@ export function ProcedureFixDialog({ p, mode, visitId, onDone, onClose }: { p: P
     <div className="overlay" onClick={onClose}>
       <form className="card dialog" role="dialog" aria-modal="true" aria-labelledby="pfix-title" onClick={(e) => e.stopPropagation()} onSubmit={submit} noValidate>
         <h2 id="pfix-title">{mode === 'ganti' ? 'Ganti tindakan' : 'Koreksi tindakan'}: {procedureText(p)}</h2>
+        {mode === 'koreksi' && <label>Jenis koreksi * <select value={type} onChange={(e) => setType(e.target.value as CorrectionType)}>
+          <option value="">Pilih…</option>
+          {(Object.keys(CORRECTION_LABEL) as CorrectionType[]).filter((k) => k !== 'tidak_dikerjakan' || p.status === 'selesai')
+            .map((k) => <option key={k} value={k}>{CORRECTION_LABEL[k]}</option>)}</select></label>}
         <label>Alasan *<textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} aria-invalid={!!error} /></label>
-        <label>Kode ICD-9-CM{mode === 'ganti' ? ' pengganti *' : ''} <input className="mono" size={6} value={code} placeholder="23.41" onChange={(e) => setCode(e.target.value)} /></label>
-        <label>Permukaan (kosong = seluruh gigi) <input className="mono" size={6} value={surfaces} onChange={(e) => setSurfaces(e.target.value)} /></label>
+        {!notDone && <>
+          <label>Kode ICD-9-CM{mode === 'ganti' ? ' pengganti *' : ''} <input className="mono" size={6} value={code} placeholder="23.41" onChange={(e) => setCode(e.target.value)} /></label>
+          <label>Permukaan (kosong = seluruh gigi) <input className="mono" size={6} value={surfaces} onChange={(e) => setSurfaces(e.target.value)} /></label>
+        </>}
         {mode === 'ganti' && <label>Status <select value={to} onChange={(e) => setTo(e.target.value as 'direncanakan' | 'selesai')}>
           <option value="direncanakan">Direncanakan</option><option value="selesai">Selesai (ditagih)</option></select></label>}
-        <p className="muted small">{mode === 'ganti' ? 'Tindakan lama tetap tersimpan sebagai “Digantikan”; tagihannya tidak berubah.' : 'Status tidak dikoreksi di sini. Koreksi tidak menambah tagihan.'}</p>
+        <p className="muted small">{mode === 'ganti' ? 'Tindakan lama tetap tersimpan sebagai “Digantikan”; tagihannya tidak berubah.' : 'Koreksi tidak menambah tagihan. Lewat tenggat klinik, koreksi menunggu persetujuan pemilik. Pekerjaan ulang yang sungguh dikerjakan: pakai Ganti.'}</p>
         {error && <p className="form-error" role="alert">{error}</p>}
         <div className="dialog-actions">
           <button type="button" className="btn" onClick={onClose}>Batal</button>
