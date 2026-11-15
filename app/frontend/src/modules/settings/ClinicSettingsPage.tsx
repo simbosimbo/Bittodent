@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { ApiError, errorText } from '../../shared/api/http'
 import { fmtYmdShort, num, rp, todayWib } from '../../shared/format'
 import { Kop, loadLetterhead, type Letterhead } from '../../shared/letterhead'
+import { getCatalog, ODONTOGRAM_TAXONOMY, setCatalogConditions, SymbolIcon, type CatalogRow } from '../clinical'
 import type { Me } from '../../shared/session'
 import { DateField } from '../../shared/ui/DateField'
 import { addAccount, bulkTariffs, getAccounts, getProfile, getTariffs, saveBranch, saveCategory, saveLevels, saveProfile, updateAccount, uploadLogo, uploadQris,
@@ -127,6 +128,8 @@ function PriceTab() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const load = () => getTariffs(q.trim(), cat).then(setData, (e) => setError(errorText(e)))
+  const [catalog, setCatalog] = useState<CatalogRow[]>([])
+  useEffect(() => { getCatalog().then(setCatalog, () => setCatalog([])) }, [])
   useEffect(() => { const t = setTimeout(load, 250); return () => clearTimeout(t) }, [q, cat]) // eslint-disable-line react-hooks/exhaustive-deps
   const today = todayWib()
   const dirty = Object.keys(edits).filter((c) => Object.keys(edits[c]).length)
@@ -181,6 +184,9 @@ function PriceTab() {
                     <span className="muted small">{it.procedure_code}
                       {' · '}<CategoryInput item={it} categories={data.categories} onSaved={load} onError={setError} /></span></div>
                 </div>
+                <OdoMap item={it} row={catalog.find((c) => c.procedure_code === it.procedure_code)}
+                  onSaved={(r) => { setCatalog([...catalog.filter((c) => c.procedure_code !== r.procedure_code), r]); setMsg(`Pemetaan odontogram ${it.name} tersimpan.`) }}
+                  onError={setError} />
                 {levels.map((l) => {
                   const cur = it.levels.find((x) => x.variant === l.variant)
                   return (
@@ -376,5 +382,39 @@ function AddAccount({ me, onDone, onCancel }: { me: Me; onDone: (a: Account) => 
         <button className="btn btn-primary" disabled={busy || (kind === 'transfer' && (!bank.trim() || last4.length !== 4))}>Simpan</button>
       </div>
     </form>
+  )
+}
+
+/**
+ * Odontogram v2 "tindakan dulu": the odontogram condition codes this tariff item records. A dentist's "cof · Selesai" bills the item whose
+ * mapping holds cof (several items -> the dentist picks one). Unmapped conditions cannot be finished, so the owner maps them here.
+ */
+function OdoMap({ item, row, onSaved, onError }: { item: TariffItem; row?: CatalogRow; onSaved: (r: CatalogRow) => void; onError: (m: string) => void }) {
+  const [open, setOpen] = useState(false)
+  const [pick, setPick] = useState<string[]>(row?.conditions ?? [])
+  const [busy, setBusy] = useState(false)
+  const conds = ODONTOGRAM_TAXONOMY.conditions.filter((c) => c.code && c.code !== 'sou')
+  const mapped = row?.conditions ?? []
+  async function save() {
+    setBusy(true)
+    try { onSaved(await setCatalogConditions(item.procedure_code, pick, item.name)); setOpen(false) } catch (e) { onError(msgOf(e)) }
+    setBusy(false)
+  }
+  return (
+    <div className="set-odo">
+      <span className="muted small">Odontogram: {mapped.length ? mapped.join(', ') : 'belum dipetakan'}</span>
+      <button type="button" className="btn btn-ghost" aria-expanded={open} onClick={() => { setPick(mapped); setOpen(!open) }}>Atur odontogram</button>
+      {open && (
+        <div className="set-odo-pick" role="group" aria-label={`Kondisi odontogram yang dicatat ${item.name}`}>
+          {conds.map((c) => (
+            <label key={c.key} className="set-odo-opt"><input type="checkbox" checked={pick.includes(c.code!)}
+              onChange={(e) => setPick(e.target.checked ? [...pick, c.code!] : pick.filter((x) => x !== c.code))} />
+              <SymbolIcon symbol={c.symbol} code={c.code} /> {c.label} <code>{c.code}</code></label>
+          ))}
+          <div className="toolbar"><button type="button" className="btn" onClick={() => setOpen(false)}>Batal</button>
+            <button type="button" className="btn btn-primary" disabled={busy} onClick={save}>{busy ? 'Menyimpan…' : 'Simpan pemetaan'}</button></div>
+        </div>
+      )}
+    </div>
   )
 }

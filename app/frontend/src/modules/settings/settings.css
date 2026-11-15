@@ -57,3 +57,10 @@ label.set-price { flex-direction: row; margin: 0; display: flex; align-items: ce
 .set-logo .btn, .set-acc .btn { min-height: 48px; }
 .set-kops { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--space-3); }
 .set-qris { width: 64px; height: 64px; object-fit: contain; }
+/* Harga: odontogram mapping per tariff item */
+.set-odo { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.set-odo .btn { min-height: 48px; }
+.set-odo-pick { flex-basis: 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 4px; }
+.set-odo-opt { display: flex; align-items: center; gap: 8px; min-height: 48px; }
+.set-odo-opt code { margin-left: auto; color: var(--muted, #4b5563); }
+.set-odo-pick .toolbar { grid-column: 1 / -1; }

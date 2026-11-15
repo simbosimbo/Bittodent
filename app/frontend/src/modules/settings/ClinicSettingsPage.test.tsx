@@ -14,6 +14,9 @@ const m = {
   bulkTariffs: vi.fn(), getAccounts: vi.fn(), addAccount: vi.fn(), updateAccount: vi.fn(),
 }
 vi.mock('./api', () => Object.fromEntries(Object.entries(m).map(([k, f]) => [k, (...a: unknown[]) => f(...a)])))
+const cat = { getCatalog: vi.fn(), setCatalogConditions: vi.fn() }
+vi.mock('../clinical', async (orig) => ({ ...(await orig<typeof import('../clinical')>()), getCatalog: () => cat.getCatalog(),
+  setCatalogConditions: (...a: unknown[]) => cat.setCatalogConditions(...a) }))
 const { default: ClinicSettingsPage } = await import('./ClinicSettingsPage')
 const me = (permissions: string[]) => ({ permissions, branches: [{ id: 'b1', name: 'Cabang Uji', timezone: 'Asia/Jakarta' }] } as unknown as Me)
 const OWNER = ['settings.manage', 'tariff.manage', 'billing.accounts']
@@ -21,6 +24,7 @@ const OWNER = ['settings.manage', 'tariff.manage', 'billing.accounts']
 beforeEach(() => {
   Object.values(m).forEach((f) => f.mockReset())
   m.getTariffs.mockResolvedValue({ items, categories: ['konservasi'] })
+  cat.getCatalog.mockResolvedValue([])
   m.saveLevels.mockResolvedValue({})
   m.getProfile.mockResolvedValue({ name: 'Klinik Uji', address: null, phone: null, email: null, license_no: null, license_valid_until: null,
     branches: [{ id: 'b1', name: 'Cabang Uji', address: null, phone: null }] })
@@ -92,4 +96,20 @@ test('payment methods: grouped by kind; add a transfer account (last 4 digits on
   fireEvent.change(screen.getByLabelText('4 angka terakhir rekening'), { target: { value: '12a34' } })
   fireEvent.click(save)
   await waitFor(() => expect(m.addAccount).toHaveBeenCalledWith({ name: 'Transfer BCA', kind: 'transfer', branch_id: null, bank_name: 'BCA', account_last4: '1234' }))
+})
+
+test('Harga: the owner maps a tariff item to odontogram condition codes (tindakan dulu: a finished cof bills this item)', async () => {
+  cat.getCatalog.mockResolvedValue([{ procedure_code: '23.2', name: 'Tumpatan', treat_area: 'surface', paint_type: 'Filling', conditions: ['amf', 'cof'] }])
+  cat.setCatalogConditions.mockImplementation(async (code: string, conditions: string[]) => ({ procedure_code: code, name: 'Tumpatan', treat_area: 'surface', paint_type: 'Filling', conditions }))
+  render(<ClinicSettingsPage me={me(OWNER)} tab="harga" onChanged={() => {}} />)
+  const row = (await screen.findByText('Tumpatan (contoh)')).closest('li') as HTMLElement
+  expect(await within(row).findByText('Odontogram: amf, cof')).toBeInTheDocument()
+  expect(within(screen.getByText('Scaling (contoh)').closest('li') as HTMLElement).getByText('Odontogram: belum dipetakan')).toBeInTheDocument()
+  fireEvent.click(within(row).getByRole('button', { name: 'Atur odontogram' }))
+  const pick = within(within(row).getByRole('group', { name: /Kondisi odontogram yang dicatat/ }))
+  expect(pick.getByRole('checkbox', { name: /Tambalan komposit/ })).toBeChecked()
+  fireEvent.click(pick.getByRole('checkbox', { name: /Pit dan fissure sealant/ }))
+  fireEvent.click(within(row).getByRole('button', { name: 'Simpan pemetaan' }))
+  await waitFor(() => expect(cat.setCatalogConditions).toHaveBeenCalledWith('23.2', ['amf', 'cof', 'fis'], 'Tumpatan (contoh)'))
+  expect(await within(row).findByText('Odontogram: amf, cof, fis')).toBeInTheDocument()
 })

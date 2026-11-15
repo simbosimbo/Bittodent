@@ -2,3 +2,7 @@
 export { default as ChartPage } from './Chart'
 export { CorrectionApprovals } from './CorrectionApprovals'
 export { default as SettingsRmPage } from './SettingsRm'
+// Pengaturan > Harga: which odontogram condition codes each clinic procedure code records (a finished entry bills the mapped code)
+export { getCatalog, setCatalogConditions, type CatalogRow } from './api'
+export { TAXONOMY as ODONTOGRAM_TAXONOMY } from './odontogram/taxonomy'
+export { SymbolIcon } from './odontogram/symbols'
