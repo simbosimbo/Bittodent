@@ -436,7 +436,6 @@ label.check input { min-height: 0; }
   .btn, .btn-link.row-action, .btn-xs { min-height: 44px; }
   .page-head { flex-wrap: wrap; align-items: flex-start; }
   .page-head .toolbar { width: 100%; }
-  .page-head .toolbar .btn { flex: 1; }
   /* KPI cards 2×2 (more specific than `.grid-12 > *`) */
   .grid-12 > .span-3 { grid-column: span 6; }
   .grid-12 { gap: var(--space-3); }

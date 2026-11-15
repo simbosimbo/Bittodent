@@ -137,7 +137,7 @@ export function Shell({ me, nav, active, title = '', ribbon, onSwitchBranch, onL
           ) : (
             <header className="shell-top">
               <span className="brand-mark" aria-hidden="true"><Icon d={ICONS.tooth} /></span>
-              <span className="shell-top-clinic"><strong>{me.active.tenant_name}</strong><span className="badge-synthetic">DATA SINTETIS</span></span>
+              <span className="shell-top-clinic"><strong title={me.active.tenant_name}>{me.active.tenant_name}</strong><span className="badge-synthetic">DATA SINTETIS</span></span>
               {quick}
               {bell}
               {user}

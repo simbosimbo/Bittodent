@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { ApiError, errorText } from '../../shared/api/http'
 import { fmtDate, fmtTime, todayWib } from '../../shared/format'
 import type { Me } from '../../shared/session'
+import { Icon, ICONS } from '../../shared/ui/Icon'
+import { useIsMobile } from '../../shared/useIsMobile'
 import { PatientPicker } from '../patients'
 import './scheduling.css'
 import { createAppointment, getPlanned, getSchedule, schedulePlanned, STATUS, transition, type Appointment, type Planned, type Schedule as Sched } from './api'
@@ -16,6 +18,18 @@ export function minutesOfDay(iso: string, tz: string) {
 }
 
 export const StatusChip = ({ status }: { status: string }) => <span className={`chip chip-${status}`}>{STATUS[status] ?? status}</span>
+
+/** Current time, re-read every minute while `on` (mobile now-line). */
+function useNow(on: boolean) {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    if (!on) return
+    setNow(Date.now())
+    const t = setInterval(() => setNow(Date.now()), 60_000)
+    return () => clearInterval(t)
+  }, [on])
+  return now
+}
 
 export function useSchedule(branchId: string | null, date: string) {
   const [data, setData] = useState<Sched | null>(null)
@@ -48,6 +62,10 @@ export default function Schedule({ me }: { me: Me }) {
   const canChart = me.permissions.includes('note.read')
   const canVisit = me.permissions.includes('note.write') // opening from the card starts/reuses the visit
   const tz = data?.branch.timezone ?? 'Asia/Jakarta'
+  const mobile = useIsMobile()
+  const [chairPick, setChairPick] = useState<string | null>(null)
+  const isToday = date === todayWib()
+  const now = useNow(mobile && isToday)
   const shift = (days: number) => {
     const d = new Date(date + 'T00:00:00Z')
     d.setUTCDate(d.getUTCDate() + days)
@@ -72,6 +90,24 @@ export default function Schedule({ me }: { me: Me }) {
     .filter((a) => a.status === 'pending_confirmation' && a.source === 'online')
     .sort((x, y) => x.starts_at.localeCompare(y.starts_at))
 
+  // Mobile: one chair column at a time. Default = chair of the next unfinished appointment, else the first chair.
+  const nextChair = () => {
+    const next = (data?.chairs.flatMap((c) => c.appointments) ?? [])
+      .filter((a) => new Date(a.ends_at).getTime() > now && !['cancelled', 'no_show', 'rejected', 'done'].includes(a.status))
+      .sort((x, y) => x.starts_at.localeCompare(y.starts_at))[0]
+    return next?.chair_id ?? data?.chairs[0]?.id
+  }
+  const shownChair = mobile ? (data?.chairs.find((c) => c.id === chairPick) ?? data?.chairs.find((c) => c.id === nextChair())) : undefined
+  const chairs = data ? (shownChair ? [shownChair] : data.chairs) : []
+  const nowMin = mobile && isToday ? minutesOfDay(new Date(now).toISOString(), tz) - START : -1
+  const nowTop = nowMin >= 0 && nowMin <= END - START ? (nowMin / STEP) * ROW : null
+
+  const prev = <button className="btn" onClick={() => shift(-1)} aria-label="Hari sebelumnya">{mobile ? <Icon d={ICONS.left} /> : '‹'}</button>
+  const next = <button className="btn" onClick={() => shift(1)} aria-label="Hari berikutnya">{mobile ? <Icon d={ICONS.right} /> : '›'}</button>
+  const today = <button className="btn" onClick={() => setDate(todayWib())}>Hari ini</button>
+  const dateInput = <input type="date" aria-label="Tanggal" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} />
+  const create = canCreate && <button className="btn btn-primary" onClick={() => setDialog({})}>+ Buat Janji</button>
+
   return (
     <>
       <div className="page-head">
@@ -79,13 +115,12 @@ export default function Schedule({ me }: { me: Me }) {
           <h1 className="shell-dup-title">Jadwal</h1>
           <p className="muted">{fmtDate(date)} · {me.active.branch_name} · {count} janji</p>
         </div>
-        <div className="toolbar">
-          <button className="btn" onClick={() => shift(-1)} aria-label="Hari sebelumnya">‹</button>
-          <button className="btn" onClick={() => setDate(todayWib())}>Hari ini</button>
-          <button className="btn" onClick={() => shift(1)} aria-label="Hari berikutnya">›</button>
-          <input type="date" aria-label="Tanggal" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} />
-          {canCreate && <button className="btn btn-primary" onClick={() => setDialog({})}>+ Buat Janji</button>}
-        </div>
+        {mobile ? (
+          // Row 1: ‹ date › Hari ini; row 2: full-width Buat Janji (styles.css .sched-bar).
+          <div className="toolbar sched-bar">{prev}{dateInput}{next}{today}{create}</div>
+        ) : (
+          <div className="toolbar">{prev}{today}{next}{dateInput}{create}</div>
+        )}
       </div>
       {actionError && <p className="form-error" role="alert">{actionError}</p>}
       {canConfirm && pending.length > 0 && (
@@ -110,15 +145,28 @@ export default function Schedule({ me }: { me: Me }) {
       {error ? <div className="card state-card error">{error} <button className="btn" onClick={reload}>Coba lagi</button></div>
         : !data ? <div className="card state-card muted">Memuat jadwal…</div>
         : data.chairs.length === 0 ? <div className="card state-card muted">Cabang ini belum punya kursi aktif.</div> : (
+          <>
+          {mobile && data.chairs.length > 1 && (
+            <div className="chair-pills" role="group" aria-label="Pilih kursi">
+              {data.chairs.map((c) => (
+                <button key={c.id} type="button" aria-pressed={c === shownChair} onClick={() => setChairPick(c.id)}>
+                  {c.label} <span className="muted small">· {c.appointments.length}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          {mobile && count === 0 && <p className="sched-empty muted" role="status">{isToday ? 'Tidak ada janji hari ini' : 'Tidak ada janji pada tanggal ini'}</p>}
           <div className={'card schedule' + (loading ? ' is-loading' : '')}>
-            <div className="sched-grid" style={{ gridTemplateColumns: `64px repeat(${data.chairs.length}, minmax(180px, 1fr))` }}>
+            <div className="sched-grid" style={{ gridTemplateColumns: `64px repeat(${chairs.length}, minmax(${mobile ? 0 : 180}px, 1fr))` }}>
               <div className="sched-head" />
-              {data.chairs.map((c) => <div key={c.id} className="sched-head">{c.label} <span className="muted small">· {c.appointments.length}</span></div>)}
+              {chairs.map((c) => <div key={c.id} className="sched-head">{c.label} <span className="muted small">· {c.appointments.length}</span></div>)}
               <div className="sched-times">
                 {SLOTS.map((m) => <div key={m} className="sched-time" style={{ height: ROW }}>{m % 60 === 0 ? hhmm(m) : ''}</div>)}
+                {nowTop !== null && <span className="sched-now-label" style={{ top: nowTop }}>{hhmm(nowMin + START)}</span>}
               </div>
-              {data.chairs.map((c) => (
+              {chairs.map((c) => (
                 <div key={c.id} className="sched-col" style={{ height: SLOTS.length * ROW }}>
+                  {nowTop !== null && <div className="sched-now" style={{ top: nowTop }} aria-label={`Sekarang ${hhmm(nowMin + START)}`} role="img" />}
                   {SLOTS.map((m) => (
                     <div key={m} className={'sched-slot' + (m % 60 === 0 ? ' hour' : '') + (canCreate ? ' clickable' : '')} style={{ height: ROW }}
                       onClick={canCreate ? () => setDialog({ chairId: c.id, minute: m }) : undefined} />
@@ -153,6 +201,7 @@ export default function Schedule({ me }: { me: Me }) {
               ))}
             </div>
           </div>
+          </>
         )}
       {data && <PlannedList sched={data} date={date} canCreate={canCreate} onScheduled={reload} />}
       {dialog && data && (
@@ -221,6 +270,7 @@ function PlannedList({ sched, date, canCreate, onScheduled }: { sched: Sched; da
   const [items, setItems] = useState<Planned[] | null>(null)
   const [pick, setPick] = useState<Record<string, { chair: string; minute: number }>>({})
   const [msg, setMsg] = useState('')
+  const mobile = useIsMobile()
   const load = useCallback(() => getPlanned(sched.branch.id).then((r) => setItems(r.data), (e) => setMsg(errorText(e))), [sched.branch.id])
   useEffect(() => { load() }, [load])
   const sel = (p: Planned) => pick[p.id] ?? { chair: sched.chairs[0]?.id ?? '', minute: 9 * 60 }
@@ -251,14 +301,16 @@ function PlannedList({ sched, date, canCreate, onScheduled }: { sched: Sched; da
               {p.note && <div className="muted small">Catatan: {p.note}</div>}
             </div>
             {canCreate && (
-              <div className="toolbar">
+              <div className={mobile ? 'toolbar planned-bar' : 'toolbar'}>
                 <select aria-label="Kursi" value={sel(p).chair} onChange={(e) => setPick({ ...pick, [p.id]: { ...sel(p), chair: e.target.value } })}>
                   {sched.chairs.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
                 </select>
                 <select aria-label="Jam mulai" value={sel(p).minute} onChange={(e) => setPick({ ...pick, [p.id]: { ...sel(p), minute: Number(e.target.value) } })}>
                   {SLOTS.filter((m) => m + p.est_minutes <= END).map((m) => <option key={m} value={m}>{hhmm(m)}</option>)}
                 </select>
-                <button className="btn btn-xs btn-primary" onClick={() => book(p)}>Jadwalkan {fmtDate(date)}</button>
+                {mobile
+                  ? <button className="btn btn-primary" onClick={() => book(p)} aria-label={`Jadwalkan ${p.patient_name ?? 'pasien'} ${fmtDate(date)}`}>Jadwalkan</button>
+                  : <button className="btn btn-xs btn-primary" onClick={() => book(p)}>Jadwalkan {fmtDate(date)}</button>}
               </div>
             )}
           </li>

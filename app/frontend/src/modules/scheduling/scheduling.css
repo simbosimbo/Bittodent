@@ -80,3 +80,31 @@ a.tl-block:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px
 .confirm-list { list-style: none; padding: 0; margin: 0; display: grid; }
 .confirm-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid #EAEDF8; }
 .confirm-row .btn { min-height: 44px; }
+
+/* Jadwal on a phone (≤720px; Schedule.tsx renders .sched-bar, chair pills and the now-line only when useIsMobile). */
+@media (max-width: 720px) {
+  .sched-bar { flex-wrap: wrap; }
+  .sched-bar .btn { flex: none; white-space: nowrap; }
+  .sched-bar > .btn[aria-label] { width: 44px; padding: 0; }
+  .sched-bar input[type='date'] { flex: 1 1 0; min-width: 0; min-height: 44px; }
+  .sched-bar .btn-primary { flex: 1 1 100%; }
+  .chair-pills { display: flex; gap: var(--space-2); overflow-x: auto; scrollbar-width: thin; margin-bottom: var(--space-3); }
+  .chair-pills button {
+    flex: none; min-height: 44px; padding: 0 var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-pill);
+    background: var(--surface); font: inherit; font-weight: 600; color: var(--color-neutral-700); white-space: nowrap; cursor: pointer;
+  }
+  .chair-pills button[aria-pressed='true'] { background: var(--color-primary-50); border-color: var(--color-primary-200); color: var(--color-primary-700); }
+  .chair-pills button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .sched-empty { margin: 0 0 var(--space-2); padding: var(--space-3); text-align: center; background: var(--surface); border: 1px dashed var(--border); border-radius: var(--radius-sm); }
+  /* The grid flows with the page (no inner vertical scroller, nothing hidden under the bottom nav: .shell-main pads for it);
+     the chair header sticks below the pinned top bar and covers cards scrolling under it. */
+  .schedule { padding: 0; max-height: none; overflow: clip visible; }
+  .sched-head { top: var(--shell-sticky-h, 0px); z-index: 4; }
+  .sched-head:first-child { left: 0; z-index: 5; }
+  .sched-times { position: sticky; left: 0; z-index: 3; background: var(--surface); }
+  .sched-now { position: absolute; left: 0; right: 0; height: 2px; margin-top: -1px; background: var(--danger); z-index: 1; pointer-events: none; }
+  .sched-now::before { content: ''; position: absolute; left: -5px; top: -4px; width: 10px; height: 10px; border-radius: 50%; background: var(--danger); }
+  .sched-now-label { position: absolute; right: 4px; transform: translateY(-50%); padding: 0 2px; font-size: 11px; font-weight: 700; color: var(--danger); background: var(--surface); }
+  .planned-bar { flex-wrap: wrap; width: 100%; }
+  .planned-bar select, .planned-bar .btn { flex: 1 1 100%; min-height: 44px; }
+}
