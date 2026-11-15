@@ -12,6 +12,10 @@ final class DraftReviewDenied extends RuntimeException
 
     public const WRONG_STATE = 'wrong_state';        // already reviewed / superseded
 
+    public const OWN_FLOW = 'own_flow';              // kind reviewed only via its feature endpoint (DraftKind::ownFlow)
+
+    public const WRONG_KIND = 'wrong_kind';          // feature endpoint asked for another kind
+
     public function __construct(public readonly string $reason)
     {
         parent::__construct($reason);

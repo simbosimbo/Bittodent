@@ -12,4 +12,5 @@ enum AgentKind: string
     case Recall = 'recall';
     case Tagihan = 'tagihan';
     case Ringkasan = 'ringkasan';
+    case SaranTindakan = 'saran_tindakan'; // A2, generator deterministik (rules), no model
 }

@@ -28,6 +28,9 @@ interface AgentDrafts
      */
     public function purgeExpired(DraftKind $kind, \DateTimeInterface $now): int;
 
+    /** One open draft whose source changed becomes `digantikan` (no review). false when it was not open. */
+    public function supersede(string $draftId): bool;
+
     /**
      * Every draft of $kind for the target (any state, any requester), oldest first. Purged drafts come back with payload [].
      *
@@ -49,8 +52,12 @@ interface AgentDrafts
      *
      * @throws DraftReviewDenied
      */
-    public function approve(string $draftId): array;
+    public function approve(string $draftId, ?DraftKind $as = null): array;
 
-    /** @throws DraftReviewDenied */
-    public function reject(string $draftId, string $reason): void;
+    /**
+     * $as: the kind the calling feature expects. Generic callers pass null and are refused for ownFlow() kinds.
+     *
+     * @throws DraftReviewDenied
+     */
+    public function reject(string $draftId, string $reason, ?DraftKind $as = null): void;
 }
