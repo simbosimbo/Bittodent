@@ -69,7 +69,7 @@ Setiap keputusan ditulis dengan pola ini (mirip *ADR* = Architecture Decision Re
   1. **Semua pemrosesan AI berjalan di Indonesia (Jakarta) secara default.** Tidak ada audio atau teks klinis yang dikirim ke luar negeri.
   2. **LLM**: Amazon Bedrock region Jakarta (`ap-southeast-3`) **hanya dengan inferensi in-region** (model yang tercantum "In-Region" untuk Jakarta, misal Qwen3, DeepSeek, gpt-oss, Amazon Nova). Inferensi lintas-region "Geo" dan "Global" **dilarang** lewat kebijakan akses.
   3. **Suara→teks**: tidak ada layanan suara terkelola di Jakarta dari Google/AWS/Azure (lihat bukti). Jadi: **uji banding** dua jalur dalam negeri — (a) model suara open-source di-host sendiri di GPU Jakarta, (b) vendor lokal Prosa.ai dengan deployment on-premise/dalam negeri — pakai rekaman diktasi gigi **sintetis**; pilih yang akurasinya lebih baik untuk istilah gigi.
-  4. Sampai uji selesai, scribe suara jalan sebagai fitur **beta** dengan persetujuan pasien eksplisit untuk perekaman.
+  4. ~~Sampai uji selesai, scribe suara jalan sebagai fitur **beta** dengan persetujuan pasien eksplisit untuk perekaman.~~ **Diganti D-048** (diterima 15 Nov 2026): scribe adalah alat bantu input dokter; tanpa persetujuan pasien dan tanpa pemberitahuan ke pasien.
 - Alasan: privasi di urutan pertama; menghindari pertanyaan hukum transfer lintas negara; Bedrock menyatakan penyedia model tidak punya akses ke prompt/keluaran.
 - Akibat: model frontier terbaik (yang di Jakarta hanya tersedia via inferensi Global) tidak dipakai; kualitas Bahasa Indonesia istilah gigi harus dibuktikan dengan uji; hosting model suara sendiri menambah kerja operasional.
 - Ditegaskan Jerome: **tidak ada routing Geo/Global**, dan **model top global tidak dipakai untuk data klinis**.
@@ -285,7 +285,7 @@ Setiap keputusan ditulis dengan pola ini (mirip *ADR* = Architecture Decision Re
 - Tanggal: 2026-11-14 · Status: **Diterima** (Jawaban Jerome, 14 Nov 2026)
 - Konteks: dokter ingin mendikte, bukan mengetik dari nol. Suara adalah data kesehatan (UU PDP Pasal 4). Retensi audio diputuskan terpisah di D-038 (Q-4).
 - Keputusan:
-  1. Dikte hanya boleh oleh dokter gigi yang merawat, dan hanya jika pasien sudah setuju direkam.
+  1. Dikte hanya boleh oleh dokter gigi yang merawat. ~~Syarat: pasien sudah setuju direkam.~~ **Diganti D-048** (diterima 15 Nov 2026): tidak ada persetujuan pasien dan tidak ada pemberitahuan ke pasien, karena scribe adalah alat bantu input dokter.
   2. Hasilnya **draf berlabel**, masuk SOAP dan/atau odontogram. Tidak pernah jadi rekam medis sebelum dokter meninjau dan menandatangani (D-001).
   3. AI hanya menuliskan ulang dan merapikan yang diucapkan. Dilarang menambah diagnosis, obat, atau kode yang tidak diucapkan.
   4. Pemrosesan hanya di Indonesia, in-region, tanpa Geo/Global (D-009). Calon: Bedrock Jakarta `mistral.voxtral-mini-3b-2507` ([kartu model](https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-mistral-ai-voxtral-mini-3b-2507.html), In-Region didukung di `ap-southeast-3`). Amazon Transcribe **tidak** tersedia di Jakarta ([daftar wilayah](https://docs.aws.amazon.com/transcribe/latest/dg/what-is.html) · [endpoint](https://docs.aws.amazon.com/general/latest/gr/transcribe.html)). Akurasi istilah gigi Bahasa Indonesia: perlu uji.
@@ -297,6 +297,7 @@ Setiap keputusan ditulis dengan pola ini (mirip *ADR* = Architecture Decision Re
 - Tanggal: 2026-11-14 · Status: **Diterima** (Jawaban Jerome atas Q-4, 14 Nov 2026)
 - Konteks: suara pasien adalah data kesehatan (UU PDP Pasal 4). Menyimpan audio lebih lama dari perlu menambah risiko kebocoran.
 - Keputusan: setelah dokter gigi yang merawat menandatangani catatan yang berasal dari dikte, **berkas audio dihapus**. **Transkrip** dan **selisih draf versus versi akhir** tetap tersimpan di jejak audit. Audio tidak disimpan sebagai bukti secara bawaan. Selama catatan masih draf, audio boleh diputar ulang oleh dokter yang merawat dan belum dihapus.
+- **Diperketat D-048** (diterima 15 Nov 2026, karena scribe adalah alat bantu input dokter, bukan rekaman konsultasi): audio mentah **tidak disimpan jangka panjang**. Audio dihapus segera setelah transkrip dan draf SOAP dibuat, atau paling lambat 24 jam jika pemrosesan gagal. Setiap penghapusan tercatat di jejak audit. Tidak ada putar ulang audio setelah draf dibuat.
 - Alasan: Jerome memilih menghapus audio setelah tanda tangan, bukan menyimpannya sebagai bukti.
 - Akibat: cerita SOAP-7; agen scribe wajib mencatat waktu audio dihapus.
 
@@ -337,6 +338,23 @@ Setiap keputusan ditulis dengan pola ini (mirip *ADR* = Architecture Decision Re
 - Tanggal: 2026-11-14 · Status: **Diterima** (unit 0d)
 - Keputusan: peran `kasir`: tagihan + penyesuaian, data identitas pasien (NIK tersamar), jadwal; **tanpa** catatan klinis, odontogram, atau riwayat medis (ditolak dan tercatat di audit). Peringatan medis sama dengan resepsionis (alergi, perlu premedikasi, "ada catatan penting" tanpa isinya).
 - Perlu dicek: apakah kasir boleh membuat penyesuaian (diskon/hapus piutang) atau hanya melihat.
+
+### D-048: Scribe suara adalah alat bantu input dokter, tanpa persetujuan atau pemberitahuan ke pasien
+- Tanggal: 2026-11-15 · Status: **Diterima** (keputusan langsung Yohanes, 15 Nov 2026 23:26–23:27 WIB)
+- Konteks: papan desain "AI & input cepat" menaruh mikrofon scribe di HP dokter. D-009 butir 4 mewajibkan persetujuan pasien eksplisit untuk perekaman selama scribe masih beta, dan D-037 butir 1 mensyaratkan pasien sudah setuju direkam. Yohanes memutuskan sendiri, bukan lewat agen: **«Persetujuan pasien ga perlu»** (23:26 WIB), lalu menegaskan **«Ga, itu hanya membantu dokter input scribe nya»** (23:27 WIB). Artinya scribe adalah alat bantu dikte/input dokter, bukan rekaman konsultasi untuk pasien.
+- Keputusan:
+  1. Scribe suara (D-037) adalah **alat bantu input dokter**. Tidak ada formulir persetujuan pasien, dan **tidak ada pemberitahuan ke pasien** (di layar maupun diucapkan).
+  2. Hanya dokter gigi yang merawat yang memakai scribe. Tombol berhenti/jeda rekam harus menonjol (target sentuh ≥ 48 px).
+  3. Keluaran scribe selalu **draf** sampai dokter mengedit, menyetujui, dan menandatangani (D-001). Draf **tidak pernah menimpa** catatan klinis yang sudah ada (D-017). AI tetap hanya merapikan yang diucapkan, tanpa menambah diagnosis, obat, atau kode (D-037 butir 3).
+  4. Audio mentah tidak disimpan jangka panjang. Audio **dihapus segera** setelah transkrip dan draf SOAP dibuat, atau paling lambat 24 jam jika pemrosesan gagal; setiap penghapusan tercatat di jejak audit. Ini **memperketat D-038** untuk fitur ini (D-038 semula: hapus setelah tanda tangan, audio boleh diputar ulang selama masih draf).
+  5. Pemrosesan tetap di Indonesia, in-region, tanpa Geo/Global. Butir lain D-009 tetap berlaku.
+  6. Keputusan ini **menggantikan D-009 butir 4** dan syarat persetujuan pasien di D-037 butir 1 (teks lama dicoret, tidak dihapus).
+  7. Scribe adalah fitur **berbayar**: saklar per klinik (`clinic_ai_setting.paid_enabled`) dan `AI_PAID_ENABLED` keduanya **mati** secara default, plus batas token bulanan per klinik. Jika mati, UI menampilkan keadaan nonaktif yang jelas, tanpa merekam.
+- Alasan: keputusan langsung Yohanes: scribe hanya membantu dokter menginput catatan, jadi tidak perlu persetujuan atau pemberitahuan ke pasien.
+- Akibat/Risiko:
+  - Meski diposisikan sebagai alat input dokter, mikrofon bisa menangkap suara pasien (data kesehatan, UU PDP Pasal 4). Dasar pemrosesan dan ketiadaan pemberitahuan **perlu dikaji konsultan hukum**; ini catatan risiko, bukan alasan untuk menambah pemberitahuan (Yohanes menolak pemberitahuan).
+  - DPIA di compliance.md perlu memuat scribe sebagai alat bantu input dokter tanpa persetujuan/pemberitahuan, plus retensi audio yang diperketat.
+  - UI tidak menampilkan langkah izin atau pemberitahuan ke pasien. Jejak audit tetap mencatat siapa merekam, kapan, untuk pasien mana, dan kapan audio dihapus.
 
 ## Pertanyaan terbuka (perlu jawaban Jerome)
 - ~~Q-1 Target klinik~~ → **ditutup**: semua ukuran (D-007).
