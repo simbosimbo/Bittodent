@@ -642,7 +642,7 @@ def ai_item(
     }[status]
     acts = ""
     if status == "draf" and not compact:
-        acts = f'<div class="iacts">{btn("Tolak", "danger-soft")}{btn("Setujui", "pri", "check")}</div>'
+        acts = f'<div class="iacts">{btn("Tolak", "danger-soft")}{btn("Setujui", "sec", "check")}</div>'
     cite_h = cite_btn(cite, cite_on) if cite else ""
     pop = ""
     if popover:
