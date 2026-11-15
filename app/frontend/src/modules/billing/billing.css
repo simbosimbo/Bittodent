@@ -41,3 +41,28 @@
   .inv-more > summary { min-height: 48px; }
 }
 .inv-pay .toolbar > select, .inv-pay .toolbar > input { min-width: 0; max-width: 100%; flex: 1 1 140px; }
+
+/* #70 Tagihan decluttered: status chip + big sisa; method chips; folds for lines, history and the breakdown. */
+.inv-head h1 { margin-bottom: var(--space-1); }
+.inv-sum { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--space-2); margin: 0; }
+.inv-big { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.inv-chip { align-self: center; }
+.inv-chip-unpaid { background: var(--status-unpaid-bg); color: var(--status-unpaid-fg); box-shadow: inset 0 0 0 1px var(--status-unpaid-border); }
+.inv-chip-done { background: var(--status-done-bg); color: var(--status-done-fg); box-shadow: inset 0 0 0 1px var(--status-done-border); }
+.inv-chip-alert { background: var(--status-alert-bg); color: var(--status-alert-fg); box-shadow: inset 0 0 0 1px var(--status-alert-border); }
+.inv-method { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-3); }
+.chip-method { min-height: 40px; padding: 0 var(--space-4); border: 1px solid var(--color-neutral-200); border-radius: var(--radius-pill); background: var(--surface);
+  font: inherit; font-weight: 600; color: var(--color-neutral-700); cursor: pointer; }
+.chip-method[aria-checked='true'] { background: var(--color-primary-700); border-color: var(--color-primary-700); color: #fff; }
+.chip-method:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.inv-amount { max-width: 220px; margin-bottom: var(--space-3); }
+.inv-lines > summary, .inv-fold > summary { cursor: pointer; font-weight: var(--font-weight-semibold); min-height: 44px; display: flex; align-items: center; }
+.inv-fold { margin-bottom: var(--space-2); }
+.inv-breakdown { display: grid; grid-template-columns: max-content 1fr; gap: 2px var(--space-3); margin: var(--space-3) 0 0; font-size: var(--font-size-sm); color: var(--muted); }
+.inv-breakdown div { display: contents; }
+.inv-breakdown dd { margin: 0; font-variant-numeric: tabular-nums; }
+@media (max-width: 720px) {
+  .chip-method { min-height: 48px; }
+  .inv-amount { max-width: none; width: 100%; }
+  .inv-lines > summary, .inv-fold > summary { min-height: 48px; }
+}

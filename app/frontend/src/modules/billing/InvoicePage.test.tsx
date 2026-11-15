@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, expect, test, vi } from 'vitest'
 import type { Me } from '../../shared/session'
+import { rp } from '../../shared/format'
 import type { Invoice, PaymentAccount } from './api'
 
 const line = { id: 'l1', procedure_code: '23.2', procedure_name: 'Tumpatan', tooth: 16, price_rp: 100000, credited_rp: 0, credit_note_numbers: [],
@@ -40,6 +41,7 @@ test('pending Rp0 adjustment: only the owner (billing.approve_zero) sees approve
 
 test('payment methods are only active clinic accounts of this branch; split posts one payment per row', async () => {
   render(<InvoicePage visitId="v1" me={me(['billing.read', 'billing.adjust'])} />)
+  fireEvent.click(await screen.findByRole('button', { name: 'Split' })) // #70: split opens the per-row selects
   const m1 = await screen.findByRole('combobox', { name: 'Metode 1' })
   await screen.findByRole('option', { name: /Kas Kemang/ })
   expect(within(m1).getAllByRole('option').map((o) => o.textContent)).toEqual(['Pilih akun klinik…', 'Kas Kemang (Tunai)', 'QRIS klinik (QRIS)'])
@@ -148,4 +150,29 @@ test('#70 the payment amount starts at the remaining balance (full payment = no 
   await waitFor(() => expect(amt).toHaveValue(current.balance_rp))
   fireEvent.change(amt, { target: { value: '5000' } })
   expect(amt).toHaveValue(5000)
+})
+
+test('#70 decluttered Tagihan: sisa big + status chip, method chips; lines, history and breakdown folded (open on tap)', async () => {
+  current = { ...inv, adjustments: [], payments_rp: 40000, balance_rp: inv.lines_rp - 40000,
+    payments: [{ id: 'p1', payment_account_id: 'k1', amount_rp: 40000, paid_at: '2026-11-15T03:00:00Z', refunded_rp: 0, account: { name: 'Kas Kemang', kind: 'tunai', bank_name: null, account_last4: null } }] }
+  const { container } = render(<InvoicePage visitId="v1" me={me(['billing.read', 'billing.adjust'])} />)
+  const methods = within(await screen.findByRole('radiogroup', { name: 'Metode bayar' }))
+  expect(screen.getByLabelText(`Sisa ${rp(current.balance_rp)}`)).toHaveClass('inv-big')
+  expect(container.querySelector('.inv-chip')).toHaveTextContent('Belum lunas')
+  expect(screen.queryByText(/Hanya metode milik klinik/)).toBeNull() // helper text -> tooltip
+  expect(screen.queryByRole('combobox', { name: 'Metode 1' })).toBeNull()
+  const lines = container.querySelector('details.inv-lines') as HTMLDetailsElement
+  expect(lines.open).toBe(false)
+  expect(lines.querySelector('summary')).toHaveTextContent(`${current.lines.length} tindakan · ${rp(current.lines_rp)}`)
+  expect(within(lines).getByLabelText('Rincian')).toHaveTextContent('Dibayar')
+  expect(within(lines).getByLabelText('Rincian')).not.toHaveTextContent('Penyesuaian') // zero amounts hidden
+  const hist = container.querySelector('details.inv-fold') as HTMLDetailsElement
+  expect(hist.open).toBe(false)
+  expect(hist.querySelector('summary')).toHaveTextContent('Riwayat bayar (1)')
+  const terima = screen.getByRole('button', { name: 'Terima pembayaran' })
+  await waitFor(() => expect(methods.getAllByRole('radio').length).toBeGreaterThan(0))
+  expect(terima).toBeDisabled()
+  fireEvent.click(methods.getAllByRole('radio')[0])
+  expect(methods.getAllByRole('radio')[0]).toHaveAttribute('aria-checked', 'true')
+  expect(terima).toBeEnabled()
 })
