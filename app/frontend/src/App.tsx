@@ -134,7 +134,7 @@ function StaffApp() {
   else if (hash === '/pasien/baru' && can('patient.create')) page = <PatientForm />
   else if (hash.startsWith('/pasien/') && can('patient.read')) page = <PatientDetail id={hash.slice(8)} canChart={can('note.read')} />
   else if (hash === '/pasien' && can('patient.read')) page = <PatientList canCreate={can('patient.create')} canChart={can('note.read')} initialQ={new URLSearchParams(query).get('q') ?? ''} />
-  else if (hash === '/jadwal' && can('appointment.read')) page = <Schedule me={me} />
+  else if (hash === '/jadwal' && can('appointment.read')) page = <Schedule me={me} newFor={new URLSearchParams(query).get('baru')} />
   else if (hash === '/kasir' && can('billing.read')) page = <KasirPage />
   else if (hash === '/shift' && can('billing.adjust')) page = <ShiftPage />
   else if (hash === '/laporan' && can('reporting.read')) page = <RevenuePage me={me} />

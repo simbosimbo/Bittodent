@@ -745,7 +745,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   )
   return page(
     <div className="chart-actions">
-      {can('appointment.create') && <a className="btn btn-primary" href="#/jadwal">Buat janji</a>}
+      {can('appointment.create') && <a className="btn btn-primary" href={`#/jadwal?baru=${encodeURIComponent(patientId)}`}>Buat janji</a>}
     </div>,
     (pp: PatientFull) => <>
       {msg && <p className="notice" role="status">{msg}</p>}
