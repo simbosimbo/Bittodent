@@ -21,6 +21,17 @@ test.each(STATUSES)('status %s: fg on bg >= 4.5:1', (s) => {
   expect(ratio(fg!, bg!)).toBeGreaterThanOrEqual(4.5)
 })
 
+test.each(STATUSES)('status %s: border >= 3:1 on white and on its own bg (WCAG 1.4.11)', (s) => {
+  const bd = hex(`status-${s}-border`)!
+  expect(ratio(bd, '#FFFFFF')).toBeGreaterThanOrEqual(3)
+  expect(ratio(bd, hex(`status-${s}-bg`)!)).toBeGreaterThanOrEqual(3)
+})
+
+test('status tokens are generated from design/tokens.json (one generated :root, so npm run tokens keeps them)', () => {
+  expect(tokens).toMatch(/^\/\* DIBUAT OTOMATIS/)
+  expect(tokens.match(/:root \{/g)).toHaveLength(1)
+})
+
 test('statuses are distinct; "Perlu konfirmasi" and "Belum bayar" no longer share colours; teal stays for buttons', () => {
   const bgs = STATUSES.map((s) => hex(`status-${s}-bg`))
   expect(new Set(bgs).size).toBe(STATUSES.length)
