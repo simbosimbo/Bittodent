@@ -498,3 +498,11 @@ label.check input { min-height: 0; }
   .alert-link { display: inline-flex; align-items: center; min-height: 44px; margin-block: -14px; }
   .page-head a.small { display: inline-flex; align-items: center; min-height: 44px; }
 }
+
+/* HP: daftar anggota keluarga tidak melebar, tautan 44px (sweep staging: overflow 369>360, "Jadikan aktif" 36px). */
+@media (max-width: 720px) {
+  .member-list li { flex-wrap: wrap; }
+  .member-list li .grow { flex: 1 1 140px; min-width: 0; }
+  .member-list li .member-switch { margin-left: auto; white-space: nowrap; }
+  .member-list li .member-switch, .guarantor-link { display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; }
+}
