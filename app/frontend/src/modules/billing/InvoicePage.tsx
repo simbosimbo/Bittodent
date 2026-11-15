@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { ApiError, errorText } from '../../shared/api/http'
 import type { Me } from '../../shared/session'
-import { addAdjustment, addCreditNote, addPayment, approveZeroTariff, billFromCorrection, decideAdjustment, decideCreditNote, decideVoid, invoiceForVisit,
+import { addAdjustment, addCreditNote, addPayment, addRefund, approveZeroTariff, billFromCorrection, decideAdjustment, decideCreditNote, decideRefund, decideVoid, invoiceForVisit,
   paymentAccounts, reviewCorrection, voidInvoice, type Adjustment, type Invoice, type InvoiceLine, type PaymentAccount } from './api'
 
 const rp = (n: number) => 'Rp' + n.toLocaleString('id-ID')
@@ -14,10 +14,13 @@ const STATUS: Record<Adjustment['status'], string> = { applied: 'Berlaku', pendi
 const INV_STATUS: Record<Invoice['status'], string> = { terbuka: 'Terbuka', lunas: 'Lunas', void: 'Dibatalkan (void)' }
 const REASON: Record<string, string> = { tidak_dikerjakan: 'Tidak dikerjakan', salah_kode: 'Salah kode', salah_situs: 'Salah gigi/permukaan',
   salah_provider: 'Salah dokter', salah_tarif: 'Salah tarif', lainnya: 'Lainnya' }
+type RefundForm = { payment: string; note: string; amount: string; reason: string }
+const REFUND_STATUS = { pending: 'Menunggu persetujuan pemilik', approved: 'Disetujui', rejected: 'Ditolak' }
 type LineForm = { line: InvoiceLine; mode: 'credit' | 'review'; amount: string; type: string; reason: string; correction: string | null; reviewId: string }
 
 // Minimal invoice view (unit 4): lines, adjustments, a Rp0 / 100% discount waits for the owner's approve/reject. Kasir screens: UI unit.
 // Unit B: Nota kredit per line, void (unpaid only), lines flagged by a clinical correction, Rp0 tariff anomaly. Discounts are not for fixing procedures.
+// Unit C: overpayment after a credit note ("kelebihan bayar") -> refund to the original payment account, owner approves.
 export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }) {
   const [inv, setInv] = useState<Invoice | null>(null)
   const [error, setError] = useState('')
@@ -27,6 +30,7 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
   const [rows, setRows] = useState<PayRow[]>([newRow()])
   const [lineForm, setLineForm] = useState<LineForm | null>(null)
   const [voidReason, setVoidReason] = useState('')
+  const [refund, setRefund] = useState<RefundForm | null>(null)
   const can = (p: string) => me.permissions.includes(p)
 
   const load = useCallback(() => invoiceForVisit(visitId).then(setInv, (e) => setError(e instanceof ApiError && e.status === 404 ? 'Belum ada tagihan untuk kunjungan ini.' : errorText(e))), [visitId])
@@ -93,10 +97,28 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
     run(() => voidInvoice(inv.id, voidReason.trim()), (i) => { setVoidReason(''); return i.status === 'void' ? 'Tagihan dibatalkan (void).' : 'Pembatalan menunggu persetujuan pemilik.' })
   }
 
+  // Unit C: refund goes back to the original payment's account (locked), allocated to an applied credit note; the owner approves.
+  const refunds = inv?.refunds ?? []
+  const overpaidLeft = (inv?.overpaid_rp ?? 0) - refunds.filter((r) => r.status === 'pending').reduce((t, r) => t + r.amount_rp, 0)
+  const refundNotes = (inv?.credit_notes ?? []).filter((n) => ['applied', 'approved'].includes(n.status) && n.amount_rp - (n.refunded_rp ?? 0) > 0)
+  const refundPays = (inv?.payments ?? []).filter((p) => p.amount_rp - (p.refunded_rp ?? 0) > 0)
+  const refundMax = (payId: string, noteId: string) => {
+    const p = refundPays.find((x) => x.id === payId)
+    const n = refundNotes.find((x) => x.id === noteId)
+    return Math.max(0, Math.min(overpaidLeft, p ? p.amount_rp - (p.refunded_rp ?? 0) : 0, n ? n.amount_rp - (n.refunded_rp ?? 0) : 0))
+  }
+  const setRefundPick = (f: RefundForm) => setRefund({ ...f, amount: String(refundMax(f.payment, f.note)) })
+  function submitRefund(e: FormEvent) {
+    e.preventDefault()
+    if (!inv || !refund) return
+    run(() => addRefund(inv.id, { payment_id: refund.payment, credit_note_id: refund.note, amount_rp: Number(refund.amount), reason: refund.reason.trim() }),
+      () => { setRefund(null); return 'Refund diajukan: menunggu persetujuan pemilik.' })
+  }
+
   if (!inv) return <div className="card state-card">{error || 'Memuat tagihan…'}</div>
   return (
     <>
-      <div className="page-head"><div><h1>Tagihan</h1><p className="muted small">Saldo {rp(inv.balance_rp)} · baris {rp(inv.lines_rp)} · penyesuaian {rp(inv.adjustments_rp)} · nota kredit {rp(inv.credit_notes_rp ?? 0)} · dibayar {rp(inv.payments_rp)} · {INV_STATUS[inv.status]}</p></div></div>
+      <div className="page-head"><div><h1>Tagihan</h1><p className="muted small">Saldo {rp(inv.balance_rp)} · baris {rp(inv.lines_rp)} · penyesuaian {rp(inv.adjustments_rp)} · nota kredit {rp(inv.credit_notes_rp ?? 0)} · dibayar {rp(inv.payments_rp)}{(inv.refunds_rp ?? 0) > 0 && ` · refund ${rp(inv.refunds_rp)}`} · {INV_STATUS[inv.status]}</p></div></div>
       {msg && <p className="notice" role="status">{msg}</p>}
       {error && <p className="form-error" role="alert">{error}</p>}
       <div className="card">
@@ -204,14 +226,54 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
             <form onSubmit={submitVoid} className="toolbar">
               <input aria-label="Alasan void" required minLength={10} value={voidReason} onChange={(e) => setVoidReason(e.target.value)} />
               <button className="btn">Void tagihan</button>
-              <span className="muted small">Hanya tagihan tanpa pembayaran. Sudah dibayar: pakai nota kredit.</span>
+              <span className="muted small">Hanya tagihan tanpa pembayaran. Sudah dibayar: pakai nota kredit lalu refund.</span>
             </form>
           )}
         </div>
       )}
       <div className="card">
         <h2>Pembayaran</h2>
-        <ul>{inv.payments.map((p) => <li key={p.id}>{accountLabel(p.account)} · {rp(p.amount_rp)}</li>)}</ul>
+        <ul>{inv.payments.map((p) => <li key={p.id}>{accountLabel(p.account)} · {rp(p.amount_rp)}{(p.refunded_rp ?? 0) > 0 && ` · direfund ${rp(p.refunded_rp)}`}</li>)}</ul>
+        {(inv.overpaid_rp ?? 0) > 0 && (
+          <p className="notice" role="note">Kelebihan bayar {rp(inv.overpaid_rp)} — buat refund
+            {can('billing.adjust') && !refund && overpaidLeft > 0 && refundNotes.length > 0 && refundPays.length > 0 && (
+              <> <button className="btn btn-xs" onClick={() => setRefundPick({ payment: refundPays[0].id, note: refundNotes[0].id, amount: '', reason: '' })}>Refund</button></>
+            )}
+          </p>
+        )}
+        {refund && (
+          <form onSubmit={submitRefund} className="toolbar" aria-label="Form refund">
+            <select aria-label="Pembayaran asal" value={refund.payment} onChange={(e) => setRefundPick({ ...refund, payment: e.target.value })}>
+              {refundPays.map((p) => <option key={p.id} value={p.id}>{accountLabel(p.account)} · {rp(p.amount_rp)}</option>)}
+            </select>
+            <input aria-label="Akun refund" disabled value={accountLabel(refundPays.find((p) => p.id === refund.payment)?.account ?? inv.payments[0].account)} />
+            <select aria-label="Nota kredit refund" value={refund.note} onChange={(e) => setRefundPick({ ...refund, note: e.target.value })}>
+              {refundNotes.map((n) => <option key={n.id} value={n.id}>{n.number} · {rp(n.amount_rp)}</option>)}
+            </select>
+            <input aria-label="Jumlah refund (Rp)" type="number" min={1} max={refundMax(refund.payment, refund.note)} required value={refund.amount}
+              onChange={(e) => setRefund({ ...refund, amount: e.target.value })} />
+            <input aria-label="Alasan refund" required minLength={10} value={refund.reason} onChange={(e) => setRefund({ ...refund, reason: e.target.value })} />
+            <button className="btn btn-primary">Ajukan refund</button>
+            <button type="button" className="btn btn-ghost" onClick={() => setRefund(null)}>Batal</button>
+            <span className="muted small">Refund hanya ke akun pembayaran asal dan menunggu persetujuan pemilik.</span>
+          </form>
+        )}
+        {refunds.length > 0 && (
+          <ul aria-label="Refund">
+            {refunds.map((r) => (
+              <li key={r.id}>
+                Refund {rp(r.amount_rp)} · {accountLabel(inv.payments.find((p) => p.id === r.payment_id)?.account ?? { name: 'Akun asal', kind: r.method, bank_name: null, account_last4: null })}
+                {' '}· {r.reason} · <strong>{REFUND_STATUS[r.status]}</strong>{r.self_approved_sole_owner && ' (disetujui sendiri)'}
+                {r.status === 'pending' && can('billing.approve_reversal') && (
+                  <span className="toolbar">
+                    <button className="btn btn-xs" onClick={() => run(() => decideRefund(r.id, 'approve'), () => 'Refund disetujui.')}>Setujui</button>
+                    <button className="btn btn-xs" onClick={() => run(() => decideRefund(r.id, 'reject'), () => 'Refund ditolak.')}>Tolak</button>
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
         {can('billing.adjust') && inv.balance_rp > 0 && (
           <form onSubmit={pay}>
             <p className="muted small">Hanya metode milik klinik. Transfer hanya ke rekening klinik.</p>
