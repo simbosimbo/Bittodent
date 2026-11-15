@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent, useRef } from 'react'
+import { useCallback, useEffect, useState, type FormEvent, type ReactNode, useRef } from 'react'
 import { DateField } from '../../shared/ui/DateField'
 import { ApiError, errorText } from '../../shared/api/http'
 import { fmtDate, fmtTime, todayWib } from '../../shared/format'
@@ -120,7 +120,8 @@ export default function Schedule({ me }: { me: Me }) {
   const canVisit = me.permissions.includes('note.write') // opening from the card starts/reuses the visit
   const tz = data?.branch.timezone ?? 'Asia/Jakarta'
   const mobile = useIsMobile()
-  const [chairPick, setChairPick] = useState<string | null>(null)
+  const [chairPick, setChairPick] = useState<string | null>(null) // null = Semua (agenda) / auto chair (grid)
+  const [view, setView] = useState<'agenda' | 'grid'>('agenda') // mobile only; in memory, resets on reload
   const [sheetId, setSheetId] = useState<string | null>(null) // mobile: tapped card -> action sheet
   const isToday = date === todayWib()
   const now = useNow(mobile && isToday)
@@ -168,6 +169,8 @@ export default function Schedule({ me }: { me: Me }) {
   }
   const shownChair = mobile ? (data?.chairs.find((c) => c.id === chairPick) ?? data?.chairs.find((c) => c.id === nextChair())) : undefined
   const chairs = data ? (shownChair ? [shownChair] : data.chairs) : []
+  const agendaList = (data?.chairs.filter((c) => !chairPick || c.id === chairPick).flatMap((c) => c.appointments) ?? [])
+    .sort((x, y) => x.starts_at.localeCompare(y.starts_at))
   const nowMin = mobile && isToday ? minutesOfDay(new Date(now).toISOString(), tz) - START : -1
   const nowTop = nowMin >= 0 && nowMin <= END - START ? (nowMin / STEP) * ROW : null
 
@@ -222,19 +225,35 @@ export default function Schedule({ me }: { me: Me }) {
         </div>
       )}
       {error ? <div className="card state-card error">{error} <button className="btn" onClick={reload}>Coba lagi</button></div>
-        : !data ? <div className="card state-card muted">Memuat jadwal…</div>
+        : !data || (mobile && loading && data.date !== date) ? <div className="card state-card muted" role="status">Memuat jadwal…</div>
         : data.chairs.length === 0 ? <div className="card state-card muted">Cabang ini belum punya kursi aktif.</div> : (
           <>
-          {mobile && data.chairs.length > 1 && (
-            <div className="chair-pills" role="group" aria-label="Pilih kursi">
-              {data.chairs.map((c) => (
-                <button key={c.id} type="button" aria-pressed={c === shownChair} onClick={() => setChairPick(c.id)}>
-                  {c.label} <span className="muted small">· {c.appointments.length}</span>
-                </button>
-              ))}
+          {mobile && (
+            // Agenda: "Semua" + one pill per chair. Grid shows one chair column, so it has no "Semua" (see chairPick).
+            <div className="sched-filters">
+              {data.chairs.length > 1 && (
+                <div className="chair-pills" role="group" aria-label="Pilih kursi">
+                  {view === 'agenda' && <button type="button" aria-pressed={!chairPick} onClick={() => setChairPick(null)}>Semua <span className="muted small">· {count}</span></button>}
+                  {data.chairs.map((c) => (
+                    <button key={c.id} type="button" aria-pressed={view === 'agenda' ? c.id === chairPick : c === shownChair} onClick={() => setChairPick(c.id)}>
+                      {c.label} <span className="muted small">· {c.appointments.length}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="seg sched-view" role="group" aria-label="Tampilan">
+                <button type="button" className="btn" aria-pressed={view === 'agenda'} onClick={() => setView('agenda')}>Agenda</button>
+                <button type="button" className="btn" aria-pressed={view === 'grid'} onClick={() => setView('grid')}>Grid</button>
+              </div>
             </div>
           )}
-          {mobile && count === 0 && <p className="sched-empty muted" role="status">{isToday ? 'Tidak ada janji hari ini' : 'Tidak ada janji pada tanggal ini'}</p>}
+          {mobile && (view === 'grid' ? count === 0 : agendaList.length === 0) && (
+            <p className="sched-empty muted" role="status">{isToday ? 'Tidak ada janji hari ini' : 'Tidak ada janji pada tanggal ini'}</p>
+          )}
+          {mobile && view === 'agenda' ? (
+            <Agenda list={agendaList} chairs={data.chairs} tz={tz} nowMin={isToday ? minutesOfDay(new Date(now).toISOString(), tz) : null}
+              onOpen={(a) => setSheetId(a.id)} onGap={canCreate ? (minute) => setDialog({ chairId: chairPick ?? undefined, minute }) : undefined} />
+          ) : (
           <div className={'card schedule' + (loading ? ' is-loading' : '')}>
             <div className="sched-grid" style={{ gridTemplateColumns: `64px repeat(${chairs.length}, minmax(${mobile ? 0 : 180}px, 1fr))` }}>
               <div className="sched-head" />
@@ -286,6 +305,7 @@ export default function Schedule({ me }: { me: Me }) {
               ))}
             </div>
           </div>
+          )}
           </>
         )}
       {mobile && sheetAppt && (
@@ -311,6 +331,49 @@ export default function Schedule({ me }: { me: Me }) {
       )}
     </>
   )
+}
+
+const OFF = ['cancelled', 'no_show', 'rejected'] // shown in the agenda, but the chair is free
+const dotTime = (m: number) => hhmm(m).replace(':', '.') // fmtTime style (id-ID "09.30")
+
+/**
+ * Mobile agenda: the day's appointments in time order (all chairs or one), a "Sekarang" divider on today, and
+ * "Kosong" rows for free stretches (≥ one 30-min slot, from now on today) that open Buat Janji at that time.
+ */
+function Agenda({ list, chairs, tz, nowMin, onOpen, onGap }: {
+  list: Appointment[]; chairs: Sched['chairs']; tz: string; nowMin: number | null; onOpen: (a: Appointment) => void; onGap?: (minute: number) => void
+}) {
+  type Row = { at: number; rank: number; key: string; el: ReactNode }
+  const rows: Row[] = []
+  const label = Object.fromEntries(chairs.map((c) => [c.id, c.label]))
+  const earliest = nowMin === null ? START : Math.ceil(nowMin / STEP) * STEP
+  const gap = (from: number, to: number) => {
+    from = Math.max(Math.ceil(from / STEP) * STEP, earliest)
+    if (onGap && to - from >= STEP) rows.push({ at: from, rank: 1, key: 'gap' + from, el: (
+      <button type="button" className="agenda-gap" onClick={() => onGap(from)}>
+        <Icon d={ICONS.plus} size={16} /> Kosong {dotTime(from)}–{dotTime(to)} · ketuk untuk buat janji
+      </button>
+    ) })
+  }
+  let free = START
+  for (const a of list) {
+    const s = minutesOfDay(a.starts_at, tz), mins = Math.round((new Date(a.ends_at).getTime() - new Date(a.starts_at).getTime()) / 60000)
+    if (!OFF.includes(a.status)) { gap(free, Math.min(s, END)); free = Math.max(free, s + mins) }
+    rows.push({ at: s, rank: 2, key: a.id, el: (
+      <button type="button" className={`agenda-item appt-${a.status}`} aria-haspopup="dialog" onClick={() => onOpen(a)}>
+        <span className="agenda-time"><strong>{fmtTime(a.starts_at, tz)}</strong><span>{mins} mnt</span></span>
+        <span className="agenda-main">
+          <span className="agenda-name">{a.patient?.name}</span>
+          <span className="agenda-meta">{[a.reason, label[a.chair_id], a.dentist?.name].filter(Boolean).join(' · ')}</span>
+        </span>
+        <span className="agenda-chips">{a.source === 'online' && <span className="chip chip-online">Online</span>}<StatusChip status={a.status} /></span>
+      </button>
+    ) })
+  }
+  gap(free, END)
+  if (nowMin !== null) rows.push({ at: nowMin, rank: 0, key: 'now', el: <span className="agenda-now">Sekarang {dotTime(nowMin)}</span> })
+  rows.sort((x, y) => x.at - y.at || x.rank - y.rank)
+  return <ul className="agenda" aria-label="Agenda">{rows.map((r) => <li key={r.key}>{r.el}</li>)}</ul>
 }
 
 function BookDialog({ sched, date, me, initial, onClose, onSaved }: {

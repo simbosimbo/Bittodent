@@ -149,3 +149,39 @@ a.tl-block:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px
 @media (max-width: 720px) {
   .shell-main:has(.sched-top) { padding-bottom: calc(152px + env(safe-area-inset-bottom)); }
 }
+
+/* Phone Jadwal: chair chips + Agenda|Grid switch, then the agenda (default) or the one-chair grid. */
+@media (max-width: 720px) {
+  .sched-filters { display: grid; gap: var(--space-2); margin-bottom: var(--space-3); min-width: 0; }
+  .sched-filters .chair-pills { margin-bottom: 0; }
+  .sched-view { display: grid; grid-template-columns: 1fr 1fr; }
+  .sched-view .btn { min-height: 40px; }
+  .agenda { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+  .agenda-item {
+    display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: 'time main' 'time chips'; column-gap: var(--space-3); row-gap: 4px;
+    width: 100%; min-height: 64px; padding: var(--space-3); border: 0; border-left: 4px solid; border-radius: var(--radius-sm);
+    font: inherit; color: var(--text); text-align: left; cursor: pointer;
+  }
+  :where(.agenda-item) { background: var(--color-appointment-terjadwal-bg); border-color: var(--color-appointment-terjadwal-border); }
+  .agenda-item:focus-visible, .agenda-gap:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .agenda-time { grid-area: time; display: flex; flex-direction: column; font-variant-numeric: tabular-nums; min-width: 3.2em; }
+  .agenda-time span { font-size: var(--font-size-xs); color: var(--muted); }
+  .agenda-main { grid-area: main; display: flex; flex-direction: column; min-width: 0; }
+  .agenda-name { font-weight: 650; font-size: var(--font-size-base); overflow-wrap: anywhere; }
+  .agenda-meta { font-size: var(--font-size-xs); color: var(--muted); overflow-wrap: anywhere; }
+  .appt-in_treatment .agenda-time span, .appt-in_treatment .agenda-meta { color: var(--color-appointment-merawat-fg); }
+  .agenda-chips { grid-area: chips; display: flex; flex-wrap: wrap; gap: 6px; }
+  .agenda-gap {
+    display: flex; align-items: center; gap: var(--space-2); width: 100%; min-height: 44px; padding: 0 var(--space-3);
+    border: 1px dashed var(--border); border-radius: var(--radius-sm); background: transparent; font: inherit; font-size: 13px;
+    color: var(--color-neutral-700); text-align: left; cursor: pointer;
+  }
+  .agenda-now { display: flex; align-items: center; gap: var(--space-2); font-size: var(--font-size-xs); font-weight: 700; color: var(--danger); }
+  .agenda-now::before, .agenda-now::after { content: ''; flex: 1; height: 2px; background: var(--danger); }
+  .agenda-now::before { flex: 0 0 12px; }
+}
+@media (min-width: 413px) and (max-width: 720px) {
+  .agenda-item { min-height: 72px; padding: var(--space-3) var(--space-4); }
+  .agenda-item { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: 'time main chips'; align-items: start; }
+  .agenda-chips { justify-content: flex-end; }
+}

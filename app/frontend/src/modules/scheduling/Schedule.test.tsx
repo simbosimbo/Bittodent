@@ -90,14 +90,15 @@ test('desktop: semua kursi tampil, tanpa pil kursi dan tanpa garis sekarang', as
   expect(screen.getByRole('button', { name: 'Hari sebelumnya' })).toHaveTextContent('‹')
 })
 
-test('HP: pil kursi + satu kolom; default kursi dengan janji berikutnya, pil mengganti kursi', async () => {
+test('HP Grid: pil kursi + satu kolom; default kursi dengan janji berikutnya, pil mengganti kursi', async () => {
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(new Date('2030-01-07T05:00:00Z')) // 12:00 WIB: Ani (09:00) sudah lewat, berikutnya Budi di Kursi 2
   viewport(412)
   mockChairs(() => '2030-01-07')
   const { container } = render(<Schedule me={ME} />)
+  fireEvent.click(await screen.findByRole('button', { name: 'Grid' }))
   const pills = await screen.findByRole('group', { name: 'Pilih kursi' })
-  expect(within(pills).getAllByRole('button')).toHaveLength(3)
+  expect(within(pills).getAllByRole('button')).toHaveLength(3) // no "Semua" in the one-column grid
   expect(within(pills).getByRole('button', { name: /Kursi 2/ })).toHaveAttribute('aria-pressed', 'true')
   expect(container.querySelectorAll('.sched-col')).toHaveLength(1)
   expect(screen.getByText('Budi Contoh')).toBeInTheDocument()
@@ -117,6 +118,7 @@ test('HP: garis sekarang hanya pada tanggal hari ini', async () => {
   let date = '2030-01-07'
   mockChairs(() => date)
   const { container } = render(<Schedule me={ME} />)
+  fireEvent.click(await screen.findByRole('button', { name: 'Grid' }))
   expect(await screen.findByRole('img', { name: 'Sekarang 10:30' })).toBeInTheDocument()
   expect(container.querySelector('.sched-now-label')).toHaveTextContent('10:30')
   date = '2030-01-08'
@@ -125,7 +127,7 @@ test('HP: garis sekarang hanya pada tanggal hari ini', async () => {
   expect(container.querySelector('.sched-now-label')).toBeNull()
 })
 
-test('HP: hari kosong menampilkan pesan, grid tetap bisa diklik', async () => {
+test('HP Grid: hari kosong menampilkan pesan, grid tetap bisa diklik', async () => {
   viewport(412)
   vi.stubGlobal('fetch', vi.fn(async (url: string) => {
     if (url.startsWith('/api/schedule')) return json(sched([]))
@@ -134,7 +136,8 @@ test('HP: hari kosong menampilkan pesan, grid tetap bisa diklik', async () => {
     throw new Error('unexpected ' + url)
   }))
   const { container } = render(<Schedule me={ME} />)
-  expect(await screen.findByRole('status')).toHaveTextContent(/Tidak ada janji/)
+  fireEvent.click(await screen.findByRole('button', { name: 'Grid' }))
+  expect(await screen.findByText(/Tidak ada janji/)).toHaveAttribute('role', 'status')
   fireEvent.click(container.querySelector('.sched-slot.clickable') as HTMLElement)
   expect(await screen.findByRole('dialog', { name: 'Buat Janji' })).toBeInTheDocument()
 })
@@ -194,7 +197,7 @@ test('HP: ketuk kartu membuka sheet aksi; aksi memanggil transisi yang sama; Esc
   expect(screen.queryByRole('dialog')).toBeNull()
 
   // Online request: Konfirmasi / Tolak in the sheet, same transition as the "Perlu konfirmasi" list
-  fireEvent.click(screen.getByRole('button', { name: /Menunggu konfirmasi.*Sinta Contoh/ }))
+  fireEvent.click(screen.getByRole('button', { name: /Sinta Contoh.*Menunggu konfirmasi/ }))
   const d2 = screen.getByRole('dialog', { name: 'Sinta Contoh' })
   expect(within(d2).queryByRole('link', { name: 'Buka Rekam Medis' })).toBeNull()
   fireEvent.click(within(d2).getByRole('button', { name: 'Konfirmasi' }))
@@ -341,4 +344,105 @@ test('desktop: tanpa week strip, FAB, atau toolbar HP', async () => {
   expect(container.querySelector('.sched-top, .week-strip, .fab')).toBeNull()
   expect(screen.getByRole('heading', { name: 'Jadwal' })).toHaveClass('shell-dup-title')
   expect(calls).toHaveLength(1) // no week fetch on desktop
+})
+
+// ---- Agenda (default on a phone), toggle, chips, empty gaps ----
+function mockAgenda(list: unknown[]) {
+  vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+    if (url.startsWith('/api/schedule')) return json({
+      ...sched([]), date: new URL(url, 'http://x').searchParams.get('date'),
+      chairs: [
+        { id: 'c1', label: 'Kursi 1', appointments: (list as any[]).filter((a) => a.chair_id === 'c1') },
+        { id: 'c2', label: 'Kursi 2', appointments: (list as any[]).filter((a) => a.chair_id === 'c2') },
+      ],
+    })
+    if (url.startsWith('/api/planned-appointments')) return json({ data: [] })
+    if (url.startsWith('/api/patients')) return json({ data: [] })
+    throw new Error('unexpected ' + url)
+  }))
+}
+const at9 = (id: string, chair: string, name: string, from: string, to: string, status = 'booked') =>
+  ({ ...appt(id, status, 'staff', name, '09:00'), chair_id: chair, starts_at: `2030-01-09T${from}:00+07:00`, ends_at: `2030-01-09T${to}:00+07:00` })
+
+test('HP Agenda: default, lintas kursi urut jam, pemisah Sekarang, baris kosong; saklar ke Grid dan kembali', async () => {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date('2030-01-09T03:15:00Z')) // Rabu 10:15 WIB
+  viewport(412)
+  mockAgenda([at9('a', 'c2', 'Ani Contoh', '09:00', '09:45'), at9('b', 'c1', 'Budi Contoh', '11:30', '12:00'), at9('x', 'c1', 'Batal Contoh', '13:00', '14:00', 'cancelled')])
+  const { container } = render(<Schedule me={ME} />)
+  const agenda = await screen.findByRole('list', { name: 'Agenda' })
+  expect(screen.getByRole('button', { name: 'Agenda' })).toHaveAttribute('aria-pressed', 'true')
+  expect(container.querySelector('.sched-grid')).toBeNull()
+  const rows = within(agenda).getAllByRole('listitem').map((li) => li.textContent)
+  expect(rows).toEqual([
+    expect.stringMatching(/^09\.0045 mntAni ContohKonsultasi · Kursi 2 · drg\. Bunga ContohTerjadwal$/),
+    'Sekarang 10.15',
+    expect.stringContaining('Kosong 10.30–11.30 · ketuk untuk buat janji'), // starts at the next 30-min slot after now
+    expect.stringMatching(/^11\.30.*Budi Contoh.*Kursi 1/),
+    expect.stringContaining('Kosong 12.00–20.00'), // a cancelled appointment does not block the chair
+    expect.stringMatching(/^13\.00.*Batal Contoh.*Batal$/),
+  ])
+  fireEvent.click(screen.getByRole('button', { name: 'Grid' }))
+  expect(screen.queryByRole('list', { name: 'Agenda' })).toBeNull()
+  expect(container.querySelectorAll('.sched-col')).toHaveLength(1)
+  fireEvent.click(screen.getByRole('button', { name: 'Agenda' }))
+  expect(screen.getByRole('list', { name: 'Agenda' })).toBeInTheDocument()
+})
+
+test('HP: chip Semua/Kursi menyaring agenda; Grid tanpa Semua', async () => {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date('2030-01-09T01:00:00Z'))
+  viewport(412)
+  mockAgenda([at9('a', 'c2', 'Ani Contoh', '09:00', '09:30'), at9('b', 'c1', 'Budi Contoh', '10:00', '10:30')])
+  render(<Schedule me={ME} />)
+  const pills = await screen.findByRole('group', { name: 'Pilih kursi' })
+  expect(within(pills).getByRole('button', { name: /Semua · 2/ })).toHaveAttribute('aria-pressed', 'true')
+  expect(screen.getByText('Ani Contoh')).toBeInTheDocument()
+  expect(screen.getByText('Budi Contoh')).toBeInTheDocument()
+  fireEvent.click(within(pills).getByRole('button', { name: /Kursi 2/ }))
+  expect(within(pills).getByRole('button', { name: /Kursi 2/ })).toHaveAttribute('aria-pressed', 'true')
+  expect(screen.getByText('Ani Contoh')).toBeInTheDocument()
+  expect(screen.queryByText('Budi Contoh')).toBeNull()
+  fireEvent.click(within(pills).getByRole('button', { name: /Kursi 1/ }))
+  expect(screen.queryByText('Ani Contoh')).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: 'Grid' }))
+  expect(within(screen.getByRole('group', { name: 'Pilih kursi' })).queryByRole('button', { name: /Semua/ })).toBeNull()
+  expect(screen.getByText('Budi Contoh')).toBeInTheDocument() // grid keeps the picked chair
+})
+
+test('HP Agenda: hari kosong -> "Tidak ada janji" + baris kosong membuka Buat Janji terisi jam & kursi', async () => {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date('2030-01-08T01:00:00Z')) // Selasa; the schedule shows Rabu 9 Jan (not today: no now cut-off)
+  viewport(412)
+  mockAgenda([at9('b', 'c1', 'Budi Contoh', '08:00', '10:00')])
+  render(<Schedule me={ME} />)
+  fireEvent.click(await screen.findByRole('button', { name: /^Rabu, 9 Januari 2030/ }))
+  fireEvent.click(await screen.findByRole('button', { name: /Kursi 2/ }))
+  expect(screen.getByText('Tidak ada janji pada tanggal ini')).toHaveAttribute('role', 'status')
+  fireEvent.click(screen.getByRole('button', { name: /Kosong 08\.00–20\.00/ }))
+  const dialog = await screen.findByRole('dialog', { name: 'Buat Janji' })
+  expect(within(dialog).getByRole('combobox', { name: 'Kursi' })).toHaveValue('c2')
+  expect(within(dialog).getByRole('combobox', { name: 'Jam mulai' })).toHaveValue('480')
+  fireEvent.keyDown(document, { key: 'Escape' })
+  // Semua: a free stretch is one where no chair is busy; the dialog opens on that time
+  fireEvent.click(screen.getByRole('button', { name: /^Semua/ }))
+  fireEvent.click(screen.getByRole('button', { name: /Kosong 10\.00–20\.00/ }))
+  expect(within(await screen.findByRole('dialog', { name: 'Buat Janji' })).getByRole('combobox', { name: 'Jam mulai' })).toHaveValue('600')
+})
+
+test('HP: memuat hari lain menampilkan status memuat, bukan agenda hari sebelumnya', async () => {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date('2030-01-09T01:00:00Z'))
+  viewport(412)
+  let release = () => {}
+  mockAgenda([at9('b', 'c1', 'Budi Contoh', '10:00', '10:30')])
+  const base = globalThis.fetch as any
+  render(<Schedule me={ME} />)
+  await screen.findByText('Budi Contoh')
+  vi.stubGlobal('fetch', vi.fn((url: string) => url.includes('date=2030-01-10') ? new Promise((r) => { release = () => r(base(url)) }) : base(url)))
+  fireEvent.click(screen.getByRole('button', { name: /^Kamis, 10 Januari 2030/ }))
+  expect(await screen.findByText('Memuat jadwal…')).toBeInTheDocument()
+  expect(screen.queryByText('Budi Contoh')).toBeNull()
+  release()
+  expect(await screen.findByText('Budi Contoh')).toBeInTheDocument()
 })
