@@ -20,7 +20,8 @@ export function CorrectionApprovals() {
     <div className="card">
       <h2>Koreksi tindakan menunggu persetujuan</h2>
       <p className="muted small">Koreksi lewat tenggat bebas menunggu di sini. Tenggat diatur di <a href="#/pengaturan-rm">Pengaturan RM</a>.</p>
-      {error && <p className="form-error" role="alert">{error}</p>}
+      {error && <p className="form-error" role="alert">{error}{!rows && <> <button type="button" className="btn" onClick={() => { setError(''); load() }}>Coba lagi</button></>}</p>}
+      {!rows && !error && <p className="muted">Memuat…</p>}
       {msg && <p className="small" role="status">{msg}</p>}
       {rows && rows.length === 0 && <p className="muted">Tidak ada koreksi yang menunggu.</p>}
       <ul aria-label="Koreksi menunggu">

@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ApiError, errorText } from '../../shared/api/http'
-import { fmtDateTime } from '../../shared/format'
+import { fmtDateTime, rp } from '../../shared/format'
 import { decideCreditNote, decideRefund, decideVoid, pendingReversals, type PendingReversals } from './api'
 
-const rp = (n: number) => 'Rp' + n.toLocaleString('id-ID')
 
 /** Owner (billing.approve_reversal): full credit notes, voids and refunds waiting for approval. Minimal; UI unit polishes. */
 export function ReversalApprovals() {
@@ -23,7 +22,8 @@ export function ReversalApprovals() {
   return (
     <div className="card">
       <h2>Nota kredit, pembatalan tagihan & refund menunggu persetujuan</h2>
-      {error && <p className="form-error" role="alert">{error}</p>}
+      {error && <p className="form-error" role="alert">{error}{!data && <> <button type="button" className="btn" onClick={() => { setError(''); load() }}>Coba lagi</button></>}</p>}
+      {!data && !error && <p className="muted">Memuat…</p>}
       {msg && <p className="small" role="status">{msg}</p>}
       {empty && <p className="muted">Tidak ada yang menunggu.</p>}
       <ul aria-label="Pembalikan menunggu">

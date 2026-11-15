@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { ApiError, errorText } from '../../shared/api/http'
+import { rp } from '../../shared/format'
 import type { Me } from '../../shared/session'
 import { addAdjustment, addCreditNote, addPayment, addRefund, approveZeroTariff, billFromCorrection, decideAdjustment, decideCreditNote, decideRefund, decideVoid, invoiceForVisit,
   paymentAccounts, reviewCorrection, voidInvoice, type Adjustment, type Invoice, type InvoiceLine, type PaymentAccount } from './api'
 
-const rp = (n: number) => 'Rp' + n.toLocaleString('id-ID')
 const KIND: Record<PaymentAccount['kind'], string> = { tunai: 'Tunai', qris: 'QRIS', edc: 'EDC', transfer: 'Transfer' }
 const accountLabel = (a: Pick<PaymentAccount, 'name' | 'kind' | 'bank_name' | 'account_last4'>) =>
   `${a.name} (${KIND[a.kind]}${a.bank_name ? ' ' + a.bank_name : ''}${a.account_last4 ? ' ··' + a.account_last4 : ''})`
