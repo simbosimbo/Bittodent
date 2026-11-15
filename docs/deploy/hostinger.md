@@ -119,3 +119,12 @@ Lalu login `pemilik@senyum.test` dengan kredensial demo + kode TOTP.
 - Belum ada kebijakan cadangan/restore yang diuji, belum ada enkripsi cadangan, belum ada pemantauan.
 - Lokasi pusat data akun ini **perlu dicek**; data kesehatan tunduk pada UU 27/2022 (PDP) dan Permenkes rekam medis (nomor & pasal perlu dicek), serta aturan proyek "data & backup tetap di Indonesia".
 - **Produksi** (data asli) butuh VPS/server khusus di Indonesia dengan dua akun DB (`ehr_admin` + `ehr_app`), lalu PostgreSQL 18 + RLS sebelum data asli (gerbang keras, D-030).
+
+## 11. Status deploy pertama (15 Nov 2026)
+
+- Website `inspidok.com` dibuat di order Cloud `1006813012` (akun `u131761927`), PHP **8.4.27** (+ `sodium`, `expose_php=Off`), SSL Hostinger aktif (lifetime) dengan redirect HTTPS dan CDN Hostinger di depan.
+- Database `u131761927_bittostg`, server **MariaDB 11.8** (bukan MySQL 8.4). Semua 38 migrasi jalan dengan driver `mysql`, termasuk trigger append-only (tidak ada galat SUPER/binlog); GRANT dilewati (`DB_APP_GRANTS=false`). Sebelumnya diuji lokal di MariaDB 11.8.3: bila binlog aktif tanpa `log_bin_trust_function_creators`, `CREATE TRIGGER` gagal (1419), jadi cek ini lagi bila server pindah.
+- Tidak ada SSH yang dipakai; tidak ada `composer`/`node` di server, jadi `vendor/` dan SPA ikut dalam arsip. Migrasi + `staging:seed` dijalankan lewat cron sementara lalu dihapus. Perintah cron hPanel dibatasi **255 karakter**; output dibaca lewat "cron output" hanya bila perintah dibungkus `/bin/bash -c '...'`.
+- Cron tetap: satu baris `schedule:run` tiap menit (antrean lewat scheduler).
+- Rahasia server (`.env`) tidak ada di repo; disimpan di luar repo pada mesin build dan wajib dikirim lagi lewat `ENV_FILE` setiap deploy (deploy menimpa `public_html`).
+- Tampilan masih bermerek "EHR Gigi" karena PR rename Bittodent belum ada di tumpukan ini.
