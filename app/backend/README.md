@@ -37,16 +37,18 @@ user DB, matriks izin) di `tests/Feature`. Migrasi tetap di `database/migrations
 | Identity | `users`, login Fortify + TOTP wajib, `EnsureTwoFactor`, `NoRememberMe`, masuk cepat dev; kontrak `UserDirectory` | — |
 | Patients | `patient`, `household`, `guardian`, `medical_history_version` (berversi), `/api/patients*` (keluarga, wali, riwayat medis, peringatan), `PatientSearch`; kontrak `PatientDirectory` | Tenancy |
 | Scheduling | `chair`, `appointment` (+ waktu datang/duduk/selesai), `planned_appointment`, state machine, cek double booking (buat, ubah jadwal, dari rencana), `/api/schedule`, `/api/appointments*`, `/api/planned-appointments*` | Tenancy, Patients, Identity |
-| Clinical | `visit`, `clinical_note(_version)`, `tooth_finding`, `correction_request`, rekam medis (chart, odontogram, SOAP, tanda tangan, koreksi), status tindakan (`Domain\ProcedureStatus`), `tooth_baseline`, `consent_record`; `Contracts\VisitDirectory`, `Events\ProcedureRecorded` (tanpa harga, dikirim untuk tindakan `selesai`) | Patients, Scheduling, Tenancy, Identity, Integrations |
+| Clinical | `visit`, `clinical_note(_version)`, `tooth_finding`, `correction_request`, rekam medis (chart, odontogram, SOAP, tanda tangan, koreksi), status tindakan (`Domain\ProcedureStatus`), `tooth_baseline`, `consent_record`; `Contracts\VisitDirectory`, `Contracts\IntegrityFacts` (laporan pemilik), `Events\ProcedureRecorded` (tanpa harga, dikirim untuk tindakan `selesai`) | Patients, Scheduling, Tenancy, Identity, Integrations |
 | Integrations | `outbox` + kontrak `OutboxPublisher` (belum ada pengirim) | — |
 | Intake | stub. Akan: anamnesis/kuesioner pra-kunjungan berversi; peringatan medis lewat kontrak `Patients\Contracts\MedicalAlerts` | Patients |
 | Queue | stub. Akan: antrean cabang (`menunggu → dipanggil → di_kursi → selesai`, `batal`) | Scheduling |
 | Prescriptions | `prescription`, `prescription_item` (`kfa_code` + dosis terenkripsi), `prescription_void` (U0c: tabel + trigger, belum ada API). MVP = resep cetak ditandatangani dokter di kertas; `signed` tak bisa diubah, koreksi = batal + terbit ulang nomor baru; belum kirim SATUSEHAT (D-036) | Patients, Clinical |
 | Tariffs | `tariff` (kode + tingkat kesulitan `variant`/`level_label`/`level_rank`, `valid_from`/`valid_to`, harga palsu), templat tingkat `Domain\DifficultyTemplate` di-seed per tenant, `PUT /api/tariffs/{id}/levels` (pemilik, versi baru bertanggal, diaudit); kontrak `PriceLookup` | — |
-| Billing | `invoice`, `invoice_line` (dibuat listener dari `Clinical\Events\ProcedureRecorded` + snapshot `PriceLookup`), `invoice_adjustment` (append-only); dokter tidak pernah mengetik harga; kontrak `FinalizedRevenue` (stub) | Clinical, Tariffs, Patients |
+| Billing | `invoice`, `invoice_line` (dibuat listener dari `Clinical\Events\ProcedureRecorded` + snapshot `PriceLookup`), `invoice_adjustment` (append-only); dokter tidak pernah mengetik harga; kontrak `FinalizedRevenue` (stub), `IntegrityFacts` (laporan pemilik) | Clinical, Tariffs, Patients, Tenancy |
 | Compensation | `Domain\CompensationBasis` (default `after_material_and_lab`, alternatif `before_costs`, D-034), kontrak stub `FeeCalculator` (aturan bertanggal, periode lewat tidak dihitung ulang); belum ada tabel/API | Billing (hanya `Contracts\`), Identity |
 | Recall | `reminder_log` + `ReminderService` (pengingat janji, kanal no-op) | Scheduling |
-| Audit, Inventory, Reporting | stub: README + provider kosong | — (tidak ada yang boleh memakai Reporting) |
+| Audit | `GET /api/audit-events` (pemilik, baca saja; tanpa API ubah/hapus), unit 6 | Identity, Tenancy |
+| Reporting | laporan integritas pemilik per dokter + peringatan `GET /api/reports/integrity` (`reporting.read`), unit 6; hanya lewat Contracts | Clinical, Billing, Scheduling, Identity, Patients, Tenancy (tidak ada yang boleh memakai Reporting) |
+| Inventory | stub: README + provider kosong | — |
 
 Aturan harga (tes `test_pricing_and_reporting_edges`): Clinical tidak punya jalur (langsung/transitif) ke Billing atau Tariffs, Compensation membaca Billing hanya lewat `Contracts\`, tidak ada yang bergantung pada Reporting.
 Kontrak stub tanpa implementasi/binding: `Billing\FinalizedRevenue`, `Patients\MedicalAlerts`, `Compensation\FeeCalculator`. (C3 mengimplementasikan `Tariffs\PriceLookup`, `Clinical\VisitDirectory` dan mengirim `ProcedureRecorded`.)

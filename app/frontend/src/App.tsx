@@ -10,6 +10,7 @@ import { AlertRibbon, FamilyPage, MedicalHistoryPage, PatientDetail, PatientForm
 import { Home, Schedule } from './modules/scheduling'
 import { ChartPage } from './modules/clinical'
 import { InvoicePage } from './modules/billing'
+import { ReportPage } from './modules/reporting'
 
 const useHash = () => {
   const [hash, setHash] = useState(location.hash.slice(1) || '/')
@@ -28,6 +29,7 @@ const NAV: (NavItem & { perm: string | null })[] = [
   { path: '/rekam-medis', label: 'Rekam Medis', perm: 'note.read', icon: ICONS.tooth, group: 'pasien' },
   { path: '/keluarga', label: 'Keluarga', perm: 'patient.read', icon: ICONS.users, group: 'pasien' },
   { path: '/riwayat-medis', label: 'Riwayat Medis', perm: 'note.read', icon: ICONS.heart, group: 'pasien' },
+  { path: '/laporan', label: 'Laporan', perm: 'reporting.read', icon: ICONS.chart }, // unit 6: owner only
 ]
 
 export default function App() {
@@ -94,6 +96,7 @@ export default function App() {
   else if (hash.startsWith('/pasien/') && can('patient.read')) page = <PatientDetail key={hash} id={hash.slice(8)} canChart={can('note.read')} />
   else if (hash === '/pasien' && can('patient.read')) page = <PatientList key={query} canCreate={can('patient.create')} initialQ={new URLSearchParams(query).get('q') ?? ''} />
   else if (hash === '/jadwal' && can('appointment.read')) page = <Schedule me={me} />
+  else if (hash === '/laporan' && can('reporting.read')) page = <ReportPage />
   else page = <Home me={me} />
 
   return <Shell me={me} nav={nav} active={active} ribbon={patient && can('patient.read') && <AlertRibbon patientId={patient.id} />} onSwitchBranch={switchBranch} onLogout={logout}>{page}</Shell>

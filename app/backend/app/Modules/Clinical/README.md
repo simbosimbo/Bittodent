@@ -49,3 +49,5 @@ Akses (U0d): pemilik hanya **membaca** (`note.read`); tidak pernah menulis draf,
 - TODO: audio dikte dihapus setelah catatan ditandatangani; transkrip + diff draf-vs-final (draf agen vs versi bertanda tangan) disimpan ke audit.
 
 Aturan: kode baru diletakkan di sini (`Models/`, `Http/`, `Services/`, `Domain/`, `Routes/routes.php`, `Contracts/`, `Events/`). Modul lain hanya boleh memakai `Contracts/` atau `Events/` modul ini, dan hanya jika sisi (edge) tercantum di `config/modules.php`.
+
+Unit 6: `Contracts\IntegrityFacts` (baca saja, untuk Reporting): tindakan luar, kunjungan dengan `selesai` berkode (himpunan yang sama dengan penjaga tutup kunjungan, `VisitCloser::completedProcedures`), kunjungan batal/tutup tanpa tagihan. Lihat DEVIATIONS #52.

@@ -50,15 +50,19 @@ final class VisitCloser
     /**
      * `selesai` work with a code, draft or final (an unsigned draft has no line yet, so it blocks too). A correction of a `selesai` row
      * is a new `selesai` row that is never billed (the line stays on the original): skip rows that supersede a `selesai` row.
-     *
-     * @return list<string>
+     * Also the owner integrity report's "tanpa tagihan" base (IntegrityFactsService).
      */
-    private function completedProcedureIds(Visit $v): array
+    public static function completedProcedures()
     {
         $selesai = fn ($q) => $q->whereIn('state', ['draft', 'final'])->where('status', ProcedureStatus::BILLABLE);
 
-        return ProcedureRecord::where('visit_id', $v->id)->where($selesai)->whereNotNull('procedure_code')
-            ->where(fn ($q) => $q->whereNull('supersedes_id')->orWhereNotIn('supersedes_id', ProcedureRecord::where($selesai)->select('id')))
-            ->pluck('id')->all();
+        return ProcedureRecord::where($selesai)->whereNotNull('procedure_code')
+            ->where(fn ($q) => $q->whereNull('supersedes_id')->orWhereNotIn('supersedes_id', ProcedureRecord::where($selesai)->select('id')));
+    }
+
+    /** @return list<string> */
+    private function completedProcedureIds(Visit $v): array
+    {
+        return self::completedProcedures()->where('visit_id', $v->id)->pluck('id')->all();
     }
 }

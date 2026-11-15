@@ -17,4 +17,12 @@ final class AppointmentDirectoryService implements AppointmentDirectory
         return Appointment::where('status', 'booked')->where('starts_at', '>=', $from)->where('starts_at', '<', $to)
             ->orderBy('starts_at')->get(['tenant_id', 'id', 'starts_at'])->map(fn ($a) => ['id' => $a->id, 'starts_at' => $a->starts_at])->all();
     }
+
+    public function cancelledStartingBetween(\DateTimeInterface $from, \DateTimeInterface $to, ?array $branchIds): array
+    {
+        return Appointment::whereIn('status', ['cancelled', 'no_show'])->where('starts_at', '>=', $from)->where('starts_at', '<', $to)
+            ->when($branchIds !== null, fn ($q) => $q->whereIn('branch_id', $branchIds))->get()
+            ->map(fn ($a) => ['id' => $a->id, 'patient_id' => $a->patient_id, 'dentist_id' => $a->dentist_id, 'status' => $a->status,
+                'starts_at' => $a->starts_at->toIso8601ZuluString()])->all();
+    }
 }
