@@ -10,6 +10,7 @@
 .kasir-row .btn { min-height: var(--size-touch); white-space: nowrap; }
 @media (max-width: 720px) {
   .kasir-row { flex-wrap: wrap; }
+  .kasir-row .btn { min-height: 48px; } /* #70 */
   .kasir-who { flex-basis: 100%; }
   .kasir-row .btn { margin-left: auto; }
 }
