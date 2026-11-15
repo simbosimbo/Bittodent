@@ -9,6 +9,7 @@ import {
 import { AI_BADGE, CONDITIONS, findingText, PRESENCE, STATUSES, statusOf, surfaceLabel, surfaceName } from './legend'
 import { Legend, Odontogram, type Mark } from './Odontogram'
 import { SignDialog } from './SignDialog'
+import TreatmentSuggestions from './TreatmentSuggestions'
 import './clinical.css'
 
 type Form = { S: string; O: string; A: { codes: string; text: string }; P: { codes: string; text: string } }
@@ -211,6 +212,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const [status, setStatus] = useState<ProcStatus>('kondisi_pantau')
   const [procCode, setProcCode] = useState('')
   const [baselineOpen, setBaselineOpen] = useState(false)
+  const [cited, setCited] = useState<string[]>([])
   const can = (p: string) => me.permissions.includes(p)
 
   const load = useCallback(async () => {
@@ -301,7 +303,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
         )}
         {baselineOpen && <BaselineEditor value={chart.baseline} onClose={() => setBaselineOpen(false)}
           onSave={(b) => run(async () => { await saveBaseline(p.id, { base_version: chart.baseline?.version ?? null, ...b }); setBaselineOpen(false) }, 'Keadaan awal tersimpan (versi baru).')} />}
-        <Odontogram marks={marks} baseline={chart.baseline?.teeth} dentition={chart.baseline?.dentition} selected={pick ? `t${pick.tooth}-${pick.surface}` : null} onPick={editable ? (tooth, surface) => setPick({ tooth, surface }) : undefined} />
+        <Odontogram marks={marks} baseline={chart.baseline?.teeth} dentition={chart.baseline?.dentition} selected={pick ? `t${pick.tooth}-${pick.surface}` : null} highlight={cited} onPick={editable ? (tooth, surface) => setPick({ tooth, surface }) : undefined} />
         {!editable && <p className="muted small">{visit ? 'Kunjungan ini sudah ditandatangani.' : 'Tidak ada kunjungan aktif. Buka dari kartu janji untuk mengisi.'}</p>}
         {pick && editable && (
           <div className="picker-pop" role="group" aria-label="Pilih kondisi">
@@ -329,6 +331,13 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
           onMove={(f, to) => run(() => changeStatus(f.id, to, visit?.id), `Status gigi ${f.tooth} diubah (baris baru; versi lama tetap).`)} />
         <Legend />
       </div>
+
+      {visit && can('ai_draft.review') && (
+        <div className="card">
+          <div className="card-head"><h2>Saran tindakan</h2><span className="badge badge-draft">Draf sampai disetujui</span></div>
+          <TreatmentSuggestions patientId={p.id} visitId={editable ? visit.id : null} onHighlight={setCited} onChanged={load} />
+        </div>
+      )}
 
       {visit && (
         <div className="card">

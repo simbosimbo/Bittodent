@@ -1,0 +1,47 @@
+/* A2 Saran tindakan: board klinikme-gigi AI03/11. HP first; every tap target >= 44px. Status = label + icon, never colour alone. */
+.sg { display: grid; gap: 10px; }
+.sg-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.sg-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 650; border-radius: 999px; padding: 3px 10px; border: 1px solid transparent; white-space: nowrap; }
+.sg-chip-draf { color: var(--color-draft-fg, #704400); background: var(--color-draft-bg, #FFF8E1); }
+.sg-chip-ok { color: var(--color-success-fg, #1B6E42); background: var(--color-success-bg, #E5F5EC); }
+.sg-chip-no { color: var(--color-danger-fg, #B42318); background: var(--color-danger-bg, #FDECEA); }
+.sg-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.sg-seg { display: inline-flex; background: var(--color-neutral-50, #F2F5F7); border-radius: 12px; padding: 4px; gap: 2px; }
+.sg-seg button { min-height: 44px; min-width: 64px; padding: 0 14px; border: none; border-radius: 9px; background: transparent; font: inherit; font-weight: 600; color: var(--color-neutral-700, #3B4752); cursor: pointer; }
+.sg-seg button.is-on { background: #fff; color: var(--color-primary-700, #0B6B62); box-shadow: 0 1px 2px rgb(0 0 0 / 8%); }
+.sg-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.sg-card { scroll-margin-bottom: 84px; background: #fff; border: 1px solid var(--color-neutral-100, #E6EBEF); border-radius: 16px; padding: 12px 14px; display: grid; gap: 10px; }
+.sg-card.sg-draf { border-left: 4px solid var(--color-draft-border, #D99A00); }
+.sg-card.sg-disetujui { border-left: 4px solid var(--color-success-border, #8FCFAA); }
+.sg-card.sg-ditolak { border-left: 4px solid var(--color-danger-border, #F0A39B); opacity: 0.85; }
+.sg-card.is-stale { border-style: dashed; }
+.sg-card-head { display: flex; gap: 8px; align-items: flex-start; flex-wrap: wrap; }
+.sg-title { flex: 1 1 160px; min-width: 0; }
+.sg-cite { min-height: 44px; min-width: 44px; display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; border-radius: 12px; font: inherit; font-size: 13px; font-weight: 650;
+  color: var(--color-primary-700, #0B6B62); background: #fff; border: 1px solid var(--color-primary-200, #A8E0D9); cursor: pointer; }
+.sg-cite.is-on { background: var(--color-primary-50, #EEF9F8); border-color: var(--color-primary-600, #0E8579); }
+.sg-source { border: 1px solid var(--color-neutral-100, #E6EBEF); border-radius: 12px; padding: 10px 12px; background: var(--color-neutral-25, #F8FAFB); }
+.sg-source ul { margin: 6px 0 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.sg-source mark { background: var(--color-primary-100, #D3F0EC); color: var(--color-primary-800, #0A5650); border-radius: 4px; padding: 0 4px; font-weight: 650; }
+.sg-stale { color: var(--color-warning-fg, #7A4A00); margin: 0; }
+.sg-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sg-btn { min-height: 48px; border-radius: 14px; font: inherit; font-weight: 700; cursor: pointer; border: 1px solid transparent; touch-action: manipulation; }
+.sg-btn:disabled { opacity: 0.55; cursor: default; }
+.sg-no { background: var(--color-danger-bg, #FDECEA); color: var(--color-danger-fg, #B42318); }
+.sg-ok { background: #fff; color: var(--color-primary-700, #0B6B62); border-color: var(--color-primary-200, #A8E0D9); }
+.sg-all { width: 100%; background: var(--color-primary-700, #0B6B62); color: #fff; min-height: 52px; font-size: 16px; }
+.sg-sticky { position: sticky; bottom: 0; padding: 10px 0 calc(10px + env(safe-area-inset-bottom)); background: linear-gradient(to top, #fff 70%, rgb(255 255 255 / 0)); z-index: 2; }
+.sg-done summary { min-height: 44px; display: flex; align-items: center; padding: 0 14px; border: 1px solid var(--color-neutral-100, #E6EBEF); border-radius: 14px; background: #fff; font-weight: 650; cursor: pointer; }
+.sg-done[open] summary { margin-bottom: 10px; }
+.sg-empty { margin: 0; color: var(--color-neutral-500, #5F6C77); font-size: 14px; }
+@media (min-width: 900px) {
+  .sg-sticky { display: flex; justify-content: flex-end; }
+  .sg-all { width: auto; padding: 0 22px; border-radius: 999px; }
+}
+/* Odontogram: findings cited by the open suggestion (chip "❝" toggles it). */
+.tooth.is-cited .tooth-outline { stroke: var(--color-primary-600, #0E8579); stroke-width: 3.5; stroke-dasharray: none; }
+.tooth-surface.is-cited > :not(title) { stroke: var(--color-primary-600, #0E8579); stroke-width: 3; }
+@media (prefers-reduced-motion: no-preference) {
+  .tooth.is-cited .tooth-outline { animation: sg-pulse 1.2s ease-in-out 2; }
+}
+@keyframes sg-pulse { 50% { stroke-width: 6; } }

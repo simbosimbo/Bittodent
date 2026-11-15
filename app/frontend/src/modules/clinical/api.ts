@@ -47,3 +47,23 @@ export const signVisit = (visitId: string, body: { revision: number; confirm: tr
 export const correctNote = (noteId: string, body: { reason: string; soap: Soap }) =>
   api<{ approval: 'not_needed' | 'self' | 'pending' }>(`/api/notes/${noteId}/corrections`, { method: 'POST', body })
 export const approveCorrection = (id: string) => api(`/api/correction-requests/${id}/approve`, { method: 'POST' })
+
+// A2: rule-based treatment suggestions (dentist only). Drafts until approved; approving adds a DRAFT plan item to the visit.
+export type SuggestionState = 'draf' | 'disetujui' | 'ditolak'
+export type Citation = { type: 'finding'; id: string; version: number; tooth: number; surface: Surface | null; condition: string }
+export type Suggestion = {
+  id: string | null; state: SuggestionState; stale: boolean; tooth: number; surfaces: Surface[]; condition: string
+  procedure_code: string; procedure_name: string; citations: Citation[]
+  rule: { id: string; key: string; version: number; priority: number }; signal: { approvals: number }; reviewed_at?: string | null
+}
+export type Suggestions = {
+  visit_id: string | null; patient_id: string; locked: boolean; items: Suggestion[]; counts: Record<SuggestionState, number>
+  approved?: string[]; skipped?: { id: string; reason: string }[]
+}
+export type RejectReason = 'tidak_perlu' | 'sudah_direncanakan' | 'pasien_menolak' | 'tindakan_lain' | 'lainnya'
+export const getVisitSuggestions = (visitId: string) => api<Suggestions>(`/api/visits/${visitId}/treatment-suggestions`)
+export const getPatientSuggestions = (patientId: string) => api<Suggestions>(`/api/patients/${patientId}/treatment-suggestions`)
+export const approveSuggestion = (id: string) => api<Suggestion & { plan_item_ids: string[] }>(`/api/treatment-suggestions/${id}/approve`, { method: 'POST' })
+export const rejectSuggestion = (id: string, reason?: RejectReason) =>
+  api(`/api/treatment-suggestions/${id}/reject`, { method: 'POST', body: reason ? { reason } : {} })
+export const approveAllSuggestions = (visitId: string) => api<Suggestions>(`/api/visits/${visitId}/treatment-suggestions/approve-all`, { method: 'POST' })
