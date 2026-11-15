@@ -11,7 +11,8 @@ final class Permissions
             'appointment.transition', 'note.read', 'audit.read', 'correction.approve', 'patient.update', 'billing.read', 'billing.adjust', 'tariff.manage'],
         'dentist' => ['patient.read', 'patient.read_nik', 'patient.create', 'appointment.read', 'appointment.create',
             'appointment.transition', 'note.read', 'note.write', 'note.sign', 'patient.update', 'appointment.plan',
-            'ai_draft.review'], // approve/reject agent drafts (D-001); never owner/assistant
+            'ai_draft.review', // approve/reject agent drafts (D-001); never owner/assistant
+            'treatment_rule.manage'], // A2: clinic rules finding -> procedure (clinical config, so dentist only)
         'assistant' => ['patient.read', 'appointment.read', 'appointment.transition', 'note.read', 'note.write', 'appointment.plan'],
         'front_desk' => ['patient.read', 'patient.create', 'appointment.read', 'appointment.create', 'appointment.transition',
             'patient.update', 'billing.read', 'billing.adjust'],
