@@ -30,3 +30,12 @@
   .kwitansi { position: absolute; inset: 0 auto auto 0; width: 100%; max-width: none; box-shadow: none; border: 0; }
   .kwitansi-actions { display: none !important; }
 }
+
+/* #70 Tagihan: payment first, corrections folded under "Lainnya"; on a phone Terima pembayaran sticks above the bottom nav. */
+.inv-more > summary { cursor: pointer; font-weight: var(--font-weight-semibold); min-height: 44px; display: flex; align-items: center; }
+.inv-more > .card { box-shadow: none; border: 0; padding-left: 0; padding-right: 0; }
+@media (max-width: 720px) {
+  .pay-submit { position: sticky; bottom: calc(65px + env(safe-area-inset-bottom, 0px)); background: var(--surface); padding: 8px 0; z-index: 5; }
+  .pay-submit .btn { min-height: 48px; }
+  .inv-more > summary { min-height: 48px; }
+}

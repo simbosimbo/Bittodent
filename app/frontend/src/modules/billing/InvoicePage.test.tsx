@@ -128,3 +128,16 @@ test('kwitansi is not offered before any payment', async () => {
   await screen.findByText('Menunggu pemilik')
   expect(screen.queryByRole('button', { name: 'Kwitansi' })).toBeNull()
 })
+
+test('#70 Tagihan: Terima pembayaran is the only primary and comes first; corrections fold under "Lainnya"', async () => {
+  render(<InvoicePage visitId="v1" me={me(['billing.read', 'billing.adjust'])} />)
+  const terima = await screen.findByRole('button', { name: 'Terima pembayaran' })
+  await waitFor(() => expect(document.querySelectorAll('.btn-primary')).toHaveLength(1))
+  expect(document.querySelector('.btn-primary')).toBe(terima)
+  const more = document.querySelector('details.inv-more') as HTMLDetailsElement
+  expect(more.open).toBe(false)
+  expect(more.querySelector('summary')?.textContent).toMatch(/^Lainnya/)
+  expect(within(more).getByRole('heading', { name: 'Penyesuaian' })).toBeInTheDocument()
+  const tindakan = screen.getByRole('heading', { name: 'Tindakan' })
+  expect(terima.compareDocumentPosition(tindakan) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+})
