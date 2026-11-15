@@ -141,3 +141,11 @@ test('#70 Tagihan: Terima pembayaran is the only primary and comes first; correc
   const tindakan = screen.getByRole('heading', { name: 'Tindakan' })
   expect(terima.compareDocumentPosition(tindakan) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 })
+
+test('#70 the payment amount starts at the remaining balance (full payment = no typing), still editable', async () => {
+  render(<InvoicePage visitId="v1" me={me(['billing.read', 'billing.adjust'])} />)
+  const amt = await screen.findByLabelText('Jumlah 1 (Rp)')
+  await waitFor(() => expect(amt).toHaveValue(current.balance_rp))
+  fireEvent.change(amt, { target: { value: '5000' } })
+  expect(amt).toHaveValue(5000)
+})

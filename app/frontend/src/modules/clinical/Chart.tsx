@@ -714,7 +714,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
     </div>,
     (pp: PatientFull) => <>
       {msg && <p className="notice" role="status">{msg}</p>}
-      {billFor && <p className="toolbar">
+      {billFor && <p className="toolbar rm-done">
         {can('appointment.read') && <a className="btn btn-primary" href="#/jadwal">Kembali ke Jadwal</a>}
         {can('billing.read') && <a className="btn" href={`#/tagihan/${billFor}`}>Lanjut ke tagihan</a>}
       </p>}

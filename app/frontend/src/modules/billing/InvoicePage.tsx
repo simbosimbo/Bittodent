@@ -38,6 +38,9 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
   const load = useCallback(() => invoiceForVisit(visitId).then(setInv, (e) => setError(e instanceof ApiError && e.status === 404 ? 'Belum ada tagihan untuk kunjungan ini.' : errorText(e))), [visitId])
   useEffect(() => { load() }, [load])
   useEffect(() => { paymentAccounts().then(setAccounts, () => setAccounts([])) }, [])
+  // #70: the single, untouched payment row starts at the remaining balance (no typing for the usual full payment; still editable).
+  const balance = inv && inv.status !== 'void' ? inv.balance_rp : 0
+  useEffect(() => { if (balance > 0) setRows((rs) => rs.length === 1 && rs[0].amount === '' ? [{ ...rs[0], amount: String(balance) }] : rs) }, [balance])
 
   async function run(fn: () => Promise<Invoice>, ok: (i: Invoice) => string) {
     setError('')
