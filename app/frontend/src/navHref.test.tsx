@@ -264,13 +264,30 @@ test('allowed route keeps its URL', async () => {
   document.cookie = 'XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 GMT'
 })
 
-test.each([[390, false], [1280, true]])('%ipx: active-patient ribbon on Kasir shown = %s (phone hides it on non-clinical pages)', async (w, shown) => {
-  viewport(w)
+// Regression (patient safety): after viewing patient p1, the alert ribbon (allergies, premedication) must never follow to
+// another screen. It renders only on a screen about one patient, and only for the patient in the URL.
+const alertCalls = () => (fetch as unknown as { mock: { calls: [string][] } }).mock.calls.map(([u]) => u).filter((u) => u.includes('/alerts'))
+test.each(['/pasien/baru', '/pasien', '/jadwal', '/', '/kasir', '/laporan', '/pengaturan-rm'].flatMap((h) => [[h, 390], [h, 1280]] as const))(
+  'no ribbon of the previously viewed patient on %s (%ipx)', async (h, w) => {
+    viewport(w)
+    serveApp(me)
+    act(() => setActivePatient({ id: 'p1', name: 'Sari Sintetis' } as never))
+    location.hash = h
+    const { container } = render(<App />)
+    await vi.waitFor(() => expect(container.querySelector('.shell-main, main')).not.toBeNull())
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)) })
+    expect(container.querySelector('.alert-ribbon')).toBeNull()
+    expect(alertCalls().filter((u) => u.includes('/p1/'))).toEqual([])
+    document.cookie = 'XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+  })
+
+test.each(['/pasien/p2', '/keluarga/p2', '/riwayat-medis/p2'])('ribbon on %s is for the patient in the URL, not the active one', async (h) => {
+  viewport(390)
   serveApp(me)
   act(() => setActivePatient({ id: 'p1', name: 'Sari Sintetis' } as never))
-  location.hash = '/kasir'
-  const { container } = render(<App />)
-  expect(await screen.findByText('Segera hadir')).toBeInTheDocument()
-  expect(!!container.querySelector('.alert-ribbon')).toBe(shown)
+  location.hash = h
+  render(<App />)
+  await vi.waitFor(() => expect(alertCalls().some((u) => u.includes('/p2/alerts'))).toBe(true))
+  expect(alertCalls().filter((u) => u.includes('/p1/'))).toEqual([])
   document.cookie = 'XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 GMT'
 })
