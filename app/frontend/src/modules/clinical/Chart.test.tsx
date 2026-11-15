@@ -225,7 +225,7 @@ test('Simpan ke kunjungan hari ini: condition is only chosen (aria-pressed) unti
   const panel = within(screen.getByRole('complementary', { name: 'Detail gigi' }))
   const save = panel.getByRole('button', { name: 'Simpan ke kunjungan hari ini' })
   expect(save).toBeDisabled()
-  expect(save).toHaveAccessibleDescription('Pilih kondisi terlebih dahulu')
+  expect(panel.queryByText('Pilih kondisi terlebih dahulu')).toBeNull() // review-3: disabled is enough, no visible hint
   const posts = () => vi.mocked(fetch).mock.calls.filter(([u]) => String(u).endsWith('/findings'))
   fireEvent.click(panel.getByRole('button', { name: 'Karies' }))
   fireEvent.click(panel.getByRole('button', { name: 'Tambalan' }))
@@ -515,14 +515,11 @@ test('390px: selecting a tooth opens a bottom sheet named for the tooth; keypad 
   expect(within(sheet).getByRole('group', { name: 'Pilih kondisi' })).toBeInTheDocument() // same editable rule as desktop
   expect(within(sheet).getByRole('button', { name: 'Simpan ke kunjungan hari ini' })).toBeDisabled() // no condition chosen yet
   expect(within(sheet).getByRole('button', { name: 'Tutup detail gigi' })).toHaveFocus()
-  // Designer note: patient strip (name, No. RM, allergies) pinned at the top of the sheet, from the header patient (no refetch).
-  const strip = sheet.querySelector('.sheet-strip') as HTMLElement
-  expect(strip).toBe(sheet.firstElementChild)
-  expect(strip).toHaveTextContent('Budi Contoh')
-  expect(strip).toHaveTextContent('No. RM BT-000007')
-  expect(await within(strip).findByText('Alergi: Penisilin')).toBeInTheDocument()
-  expect(strip).not.toHaveTextContent('Kondisi Sintetis') // safety chips only
-  expect(getComputedStyle(strip).position).toBe('sticky')
+  // review-3 (board 02): the sheet does not repeat the patient (name / No. RM); the page header and its alert ribbon stay outside it.
+  expect(sheet.querySelector('.sheet-strip')).toBeNull()
+  expect(sheet).not.toHaveTextContent('Budi Contoh')
+  expect(sheet).not.toHaveTextContent('No. RM')
+  expect(within(sheet).getByRole('heading', { name: 'Gigi 16' })).toBeInTheDocument()
   expect(vi.mocked(fetch).mock.calls.filter(([u]) => /\/patients\/p1$/.test(String(u)))).toHaveLength(1)
   const sheetButtons = within(sheet).getAllByRole('button').filter((b) => b.closest('.cond-row') || b.classList.contains('tooth-save'))
   expect(sheetButtons.length).toBeGreaterThan(5)

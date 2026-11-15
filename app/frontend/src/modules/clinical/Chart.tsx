@@ -8,7 +8,7 @@ import { setActivePatient } from '../../shared/activePatient'
 import { fmtDateTime, fmtDay, fmtTime } from '../../shared/format'
 import type { Me } from '../../shared/session'
 import { PHONE_QUERY, useIsMobile, useMedia } from '../../shared/useIsMobile'
-import { AlertRibbon, ageTahun, PatientPage, SEX } from '../patients'
+import { PatientPage } from '../patients'
 import type { PatientFull } from '../patients'
 import {
   approveCorrection, approveDrafts, changeStatus, confirmExternal, correctNote, correctProcedure, discardFinding, discardProcedure, getChart, getDentists,
@@ -500,6 +500,11 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   }, [chart, mine, myProcs])
 
   // The record lives inside the patient: wrap every state in PatientPage (header + Profil/Keluarga/Riwayat menu).
+  // review-2 P1: a billing reader continues to the payment (solid); a dentist without billing goes back to the schedule.
+  const afterSelesai = <>
+    {can('billing.read') && <a className="btn btn-primary" href={`#/tagihan/${billFor}`}>Lanjut ke tagihan</a>}
+    {can('appointment.read') && <a className={can('billing.read') ? 'btn' : 'btn btn-primary'} href="#/jadwal">Kembali ke Jadwal</a>}
+  </>
   const page = (actions: ReactNode, body: ReactNode | ((pp: PatientFull) => ReactNode), status?: ReactNode) =>
     <PatientPage id={patientId} tab="rekam-medis" canChart alerts actions={actions} status={status}>{(pp) => typeof body === 'function' ? body(pp) : body}</PatientPage>
   if (error) return page(null, <div className="card state-card error">{error} <a href="#/pasien">Kembali</a></div>)
@@ -698,9 +703,10 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
         </div>
       ) : <p className="muted small">{visit ? readOnlyWhy : 'Hanya lihat: kondisi dan tindakan diisi dari kunjungan aktif yang belum Selesai.'}</p>}
       {startCtl}
-      <button type="button" className="btn btn-primary tooth-save" disabled={!!saveWhy || saving} title={saveWhy || undefined} aria-describedby={saveWhy ? 'save-why' : undefined}
+      <button type="button" className="btn btn-primary tooth-save" disabled={!!saveWhy || saving} title={saveWhy || undefined} aria-describedby={saveWhy && chosen ? 'save-why' : undefined}
         onClick={saveChosen}>{saving ? 'Menyimpan…' : 'Simpan ke kunjungan hari ini'}</button>
-      {saveWhy && <p id="save-why" className="muted small">{saveWhy}</p>}
+      {/* review-3: an empty choice just leaves the button disabled (title explains); other reasons stay visible */}
+      {saveWhy && chosen && <p id="save-why" className="muted small">{saveWhy}</p>}
     </>
   )
 
@@ -738,11 +744,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
     </div>,
     (pp: PatientFull) => <>
       {msg && <p className="notice" role="status">{msg}</p>}
-      {billFor && <p className="toolbar rm-done">
-        {/* review-2 P1: a billing reader continues to the payment (solid); a dentist without billing goes back to the schedule. */}
-        {can('billing.read') && <a className="btn btn-primary" href={`#/tagihan/${billFor}`}>Lanjut ke tagihan</a>}
-        {can('appointment.read') && <a className={can('billing.read') ? 'btn' : 'btn btn-primary'} href="#/jadwal">Kembali ke Jadwal</a>}
-      </p>}
+      {billFor && !mobile && <p className="toolbar rm-done">{afterSelesai}</p>}
 
       <div role="tablist" aria-label="Bagian rekam medis" className="tabs chart-tabs">
         {INNER.filter(([k]) => !mobile || (k !== 'plan' && k !== 'rx' && (k !== 'bill' || can('billing.read')))).map(([k, label]) => (
@@ -804,7 +806,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
           </section>
           {!mobile ? <aside className="card span-4 tooth-panel" aria-label="Detail gigi">{panel}</aside> : (
             <Presence open={!!pick} exitMs={200}>
-              {pick && <ToothSheet tooth={pick.tooth} name={pp.name} dob={pp.dob} sex={pp.sex} mrn={pp.mrn} id={pp.id} panel={panel} onClose={() => setPick(null)} trapTab={trapTab} />}
+              {pick && <ToothSheet tooth={pick.tooth} panel={panel} onClose={() => setPick(null)} trapTab={trapTab} />}
             </Presence>
           )}
           <section className="card span-12" aria-labelledby="temuan-title">
@@ -891,7 +893,9 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
       {tab === 'bill' && can('billing.read') && <BillingTab visits={chart.visits} />}
       </div>
 
-      {mobile && editable && isDpjp && visit && (
+      {/* review-3 P2: on the phone the next step after Selesai sits in the bottom dock, where Selesai was */}
+      {mobile && billFor && <div className="rm-actionbar rm-done">{afterSelesai}</div>}
+      {mobile && !billFor && editable && isDpjp && visit && (
         // Phone (#70): one sticky bar above the bottom nav, on every RM tab: Setujui while agent drafts wait, else Selesai.
         <div className="rm-actionbar">
           {unapproved > 0
@@ -942,9 +946,8 @@ function BillingTab({ visits }: { visits: ChartVisit[] }) {
   )
 }
 
-function ToothSheet({ tooth, name, dob, sex, mrn, id, panel, onClose, trapTab }: {
-  tooth: number; name: string; dob: string | null; sex: string | null; mrn: string | null; id: string
-  panel: ReactNode; onClose: () => void; trapTab: (e: KeyboardEvent<HTMLElement>) => void
+function ToothSheet({ tooth, panel, onClose, trapTab }: {
+  tooth: number; panel: ReactNode; onClose: () => void; trapTab: (e: KeyboardEvent<HTMLElement>) => void
 }) {
   const phase = usePresenceClass()
   return (
@@ -952,12 +955,8 @@ function ToothSheet({ tooth, name, dob, sex, mrn, id, panel, onClose, trapTab }:
       <div className={`sheet-backdrop ${phase}`} onClick={onClose} />
       <aside className={`card tooth-panel sheet tooth-sheet ${phase}`} role="dialog" aria-modal="true" aria-label={`Detail gigi ${tooth}`}
         onKeyDown={(e) => { if (e.key === 'Escape') onClose(); else trapTab(e) }}>
-        <div className="sheet-strip">
-          <div className="sheet-handle" aria-hidden="true" />
-          <p><strong>{name}</strong> <span className="muted small">{[ageTahun(dob), sex && (SEX[sex] ?? sex)].filter(Boolean).map((x) => x + ' · ')}
-            <span className="patient-mrn">No. RM <strong>{mrn ?? 'belum ada'}</strong></span></span></p>
-          <AlertRibbon patientId={id} compactDefault label="Peringatan medis di detail gigi" only={['premedikasi', 'catatan_penting', 'alergi', 'kosong']} />
-        </div>
+        {/* review-3 (board 02): no patient identity strip; the page header above names the patient and its pinned alert ribbon stays visible */}
+        <div className="sheet-handle" aria-hidden="true" />
         {panel}
       </aside>
     </>
