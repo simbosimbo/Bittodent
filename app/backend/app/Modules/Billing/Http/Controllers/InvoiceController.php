@@ -68,6 +68,26 @@ class InvoiceController extends Controller
                 'patient_name' => $names[$inv->patient_id] ?? null, ...Ledger::totals($inv)])->values()]);
     }
 
+    /**
+     * GET /api/billing/invoice-status?visit_ids=a,b,c: status (terbuka | lunas | void) of the invoices of up to 200 visits in ONE
+     * request (Jadwal "Belum bayar"; replaces one /visits/{id}/invoice call per finished visit). Tenant-scoped by the model;
+     * invoices of branches the membership does not cover are left out, like visits without an invoice.
+     */
+    public function statusForVisits(Request $request)
+    {
+        $ids = array_values(array_unique(array_filter(explode(',', (string) $request->query('visit_ids', '')),
+            fn ($v) => preg_match('/^[0-9a-f-]{36}$/i', $v) === 1)));
+        if (count($ids) > 200) {
+            return response()->json(['message' => 'Maksimal 200 kunjungan per permintaan.', 'errors' => ['visit_ids' => ['Maksimal 200.']]], 422);
+        }
+        $ctx = Ctx::current();
+        $rows = $ids ? Invoice::whereIn('visit_id', $ids)->get(['visit_id', 'status', 'branch_id'])
+            ->filter(fn (Invoice $i) => $ctx->coversBranch($i->branch_id)) : collect();
+        Audit::log('baca', 'invoice_status', null, ['count' => $rows->count()]);
+
+        return response()->json(['statuses' => (object) $rows->pluck('status', 'visit_id')->all()]);
+    }
+
     /** GET /api/invoices/{id} */
     public function show(string $id)
     {

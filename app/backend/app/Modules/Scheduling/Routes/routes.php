@@ -16,6 +16,7 @@ Route::middleware(['auth:sanctum', '2fa', 'tenant'])->group(function () {
     Route::post('/appointments/{id}/chair', [AppointmentController::class, 'changeChair'])->middleware('perm:appointment.transition');
     Route::post('/appointments/{id}/refer', [AppointmentController::class, 'refer'])->middleware('perm:appointment.refer');
     Route::post('/appointments/{id}/transition', [AppointmentController::class, 'transition'])->middleware('perm:appointment.transition');
+    Route::post('/appointments/{id}/undo-checkin', [AppointmentController::class, 'undoCheckin'])->middleware('perm:appointment.transition');
 });
 
 // Public patient booking (no login). Tenant from the clinic slug only; throttled per IP, OTP sends also per phone (blind index).

@@ -256,4 +256,31 @@ class AppointmentController extends Controller
             return response()->json($a->only(['id', 'status', 'arrived_at', 'seated_at', 'dismissed_at', 'wait_minutes', 'chair_minutes']));
         });
     }
+
+    /** Seconds after a check-in during which "Batalkan" (toast, 5 s) may still undo it; slack for slow networks. */
+    public const UNDO_CHECKIN_SECONDS = 60;
+
+    /**
+     * POST /api/appointments/{id}/undo-checkin: the Jadwal toast's "Batalkan" (board 08). checked_in -> booked and arrived_at
+     * cleared, only within UNDO_CHECKIN_SECONDS of the check-in and before the visit started. Not a general transition: the state
+     * machine keeps checked_in -> in_treatment only. Audited as batal_checkin.
+     */
+    public function undoCheckin(string $id)
+    {
+        return DB::transaction(function () use ($id) {
+            $a = Appointment::lockForUpdate()->findOrFail($id);
+            if (! Ctx::current()->coversBranch($a->branch_id)) {
+                return Audit::denied('branch:'.$a->branch_id);
+            }
+            if ($a->status !== 'checked_in' || ! $a->arrived_at || $a->arrived_at->lt(now()->subSeconds(self::UNDO_CHECKIN_SECONDS))) {
+                return response()->json(['message' => 'Check-in tidak bisa dibatalkan lagi.'], 409);
+            }
+            $arrived = $a->arrived_at->toIso8601String();
+            $a->update(['status' => 'booked', 'arrived_at' => null]);
+            Audit::log('batal_checkin', 'appointment', $a->id, ['from' => 'checked_in', 'to' => 'booked', 'arrived_at' => $arrived]);
+            $this->care->push($a->patient_id);
+
+            return response()->json($a->only(['id', 'status', 'arrived_at']));
+        });
+    }
 }
