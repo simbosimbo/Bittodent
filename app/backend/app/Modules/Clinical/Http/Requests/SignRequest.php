@@ -14,7 +14,8 @@ class SignRequest extends FormRequest
 
     public function rules(): array
     {
-        return ['revision' => ['required', 'integer', 'min:1']];
+        return ['revision' => ['required', 'integer', 'min:1'], 'accept_warnings' => ['sometimes', 'boolean'],
+            'reason' => ['required_if_accepted:accept_warnings', 'nullable', 'string', 'min:10', 'max:500']];
     }
 
     public function confirmed(): bool

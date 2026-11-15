@@ -2,6 +2,7 @@
 
 namespace App\Modules\Clinical\Http\Controllers;
 
+use App\Modules\Clinical\Domain\SignCheck;
 use App\Modules\Clinical\Domain\Soap;
 use App\Modules\Clinical\Http\Requests\CorrectionRequestBody;
 use App\Modules\Clinical\Http\Requests\SaveNoteRequest;
@@ -58,7 +59,10 @@ class NoteController extends Controller
         });
     }
 
-    /** POST /api/visits/{id}/sign {revision, confirm: true, code}: dentist role (route) + author + fresh TOTP. */
+    /**
+     * POST /api/visits/{id}/sign {revision, confirm: true, code, accept_warnings?, reason?}: dentist role (route) + author + fresh TOTP,
+     * then SignCheck on draft findings + SOAP codes: blocks => 422 sign_blocked; warnings => 422 unless accept_warnings + reason.
+     */
     public function sign(SignRequest $request, string $id, UserDirectory $users)
     {
         $ctx = Ctx::current();
@@ -81,14 +85,29 @@ class NoteController extends Controller
             if ($request->integer('revision') !== $draft->revision) {
                 return self::conflict('stale', 'Draf berubah sejak Anda membacanya. Periksa lagi sebelum tanda tangan.', ['revision' => $draft->revision]);
             }
+            $drafts = ToothFinding::where('visit_id', $id)->where('state', 'draft')->get();
+            $check = SignCheck::run($drafts, $draft->soap(), $visit->patient_id);
+            if ($check['blocks']) {
+                Audit::log('tanda_tangan_ditolak', 'clinical_note_version', $draft->id, ['why' => 'validasi', 'rules' => array_column($check['blocks'], 'rule')]);
+
+                return response()->json(['error' => 'sign_blocked', 'message' => 'Kode atau temuan tidak cocok. Perbaiki dulu sebelum tanda tangan.',
+                    'blocks' => $check['blocks'], 'warnings' => $check['warnings']], 422);
+            }
+            $accepted = $check['warnings'] && $request->boolean('accept_warnings');
+            if ($check['warnings'] && ! $accepted) {
+                Audit::log('tanda_tangan_ditolak', 'clinical_note_version', $draft->id, ['why' => 'peringatan', 'rules' => array_column($check['warnings'], 'rule')]);
+
+                return response()->json(['error' => 'warnings', 'message' => 'Ada peringatan. Periksa lagi, atau tanda tangan dengan alasan (accept_warnings + reason).',
+                    'warnings' => $check['warnings']], 422);
+            }
             $now = now();
             $draft->forceFill(['content_hash' => Soap::hash($draft->soap()), 'state' => 'signed', 'signed_by' => $ctx->userId, 'signed_at' => $now])->save();
-            $drafts = ToothFinding::where('visit_id', $id)->where('state', 'draft')->get();
             $findings = ToothFinding::where('visit_id', $id)->where('state', 'draft')
                 ->update(['state' => 'final', 'finalized_by' => $ctx->userId, 'finalized_at' => $now]);
             $drafts->where('status', 'selesai')->each(fn ($f) => FindingController::recorded($f));
             $this->outbox->enqueue('satusehat', 'satusehat:note_version:'.$draft->id, ['note_version_id' => $draft->id, 'visit_id' => $id]);
-            Audit::log('tanda_tangan', 'clinical_note_version', $draft->id, ['visit_id' => $id, 'findings' => $findings]);
+            Audit::log('tanda_tangan', 'clinical_note_version', $draft->id, ['visit_id' => $id, 'findings' => $findings,
+                ...($accepted ? ['warnings_accepted' => array_column($check['warnings'], 'rule'), 'reason' => $request->input('reason')] : [])]);
 
             return response()->json(['version_id' => $draft->id, 'signed_at' => $now, 'content_hash' => $draft->content_hash, 'findings_locked' => $findings]);
         });
