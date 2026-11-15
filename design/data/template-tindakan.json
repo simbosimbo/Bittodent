@@ -1,0 +1,2067 @@
+{
+  "meta": {
+    "judul": "Templat katalog tindakan praktik umum gigi Indonesia",
+    "versi": "1.0.0",
+    "dibuat": "2026-11-15",
+    "zona_waktu": "Asia/Jakarta",
+    "sifat": "Data sintetis / contoh untuk memudahkan isi katalog klinik. Bukan standar nasional, bukan tarif resmi, bukan pedoman klinis.",
+    "mata_uang": "IDR",
+    "label_harga": "CONTOH",
+    "peringatan_klinis": "Pemetaan ICD adalah usulan bantuan isi. Dokter atau petugas rekam medis meninjau dan boleh mengubah kode. Sistem tidak boleh mengunci diagnosis. DISPLAY ICD = teks resmi bahasa Inggris dari daftar SATUSEHAT ICD10_2010 / ICD9CM_2010 (jangan diterjemahkan di berkas ini).",
+    "sumber_icd": {
+      "daftar_resmi": "SATUSEHAT Platform, ICD-10 versi 2010 dan ICD-9-CM versi 2010 Volume 3",
+      "dokumentasi": [
+        "https://satusehat.kemkes.go.id/platform/docs/id/terminology/icd/icd-10/",
+        "https://satusehat.kemkes.go.id/platform/docs/id/terminology/icd/icd-9-cm/"
+      ],
+      "spreadsheet": "Berkas publik Kemkes (diimpor ke repo 15 Nov 2026, Asia/Jakarta); catatan di app/backend/database/data/icd/SOURCE.md cabang feat/icd-reference",
+      "icd10_codes_sha256": "0493fd7e38e3c041c252d224a5390135abd5b40ee1d4f503e4249868eb2fdac4",
+      "icd9cm_codes_sha256": "ea2afa8b09aa6fcafd50a79b1a12855f27d0f7490982bd37a9f47f761b9a987e",
+      "pemetaan_tambahan": [
+        "ICD-9-CM Volume 3 daftar tabulasi dan indeks (24.99 excludes; 87.12 Panorex & cephalogram; pulpotomy → 23.70)",
+        "https://dentaldiary.id/blog/kode-icd-9-cm-tindakan-gigi-scaling-tambal-cabut (dicek 15 Nov 2026)",
+        "Templat internal repo: CodingTemplate, DifficultyTemplate, ProcedureCatalog, papan design/boards/icd-tagihan"
+      ],
+      "catatan_versi": "K02.5 (Caries with pulp exposure, WHO 2019) TIDAK ada di ICD10_2010 SATUSEHAT; jangan dipakai."
+    },
+    "tingkat_tarif": {
+      "umum": "Harga dasar. Backend men-seed hanya Umum; wajib ada agar tagihan bisa dibuat.",
+      "spesialis": "Opsional. null = mewarisi Umum. Diisi hanya bila papan/desain sudah punya contoh (atau beda jelas).",
+      "bidang": "Tingkat ke-3 (band field: Sp.Ort, Sp.BM, ...). Templat ini membiarkan null (mewarisi). Aturan turunan default mati."
+    },
+    "unit": [
+      "per_tooth",
+      "per_surface",
+      "per_arch",
+      "per_quadrant",
+      "per_range",
+      "per_visit"
+    ],
+    "unit_catatan": "Empat unit diminta (per-tooth / per-surface / per-arch / per-visit) ditambah per_quadrant dan per_range agar selaras treat_area di ProcedureCatalog (surface, tooth, range, quadrant, arch, mouth).",
+    "kategori": [
+      "Pemeriksaan",
+      "Preventif",
+      "Restorasi",
+      "Endodonti",
+      "Periodonti",
+      "Bedah/Ekstraksi",
+      "Prostodonti",
+      "Ortodonti",
+      "Radiologi",
+      "Lain-lain"
+    ],
+    "jumlah": 58,
+    "jumlah_per_kategori": {
+      "Pemeriksaan": 3,
+      "Preventif": 4,
+      "Restorasi": 7,
+      "Endodonti": 8,
+      "Periodonti": 5,
+      "Bedah/Ekstraksi": 11,
+      "Prostodonti": 8,
+      "Ortodonti": 5,
+      "Radiologi": 4,
+      "Lain-lain": 3
+    },
+    "kode_perlu_verifikasi": [
+      {
+        "code": "TND-012",
+        "nama_klinis": "Fissure sealant",
+        "alasan": [
+          "ICD-9-CM: ICD-9-CM Volume 3 tidak punya entri indeks khusus. Jangan mengarang kode (termasuk 24.99) tanpa kebijakan koding klinik/penjamin. SATUSEHAT tetap butuh Procedure.code bila tindakan dikirim; tentukan mapping resmi dulu."
+        ]
+      },
+      {
+        "code": "TND-013",
+        "nama_klinis": "Aplikasi fluoride topikal",
+        "alasan": [
+          "ICD-9-CM: ICD-9-CM Volume 3 tidak punya entri indeks khusus. Jangan mengarang kode (termasuk 24.99) tanpa kebijakan koding klinik/penjamin. SATUSEHAT tetap butuh Procedure.code bila tindakan dikirim; tentukan mapping resmi dulu."
+        ]
+      },
+      {
+        "code": "TND-030",
+        "nama_klinis": "Tutup pulpa langsung (direct pulp capping)",
+        "alasan": [
+          "ICD-9-CM: Pulp capping tidak punya entri khusus di indeks ICD-9-CM. Jangan otomatis memakai 23.70. Tentukan mapping resmi dulu."
+        ]
+      },
+      {
+        "code": "TND-059",
+        "nama_klinis": "Perawatan alveolitis (dry socket)",
+        "alasan": [
+          "ICD-9-CM: Tidak ada kode ICD-9-CM yang secara eksplisit menyebut alveolitis/dry socket. Kandidat yang kadang dipakai: 97.22 Replacement of dental packing (ganti tampon) atau 24.99 Other dental operations. Perlu kebijakan koding."
+        ]
+      },
+      {
+        "code": "TND-100",
+        "nama_klinis": "Bleaching (pemutihan gigi)",
+        "alasan": [
+          "ICD-9-CM: ICD-9-CM Volume 3 tidak punya entri indeks khusus. Jangan mengarang kode (termasuk 24.99) tanpa kebijakan koding klinik/penjamin. SATUSEHAT tetap butuh Procedure.code bila tindakan dikirim; tentukan mapping resmi dulu."
+        ]
+      }
+    ],
+    "keselarasan_harga_contoh": {
+      "DifficultyTemplate": "Tumpatan 250/350/450rb (1/2/3+ permukaan); scaling 200/400rb; cabut 150rb; sulung 100rb; cabut bedah sederhana 600rb",
+      "papan_icd_tagihan": "Cabut 150rb; sulung 100rb; sisa akar 150/200rb; odontektomi 1,5jt/2jt; tambal 450rb; PSA 800rb/1,2jt; scaling 400rb; mahkota 2jt",
+      "prototipe_mock": "Sealant 250rb; mahkota porselen 3,5jt; implan 12jt; rontgen periapikal 120rb"
+    },
+    "ux_usulan": {
+      "setup_awal": "Klinik baru melihat katalog kosong, lalu modal 'Template awal' dengan tombol 'Pakai templat' atau 'Isi sendiri' (sudah ada di papan ICD & Tagihan, sekarang berisi set penuh bukan 8 baris).",
+      "impor": "Pakai templat mengimpor semua baris: nama klinis, nama awam, unit, ICD-9-CM, ICD-10 usulan, durasi, dan tarif Umum contoh. Spesialis/Bidang tetap mewarisi kecuali sel contoh sudah terisi. Aturan turunan tetap mati.",
+      "setelah_impor": "Pemilik mengedit harga di tabel seperti spreadsheet, menonaktifkan tindakan yang tidak ditawarkan, atau menambah baris sendiri. Boleh impor/ekspor CSV ini.",
+      "pencarian": "Cari tindakan menurut nama awam atau nama klinis (dan kode internal / kode singkat).",
+      "icd": "Saat dokter memilih tindakan, ICD-9-CM dan 1–3 ICD-10 usulan terisi otomatis, tetap bisa diubah. Kode divalidasi ke daftar resmi 2010. Baris 'perlu verifikasi' ditandai, tidak dikirim ke SATUSEHAT sampai diisi.",
+      "jangan_dibangun_sekarang": true
+    },
+    "keputusan_terbuka": [
+      {
+        "id": "kunci-kode",
+        "pertanyaan": "Kunci katalog/tarif: kode internal TND-*** (satu baris per item, ICD-9-CM sebagai atribut) atau tetap procedure_code = ICD-9-CM + variant seperti backend sekarang?",
+        "catatan": "Backend ProcedureCatalog/Tariffs dikunci ICD-9-CM (satu 23.2 untuk semua tumpatan; 1/2/3 permukaan = variant). Templat ini memisah item agar mudah diisi klinik. Impor perlu aturan mapping."
+      },
+      {
+        "id": "impor-semua-atau-kategori",
+        "pertanyaan": "Pakai templat: impor semua ~58 baris, atau klinik memilih kategori dulu (mis. tanpa Ortodonti/Implan)?",
+        "catatan": "Usul default: impor semua lalu nonaktifkan yang tidak perlu, supaya pencarian dan ICD tetap lengkap."
+      },
+      {
+        "id": "harga-sp-bidang",
+        "pertanyaan": "Templat hanya isi Umum (Sp/bidang mewarisi, sesuai papan), atau isi contoh Sp untuk tindakan spesialis?",
+        "catatan": "Saat ini Sp hanya diisi di EXT-RR, ODT, PSA-PRE, PSA (selaras papan/prototipe). Bidang semua null."
+      }
+    ]
+  },
+  "tindakan": [
+    {
+      "code": "TND-001",
+      "nama_klinis": "Pemeriksaan gigi dan mulut",
+      "nama_awam": "Periksa gigi",
+      "kategori": "Pemeriksaan",
+      "unit": "per_visit",
+      "icd9cm": {
+        "kode": "89.31",
+        "display": "Dental examination",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "Z01.2",
+          "display": "Dental examination",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 150000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 20,
+      "kode_singkat": "EXAM",
+      "catatan": "Termasuk pemeriksaan + odontogram pada kunjungan baru. Harga contoh; klinik boleh memisahkan tarif odontogram."
+    },
+    {
+      "code": "TND-002",
+      "nama_klinis": "Kontrol pasca tindakan",
+      "nama_awam": "Kontrol",
+      "kategori": "Pemeriksaan",
+      "unit": "per_visit",
+      "icd9cm": {
+        "kode": "89.31",
+        "display": "Dental examination",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "Z09",
+          "display": "Follow-up examination after treatment for conditions other than malignant neoplasms",
+          "status": "verified"
+        },
+        {
+          "kode": "Z48.8",
+          "display": "Other specified surgical follow-up care",
+          "status": "verified"
+        },
+        {
+          "kode": "Z01.2",
+          "display": "Dental examination",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 0,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 15,
+      "kode_singkat": "KTRL",
+      "catatan": "Contoh Rp0 untuk kontrol gratis. Klinik boleh mengisi tarif bila kontrol berbayar. Tetap dicatat sebagai kunjungan RM."
+    },
+    {
+      "code": "TND-003",
+      "nama_klinis": "Konsultasi",
+      "nama_awam": "Konsultasi dokter gigi",
+      "kategori": "Pemeriksaan",
+      "unit": "per_visit",
+      "icd9cm": {
+        "kode": "89.31",
+        "display": "Dental examination",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "Z01.2",
+          "display": "Dental examination",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 200000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 20,
+      "kode_singkat": "KONS",
+      "catatan": "Untuk kunjungan konsultasi berbayar tanpa tindakan restoratif/bedah (lihat keputusan kunjungan tanpa tindakan)."
+    },
+    {
+      "code": "TND-010",
+      "nama_klinis": "Skeling dan pemolesan (penuh)",
+      "nama_awam": "Pembersihan karang gigi",
+      "kategori": "Preventif",
+      "unit": "per_visit",
+      "icd9cm": {
+        "kode": "96.54",
+        "display": "Dental scaling, polishing, and debridement",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K03.6",
+          "display": "Deposits [accretions] on teeth",
+          "status": "verified"
+        },
+        {
+          "kode": "K05.1",
+          "display": "Chronic gingivitis",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 400000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 45,
+      "kode_singkat": "SCL",
+      "variant_contoh": "berat",
+      "catatan": "Selaras papan ICD & Tagihan (Rp400.000). Tingkat DifficultyTemplate: ringan 200rb, sedang 300rb, berat 400rb."
+    },
+    {
+      "code": "TND-011",
+      "nama_klinis": "Profilaksis / skeling ringan",
+      "nama_awam": "Pembersihan plak gigi",
+      "kategori": "Preventif",
+      "unit": "per_visit",
+      "icd9cm": {
+        "kode": "96.54",
+        "display": "Dental scaling, polishing, and debridement",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K03.6",
+          "display": "Deposits [accretions] on teeth",
+          "status": "verified"
+        },
+        {
+          "kode": "K05.1",
+          "display": "Chronic gingivitis",
+          "status": "verified"
+        },
+        {
+          "kode": "Z01.2",
+          "display": "Dental examination",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 200000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 25,
+      "kode_singkat": "PROPH",
+      "variant_contoh": "standar",
+      "catatan": "96.54 juga mencakup dental prophylaxis dan plaque removal. Jangan memakai 24.99 (dikecualikan)."
+    },
+    {
+      "code": "TND-012",
+      "nama_klinis": "Fissure sealant",
+      "nama_awam": "Tutup celah gigi",
+      "kategori": "Preventif",
+      "unit": "per_tooth",
+      "icd9cm": {
+        "kode": null,
+        "display": null,
+        "status": "perlu verifikasi",
+        "catatan": "ICD-9-CM Volume 3 tidak punya entri indeks khusus. Jangan mengarang kode (termasuk 24.99) tanpa kebijakan koding klinik/penjamin. SATUSEHAT tetap butuh Procedure.code bila tindakan dikirim; tentukan mapping resmi dulu."
+      },
+      "icd10_typical": [
+        {
+          "kode": "K02.0",
+          "display": "Caries limited to enamel",
+          "status": "verified"
+        },
+        {
+          "kode": "K00.2",
+          "display": "Abnormalities of size and form of teeth",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 250000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 15,
+      "kode_singkat": "SEAL",
+      "catatan": "Harga selaras prototipe (Rp250.000). Kode ICD-9-CM perlu kebijakan koding."
+    },
+    {
+      "code": "TND-013",
+      "nama_klinis": "Aplikasi fluoride topikal",
+      "nama_awam": "Oles fluoride",
+      "kategori": "Preventif",
+      "unit": "per_visit",
+      "icd9cm": {
+        "kode": null,
+        "display": null,
+        "status": "perlu verifikasi",
+        "catatan": "ICD-9-CM Volume 3 tidak punya entri indeks khusus. Jangan mengarang kode (termasuk 24.99) tanpa kebijakan koding klinik/penjamin. SATUSEHAT tetap butuh Procedure.code bila tindakan dikirim; tentukan mapping resmi dulu."
+      },
+      "icd10_typical": [
+        {
+          "kode": "K02.3",
+          "display": "Arrested dental caries",
+          "status": "verified"
+        },
+        {
+          "kode": "K03.0",
+          "display": "Excessive attrition of teeth",
+          "status": "verified"
+        },
+        {
+          "kode": "Z01.2",
+          "display": "Dental examination",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 150000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 15,
+      "kode_singkat": "FL",
+      "catatan": "Tidak ada entri indeks ICD-9-CM untuk fluoride topikal."
+    },
+    {
+      "code": "TND-020",
+      "nama_klinis": "Tumpatan GIC 1 permukaan",
+      "nama_awam": "Tambal gigi semen (1 sisi)",
+      "kategori": "Restorasi",
+      "unit": "per_surface",
+      "icd9cm": {
+        "kode": "23.2",
+        "display": "Restoration of tooth by filling",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K02.0",
+          "display": "Caries limited to enamel",
+          "status": "verified"
+        },
+        {
+          "kode": "K02.1",
+          "display": "Caries of dentine",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 250000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 20,
+      "kode_singkat": "RST-GIC1",
+      "variant_contoh": "standar",
+      "catatan": "Semua bahan tumpatan langsung memakai 23.2. Bahan dicatat di odontogram, bukan di kode ICD."
+    },
+    {
+      "code": "TND-021",
+      "nama_klinis": "Tumpatan komposit 1 permukaan",
+      "nama_awam": "Tambal gigi (1 sisi)",
+      "kategori": "Restorasi",
+      "unit": "per_surface",
+      "icd9cm": {
+        "kode": "23.2",
+        "display": "Restoration of tooth by filling",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K02.1",
+          "display": "Caries of dentine",
+          "status": "verified"
+        },
+        {
+          "kode": "K02.0",
+          "display": "Caries limited to enamel",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 250000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 25,
+      "kode_singkat": "RST-K1",
+      "variant_contoh": "standar",
+      "catatan": "Harga selaras DifficultyTemplate tingkat 1 permukaan (Rp250.000)."
+    },
+    {
+      "code": "TND-022",
+      "nama_klinis": "Tumpatan komposit 2 permukaan",
+      "nama_awam": "Tambal gigi (2 sisi)",
+      "kategori": "Restorasi",
+      "unit": "per_surface",
+      "icd9cm": {
+        "kode": "23.2",
+        "display": "Restoration of tooth by filling",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K02.1",
+          "display": "Caries of dentine",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 350000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 35,
+      "kode_singkat": "RST-K2",
+      "variant_contoh": "p2",
+      "catatan": "Harga selaras DifficultyTemplate tingkat 2 permukaan (Rp350.000)."
+    },
+    {
+      "code": "TND-023",
+      "nama_klinis": "Tumpatan komposit 3+ permukaan",
+      "nama_awam": "Tambal gigi besar",
+      "kategori": "Restorasi",
+      "unit": "per_surface",
+      "icd9cm": {
+        "kode": "23.2",
+        "display": "Restoration of tooth by filling",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K02.1",
+          "display": "Caries of dentine",
+          "status": "verified"
+        },
+        {
+          "kode": "K02.9",
+          "display": "Dental caries, unspecified",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 450000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 45,
+      "kode_singkat": "RST-KOMP",
+      "variant_contoh": "p3plus",
+      "catatan": "Harga selaras papan ICD & Tagihan 'Tambal gigi' dan DifficultyTemplate 3+ permukaan (Rp450.000)."
+    },
+    {
+      "code": "TND-024",
+      "nama_klinis": "Tumpatan sementara",
+      "nama_awam": "Tambal sementara",
+      "kategori": "Restorasi",
+      "unit": "per_tooth",
+      "icd9cm": {
+        "kode": "23.2",
+        "display": "Restoration of tooth by filling",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K02.1",
+          "display": "Caries of dentine",
+          "status": "verified"
+        },
+        {
+          "kode": "K04.0",
+          "display": "Pulpitis",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 150000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 15,
+      "kode_singkat": "RST-TMP"
+    },
+    {
+      "code": "TND-025",
+      "nama_klinis": "Inlay / onlay",
+      "nama_awam": "Tambal inlay",
+      "kategori": "Restorasi",
+      "unit": "per_tooth",
+      "icd9cm": {
+        "kode": "23.3",
+        "display": "Restoration of tooth by inlay",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K02.1",
+          "display": "Caries of dentine",
+          "status": "verified"
+        },
+        {
+          "kode": "K03.8",
+          "display": "Other specified diseases of hard tissues of teeth",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 1500000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 60,
+      "kode_singkat": "INLAY"
+    },
+    {
+      "code": "TND-026",
+      "nama_klinis": "Veneer komposit",
+      "nama_awam": "Veneer gigi",
+      "kategori": "Restorasi",
+      "unit": "per_tooth",
+      "icd9cm": {
+        "kode": "23.49",
+        "display": "Other dental restoration",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K03.7",
+          "display": "Posteruptive colour changes of dental hard tissues",
+          "status": "verified"
+        },
+        {
+          "kode": "K03.0",
+          "display": "Excessive attrition of teeth",
+          "status": "verified"
+        },
+        {
+          "kode": "K00.2",
+          "display": "Abnormalities of size and form of teeth",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 1500000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 45,
+      "kode_singkat": "VEN",
+      "catatan": "23.49 = Other dental restoration. Veneer porselen bisa memakai baris mahkota (23.41) bila kebijakan klinik menyamakan."
+    },
+    {
+      "code": "TND-030",
+      "nama_klinis": "Tutup pulpa langsung (direct pulp capping)",
+      "nama_awam": "Tutup saraf gigi",
+      "kategori": "Endodonti",
+      "unit": "per_tooth",
+      "icd9cm": {
+        "kode": null,
+        "display": null,
+        "status": "perlu verifikasi",
+        "catatan": "Pulp capping tidak punya entri khusus di indeks ICD-9-CM. Jangan otomatis memakai 23.70. Tentukan mapping resmi dulu."
+      },
+      "icd10_typical": [
+        {
+          "kode": "K04.0",
+          "display": "Pulpitis",
+          "status": "verified"
+        },
+        {
+          "kode": "K02.1",
+          "display": "Caries of dentine",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 300000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 20,
+      "kode_singkat": "PULP-CAP"
+    },
+    {
+      "code": "TND-031",
+      "nama_klinis": "Pulpotomi",
+      "nama_awam": "Perawatan saraf sebagian",
+      "kategori": "Endodonti",
+      "unit": "per_tooth",
+      "icd9cm": {
+        "kode": "23.70",
+        "display": "Root canal, not otherwise specified",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K04.0",
+          "display": "Pulpitis",
+          "status": "verified"
+        },
+        {
+          "kode": "K00.7",
+          "display": "Teething syndrome",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 400000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 30,
+      "kode_singkat": "PULPOT",
+      "catatan": "Indeks alfabet mengarahkan Pulpotomy ke Therapy, root canal 23.70."
+    },
+    {
+      "code": "TND-032",
+      "nama_klinis": "Perawatan saluran akar gigi anterior",
+      "nama_awam": "Perawatan saraf gigi depan",
+      "kategori": "Endodonti",
+      "unit": "per_tooth",
+      "icd9cm": {
+        "kode": "23.71",
+        "display": "Root canal therapy with irrigation",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K04.0",
+          "display": "Pulpitis",
+          "status": "verified"
+        },
+        {
+          "kode": "K04.1",
+          "display": "Necrosis of pulp",
+          "status": "verified"
+        },
+        {
+          "kode": "K04.5",
+          "display": "Chronic apical periodontitis",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 800000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 60,
+      "kode_singkat": "PSA-ANT",
+      "catatan": "23.71 dipakai sebagai PSA dengan irigasi (lazim di praktik). Harga Umum selaras papan ICD (Rp800.000)."
+    },
+    {
+      "code": "TND-033",
+      "nama_klinis": "Perawatan saluran akar gigi premolar",
+      "nama_awam": "Perawatan saraf gigi geraham kecil",
+      "kategori": "Endodonti",
+      "unit": "per_tooth",
+      "icd9cm": {
+        "kode": "23.71",
+        "display": "Root canal therapy with irrigation",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K04.0",
+          "display": "Pulpitis",
+          "status": "verified"
+        },
+        {
+          "kode": "K04.1",
+          "display": "Necrosis of pulp",
+          "status": "verified"
+        },
+        {
+          "kode": "K04.5",
+          "display": "Chronic apical periodontitis",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 1000000,
+        "spesialis": 1200000,
+        "bidang": null
+      },
+      "durasi_menit": 75,
+      "kode_singkat": "PSA-PRE",
+      "catatan": "Spesialis contoh Rp1.200.000 merujuk papan ICD (satu baris PSA). Tingkat gigi = item katalog, bukan band tarif."
+    },
+    {
+      "code": "TND-034",
+      "nama_klinis": "Perawatan saluran akar gigi molar",
+      "nama_awam": "Perawatan saraf gigi geraham",
+      "kategori": "Endodonti",
+      "unit": "per_tooth",
+      "icd9cm": {
+        "kode": "23.71",
+        "display": "Root canal therapy with irrigation",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K04.0",
+          "display": "Pulpitis",
+          "status": "verified"
+        },
+        {
+          "kode": "K04.1",
+          "display": "Necrosis of pulp",
+          "status": "verified"
+        },
+        {
+          "kode": "K04.5",
+          "display": "Chronic apical periodontitis",
+          "status": "verified"
+        },
+        {
+          "kode": "K04.7",
+          "display": "Periapical abscess without sinus",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 1500000,
+        "spesialis": 1800000,
+        "bidang": null
+      },
+      "durasi_menit": 90,
+      "kode_singkat": "PSA",
+      "catatan": "Kompleksitas molar dipisah dari anterior. Prototipe lama memakai Rp1.800.000 sebagai satu harga PSA."
+    },
+    {
+      "code": "TND-035",
+      "nama_klinis": "Perawatan ulang saluran akar (retreatment)",
+      "nama_awam": "Ulang perawatan saraf gigi",
+      "kategori": "Endodonti",
+      "unit": "per_tooth",
+      "icd9cm": {
+        "kode": "23.71",
+        "display": "Root canal therapy with irrigation",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K04.5",
+          "display": "Chronic apical periodontitis",
+          "status": "verified"
+        },
+        {
+          "kode": "K04.8",
+          "display": "Radicular cyst",
+          "status": "verified"
+        },
+        {
+          "kode": "K04.7",
+          "display": "Periapical abscess without sinus",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 2000000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 90,
+      "kode_singkat": "PSA-RE"
+    },
+    {
+      "code": "TND-036",
+      "nama_klinis": "Apikoektomi",
+      "nama_awam": "Operasi ujung akar gigi",
+      "kategori": "Endodonti",
+      "unit": "per_tooth",
+      "icd9cm": {
+        "kode": "23.73",
+        "display": "Apicoectomy",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K04.5",
+          "display": "Chronic apical periodontitis",
+          "status": "verified"
+        },
+        {
+          "kode": "K04.8",
+          "display": "Radicular cyst",
+          "status": "verified"
+        },
+        {
+          "kode": "K04.7",
+          "display": "Periapical abscess without sinus",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 2000000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 60,
+      "kode_singkat": "APICO",
+      "catatan": "23.73 = Apicoectomy saja. Bila PSA dan apikoektomi pada kunjungan yang sama, indeks punya 23.72."
+    },
+    {
+      "code": "TND-037",
+      "nama_klinis": "Trepanasi / buka kamar pulpa darurat",
+      "nama_awam": "Buka saluran saraf darurat",
+      "kategori": "Endodonti",
+      "unit": "per_tooth",
+      "icd9cm": {
+        "kode": "23.70",
+        "display": "Root canal, not otherwise specified",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K04.0",
+          "display": "Pulpitis",
+          "status": "verified"
+        },
+        {
+          "kode": "K04.4",
+          "display": "Acute apical periodontitis of pulpal origin",
+          "status": "verified"
+        },
+        {
+          "kode": "K04.7",
+          "display": "Periapical abscess without sinus",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 300000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 20,
+      "kode_singkat": "TREP",
+      "catatan": "23.70 (PSA tidak dirinci) dipakai karena ini langkah awal endodonti, bukan restorasi 23.2."
+    },
+    {
+      "code": "TND-040",
+      "nama_klinis": "Scaling root planing per kuadran",
+      "nama_awam": "Pembersihan karang dalam (per kuadran)",
+      "kategori": "Periodonti",
+      "unit": "per_quadrant",
+      "icd9cm": {
+        "kode": "96.54",
+        "display": "Dental scaling, polishing, and debridement",
+        "status": "verified",
+        "catatan": "Root planing tidak punya entri indeks sendiri; dalam praktik biasanya ikut 96.54 (debridement). Kuretase subgingiva = 24.31."
+      },
+      "icd10_typical": [
+        {
+          "kode": "K05.3",
+          "display": "Chronic periodontitis",
+          "status": "verified"
+        },
+        {
+          "kode": "K05.2",
+          "display": "Acute periodontitis",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 400000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 30,
+      "kode_singkat": "SRP",
+      "catatan": "Unit per_quadrant sesuai treat_area di ProcedureCatalog (bukan hanya 4 unit ringkas)."
+    },
+    {
+      "code": "TND-041",
+      "nama_klinis": "Kuretase gingiva",
+      "nama_awam": "Pembersihan gusi dalam",
+      "kategori": "Periodonti",
+      "unit": "per_quadrant",
+      "icd9cm": {
+        "kode": "24.31",
+        "display": "Excision of lesion or tissue of gum",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K05.3",
+          "display": "Chronic periodontitis",
+          "status": "verified"
+        },
+        {
+          "kode": "K05.1",
+          "display": "Chronic gingivitis",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 350000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 30,
+      "kode_singkat": "KUR",
+      "catatan": "Indeks: kuretase subgingiva masuk 24.31 (Excision of lesion or tissue of gum)."
+    },
+    {
+      "code": "TND-042",
+      "nama_klinis": "Gingivektomi",
+      "nama_awam": "Potong gusi berlebih",
+      "kategori": "Periodonti",
+      "unit": "per_tooth",
+      "icd9cm": {
+        "kode": "24.31",
+        "display": "Excision of lesion or tissue of gum",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K06.1",
+          "display": "Gingival enlargement",
+          "status": "verified"
+        },
+        {
+          "kode": "K05.3",
+          "display": "Chronic periodontitis",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 500000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 40,
+      "kode_singkat": "GINGIV"
+    },
+    {
+      "code": "TND-043",
+      "nama_klinis": "Gingivoplasti",
+      "nama_awam": "Rapikan bentuk gusi",
+      "kategori": "Periodonti",
+      "unit": "per_tooth",
+      "icd9cm": {
+        "kode": "24.2",
+        "display": "Gingivoplasty",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K06.1",
+          "display": "Gingival enlargement",
+          "status": "verified"
+        },
+        {
+          "kode": "K06.0",
+          "display": "Gingival recession",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 600000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 45,
+      "kode_singkat": "GPLA"
+    },
+    {
+      "code": "TND-044",
+      "nama_klinis": "Splinting periodontal",
+      "nama_awam": "Penguat gigi goyang",
+      "kategori": "Periodonti",
+      "unit": "per_range",
+      "icd9cm": {
+        "kode": "24.7",
+        "display": "Application of orthodontic appliance",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K05.3",
+          "display": "Chronic periodontitis",
+          "status": "verified"
+        },
+        {
+          "kode": "K08.8",
+          "display": "Other specified disorders of teeth and supporting structures",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 400000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 30,
+      "kode_singkat": "SPL-PERIO",
+      "catatan": "24.7 Application of orthodontic appliance mencakup periodontal splint. Wiring trauma non-orto = 93.55."
+    },
+    {
+      "code": "TND-050",
+      "nama_klinis": "Pencabutan gigi permanen",
+      "nama_awam": "Cabut gigi",
+      "kategori": "Bedah/Ekstraksi",
+      "unit": "per_tooth",
+      "icd9cm": {
+        "kode": "23.09",
+        "display": "Extraction of other tooth",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K04.5",
+          "display": "Chronic apical periodontitis",
+          "status": "verified"
+        },
+        {
+          "kode": "K04.1",
+          "display": "Necrosis of pulp",
+          "status": "verified"
+        },
+        {
+          "kode": "K05.3",
+          "display": "Chronic periodontitis",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 150000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 20,
+      "kode_singkat": "EXT-P",
+      "variant_contoh": "standar",
+      "catatan": "Forceps extraction. Harga selaras DifficultyTemplate dan papan ICD (Rp150.000). Tingkat 'sulit' di seed = Rp300.000."
+    },
+    {
+      "code": "TND-051",
+      "nama_klinis": "Pencabutan gigi sulung",
+      "nama_awam": "Cabut gigi susu",
+      "kategori": "Bedah/Ekstraksi",
+      "unit": "per_tooth",
+      "icd9cm": {
+        "kode": "23.01",
+        "display": "Extraction of deciduous tooth",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K00.6",
+          "display": "Disturbances in tooth eruption",
+          "status": "verified"
+        },
+        {
+          "kode": "K02.1",
+          "display": "Caries of dentine",
+          "status": "verified"
+        },
+        {
+          "kode": "K04.1",
+          "display": "Necrosis of pulp",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 100000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 15,
+      "kode_singkat": "EXT-D",
+      "catatan": "Harga selaras seed dan papan ICD (Rp100.000). Jangan memakai 23.09 pada gigi sulung (validasi tanda tangan)."
+    },
+    {
+      "code": "TND-052",
+      "nama_klinis": "Pengambilan sisa akar",
+      "nama_awam": "Cabut sisa akar gigi",
+      "kategori": "Bedah/Ekstraksi",
+      "unit": "per_tooth",
+      "icd9cm": {
+        "kode": "23.11",
+        "display": "Removal of residual root",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K08.3",
+          "display": "Retained dental root",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 150000,
+        "spesialis": 200000,
+        "bidang": null
+      },
+      "durasi_menit": 30,
+      "kode_singkat": "EXT-RR",
+      "catatan": "Harga selaras papan ICD: Umum Rp150.000, Spesialis Rp200.000."
+    },
+    {
+      "code": "TND-053",
+      "nama_klinis": "Odontektomi gigi impaksi",
+      "nama_awam": "Operasi gigi bungsu",
+      "kategori": "Bedah/Ekstraksi",
+      "unit": "per_tooth",
+      "icd9cm": {
+        "kode": "23.19",
+        "display": "Other surgical extraction of tooth",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K01.1",
+          "display": "Impacted teeth",
+          "status": "verified"
+        },
+        {
+          "kode": "K01.0",
+          "display": "Embedded teeth",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 1500000,
+        "spesialis": 2000000,
+        "bidang": null
+      },
+      "durasi_menit": 60,
+      "kode_singkat": "ODT",
+      "catatan": "Harga selaras papan ICD (Rp1.500.000 / Sp Rp2.000.000), bukan seed lama Rp600.000 yang dipakai untuk cabut bedah sederhana."
+    },
+    {
+      "code": "TND-054",
+      "nama_klinis": "Pencabutan bedah (bukan impaksi)",
+      "nama_awam": "Cabut gigi dengan bedah kecil",
+      "kategori": "Bedah/Ekstraksi",
+      "unit": "per_tooth",
+      "icd9cm": {
+        "kode": "23.19",
+        "display": "Other surgical extraction of tooth",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K04.5",
+          "display": "Chronic apical periodontitis",
+          "status": "verified"
+        },
+        {
+          "kode": "K08.3",
+          "display": "Retained dental root",
+          "status": "verified"
+        },
+        {
+          "kode": "K05.3",
+          "display": "Chronic periodontitis",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 600000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 40,
+      "kode_singkat": "EXT-SURG",
+      "variant_contoh": "standar",
+      "catatan": "Flap/pemotongan tulang tanpa impaksi. Harga selaras DifficultyTemplate 23.19 (Rp600.000)."
+    },
+    {
+      "code": "TND-055",
+      "nama_klinis": "Insisi dan drainase abses",
+      "nama_awam": "Iris nanah gusi",
+      "kategori": "Bedah/Ekstraksi",
+      "unit": "per_tooth",
+      "icd9cm": {
+        "kode": "24.0",
+        "display": "Incision of gum or alveolar bone",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K04.7",
+          "display": "Periapical abscess without sinus",
+          "status": "verified"
+        },
+        {
+          "kode": "K04.6",
+          "display": "Periapical abscess with sinus",
+          "status": "verified"
+        },
+        {
+          "kode": "K12.2",
+          "display": "Cellulitis and abscess of mouth",
+          "status": "verified"
+        },
+        {
+          "kode": "K05.2",
+          "display": "Acute periodontitis",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 250000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 20,
+      "kode_singkat": "I&D"
+    },
+    {
+      "code": "TND-056",
+      "nama_klinis": "Alveoloplasti",
+      "nama_awam": "Perapihan tulang bekas cabut",
+      "kategori": "Bedah/Ekstraksi",
+      "unit": "per_arch",
+      "icd9cm": {
+        "kode": "24.5",
+        "display": "Alveoloplasty",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K08.1",
+          "display": "Loss of teeth accident extraction or local periodontal dis",
+          "status": "verified"
+        },
+        {
+          "kode": "K08.2",
+          "display": "Atrophy of edentulous alveolar ridge",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 500000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 40,
+      "kode_singkat": "ALV"
+    },
+    {
+      "code": "TND-057",
+      "nama_klinis": "Operkulektomi",
+      "nama_awam": "Potong daging tutup gigi bungsu",
+      "kategori": "Bedah/Ekstraksi",
+      "unit": "per_tooth",
+      "icd9cm": {
+        "kode": "24.6",
+        "display": "Exposure of tooth",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K05.0",
+          "display": "Acute gingivitis",
+          "status": "verified"
+        },
+        {
+          "kode": "K01.1",
+          "display": "Impacted teeth",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 400000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 25,
+      "kode_singkat": "OPERC",
+      "catatan": "Menurut indeks, operkulektomi (perikoronitis) masuk 24.6 Exposure of tooth."
+    },
+    {
+      "code": "TND-058",
+      "nama_klinis": "Jahit luka gusi",
+      "nama_awam": "Jahit gusi",
+      "kategori": "Bedah/Ekstraksi",
+      "unit": "per_visit",
+      "icd9cm": {
+        "kode": "24.32",
+        "display": "Suture of laceration of gum",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "S02.51",
+          "display": "Fracture of tooth, open",
+          "status": "verified"
+        },
+        {
+          "kode": "K06.2",
+          "display": "Gingival and edentulous alveolar ridge les assoc with traum",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 150000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 15,
+      "kode_singkat": "SUTUR"
+    },
+    {
+      "code": "TND-059",
+      "nama_klinis": "Perawatan alveolitis (dry socket)",
+      "nama_awam": "Obat luka cabut yang nyeri",
+      "kategori": "Bedah/Ekstraksi",
+      "unit": "per_tooth",
+      "icd9cm": {
+        "kode": null,
+        "display": null,
+        "status": "perlu verifikasi",
+        "catatan": "Tidak ada kode ICD-9-CM yang secara eksplisit menyebut alveolitis/dry socket. Kandidat yang kadang dipakai: 97.22 Replacement of dental packing (ganti tampon) atau 24.99 Other dental operations. Perlu kebijakan koding."
+      },
+      "icd10_typical": [
+        {
+          "kode": "K10.3",
+          "display": "Alveolitis of jaws",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 200000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 15,
+      "kode_singkat": "DRY-SK"
+    },
+    {
+      "code": "TND-060",
+      "nama_klinis": "Frenektomi labial",
+      "nama_awam": "Potong tali bibir",
+      "kategori": "Bedah/Ekstraksi",
+      "unit": "per_visit",
+      "icd9cm": {
+        "kode": "27.41",
+        "display": "Labial frenectomy",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "Q38.0",
+          "display": "Congenital malformations of lips, not elsewhere classified",
+          "status": "verified"
+        },
+        {
+          "kode": "K06.8",
+          "display": "Other specified disorder of gingiva and edentulous alveolar ridge",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 800000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 30,
+      "kode_singkat": "FREN-L"
+    },
+    {
+      "code": "TND-070",
+      "nama_klinis": "Mahkota PFM (logam-porselen)",
+      "nama_awam": "Mahkota gigi logam-porselen",
+      "kategori": "Prostodonti",
+      "unit": "per_tooth",
+      "icd9cm": {
+        "kode": "23.41",
+        "display": "Application of crown",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K02.1",
+          "display": "Caries of dentine",
+          "status": "verified"
+        },
+        {
+          "kode": "K08.1",
+          "display": "Loss of teeth accident extraction or local periodontal dis",
+          "status": "verified"
+        },
+        {
+          "kode": "K03.8",
+          "display": "Other specified diseases of hard tissues of teeth",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 2000000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 60,
+      "kode_singkat": "CRN",
+      "catatan": "Harga selaras papan ICD 'Mahkota tiruan' (Rp2.000.000). Sering 2 kunjungan (preparasi + pasang)."
+    },
+    {
+      "code": "TND-071",
+      "nama_klinis": "Mahkota zironia / porselen penuh",
+      "nama_awam": "Mahkota gigi porselen",
+      "kategori": "Prostodonti",
+      "unit": "per_tooth",
+      "icd9cm": {
+        "kode": "23.41",
+        "display": "Application of crown",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K02.1",
+          "display": "Caries of dentine",
+          "status": "verified"
+        },
+        {
+          "kode": "K08.1",
+          "display": "Loss of teeth accident extraction or local periodontal dis",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 3500000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 60,
+      "kode_singkat": "CRN-ZR",
+      "catatan": "Harga selaras prototipe 'Mahkota porselen' (Rp3.500.000)."
+    },
+    {
+      "code": "TND-072",
+      "nama_klinis": "Jembatan cekat 3 unit",
+      "nama_awam": "Gigi tiruan jembatan",
+      "kategori": "Prostodonti",
+      "unit": "per_range",
+      "icd9cm": {
+        "kode": "23.42",
+        "display": "Insertion of fixed bridge",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K08.1",
+          "display": "Loss of teeth accident extraction or local periodontal dis",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 6000000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 90,
+      "kode_singkat": "BRG",
+      "catatan": "Harga contoh untuk 3 unit (2 abutment + 1 pontik). Klinik boleh menagih per unit."
+    },
+    {
+      "code": "TND-073",
+      "nama_klinis": "Gigi tiruan sebagian lepasan (GTSL)",
+      "nama_awam": "Gigi palsu lepasan sebagian",
+      "kategori": "Prostodonti",
+      "unit": "per_arch",
+      "icd9cm": {
+        "kode": "23.43",
+        "display": "Insertion of removable bridge",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K08.1",
+          "display": "Loss of teeth accident extraction or local periodontal dis",
+          "status": "verified"
+        },
+        {
+          "kode": "Z46.3",
+          "display": "Fitting and adjustment of dental prosthetic device",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 2500000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 45,
+      "kode_singkat": "GTSL",
+      "catatan": "Indeks: partial, removable → 23.43 Insertion of removable bridge."
+    },
+    {
+      "code": "TND-074",
+      "nama_klinis": "Gigi tiruan lengkap (GTL)",
+      "nama_awam": "Gigi palsu penuh",
+      "kategori": "Prostodonti",
+      "unit": "per_arch",
+      "icd9cm": {
+        "kode": "99.97",
+        "display": "Fitting of denture",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K08.1",
+          "display": "Loss of teeth accident extraction or local periodontal dis",
+          "status": "verified"
+        },
+        {
+          "kode": "K08.2",
+          "display": "Atrophy of edentulous alveolar ridge",
+          "status": "verified"
+        },
+        {
+          "kode": "Z46.3",
+          "display": "Fitting and adjustment of dental prosthetic device",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 3500000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 45,
+      "kode_singkat": "GTL",
+      "catatan": "Indeks: Fitting – denture (total) → 99.97. Bukan 23.43."
+    },
+    {
+      "code": "TND-075",
+      "nama_klinis": "Penyesuaian gigi tiruan",
+      "nama_awam": "Setel gigi palsu",
+      "kategori": "Prostodonti",
+      "unit": "per_visit",
+      "icd9cm": {
+        "kode": "99.97",
+        "display": "Fitting of denture",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "Z46.3",
+          "display": "Fitting and adjustment of dental prosthetic device",
+          "status": "verified"
+        },
+        {
+          "kode": "Z97.2",
+          "display": "Presence of dental prosthetic device (complete)(partial)",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 150000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 20,
+      "kode_singkat": "GTS-ADJ",
+      "catatan": "99.97 Fitting of denture dipakai juga untuk penyesuaian; alternatif pelepasan = 97.35."
+    },
+    {
+      "code": "TND-076",
+      "nama_klinis": "Implan gigi prostetik",
+      "nama_awam": "Implan gigi",
+      "kategori": "Prostodonti",
+      "unit": "per_tooth",
+      "icd9cm": {
+        "kode": "23.6",
+        "display": "Prosthetic dental implant",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K08.1",
+          "display": "Loss of teeth accident extraction or local periodontal dis",
+          "status": "verified"
+        },
+        {
+          "kode": "Z96.5",
+          "display": "Presence of tooth-root and mandibular implants",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 12000000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 90,
+      "kode_singkat": "IMPL",
+      "catatan": "Harga selaras prototipe (Rp12.000.000) per fixtur, contoh. 23.5 = implantasi/replantasi gigi, bukan implan prostetik."
+    },
+    {
+      "code": "TND-077",
+      "nama_klinis": "Pasak dan inti (post and core)",
+      "nama_awam": "Pasak gigi",
+      "kategori": "Prostodonti",
+      "unit": "per_tooth",
+      "icd9cm": {
+        "kode": "23.49",
+        "display": "Other dental restoration",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K08.3",
+          "display": "Retained dental root",
+          "status": "verified"
+        },
+        {
+          "kode": "K04.1",
+          "display": "Necrosis of pulp",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 800000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 30,
+      "kode_singkat": "POST",
+      "catatan": "23.49 Other dental restoration; tidak ada kode ICD-9-CM khusus pasak."
+    },
+    {
+      "code": "TND-080",
+      "nama_klinis": "Konsultasi ortodonti",
+      "nama_awam": "Konsultasi kawat gigi",
+      "kategori": "Ortodonti",
+      "unit": "per_visit",
+      "icd9cm": {
+        "kode": "89.31",
+        "display": "Dental examination",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K07.4",
+          "display": "Malocclusion, unspecified",
+          "status": "verified"
+        },
+        {
+          "kode": "K07.3",
+          "display": "Anomalies of tooth position",
+          "status": "verified"
+        },
+        {
+          "kode": "K07.2",
+          "display": "Anomalies of dental arch relationship",
+          "status": "verified"
+        },
+        {
+          "kode": "Z01.2",
+          "display": "Dental examination",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 250000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 30,
+      "kode_singkat": "ORT-KONS"
+    },
+    {
+      "code": "TND-081",
+      "nama_klinis": "Pemasangan alat ortodonti cekat (satu rahang)",
+      "nama_awam": "Pasang kawat gigi (satu rahang)",
+      "kategori": "Ortodonti",
+      "unit": "per_arch",
+      "icd9cm": {
+        "kode": "24.7",
+        "display": "Application of orthodontic appliance",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K07.3",
+          "display": "Anomalies of tooth position",
+          "status": "verified"
+        },
+        {
+          "kode": "K07.2",
+          "display": "Anomalies of dental arch relationship",
+          "status": "verified"
+        },
+        {
+          "kode": "K07.4",
+          "display": "Malocclusion, unspecified",
+          "status": "verified"
+        },
+        {
+          "kode": "Z46.4",
+          "display": "Fitting and adjustment of orthodontic device",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 5000000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 90,
+      "kode_singkat": "ORT-PASANG",
+      "catatan": "24.7 Application of orthodontic appliance. Harga contoh paket awal per rahang; klinik sering memakai paket kedua rahang."
+    },
+    {
+      "code": "TND-082",
+      "nama_klinis": "Kontrol ortodonti",
+      "nama_awam": "Kontrol kawat gigi",
+      "kategori": "Ortodonti",
+      "unit": "per_visit",
+      "icd9cm": {
+        "kode": "24.8",
+        "display": "Other orthodontic operation",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "Z46.4",
+          "display": "Fitting and adjustment of orthodontic device",
+          "status": "verified"
+        },
+        {
+          "kode": "K07.4",
+          "display": "Malocclusion, unspecified",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 300000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 20,
+      "kode_singkat": "ORT-KTRL",
+      "catatan": "24.8 Other orthodontic operation mencakup penyesuaian alat."
+    },
+    {
+      "code": "TND-083",
+      "nama_klinis": "Pelepasan alat ortodonti",
+      "nama_awam": "Lepas kawat gigi",
+      "kategori": "Ortodonti",
+      "unit": "per_arch",
+      "icd9cm": {
+        "kode": "24.8",
+        "display": "Other orthodontic operation",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "Z46.4",
+          "display": "Fitting and adjustment of orthodontic device",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 500000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 45,
+      "kode_singkat": "ORT-LEPAS",
+      "catatan": "24.8 mencakup pelepasan arch bar. 97.33 = Removal of dental wiring (sering wiring non-orto)."
+    },
+    {
+      "code": "TND-084",
+      "nama_klinis": "Pemasangan retainer",
+      "nama_awam": "Pasang retainer",
+      "kategori": "Ortodonti",
+      "unit": "per_arch",
+      "icd9cm": {
+        "kode": "24.7",
+        "display": "Application of orthodontic appliance",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "Z46.4",
+          "display": "Fitting and adjustment of orthodontic device",
+          "status": "verified"
+        },
+        {
+          "kode": "K07.3",
+          "display": "Anomalies of tooth position",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 800000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 30,
+      "kode_singkat": "RET"
+    },
+    {
+      "code": "TND-090",
+      "nama_klinis": "Foto periapikal",
+      "nama_awam": "Rontgen satu gigi",
+      "kategori": "Radiologi",
+      "unit": "per_tooth",
+      "icd9cm": {
+        "kode": "87.12",
+        "display": "Other dental x-ray",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "Z01.2",
+          "display": "Dental examination",
+          "status": "verified"
+        },
+        {
+          "kode": "K04.5",
+          "display": "Chronic apical periodontitis",
+          "status": "verified"
+        },
+        {
+          "kode": "K02.1",
+          "display": "Caries of dentine",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 120000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 10,
+      "kode_singkat": "XA-PA",
+      "catatan": "87.12 Other dental x-ray mencakup foto periapikal dan root canal x-ray. Harga selaras prototipe (Rp120.000)."
+    },
+    {
+      "code": "TND-091",
+      "nama_klinis": "Foto bitewing",
+      "nama_awam": "Rontgen sela gigi",
+      "kategori": "Radiologi",
+      "unit": "per_visit",
+      "icd9cm": {
+        "kode": "87.12",
+        "display": "Other dental x-ray",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "Z01.2",
+          "display": "Dental examination",
+          "status": "verified"
+        },
+        {
+          "kode": "K02.1",
+          "display": "Caries of dentine",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 150000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 10,
+      "kode_singkat": "XA-BW"
+    },
+    {
+      "code": "TND-092",
+      "nama_klinis": "Foto panoramik (OPG)",
+      "nama_awam": "Rontgen seluruh rahang",
+      "kategori": "Radiologi",
+      "unit": "per_visit",
+      "icd9cm": {
+        "kode": "87.12",
+        "display": "Other dental x-ray",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "Z01.2",
+          "display": "Dental examination",
+          "status": "verified"
+        },
+        {
+          "kode": "K01.1",
+          "display": "Impacted teeth",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 250000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 15,
+      "kode_singkat": "XA-OPG",
+      "catatan": "Daftar tabulasi 87.12 mencantumkan Panorex examination of mandible. 87.11 dikhususkan full-mouth series, bukan OPG."
+    },
+    {
+      "code": "TND-093",
+      "nama_klinis": "Foto sefalometri",
+      "nama_awam": "Rontgen samping kepala",
+      "kategori": "Radiologi",
+      "unit": "per_visit",
+      "icd9cm": {
+        "kode": "87.12",
+        "display": "Other dental x-ray",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "K07.4",
+          "display": "Malocclusion, unspecified",
+          "status": "verified"
+        },
+        {
+          "kode": "Z46.4",
+          "display": "Fitting and adjustment of orthodontic device",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 300000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 15,
+      "kode_singkat": "XA-CEPH",
+      "catatan": "Daftar tabulasi 87.12 mencantumkan Orthodontic cephalogram."
+    },
+    {
+      "code": "TND-100",
+      "nama_klinis": "Bleaching (pemutihan gigi)",
+      "nama_awam": "Pemutihan gigi",
+      "kategori": "Lain-lain",
+      "unit": "per_arch",
+      "icd9cm": {
+        "kode": null,
+        "display": null,
+        "status": "perlu verifikasi",
+        "catatan": "ICD-9-CM Volume 3 tidak punya entri indeks khusus. Jangan mengarang kode (termasuk 24.99) tanpa kebijakan koding klinik/penjamin. SATUSEHAT tetap butuh Procedure.code bila tindakan dikirim; tentukan mapping resmi dulu."
+      },
+      "icd10_typical": [
+        {
+          "kode": "K03.7",
+          "display": "Posteruptive colour changes of dental hard tissues",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 2000000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 60,
+      "kode_singkat": "BLEACH",
+      "catatan": "Tidak ada entri indeks ICD-9-CM untuk bleaching/whitening."
+    },
+    {
+      "code": "TND-101",
+      "nama_klinis": "Splinting trauma (wiring)",
+      "nama_awam": "Penguat gigi patah atau goyang karena benturan",
+      "kategori": "Lain-lain",
+      "unit": "per_range",
+      "icd9cm": {
+        "kode": "93.55",
+        "display": "Dental wiring",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "S02.50",
+          "display": "Fracture of tooth, closed",
+          "status": "verified"
+        },
+        {
+          "kode": "S02.51",
+          "display": "Fracture of tooth, open",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 400000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 30,
+      "kode_singkat": "SPL-TR",
+      "catatan": "93.55 Dental wiring = wiring non-ortodonti (imobilisasi). Bukan 24.7."
+    },
+    {
+      "code": "TND-102",
+      "nama_klinis": "Replantasi gigi avulsi",
+      "nama_awam": "Pasang kembali gigi yang copot",
+      "kategori": "Lain-lain",
+      "unit": "per_tooth",
+      "icd9cm": {
+        "kode": "23.5",
+        "display": "Implantation of tooth",
+        "status": "verified"
+      },
+      "icd10_typical": [
+        {
+          "kode": "S02.51",
+          "display": "Fracture of tooth, open",
+          "status": "verified"
+        },
+        {
+          "kode": "K08.1",
+          "display": "Loss of teeth accident extraction or local periodontal dis",
+          "status": "verified"
+        }
+      ],
+      "tarif_contoh_idr": {
+        "umum": 800000,
+        "spesialis": null,
+        "bidang": null
+      },
+      "durasi_menit": 45,
+      "kode_singkat": "REPLANT",
+      "catatan": "23.5 Implantation of tooth (replantasi), bukan 23.6 implan prostetik."
+    }
+  ]
+}
