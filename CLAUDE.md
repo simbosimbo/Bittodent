@@ -1,4 +1,4 @@
-# CLAUDE.md — Brief Proyek EHR Gigi Agentic
+# CLAUDE.md — Brief Proyek Bittodent
 
 **Apa ini:** sistem rekam medis & manajemen klinik gigi berbasis cloud untuk Indonesia. Agen AI mengerjakan admin; dokter gigi tetap pemegang keputusan klinis. Status: dokumen + prototipe Laravel di `app/` (`backend/` Laravel API, `frontend/` React SPA; data palsu saja; penyimpangan dicatat di `app/DEVIATIONS.md`). Prototipe Node lama diarsipkan di `archive-node/` (jangan diubah).
 
