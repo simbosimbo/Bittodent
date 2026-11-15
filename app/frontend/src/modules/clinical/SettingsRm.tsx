@@ -3,39 +3,54 @@ import { ApiError, errorText } from '../../shared/api/http'
 import type { Me } from '../../shared/session'
 import { getClinicSettings, saveClinicSettings, setSelesaiPin } from './api'
 
-// Pengaturan RM (#55), minimal: owner toggles "PIN saat Selesai" (default off); whoever may press Selesai sets / changes their own PIN.
-// The correction window (tenggat koreksi) stays on #/laporan for now.
+// Pengaturan RM (#55): the one place for the owner's clinic settings (GET/PUT /api/settings/clinic, settings.manage): tenggat koreksi
+// (jam) + "Wajibkan PIN saat Selesai". Whoever may press Selesai sets / changes their own PIN here too (no reporting.read needed).
 export default function SettingsRmPage({ me, onChanged }: { me: Me; onChanged: () => void }) {
   const canManage = me.permissions.includes('settings.manage')
   const canSign = me.permissions.includes('note.sign')
   return (
     <>
       <div className="page-head"><h1>Pengaturan RM</h1></div>
-      {canManage && <PinRequirement onChanged={onChanged} />}
+      {canManage && <ClinicSettingsForm onChanged={onChanged} />}
       {canSign && <OwnPin hasPin={!!me.selesai?.has_pin} required={!!me.selesai?.pin_required} onChanged={onChanged} />}
     </>
   )
 }
 
-function PinRequirement({ onChanged }: { onChanged: () => void }) {
-  const [on, setOn] = useState<boolean | null>(null)
+function ClinicSettingsForm({ onChanged }: { onChanged: () => void }) {
+  const [hours, setHours] = useState('')
+  const [pin, setPin] = useState(false)
+  const [loaded, setLoaded] = useState(false)
   const [msg, setMsg] = useState('')
-  useEffect(() => { getClinicSettings().then((s) => setOn(s.selesai_pin_required), (e) => setMsg(errorText(e))) }, [])
-  async function toggle(next: boolean) {
+  const [error, setError] = useState('')
+  useEffect(() => {
+    getClinicSettings().then((s) => { setHours(String(s.correction_window_hours)); setPin(s.selesai_pin_required); setLoaded(true) }, (e) => setError(errorText(e)))
+  }, [])
+  async function save(e: FormEvent) {
+    e.preventDefault()
     setMsg('')
+    const n = Number(hours)
+    if (!Number.isInteger(n) || n < 1 || n > 720) return setError('Tenggat koreksi 1–720 jam.')
     try {
-      setOn((await saveClinicSettings({ selesai_pin_required: next })).selesai_pin_required)
+      const s = await saveClinicSettings({ correction_window_hours: n, selesai_pin_required: pin })
+      setHours(String(s.correction_window_hours))
+      setPin(s.selesai_pin_required)
+      setError('')
       setMsg('Pengaturan tersimpan.')
       onChanged()
-    } catch (e) { setMsg(errorText(e)) }
+    } catch (err) { setError(errorText(err)) }
   }
   return (
-    <div className="card">
-      <h2>PIN saat Selesai</h2>
-      <label className="check"><input type="checkbox" disabled={on === null} checked={!!on} onChange={(e) => toggle(e.target.checked)} /> Wajibkan PIN saat Selesai</label>
-      <p className="muted small">Bawaan: mati. Bila nyala, dokter memasukkan PIN 6 angka miliknya setiap menekan Selesai. Tenggat koreksi tindakan diatur di <a href="#/laporan">Laporan</a>.</p>
+    <form className="card" onSubmit={save} noValidate>
+      <h2>Pengaturan klinik</h2>
+      <label>Tenggat koreksi bebas (jam) <input type="number" min={1} max={720} disabled={!loaded} value={hours} onChange={(e) => setHours(e.target.value)} /></label>
+      <p className="muted small">Bawaan 48 jam (2×24 jam) sejak tindakan difinalkan. Lewat tenggat, koreksi menunggu persetujuan pemilik. Dasar hukum untuk data klinis perlu dicek.</p>
+      <label className="check"><input type="checkbox" disabled={!loaded} checked={pin} onChange={(e) => setPin(e.target.checked)} /> Wajibkan PIN saat Selesai</label>
+      <p className="muted small">Bawaan: mati. Bila nyala, dokter memasukkan PIN 6 angka miliknya setiap menekan Selesai.</p>
+      {error && <p className="form-error" role="alert">{error}</p>}
       {msg && <p className="notice" role="status">{msg}</p>}
-    </div>
+      <div className="toolbar"><button className="btn btn-primary" disabled={!loaded}>Simpan pengaturan</button></div>
+    </form>
   )
 }
 

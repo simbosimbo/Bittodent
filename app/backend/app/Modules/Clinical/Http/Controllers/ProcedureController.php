@@ -30,7 +30,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 // Treatments (procedure_record). Drafts are editable/discardable by their author until the visit is signed; signing finalizes them
-// (NoteController::sign). A status change on a final row = new final row superseding it. Only `selesai` + code bills (ProcedureRecorded).
+// (NoteController::selesai). A status change on a final row = new final row superseding it. Only `selesai` + code bills (ProcedureRecorded).
 class ProcedureController extends Controller
 {
     private const SITE = ['treat_area', 'tooth', 'surfaces', 'tooth_range', 'quadrant', 'arch'];

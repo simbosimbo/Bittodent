@@ -381,6 +381,12 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
       setMsg('Selesai: rekam medis terkunci dan kunjungan ditutup.')
       await load()
     } catch (e) {
+      if (e instanceof ApiError && e.data?.signed) { // #55: signed, but the invoice guard kept the visit open
+        setSigning(null)
+        setMsg(`Rekam medis sudah ditandatangani, tetapi kunjungan belum ditutup: ${e.data.message ?? 'tagihan belum lengkap.'}`)
+        await load()
+        return
+      }
       setSigning({ busy: false, error: e instanceof ApiError && [403, 409, 422].includes(e.status) ? e.data?.message ?? 'Tidak bisa diproses.' : errorText(e) })
     }
   }

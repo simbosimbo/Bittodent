@@ -68,8 +68,10 @@ class NoteController extends Controller
      * POST /api/visits/{id}/selesai {revision, confirm: true, pin?, accept_warnings?, reason?} (DEVIATIONS #55): Selesai = tanda tangan
      * elektronik + tutup kunjungan in one idempotent action, only by the visit's dentist (DPJP = visit.dentist_id = note author).
      * Order: DPJP -> confirm (403) -> PIN when the clinic requires it (403 / 422 pin_not_set) -> revision (409) -> unapproved agent
-     * drafts (422) -> SignCheck (422) -> sign + close in a savepoint; a close refusal (409 invoice_required, 422 reason) rolls the
-     * signature back, so the note stays a draft. Second press after sign + close = 200 with the same signature.
+     * drafts (422) -> SignCheck (422) -> sign + close in a savepoint. A close refused only by the invoice guard (409 invoice_required)
+     * keeps the signature (note signed, work final + billed, visit stays `berlangsung`): unbilled work can then be corrected and a
+     * pending credit note / void decided, and a later Selesai closes only. Any other close refusal (422 reason) rolls the signature
+     * back. Second press after sign + close = 200 with the same signature.
      */
     public function selesai(SelesaiRequest $request, string $id, UserDirectory $users, TenancyDirectory $tenancy, VisitCloser $closer)
     {
@@ -95,7 +97,7 @@ class NoteController extends Controller
                 if ($visit->status !== 'berlangsung') { // idempotent second press
                     return response()->json([...SelesaiSignature::payload($signed, $id), 'visit' => VisitController::out($visit)]);
                 }
-                // signed earlier but still open (pre-#55 / race): close only, still under the invoice guard
+                // signed earlier but still open (invoice guard refused the close, pre-#55, race): close only, still under the guard
                 if ($error = $closer->close($visit, null, 'selesai')) {
                     return $error;
                 }
@@ -146,7 +148,7 @@ class NoteController extends Controller
             try {
                 return DB::transaction(fn () => $this->signAndClose($visit, $draft, $procedures, $closer,
                     $accepted ? ['warnings_accepted' => array_column($check['warnings'], 'rule'), 'reason' => $request->input('reason')] : []));
-            } catch (HttpResponseException $e) { // close refused: signature rolled back with it (savepoint)
+            } catch (HttpResponseException $e) { // close refused (not invoice_required): signature rolled back with it (savepoint)
                 Audit::log('tanda_tangan_ditolak', 'clinical_note_version', $draft->id, ['why' => 'tutup', 'error' => $e->getResponse()->getData(true)['error'] ?? null]);
 
                 return $e->getResponse();
@@ -154,7 +156,7 @@ class NoteController extends Controller
         });
     }
 
-    /** Inside a savepoint: lock drafts, bill, sign with the encounter hash, then close (throws the closer's refusal to roll back). */
+    /** Inside a savepoint: lock drafts, bill, sign with the encounter hash, then close (throws a non-invoice refusal to roll back). */
     private function signAndClose(Visit $visit, ClinicalNoteVersion $draft, $procedures, VisitCloser $closer, array $warningAudit)
     {
         $me = Ctx::current()->userId;
@@ -172,7 +174,11 @@ class NoteController extends Controller
         Audit::log('tanda_tangan', 'clinical_note_version', $draft->id, ['visit_id' => $visit->id, 'findings' => $findings,
             'procedures' => $procedures->count(), 'attestation_version' => $v, 'signature_hash' => $draft->signature_hash, ...$warningAudit]);
         if ($error = $closer->close($visit, null, 'selesai')) {
-            throw new HttpResponseException($error);
+            if (($error->getData(true)['error'] ?? null) !== 'invoice_required') {
+                throw new HttpResponseException($error); // rolls the signature back
+            }
+
+            return $error->setData([...$error->getData(true), 'signed' => true]); // signature commits; visit stays open
         }
 
         return response()->json([...SelesaiSignature::payload($draft, $visit->id), 'findings_locked' => $findings,

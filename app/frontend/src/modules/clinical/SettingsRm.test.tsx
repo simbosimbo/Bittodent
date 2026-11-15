@@ -12,15 +12,24 @@ const { default: SettingsRmPage } = await import('./SettingsRm')
 
 const me = (permissions: string[], selesai = { pin_required: false, has_pin: false }) => ({ permissions, selesai } as unknown as Me)
 
-test('owner toggles the PIN requirement (default off) and sees no own-PIN form', async () => {
+test('owner edits tenggat koreksi and the PIN requirement (default off) in one form, and sees no own-PIN form', async () => {
   const onChanged = vi.fn()
   render(<SettingsRmPage me={me(['settings.manage'])} onChanged={onChanged} />)
   const box = await screen.findByLabelText('Wajibkan PIN saat Selesai')
   await waitFor(() => expect(box).toBeEnabled())
   expect(box).not.toBeChecked()
+  const hours = screen.getByLabelText(/Tenggat koreksi bebas/)
+  expect(hours).toHaveValue(48)
   expect(screen.queryByText('PIN Selesai saya')).toBeNull()
+  const save = screen.getByRole('button', { name: 'Simpan pengaturan' })
+  fireEvent.change(hours, { target: { value: '0' } })
+  fireEvent.click(save)
+  expect(await screen.findByRole('alert')).toHaveTextContent('1–720 jam')
+  expect(saveClinicSettings).not.toHaveBeenCalled()
+  fireEvent.change(hours, { target: { value: '72' } })
   fireEvent.click(box)
-  await waitFor(() => expect(saveClinicSettings).toHaveBeenCalledWith({ selesai_pin_required: true }))
+  fireEvent.click(save)
+  await waitFor(() => expect(saveClinicSettings).toHaveBeenCalledWith({ correction_window_hours: 72, selesai_pin_required: true }))
   await waitFor(() => expect(onChanged).toHaveBeenCalled())
 })
 

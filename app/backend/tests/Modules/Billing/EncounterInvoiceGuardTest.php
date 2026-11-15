@@ -120,25 +120,30 @@ class EncounterInvoiceGuardTest extends TestCase
         $this->move($appt2, 'done')->assertOk();
     }
 
-    public function test_unbilled_work_refuses_selesai_and_leaves_the_note_unsigned(): void
+    public function test_unbilled_work_signs_but_selesai_cannot_close(): void
     {
         [$visit, $appt] = $this->visit();
         $this->work($visit, self::NO_TARIFF);
-        $this->selesai($visit)->assertConflict()->assertJsonPath('error', 'invoice_required');
-        // checked before anything sticks: note + procedure stay drafts, no invoice line, visit open
-        $this->assertSame('draft', $this->inA(fn () => ClinicalNote::where('visit_id', $visit)->firstOrFail()->versions->first()->state));
-        $this->assertSame(['draft'], $this->inA(fn () => ProcedureRecord::where('visit_id', $visit)->pluck('state')->all()));
+        $this->selesai($visit)->assertConflict()->assertJsonPath('error', 'invoice_required')->assertJsonPath('signed', true);
+        // #55: the signature commits (note signed, work final), only the close is refused: visit open, no line, no `tutup`
+        $this->assertSame('signed', $this->inA(fn () => ClinicalNote::where('visit_id', $visit)->firstOrFail()->versions->first()->state));
+        $this->assertSame(['final'], $this->inA(fn () => ProcedureRecord::where('visit_id', $visit)->pluck('state')->all()));
         $this->assertCount(0, $this->lines($visit));
         $this->assertSame('berlangsung', $this->row($visit)->status);
-        $this->assertTrue($this->inA(fn () => AuditEvent::where('action', 'tanda_tangan_ditolak')->where('detail->why', 'tutup')->exists()));
+        $this->assertFalse($this->inA(fn () => AuditEvent::where('action', 'tutup')->where('entity_id', $visit)->exists()));
+        $this->assertTrue($this->inA(fn () => AuditEvent::where('action', 'tanda_tangan')->exists()));
+        $this->assertFalse($this->inA(fn () => AuditEvent::where('action', 'tanda_tangan_ditolak')->where('detail->why', 'tutup')->exists()));
 
+        // signed + open: nothing left to sign, so /close and appointment done reach the invoice guard (not use_selesai)
+        $this->selesai($visit)->assertConflict()->assertJsonPath('error', 'invoice_required'); // close-only path, same guard
         $this->as(self::DESK)->postJson("/api/visits/$visit/close", ['reason' => 'Pasien minta tutup saja'])->assertConflict()
-            ->assertJsonPath('error', 'use_selesai');
+            ->assertJsonPath('error', 'invoice_required');
         $this->move($appt, 'checked_in')->assertOk();
         $this->move($appt, 'in_treatment')->assertOk();
-        $this->move($appt, 'done')->assertConflict()->assertJsonPath('error', 'use_selesai');
+        $this->move($appt, 'done')->assertConflict()->assertJsonPath('error', 'invoice_required');
         $this->assertSame('in_treatment', $this->inA(fn () => Appointment::findOrFail($appt)->status)); // not dismissed
         $this->assertTrue($this->inA(fn () => AuditEvent::where('action', 'tutup_ditolak')->where('entity_id', $visit)->exists()));
+        $this->assertSame('berlangsung', $this->row($visit)->status);
     }
 
     public function test_cancelled_or_no_show_attendance_closes_without_invoice_only_with_a_reason(): void
