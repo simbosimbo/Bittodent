@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { errorText } from '../../shared/api/http'
-import { searchPatients, type PatientRow } from './api'
+import { getKtp, searchPatients, type PatientRow } from './api'
 import { PatientPage } from './Records'
+import './ktp.css'
 
 const SEX: Record<string, string> = { laki_laki: 'Laki-laki', perempuan: 'Perempuan' }
 const PAYER: Record<string, string> = { umum: 'Umum', asuransi: 'Asuransi', bpjs: 'BPJS' }
@@ -76,16 +77,31 @@ export function PatientList({ canCreate, initialQ = '' }: { canCreate: boolean; 
   )
 }
 
-export function PatientDetail({ id, canChart = false }: { id: string; canChart?: boolean }) {
+/** Masked NIK; with patient.ktp.view a 48px control fetches the unmasked value (audited server-side as ktp_lihat). */
+function NikValue({ id, masked, canReveal }: { id: string; masked: string | null; canReveal: boolean }) {
+  const [full, setFull] = useState<string | null>(null)
+  const [err, setErr] = useState('')
+  if (!masked) return <>—</>
+  return (
+    <span className="ktp-nik">
+      <span>{full ?? masked}</span>
+      {canReveal && (full
+        ? <button type="button" className="btn ktp-reveal" onClick={() => setFull(null)}>Sembunyikan</button>
+        : <button type="button" className="btn ktp-reveal" onClick={() => getKtp(id).then((k) => setFull(k.nik), (e) => setErr(errorText(e)))}>Lihat</button>)}
+      {err && <span className="field-error" role="alert">{err}</span>}
+    </span>
+  )
+}
+
+export function PatientDetail({ id, canChart = false, canKtp = false }: { id: string; canChart?: boolean; canKtp?: boolean }) {
   return (
     <PatientPage id={id} tab="pasien" canChart={canChart}
       actions={canChart ? <a className="btn btn-primary" href={`#/rekam-medis/${id}`}>Rekam Medis</a> : undefined}>
       {(p) => {
-        const masked = p.nik?.includes('*')
-        const rows: [string, string][] = [
+        const rows: [string, ReactNode][] = [
           ['Tanggal lahir', `${dob(p.dob)} ${age(p.dob)}`],
           ['Jenis kelamin', p.sex ? SEX[p.sex] : '—'],
-          [masked ? 'NIK (disamarkan)' : 'NIK', p.nik ?? '—'],
+          ['NIK (disamarkan)', <NikValue id={id} masked={p.nik} canReveal={canKtp} />],
           ['No. HP', p.phone ?? '—'],
           ['Alamat', p.address ?? '—'],
           ['Penjamin', [PAYER[p.payer_type] ?? p.payer_type, p.payer_name, p.payer_member_no, p.payer_class].filter(Boolean).join(' · ')],

@@ -1,0 +1,13 @@
+/* A4 KTP section: every control >= 48px (tap target); mismatch = colored chip, no paragraph. */
+.ktp { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; align-items: end; }
+.ktp-codes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 10px; align-items: end; }
+.ktp label { min-width: 0; }
+.ktp input, .ktp select { width: 100%; min-width: 0; }
+.ktp input, .ktp select, .ktp button, .ktp-reveal { min-height: 48px; box-sizing: border-box; }
+.ktp input[type="file"] { padding: 12px 8px; width: 100%; }
+.ktp-label { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.ktp-bad { background: var(--danger-50); color: var(--danger); }
+.ktp-nik { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ktp-reveal { min-width: 48px; }
+.patient-form .dialog-actions .btn { min-height: 48px; }
+@media (max-width: 720px) { .ktp { grid-template-columns: 1fr; } }

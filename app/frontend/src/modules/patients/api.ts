@@ -29,3 +29,14 @@ export const getAlerts = (id: string) => api<Alerts>(pid(id) + '/alerts')
 export const getMedicalHistory = (id: string) => api<MedicalHistory>(pid(id) + '/medical-history')
 export const saveMedicalHistory = (id: string, body: HistoryInput) => api<HistoryVersion>(pid(id) + '/medical-history', { method: 'PUT', body })
 export const getFamily = (id: string) => api<Family>(pid(id) + '/family')
+
+// A4 KTP. GET .../ktp is the only unmasked NIK (patient.ktp.view, audited): keep it in component state only, never log it.
+export type KtpCodes = { province_code?: string; regency_code?: string; district_code?: string; photo_id?: string }
+export type KtpView = { nik: string | null; province_code: string | null; regency_code: string | null; district_code: string | null; photo: { id: string; mime: string } | null }
+export const uploadKtpPhoto = (file: File) => {
+  const fd = new FormData()
+  fd.append('photo', file)
+  return api<{ id: string }>('/api/ktp/photos', { method: 'POST', body: fd })
+}
+export const saveKtp = (id: string, body: KtpCodes) => api<{ mismatches: string[]; nik: string | null }>(pid(id) + '/ktp', { method: 'PUT', body })
+export const getKtp = (id: string) => api<KtpView>(pid(id) + '/ktp')
