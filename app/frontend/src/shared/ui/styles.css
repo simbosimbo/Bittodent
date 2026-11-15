@@ -436,7 +436,6 @@ label.check input { min-height: 0; }
   .btn, .btn-link.row-action, .btn-xs { min-height: 44px; }
   .page-head { flex-wrap: wrap; align-items: flex-start; }
   .page-head .toolbar { width: 100%; }
-  .page-head .toolbar .btn { flex: 1; }
   /* KPI cards 2×2 (more specific than `.grid-12 > *`) */
   .grid-12 > .span-3 { grid-column: span 6; }
   .grid-12 { gap: var(--space-3); }
@@ -447,4 +446,72 @@ label.check input { min-height: 0; }
   .grid-2, .details { grid-template-columns: 1fr; }
   .patient-head .avatar-lg { width: 40px; height: 40px; }
   .crumbs { display: none; } /* bottom nav + tabs cover it; saves header height */
+}
+/* Shared bottom sheet (shared/ui/Sheet.tsx): title + 44px "Tutup". */
+.sheet-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-2); }
+.sheet-head h2 { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.sheet-close { flex: none; min-height: 44px; }
+
+/* Phone: horizontal scrollers (shared/ui/scrollHint.ts SCROLL_HINT) fade at an edge while more content is there; thin scrollbar. */
+@media (max-width: 720px) {
+  .pl-filters, .tabs, .chair-pills, .odo2d-wrap, .table-scroll, .tl-scroll { scrollbar-width: thin; }
+  [data-more='end'] { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); }
+  [data-more='start'] { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 32px), transparent); }
+  [data-more='both'] {
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent);
+    mask-image: linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent);
+  }
+  /* Laporan: wide tables scroll inside their card (the wrapper is a plain block on desktop). */
+  .table-scroll { overflow-x: auto; overscroll-behavior-x: contain; }
+  .table-scroll > .table { min-width: 640px; }
+}
+
+/* DateField on a phone: Indonesian label over the native date input (picker icon stays visible and tappable). */
+.date-field { position: relative; display: inline-grid; min-width: 0; }
+.date-field input { width: 100%; min-width: 0; color: transparent; }
+.date-field input::-webkit-datetime-edit { color: transparent; }
+.date-field input:focus { color: transparent; }
+.date-field-text {
+  position: absolute; inset: 0 40px 0 0; display: flex; align-items: center; padding-left: 13px; pointer-events: none;
+  font-weight: 400; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Phone overlays and touch targets (≤720px). */
+@media (max-width: 720px) {
+  /* Dialogs become bottom sheets above the bottom nav (20) and other sheets (31); actions stay pinned at the sheet bottom. */
+  .overlay { z-index: 32; place-items: end stretch; }
+  .overlay > .dialog {
+    width: 100%; max-width: none; max-height: calc(100dvh - var(--space-6, 24px)); overflow-y: auto; overscroll-behavior: contain;
+    padding-bottom: 0; border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+  .overlay > .dialog .dialog-actions {
+    position: sticky; bottom: 0; z-index: 1; margin: var(--space-2) calc(-1 * var(--space-4)) 0;
+    padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom)); background: var(--surface); border-top: 1px solid var(--border);
+  }
+  .overlay > .dialog .dialog-actions .btn { flex: 1; }
+  /* 44px fields; 16px text so iOS does not zoom on focus. */
+  input:where(:not([type='checkbox'], [type='radio'], [type='range'])), select, textarea { min-height: 44px; font-size: 16px; }
+  label.check { min-height: 44px; }
+  .picker-list button { min-height: 44px; align-items: center; }
+  label.check input { width: 20px; height: 20px; flex: none; }
+  /* Ribbon "Riwayat medis →" and back links: 44px tall target without making the ribbon taller. */
+  .alert-link { display: inline-flex; align-items: center; min-height: 44px; margin-block: -14px; }
+  .page-head a.small { display: inline-flex; align-items: center; min-height: 44px; }
+}
+
+/* HP: daftar anggota keluarga tidak melebar, tautan 44px (sweep staging: overflow 369>360, "Jadikan aktif" 36px). */
+@media (max-width: 720px) {
+  .member-list li { flex-wrap: wrap; }
+  .member-list li .grow { flex: 1 1 140px; min-width: 0; }
+  .member-list li .member-switch { margin-left: auto; white-space: nowrap; }
+  .member-list li .member-switch, .guarantor-link { display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; }
+}
+
+/* HP: peringatan medis di header pasien (RM) membungkus, tidak melebarkan halaman (catatan panjang membuat layout 509px di 360/412
+   dan × lembar gigi keluar layar). Toggle Selengkapnya/Ciutkan 44px. Nama klinik 2 baris, tidak terpotong di 360. */
+@media (max-width: 720px) {
+  .alert-ribbon.patient-alerts .alert-chip { white-space: normal; flex: 0 1 auto; min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+  .patient-head-main, .patient-chip-row, .alert-ribbon.patient-alerts { min-width: 0; max-width: 100%; }
+  .alert-toggle { display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; padding: 0 10px; }
+  .shell-top-clinic strong { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.2; overflow-wrap: anywhere; }
 }

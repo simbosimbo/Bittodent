@@ -232,3 +232,62 @@ test('patient header menu without chart permission: Profil / Keluarga / Riwayat 
   expect(screen.getByRole('link', { name: 'Keluarga' })).toHaveAttribute('aria-current', 'page')
   expect(screen.queryByRole('navigation', { name: 'Data pasien' })).toBeNull()
 })
+
+// ---- Stage 6: permission redirect, ribbon on non-clinical pages ----
+const kasir: Me = { ...me, roles: ['kasir'], permissions: ['patient.read', 'billing.read'], branches: [me.branches[0]] }
+const serveApp = (m: Me) => {
+  document.cookie = 'XSRF-TOKEN=abc'
+  vi.stubGlobal('fetch', vi.fn(async (url: string) => new Response(JSON.stringify(url === '/api/me' ? m : url.includes('/alerts') ? { version: 1, premedication_required: false, allergies: ['Penisilin'], has_urgent_note: false, full: false } : {}),
+    { status: url === '/api/me' || url.includes('/alerts') ? 200 : 404 })))
+}
+
+test('route without permission: Beranda shown and the URL replaced with #/ (no extra history entry)', async () => {
+  viewport(1280)
+  serveApp(kasir)
+  location.hash = '/laporan'
+  const before = history.length
+  render(<App />)
+  await vi.waitFor(() => expect(location.hash).toBe('#/'))
+  expect(history.length).toBe(before)
+  expect(await screen.findByRole('heading', { level: 1, name: 'Beranda' })).toBeInTheDocument()
+  expect(screen.queryByRole('heading', { name: /Laporan/ })).toBeNull()
+  document.cookie = 'XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+})
+
+test('allowed route keeps its URL', async () => {
+  viewport(1280)
+  serveApp(me)
+  location.hash = '/kasir'
+  render(<App />)
+  expect(await screen.findByText('Segera hadir')).toBeInTheDocument()
+  expect(location.hash).toBe('#/kasir')
+  document.cookie = 'XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+})
+
+// Regression (patient safety): after viewing patient p1, the alert ribbon (allergies, premedication) must never follow to
+// another screen. It renders only on a screen about one patient, and only for the patient in the URL.
+const alertCalls = () => (fetch as unknown as { mock: { calls: [string][] } }).mock.calls.map(([u]) => u).filter((u) => u.includes('/alerts'))
+test.each(['/pasien/baru', '/pasien', '/jadwal', '/', '/kasir', '/laporan', '/pengaturan-rm'].flatMap((h) => [[h, 390], [h, 1280]] as const))(
+  'no ribbon of the previously viewed patient on %s (%ipx)', async (h, w) => {
+    viewport(w)
+    serveApp(me)
+    act(() => setActivePatient({ id: 'p1', name: 'Sari Sintetis' } as never))
+    location.hash = h
+    const { container } = render(<App />)
+    await vi.waitFor(() => expect(container.querySelector('.shell-main, main')).not.toBeNull())
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)) })
+    expect(container.querySelector('.alert-ribbon')).toBeNull()
+    expect(alertCalls().filter((u) => u.includes('/p1/'))).toEqual([])
+    document.cookie = 'XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+  })
+
+test.each(['/pasien/p2', '/keluarga/p2', '/riwayat-medis/p2'])('ribbon on %s is for the patient in the URL, not the active one', async (h) => {
+  viewport(390)
+  serveApp(me)
+  act(() => setActivePatient({ id: 'p1', name: 'Sari Sintetis' } as never))
+  location.hash = h
+  render(<App />)
+  await vi.waitFor(() => expect(alertCalls().some((u) => u.includes('/p2/alerts'))).toBe(true))
+  expect(alertCalls().filter((u) => u.includes('/p1/'))).toEqual([])
+  document.cookie = 'XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+})

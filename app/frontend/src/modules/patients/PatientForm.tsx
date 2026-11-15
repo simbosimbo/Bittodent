@@ -1,4 +1,5 @@
 import { useState, type FormEvent, type ReactElement, type ReactNode } from 'react'
+import { DateField } from '../../shared/ui/DateField'
 import { ApiError, errorText } from '../../shared/api/http'
 import { createPatient } from './api'
 
@@ -61,7 +62,7 @@ export default function PatientForm() {
         <h2>Identitas</h2>
         <div className="grid-2">
           {field('name', 'Nama lengkap *', <input value={f.name} onChange={set('name')} maxLength={200} />)}
-          {field('dob', 'Tanggal lahir', <input type="date" value={f.dob} onChange={set('dob')} />)}
+          {field('dob', 'Tanggal lahir', <DateField value={f.dob} onChange={set('dob')} />)}
           {field('sex', 'Jenis kelamin', (
             <select value={f.sex} onChange={set('sex')}><option value="">— Pilih —</option><option value="laki_laki">Laki-laki</option><option value="perempuan">Perempuan</option></select>
           ))}

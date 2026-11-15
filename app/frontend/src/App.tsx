@@ -6,6 +6,7 @@ import { pageTitle, Shell, withActivePatientHref, type NavItem } from './shared/
 import type { Me } from './shared/session'
 import { ComingSoon } from './shared/ui/ComingSoon'
 import { ICONS } from './shared/ui/Icon'
+import { ribbonPatientId } from './shared/ribbonRoute'
 import { getMe, Login, logout as apiLogout, switchBranch as apiSwitchBranch } from './modules/auth'
 import { AlertRibbon, FamilyPage, MedicalHistoryPage, PatientDetail, PatientForm, PatientList } from './modules/patients'
 import { Home, Schedule } from './modules/scheduling'
@@ -38,6 +39,15 @@ export const NAV: (NavItem & { perm: string | null })[] = [
   { path: '/kasir', label: 'Kasir', perm: 'billing.read', icon: ICONS.card, section: 'KEUANGAN' },
   { path: '/laporan', label: 'Laporan', perm: 'reporting.read', icon: ICONS.chart, section: 'KEUANGAN' },
 ]
+
+/** A route this user may not open (or an unknown one): show Beranda and make the URL say so (replace, no extra history entry). */
+function ToHome() {
+  useEffect(() => {
+    history.replaceState(history.state, '', '#/')
+    dispatchEvent(new HashChangeEvent('hashchange')) // replaceState fires no hashchange; useHash re-reads '/' and renders Home
+  }, [])
+  return null
+}
 
 // Public patient pages (no login): #/book/{slug} and #/book/{slug}/manage/{token}.
 export default function App() {
@@ -106,6 +116,7 @@ function StaffApp() {
   const soon = nav.find((n) => ['/antrean', '/resep', '/kasir'].includes(n.path) && hash === n.path)
   const sub = hash.match(/^\/(keluarga|riwayat-medis)\/([\w-]+)$/)
 
+  const ribbonId = ribbonPatientId(hash)
   let page
   const chart = hash.match(/^\/rekam-medis\/([\w-]+)(?:\/janji\/([\w-]+))?$/)
   if (chart && can('note.read')) page = <ChartPage key={hash} patientId={chart[1]} appointmentId={chart[2]} me={me} />
@@ -119,8 +130,8 @@ function StaffApp() {
   else if (hash === '/laporan' && can('reporting.read')) page = <ReportPage />
   else if (hash === '/pengaturan-rm' && can('note.sign|settings.manage')) page = <SettingsRmPage me={me} onChanged={load} />
   else if (soon) page = <ComingSoon title={soon.label} />
-  else page = <Home me={me} />
+  else page = hash === '/' ? <Home me={me} /> : <ToHome />
 
-  return <Shell me={me} nav={nav} active={active} title={pageTitle(hash, active)} ribbon={patient && can('patient.read') && !/^\/rekam-medis\//.test(hash) && <AlertRibbon patientId={patient.id} />}
+  return <Shell me={me} nav={nav} active={active} title={pageTitle(hash, active)} ribbon={ribbonId && can('patient.read') && <AlertRibbon key={ribbonId} patientId={ribbonId} />}
     onSwitchBranch={switchBranch} onLogout={logout}>{page}</Shell>
 }

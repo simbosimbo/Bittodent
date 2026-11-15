@@ -71,7 +71,7 @@ export function FamilyPage({ id, canChart }: { id: string; canChart: boolean }) 
                   <span className="avatar" aria-hidden="true">{m.name.charAt(0)}</span>
                   <div className="grow"><div className="strong">{m.name}</div><div className="muted small">{dob(m.dob)} {age(m.dob)}</div></div>
                   {f.guarantor?.id === m.id && <span className="chip chip-done">Penanggung biaya</span>}
-                  {m.id === id ? <span className="chip chip-neutral">Pasien ini</span> : <a href={'#/keluarga/' + m.id}>Jadikan aktif</a>}
+                  {m.id === id ? <span className="chip chip-neutral">Pasien ini</span> : <a href={'#/keluarga/' + m.id} className="member-switch">Jadikan aktif</a>}
                 </li>
               ))}
             </ul>
@@ -80,7 +80,7 @@ export function FamilyPage({ id, canChart }: { id: string; canChart: boolean }) 
         <div className="stack">
           <div className="card">
             <h2>Penanggung biaya</h2>
-            <p>{f.guarantor ? <a href={'#/pasien/' + f.guarantor.id} className="strong">{f.guarantor.name}</a> : 'Bayar sendiri'}</p>
+            <p>{f.guarantor ? <a href={'#/pasien/' + f.guarantor.id} className="strong guarantor-link">{f.guarantor.name}</a> : 'Bayar sendiri'}</p>
           </div>
           <div className="card">
             <h2>Wali {f.is_minor && <span className="chip chip-checked_in">Pasien di bawah umur</span>}</h2>

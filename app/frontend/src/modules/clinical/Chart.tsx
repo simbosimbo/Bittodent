@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent, type KeyboardEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent, type KeyboardEvent, type ReactNode, useRef } from 'react'
+import { DateField } from '../../shared/ui/DateField'
+import { useDialog } from '../../shared/ui/Sheet'
 import { ApiError, errorText } from '../../shared/api/http'
 import { setActivePatient } from '../../shared/activePatient'
 import { fmtDateTime, fmtDay, fmtTime } from '../../shared/format'
@@ -115,9 +117,12 @@ function CorrectionDialog({ note, solo, onDone, onClose }: { note: Note; solo: b
       setBusy(false)
     }
   }
+  // Phone: bottom sheet (styles.css) with modal focus/Escape/scroll lock; desktop behaviour unchanged.
+  const dlg = useRef<HTMLFormElement>(null)
+  useDialog(dlg, onClose, useIsMobile())
   return (
     <div className="overlay" onClick={onClose}>
-      <form className="card dialog dialog-wide" role="dialog" aria-modal="true" aria-labelledby="fix-title" onClick={(e) => e.stopPropagation()} onSubmit={submit} noValidate>
+      <form ref={dlg} className="card dialog dialog-wide" role="dialog" aria-modal="true" aria-labelledby="fix-title" onClick={(e) => e.stopPropagation()} onSubmit={submit} noValidate>
         <h2 id="fix-title">Koreksi catatan (versi {current.version} → {Math.max(...note.versions.map((v) => v.version)) + 1})</h2>
         <p className={late ? 'notice notice-warn' : 'notice'}>{info}</p>
         <label>Alasan koreksi *<textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} aria-invalid={!!error} /></label>
@@ -208,9 +213,12 @@ export function ProcedureFixDialog({ p, mode, visitId, onDone, onClose }: { p: P
       setBusy(false)
     }
   }
+  // Phone: bottom sheet (styles.css) with modal focus/Escape/scroll lock; desktop behaviour unchanged.
+  const dlg = useRef<HTMLFormElement>(null)
+  useDialog(dlg, onClose, useIsMobile())
   return (
     <div className="overlay" onClick={onClose}>
-      <form className="card dialog" role="dialog" aria-modal="true" aria-labelledby="pfix-title" onClick={(e) => e.stopPropagation()} onSubmit={submit} noValidate>
+      <form ref={dlg} className="card dialog" role="dialog" aria-modal="true" aria-labelledby="pfix-title" onClick={(e) => e.stopPropagation()} onSubmit={submit} noValidate>
         <h2 id="pfix-title">{mode === 'ganti' ? 'Ganti tindakan' : 'Koreksi tindakan'}: {procedureText(p)}</h2>
         {mode === 'koreksi' && <label>Jenis koreksi * <select value={type} onChange={(e) => setType(e.target.value as CorrectionType)}>
           <option value="">Pilih…</option>
@@ -387,6 +395,13 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const phone = useMedia(PHONE_QUERY)
   const [legendOpen, setLegendOpen] = useState(!mobile) // phone: chart first, legend on demand
   const [tab, setTab] = useState<(typeof INNER)[number][0]>('odo')
+  // Phone: the tab row scrolls sideways; keep the active tab in view.
+  useEffect(() => {
+    const t = document.getElementById(`ct-${tab}`), row = t?.parentElement
+    if (!mobile || !t || !row) return
+    const a = t.getBoundingClientRect(), r = row.getBoundingClientRect() // horizontal only: never scrolls the page
+    if (a.left < r.left || a.right > r.right) row.scrollLeft += a.left - r.left - (r.width - a.width) / 2
+  }, [mobile, tab])
   // 3D needs the vertical space: legends collapse on 3D, reopen on 2D; manual toggle still works in both.
   const changeView = (v: '2d' | '3d') => { setView(v); setLegendOpen(v === '2d') }
   // View-only dentition override, dropped when the default (baseline or DOB) changes; the baseline editor is what persists.
@@ -422,6 +437,9 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const note = visit?.notes[0] ?? null
   const draft = note?.versions.find((x) => x.status === 'draf') ?? null
   const editable = !asOf && !!visit && can('note.write') && !note?.versions.some((x) => x.signed_at)
+  // Why the chart is read-only, in that order: history view, a role that never writes clinical records (e.g. pemilik), a signed visit.
+  // "Selesai" only when the visit really is closed; a permission limit must not read as "visit finished".
+  const readOnlyWhy = asOf ? 'Tampilan riwayat: hanya baca.' : !can('note.write') ? 'Hanya lihat: peran Anda tidak mengisi rekam medis.' : 'Kunjungan ini sudah Selesai.'
   const mine = useMemo(() => chart?.drafts.filter((d) => d.visit_id === visitId) ?? [], [chart, visitId])
   const myProcs = useMemo(() => chart?.procedure_drafts.filter((d) => d.visit_id === visitId) ?? [], [chart, visitId])
   const marks = useMemo(() => {
@@ -532,7 +550,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const only = pick && allFor !== pick.tooth ? pick.tooth : null
   const shownItems = only ? items.filter((f) => f.tooth === only) : items
   const shownProcs = only ? procs.filter((x) => x.tooth === only) : procs
-  const saveWhy = !visit ? 'Belum ada kunjungan aktif. Mulai kunjungan dulu.' : !editable ? asOf ? 'Tampilan riwayat: hanya baca.' : 'Hanya lihat: kunjungan ini sudah Selesai atau Anda tidak berhak menulis.'
+  const saveWhy = !visit ? 'Belum ada kunjungan aktif. Mulai kunjungan dulu.' : !editable ? readOnlyWhy
     : !chosen ? 'Pilih kondisi terlebih dahulu' : ''
   const center: Surface | null = pick && (isAnterior(pick.tooth) ? 'I' : 'O')
   const panel = !pick ? <p className="muted tooth-empty">Pilih gigi untuk melihat detail.</p> : (
@@ -594,7 +612,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
             {myDraftAt(true) && <button className="btn btn-xs btn-ghost" onClick={() => run(() => discardFinding(myDraftAt(true)!.id))}>Hapus draf gigi</button>}
           </div>
         </div>
-      ) : <p className="muted small">Hanya lihat: kondisi dan tindakan diisi dari kunjungan aktif yang belum Selesai.</p>}
+      ) : <p className="muted small">{visit ? readOnlyWhy : 'Hanya lihat: kondisi dan tindakan diisi dari kunjungan aktif yang belum Selesai.'}</p>}
       {startCtl}
       <button type="button" className="btn btn-primary tooth-save" disabled={!!saveWhy || saving} title={saveWhy || undefined} aria-describedby={saveWhy ? 'save-why' : undefined}
         onClick={saveChosen}>{saving ? 'Menyimpan…' : 'Simpan ke kunjungan hari ini'}</button>
@@ -623,7 +641,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
               {mine.length + myProcs.length > 0 && <span className="badge badge-draft">Draf: {mine.length} temuan, {myProcs.length} tindakan</span>}
               {mine.some((d) => d.source === 'ai_draft') && <span className="badge badge-ai">{AI_BADGE}</span>}
               <div className="card-head-tools">
-                <label className="small">Lihat per tanggal <input type="date" value={asOf} max={new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' })}
+                <label className="small">Lihat per tanggal <DateField value={asOf} placeholder="Hari ini" max={new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' })}
                   onChange={(e) => setAsOf(e.target.value)} /></label>
                 {asOf && <button className="btn btn-xs" onClick={() => setAsOf('')}>Kembali ke hari ini</button>}
                 <Seg label="Dentisi" value={dent ?? 'tetap'} onChange={(v) => setDentPick({ base: defDent, v })} options={[['tetap', 'Tetap'], ['sulung', 'Sulung'], ['campuran', 'Campuran']]} />
@@ -672,10 +690,11 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
               <Odontogram marks={marks} baseline={chart.baseline?.teeth} dentition={dent} compact={view === '3d'} selected={pick ? `t${pick.tooth}-${pick.surface}` : null} onPick={onPick} />
             </div>
             )}
-            {!editable && (visit ? <p className="muted small">{asOf ? 'Tampilan riwayat: hanya baca.' : 'Kunjungan ini sudah Selesai.'}</p> : (
+            {!editable && (visit ? <p className="muted small">{readOnlyWhy}</p> : (
               <div className="chart-cta small">
                 <p>Belum ada kunjungan aktif. Mulai kunjungan hari ini (tanpa janji juga bisa) untuk mengisi odontogram dan SOAP.</p>
-                {!pick && startCtl /* with a tooth picked the control sits in the tooth panel/sheet instead */}
+                {/* with a tooth picked the control sits in the tooth panel/sheet instead; phone: pinned above the bottom nav */}
+                {!pick && startCtl && (mobile ? <div className="walk-in-bar">{startCtl}</div> : startCtl)}
                 <a href={can('appointment.read') ? '#/jadwal' : '#/'}>Buka janji hari ini</a>
               </div>
             ))}

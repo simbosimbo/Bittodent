@@ -185,3 +185,17 @@ test('1280px: still the table', async () => {
   expect(screen.queryByText(/\d+ pasien$/)).toBeNull()
   expect(screen.queryByRole('list', { name: 'Daftar pasien' })).toBeNull()
 })
+
+// jsdom evaluates @media at a fixed 1024px: shift the thresholds so patients.css applies as at width w (same trick as navHref.test).
+const cssAt = (w: number) => css.replace(/@media[^{]+/g, (m) => m.replace(/(\d+)px/g, (_, n) => `${Number(n) - (w - 1024)}px`))
+test.each([[390, true], [1280, false]])('%ipx: duplicate "Pasien" h1 hidden visually only on a phone (still a heading)', async (w, hidden) => {
+  viewport(w)
+  const style = document.head.appendChild(document.createElement('style'))
+  style.textContent = cssAt(w)
+  try {
+    list()
+    await screen.findByText('Sari Sintetis')
+    const h1 = screen.getByRole('heading', { level: 1 })
+    expect(getComputedStyle(h1).position === 'absolute' && getComputedStyle(h1).width === '1px').toBe(hidden)
+  } finally { style.remove() }
+})
