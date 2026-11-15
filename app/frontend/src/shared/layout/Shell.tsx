@@ -8,8 +8,9 @@ import { useScrollHints } from '../ui/scrollHint'
 import { useDialog } from '../ui/Sheet'
 import { useIsMobile } from '../useIsMobile'
 
-// Mobile bottom tabs, in order; every other nav item goes in the "Lainnya" sheet (with branch + Keluar).
-const TABS = ['/', '/jadwal', '/pasien', '/rekam-medis']
+// Mobile bottom tabs: the first 4 of these the user may open, in order (no Rekam Medis -> Kasir: front desk / kasir);
+// every other nav item goes in the "Lainnya" sheet (with branch + Keluar).
+const TABS = ['/', '/jadwal', '/pasien', '/rekam-medis', '/kasir']
 export const SECTIONS = ['KLINIK', 'KLINIS', 'KEUANGAN'] as const
 
 // section = sidebar caption. group 'pasien' = screen of the active patient (href points at that patient; without one it leads to the patient list).
@@ -42,9 +43,11 @@ function Branch({ me, onSwitchBranch }: { me: Me; onSwitchBranch: (id: string) =
 
 // Shell A: sidebar (brand, clinic block, KLINIK/KLINIS/KEUANGAN nav; icon rail <=1100px; bottom nav instead at <=720px),
 // top bar (page title, search, + quick actions, bell, user menu), medical-alert ribbon slot whenever a patient is active.
-export function Shell({ me, nav, active, title = '', ribbon, onSwitchBranch, onLogout, children }: {
+export function Shell({ me, nav, active, title = '', ribbon, badges, onSwitchBranch, onLogout, children }: {
   me: Me
   nav: NavItem[]
+  /** phone bottom-nav count per path (e.g. Jadwal: online bookings waiting); the label is read by screen readers */
+  badges?: Record<string, { count: number; label: string }>
   active: NavItem | undefined
   title?: string
   ribbon?: ReactNode
@@ -69,8 +72,8 @@ export function Shell({ me, nav, active, title = '', ribbon, onSwitchBranch, onL
     return () => ro.disconnect()
   }, [])
   const can = (p: string) => me.permissions.includes(p)
-  const tabs = TABS.flatMap((p) => nav.filter((n) => n.path === p))
-  const rest = nav.filter((n) => !TABS.includes(n.path))
+  const tabs = TABS.flatMap((p) => nav.filter((n) => n.path === p)).slice(0, 4)
+  const rest = nav.filter((n) => !tabs.includes(n))
   const role = me.roles.map((r) => ROLE_LABELS[r] ?? r).join(', ')
   const search = (e: FormEvent) => {
     e.preventDefault()
@@ -171,7 +174,11 @@ export function Shell({ me, nav, active, title = '', ribbon, onSwitchBranch, onL
       </div>
       {mobile && (
         <nav className="bottom-nav" aria-label="Navigasi utama">
-          {tabs.map((n) => link(n, <><Icon d={n.icon} /><span>{n.label}</span></>))}
+          {tabs.map((n) => link(n, <>
+            <Icon d={n.icon} />
+            {!!badges?.[n.path]?.count && <><span className="nav-badge" aria-hidden="true">{badges[n.path].count}</span><span className="sr-only">{badges[n.path].label}</span></>}
+            <span>{n.label}</span>
+          </>))}
           <button type="button" className={active && rest.includes(active) ? 'on' : undefined} aria-expanded={more} aria-haspopup="dialog" onClick={() => setMore(!more)}>
             <Icon d={ICONS.more} /><span>Lainnya</span>
           </button>

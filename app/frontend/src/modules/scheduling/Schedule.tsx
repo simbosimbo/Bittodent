@@ -75,6 +75,26 @@ function WeekStrip({ date, counts, error, onPick, onRetry }: {
   )
 }
 
+/**
+ * Online bookings waiting for confirmation today in the active branch (phone nav badge). Re-read when Jadwal changes something
+ * ('jadwal:changed'). A failed read shows no badge rather than a wrong number.
+ */
+export function usePendingConfirm(branchId: string | null, on: boolean) {
+  const [n, setN] = useState(0)
+  useEffect(() => {
+    if (!on || !branchId) return setN(0)
+    let live = true
+    const load = () => getSchedule(branchId, todayWib()).then((s) => {
+      if (live) setN(s.chairs.reduce((k, c) => k + c.appointments.filter((a) => a.status === 'pending_confirmation' && a.source === 'online').length, 0))
+    }, () => { if (live) setN(0) })
+    load()
+    addEventListener('jadwal:changed', load)
+    return () => { live = false; removeEventListener('jadwal:changed', load) }
+  }, [branchId, on])
+  return n
+}
+const changed = () => dispatchEvent(new Event('jadwal:changed'))
+
 export function useSchedule(branchId: string | null, date: string) {
   const [data, setData] = useState<Sched | null>(null)
   const [error, setError] = useState('')
@@ -129,6 +149,7 @@ export default function Schedule({ me }: { me: Me }) {
     try {
       await transition(a.id, to)
       await reload()
+      changed()
       return true
     } catch (e) {
       // 409 invoice_required: done also closes the visit; completed work without an invoice line blocks it (unit 4)
@@ -420,7 +441,7 @@ export default function Schedule({ me }: { me: Me }) {
       )}
       {mobile && reschedId && data && all.find((a) => a.id === reschedId) && (
         <RescheduleSheet a={all.find((a) => a.id === reschedId)!} tz={tz} date={date} chairs={data.chairs}
-          onClose={() => setReschedId(null)} onSaved={() => { setReschedId(null); reload(); say('Jadwal diubah') }} />
+          onClose={() => setReschedId(null)} onSaved={() => { setReschedId(null); reload(); changed(); say('Jadwal diubah') }} />
       )}
       {mobile && payFor && all.find((a) => a.id === payFor)?.visit_id && (
         <PayPrompt onLater={() => setPayFor(null)} onPay={() => {
@@ -435,7 +456,7 @@ export default function Schedule({ me }: { me: Me }) {
       {mobile && canCreate && <button type="button" className="fab" aria-label="Buat janji" onClick={() => setDialog({})}><Icon d={ICONS.plus} size={26} /></button>}
       {data && <PlannedList sched={data} date={date} canCreate={canCreate} onScheduled={reload} />}
       {dialog && data && (
-        <BookDialog sched={data} date={date} me={me} initial={dialog} onClose={() => setDialog(null)} onSaved={() => { setDialog(null); reload() }} />
+        <BookDialog sched={data} date={date} me={me} initial={dialog} onClose={() => setDialog(null)} onSaved={() => { setDialog(null); reload(); changed() }} />
       )}
     </>
   )

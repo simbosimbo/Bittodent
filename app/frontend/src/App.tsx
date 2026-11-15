@@ -6,10 +6,11 @@ import { pageTitle, Shell, withActivePatientHref, type NavItem } from './shared/
 import type { Me } from './shared/session'
 import { ComingSoon } from './shared/ui/ComingSoon'
 import { ICONS } from './shared/ui/Icon'
+import { useIsMobile } from './shared/useIsMobile'
 import { ribbonPatientId } from './shared/ribbonRoute'
 import { getMe, Login, logout as apiLogout, switchBranch as apiSwitchBranch } from './modules/auth'
 import { AlertRibbon, FamilyPage, MedicalHistoryPage, PatientDetail, PatientForm, PatientList } from './modules/patients'
-import { Home, Schedule } from './modules/scheduling'
+import { Home, Schedule, usePendingConfirm } from './modules/scheduling'
 import { ChartPage, SettingsRmPage } from './modules/clinical'
 import { InvoicePage } from './modules/billing'
 import { ReportPage } from './modules/reporting'
@@ -62,6 +63,10 @@ function StaffApp() {
   const [state, setState] = useState<'loading' | 'guest' | 'ready' | 'no2fa' | 'error'>('loading')
   const [hash, query = ''] = useHash().split('?')
   const patient = useActivePatient()
+  const mobile = useIsMobile()
+  // Jadwal badge on the phone bottom nav: online bookings waiting today, for desk roles (Meja depan / Pemilik) only.
+  const desk = !!me?.roles.some((r) => ['owner', 'front_desk', 'kasir'].includes(r)) && !!me?.permissions.includes('appointment.read')
+  const pendingCount = usePendingConfirm(me?.active.branch_id ?? null, mobile && desk)
 
   const load = useCallback(async () => {
     // No XSRF-TOKEN → never had a session here; skip /api/me so a fresh guest visit logs no 401.
@@ -132,6 +137,7 @@ function StaffApp() {
   else if (soon) page = <ComingSoon title={soon.label} />
   else page = hash === '/' ? <Home me={me} /> : <ToHome />
 
-  return <Shell me={me} nav={nav} active={active} title={pageTitle(hash, active)} ribbon={ribbonId && can('patient.read') && <AlertRibbon key={ribbonId} patientId={ribbonId} />}
+  return <Shell me={me} nav={nav} active={active} title={pageTitle(hash, active)}
+    badges={{ '/jadwal': { count: pendingCount, label: `${pendingCount} janji online perlu konfirmasi` } }} ribbon={ribbonId && can('patient.read') && <AlertRibbon key={ribbonId} patientId={ribbonId} />}
     onSwitchBranch={switchBranch} onLogout={logout}>{page}</Shell>
 }

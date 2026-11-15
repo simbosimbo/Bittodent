@@ -1,8 +1,8 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, renderHook, screen, within } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
 import baseCss from '../../shared/ui/styles.css?raw'
 import type { Me } from '../../shared/session'
-import Schedule from './Schedule'
+import Schedule, { usePendingConfirm } from './Schedule'
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status })
 const ME: Me = {
@@ -619,4 +619,17 @@ test('HP galat: "Gagal memuat." + Coba lagi', async () => {
   fail = false
   fireEvent.click(within(alert).getByRole('button', { name: 'Coba lagi' }))
   expect(await screen.findByText('Pasien b')).toBeInTheDocument()
+})
+
+test('usePendingConfirm: jumlah booking online menunggu hari ini; dibaca ulang saat Jadwal berubah; mati = 0 tanpa fetch', async () => {
+  phoneToday()
+  let list = [ap('p', 'pending_confirmation', '13:00', { source: 'online' }), ap('q', 'pending_confirmation', '14:00', { source: 'online' }), ap('b', 'booked', '11:00')]
+  mockApi(() => list)
+  const { result } = renderHook(() => usePendingConfirm('b1', true))
+  await vi.waitFor(() => expect(result.current).toBe(2))
+  list = list.slice(1)
+  act(() => { dispatchEvent(new Event('jadwal:changed')) })
+  await vi.waitFor(() => expect(result.current).toBe(1))
+  const off = renderHook(() => usePendingConfirm('b1', false))
+  expect(off.result.current).toBe(0)
 })

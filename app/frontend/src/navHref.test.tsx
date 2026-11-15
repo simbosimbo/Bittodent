@@ -291,3 +291,30 @@ test.each(['/pasien/p2', '/keluarga/p2', '/riwayat-medis/p2'])('ribbon on %s is 
   expect(alertCalls().filter((u) => u.includes('/p1/'))).toEqual([])
   document.cookie = 'XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 GMT'
 })
+
+test('HP bottom nav: tanpa Rekam Medis (kasir / front desk) -> tab Kasir; pemilik tetap Rekam Medis, Kasir di Lainnya', () => {
+  viewport(412)
+  const kasir: Me = { ...me, roles: ['kasir'], permissions: ['patient.read', 'appointment.read', 'billing.read', 'billing.adjust'] }
+  const tabs = () => [...screen.getByRole('navigation', { name: 'Navigasi utama' }).querySelectorAll('a')].map((a) => a.textContent)
+  const k = shell(kasir)
+  expect(tabs()).toEqual(['Beranda', 'Jadwal', 'Pasien', 'Kasir'])
+  k.unmount()
+  shell(me)
+  expect(tabs()).toEqual(['Beranda', 'Jadwal', 'Pasien', 'Rekam Medis'])
+})
+
+test('HP bottom nav: badge jumlah di Jadwal (dengan label pembaca layar); tanpa badge saat 0; desktop tanpa badge', () => {
+  viewport(412)
+  const nav = visible(me)
+  const r = render(<Shell me={me} nav={nav} active={undefined} badges={{ '/jadwal': { count: 3, label: '3 janji online perlu konfirmasi' } }}
+    onSwitchBranch={() => {}} onLogout={() => {}}><p>isi</p></Shell>)
+  const jadwal = within(screen.getByRole('navigation', { name: 'Navigasi utama' })).getByRole('link', { name: /Jadwal/ })
+  expect(jadwal).toHaveAccessibleName(/3 janji online perlu konfirmasi\s*Jadwal/)
+  expect(jadwal.querySelector('.nav-badge')).toHaveTextContent('3')
+  r.rerender(<Shell me={me} nav={nav} active={undefined} badges={{ '/jadwal': { count: 0, label: '' } }} onSwitchBranch={() => {}} onLogout={() => {}}><p>isi</p></Shell>)
+  expect(document.querySelector('.nav-badge')).toBeNull()
+  r.unmount()
+  viewport(1280)
+  render(<Shell me={me} nav={nav} active={undefined} badges={{ '/jadwal': { count: 3, label: 'x' } }} onSwitchBranch={() => {}} onLogout={() => {}}><p>isi</p></Shell>)
+  expect(document.querySelector('.nav-badge')).toBeNull()
+})
