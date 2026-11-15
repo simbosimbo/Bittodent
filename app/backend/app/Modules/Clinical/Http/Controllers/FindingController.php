@@ -10,6 +10,7 @@ use App\Modules\Clinical\Models\ClinicalNote;
 use App\Modules\Clinical\Models\ToothFinding;
 use App\Modules\Clinical\Models\Visit;
 use App\Modules\Clinical\Services\CodingSuggestions;
+use App\Modules\Tenancy\Contracts\DentistProfileDirectory;
 use App\Shared\Audit\Audit;
 use App\Shared\Http\Controller;
 use App\Shared\Tenancy\Ctx;
@@ -97,7 +98,10 @@ class FindingController extends Controller
     public static function recorded(ToothFinding $f): void
     {
         if ($f->procedure_code !== null) {
-            event(new ProcedureRecorded(Ctx::current()->tenant(), $f->visit_id, $f->procedure_code, $f->variant, (string) $f->tooth, $f->id));
+            $dentist = Visit::findOrFail($f->visit_id)->dentist_id;
+            $profile = app(DentistProfileDirectory::class)->of($dentist);
+            event(new ProcedureRecorded(Ctx::current()->tenant(), $f->visit_id, $f->procedure_code, $f->variant, (string) $f->tooth, $f->id,
+                $dentist, $profile['category'], $profile['field'], $f->surface));
         }
     }
 

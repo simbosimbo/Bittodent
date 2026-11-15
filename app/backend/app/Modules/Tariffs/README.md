@@ -22,6 +22,26 @@ Invarian:
 - Modul lain membaca harga hanya lewat `Tariffs\Contracts\PriceLookup` (kode tindakan + tingkat + tanggal → harga).
 - Diubah hanya oleh pemilik. Clinical tidak bergantung pada Tariffs (dokter memilih tingkat, tidak melihat/menentukan harga).
 
-Bergantung pada: — (dipakai Billing).
+**Tarif bertingkat (unit A).** Tiga tingkat harga per tenant, semuanya **sel eksplisit** (tidak ada harga hitungan otomatis):
+1. **Umum** = `tariff.price_rp` (wajib; templat seed hanya Umum).
+2. **Spesialis** = satu harga untuk semua spesialis (`tariff_rate.band = specialist`).
+3. **Bidang** spesialis (`band = field`, `field` ∈ `sp_ort` Sp.Ort, `sp_bm` Sp.BM, `sp_kg` Sp.KG, `sp_pros` Sp.Pros, `sp_perio` Sp.Perio, `sp_kga` Sp.KGA).
+Ditambah **override per dokter** (`band = dentist`, `dentist_id`) untuk kode tindakan + tingkat tertentu.
+
+Urutan pencarian (`PriceLookup::priceFor/quote` dengan `PriceContext`): override dokter > bidang (hanya spesialis dengan bidang itu) >
+Spesialis (hanya spesialis) > Umum. Dokter umum tidak pernah mendapat harga Spesialis/bidang. Tanpa Umum yang berlaku = `no_tariff`
+(walau ada sel lain). `priceFor(kode, tingkat, tanggal)` tanpa konteks tetap mengembalikan Umum. Kategori/bidang dokter disimpan di
+Tenancy (`dentist_profile`, per tenant; tanpa baris = umum) dan dibawa `Clinical\Events\ProcedureRecorded` ke Billing.
+
+API (hanya pemilik, `tariff.manage`, diaudit): `PUT /api/tariffs/rates {procedure_code, variant, band, field?, dentist_id?, price_rp|null, valid_from}`
+— isi (`price_rp`) atau kosongkan (`null`) satu sel mulai `valid_from`; sel terbuka ditutup (`valid_to`). Batas sama dengan tingkat: satu versi
+per hari per sel, `valid_from` ≥ hari ini. Audit `tarif_tingkat_diubah` (Spesialis/bidang) / `tarif_override_diubah` (per dokter), detail hanya
+id, kode, harga, tanggal. Profil dokter: `PUT /api/dentists/{userId}/profile {category, field?}` (Tenancy, izin `tariff.manage`, audit
+`profil_dokter_diubah`). Snapshot di `invoice_line`: `price_rp` (pemenang), `doctor_id`, `dentist_category`, `dentist_field`, `surface`, `procedure_name`.
+
+Ditunda: **unit B** aturan turunan opsional (mis. Spesialis = Umum +30%), **default MATI**, sel eksplisit selalu menang, pratinjau sebelum
+diterapkan, diaudit; ubah massal %/Rp. **Unit C** impor/ekspor CSV, berkas templat tarif tenant baru. Belum ada `GET` daftar sel.
+
+Bergantung pada: Tenancy (`TenancyDirectory`: `dentist_id` override harus dokter aktif tenant ini). Dipakai Billing.
 
 Aturan: kode baru diletakkan di sini (`Models/`, `Http/`, `Services/`, `Domain/`, `Routes/routes.php`, `Contracts/`, `Events/`). Modul lain hanya boleh memakai `Contracts/` atau `Events/` modul ini, dan hanya jika sisi (edge) tercantum di `config/modules.php`.

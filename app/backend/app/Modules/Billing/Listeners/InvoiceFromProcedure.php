@@ -7,6 +7,7 @@ use App\Modules\Billing\Models\InvoiceLine;
 use App\Modules\Clinical\Contracts\VisitDirectory;
 use App\Modules\Clinical\Events\ProcedureRecorded;
 use App\Modules\Patients\Contracts\PatientDirectory;
+use App\Modules\Tariffs\Contracts\PriceContext;
 use App\Modules\Tariffs\Contracts\PriceLookup;
 use App\Shared\Audit\Audit;
 use App\Shared\Tenancy\Ctx;
@@ -14,7 +15,7 @@ use LogicException;
 use RuntimeException;
 
 // Sync listener (runs inside Clinical's signing/status transaction): one invoice per visit, one line per procedure,
-// price = Tariffs snapshot at this moment. No tariff => no line (never an invented price) + audit row for the front desk.
+// price = Tariffs snapshot at this moment for the visit dentist's band (per-dentist > field > Spesialis > Umum). No tariff => no line (never an invented price) + audit row for the front desk.
 final class InvoiceFromProcedure
 {
     public function __construct(private VisitDirectory $visits, private PatientDirectory $patients, private PriceLookup $prices) {}
@@ -33,13 +34,15 @@ final class InvoiceFromProcedure
             return; // idempotent: the same procedure is billed once
         }
         try {
-            $price = $this->prices->priceFor($e->procedureCode, $e->variant, now());
+            $quote = $this->prices->quote($e->procedureCode, $e->variant, now(), new PriceContext($e->dentistId, $e->dentistCategory, $e->dentistField));
         } catch (RuntimeException) {
             Audit::log('tarif_tidak_ada', 'invoice', $invoice->id, ['procedure_code' => $e->procedureCode, 'variant' => $e->variant]);
 
             return;
         }
         InvoiceLine::create(['invoice_id' => $invoice->id, 'finding_id' => $e->findingId, 'procedure_code' => $e->procedureCode,
-            'variant' => $e->variant, 'tooth' => $e->tooth === null ? null : (int) $e->tooth, 'price_rp' => $price]);
+            'procedure_name' => $quote['name'], 'variant' => $e->variant, 'tooth' => $e->tooth === null || $e->tooth === '' ? null : (int) $e->tooth,
+            'surface' => $e->surface, 'doctor_id' => $e->dentistId, 'dentist_category' => $e->dentistCategory, 'dentist_field' => $e->dentistField,
+            'price_rp' => $quote['price_rp']]);
     }
 }
