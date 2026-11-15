@@ -28,6 +28,15 @@ interface IntegrityFacts
      */
     public function cancelledVisits(\DateTimeInterface $from, \DateTimeInterface $to, ?array $branchIds): array;
 
+    /**
+     * Procedure corrections (unit A) requested in the window. provider_id = performing dentist of the corrected (original) row.
+     * status: pending (waits for the owner) | diterapkan (within window) | disetujui | ditolak. chain_procedure_ids = correction chain of
+     * the corrected row, root first (the billed line sits on one of them). No reason text.
+     *
+     * @return list<array{id: string, procedure_id: string, chain_procedure_ids: list<string>, provider_id: string, patient_id: string, visit_id: ?string, reason_type: string, within_window: bool, status: string, created_at: string, decided_at: ?string, self_approved_sole_owner: bool}>
+     */
+    public function procedureCorrections(\DateTimeInterface $from, \DateTimeInterface $to, ?array $branchIds): array;
+
     /** @param list<string> $visitIds  @return array<string, string> visit id => visit dentist id */
     public function dentistsOfVisits(array $visitIds): array;
 }
