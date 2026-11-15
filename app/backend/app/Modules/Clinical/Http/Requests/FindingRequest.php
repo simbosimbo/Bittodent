@@ -5,6 +5,7 @@ namespace App\Modules\Clinical\Http\Requests;
 use App\Modules\Clinical\Domain\Odontogram;
 use App\Modules\Clinical\Domain\ProcedureStatus;
 use App\Modules\Clinical\Domain\Soap;
+use App\Shared\Terminology\OfficialIcdCode;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
@@ -26,7 +27,7 @@ class FindingRequest extends FormRequest
             'condition' => ['required', 'string', 'in:'.implode(',', [...Odontogram::SURFACE_CONDITIONS, ...Odontogram::WHOLE_CONDITIONS])],
             'source' => ['sometimes', 'string', 'in:manual,ai_draft'],
             'status' => ['sometimes', 'string', 'in:'.implode(',', ProcedureStatus::ALL)],
-            'procedure_code' => ['sometimes', 'nullable', 'string', 'regex:'.Soap::ICD9CM],
+            'procedure_code' => ['bail', 'sometimes', 'nullable', 'string', 'regex:'.Soap::ICD9CM, OfficialIcdCode::icd9cm()],
             'variant' => ['sometimes', 'string', 'regex:/^[a-z0-9_]{1,10}$/'], // tariff level code; Clinical cannot see Tariffs (D-035)
         ];
     }
