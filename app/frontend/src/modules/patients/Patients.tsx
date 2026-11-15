@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { errorText } from '../../shared/api/http'
-import { searchPatients, type PatientRow } from './api'
+import { getKtp, getKtpAttachment, getKtpPhoto, searchPatients, type PatientRow } from './api'
 import { PatientPage } from './Records'
+import './ktp.css'
 
 const SEX: Record<string, string> = { laki_laki: 'Laki-laki', perempuan: 'Perempuan' }
 const PAYER: Record<string, string> = { umum: 'Umum', asuransi: 'Asuransi', bpjs: 'BPJS' }
@@ -76,21 +77,67 @@ export function PatientList({ canCreate, initialQ = '' }: { canCreate: boolean; 
   )
 }
 
-export function PatientDetail({ id, canChart = false }: { id: string; canChart?: boolean }) {
+
+function openBlob(blob: Blob) {
+  const url = URL.createObjectURL(blob)
+  window.open(url, '_blank', 'noopener')
+  setTimeout(() => URL.revokeObjectURL(url), 60_000)
+}
+
+/** Encrypted KTP photo card: shown only when the caller already gated on patient.ktp.view. */
+function KtpPhotoCard({ id }: { id: string }) {
+  const [has, setHas] = useState(false)
+  const [err, setErr] = useState('')
+  useEffect(() => {
+    let live = true
+    getKtpAttachment(id).then((r) => { if (live) setHas(!!r.photo) }, () => { if (live) setHas(false) })
+    return () => { live = false }
+  }, [id])
+  if (!has) return null
+  return (
+    <div className="ktp-att">
+      <div className="ktp-att-meta"><strong>KTP</strong><span className="chip ktp-enc">Terenkripsi</span></div>
+      <button type="button" className="btn ktp-reveal" onClick={() => getKtpPhoto(id).then(openBlob, (e) => setErr(errorText(e)))}>Buka</button>
+      {err && <span className="field-error" role="alert">{err}</span>}
+    </div>
+  )
+}
+
+/** Masked NIK; with patient.ktp.view a 48px control fetches the unmasked value (audited server-side as ktp_lihat). */
+function NikValue({ id, masked, canReveal }: { id: string; masked: string | null; canReveal: boolean }) {
+  const [full, setFull] = useState<string | null>(null)
+  const [err, setErr] = useState('')
+  if (!masked) return <>—</>
+  return (
+    <span className="ktp-nik">
+      <span>{full ?? masked}</span>
+      {canReveal && (full
+        ? <button type="button" className="btn ktp-reveal" onClick={() => setFull(null)}>Sembunyikan</button>
+        : <button type="button" className="btn ktp-reveal" onClick={() => getKtp(id).then((k) => setFull(k.nik), (e) => setErr(errorText(e)))}>Lihat</button>)}
+      {err && <span className="field-error" role="alert">{err}</span>}
+    </span>
+  )
+}
+
+export function PatientDetail({ id, canChart = false, canKtp = false }: { id: string; canChart?: boolean; canKtp?: boolean }) {
   return (
     <PatientPage id={id} tab="pasien" canChart={canChart}
       actions={canChart ? <a className="btn btn-primary" href={`#/rekam-medis/${id}`}>Rekam Medis</a> : undefined}>
       {(p) => {
-        const masked = p.nik?.includes('*')
-        const rows: [string, string][] = [
+        const rows: [string, ReactNode][] = [
           ['Tanggal lahir', `${dob(p.dob)} ${age(p.dob)}`],
           ['Jenis kelamin', p.sex ? SEX[p.sex] : '—'],
-          [masked ? 'NIK (disamarkan)' : 'NIK', p.nik ?? '—'],
+          ['NIK (disamarkan)', <NikValue id={id} masked={p.nik} canReveal={canKtp} />],
           ['No. HP', p.phone ?? '—'],
           ['Alamat', p.address ?? '—'],
           ['Penjamin', [PAYER[p.payer_type] ?? p.payer_type, p.payer_name, p.payer_member_no, p.payer_class].filter(Boolean).join(' · ')],
         ]
-        return <div className="card"><dl className="details">{rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd className={k.startsWith('NIK') ? 'mono' : ''}>{v}</dd></div>)}</dl></div>
+        return (
+          <div className="card">
+            <dl className="details">{rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd className={k.startsWith('NIK') ? 'mono' : ''}>{v}</dd></div>)}</dl>
+            {canKtp && <KtpPhotoCard id={id} />}
+          </div>
+        )
       }}
     </PatientPage>
   )

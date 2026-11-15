@@ -31,7 +31,7 @@ class ModelClientTest extends TestCase
             'ARN profil inferensi' => ['ap-southeast-3', 'arn:aws:bedrock:ap-southeast-3:000000000000:inference-profile/apac.contoh'],
             'ARN foundation-model Jakarta' => ['ap-southeast-3', 'arn:aws:bedrock:ap-southeast-3::foundation-model/qwen.qwen3-32b-v1:0'],
             'ARN region lain' => ['ap-southeast-3', 'arn:aws:bedrock:us-east-1::foundation-model/qwen.qwen3-32b-v1:0'],
-            'model lain in-region' => ['ap-southeast-3', 'amazon.nova-lite-v1:0'],
+            'model lain in-region' => ['ap-southeast-3', 'amazon.nova-pro-v1:0'],
             'huruf besar' => ['ap-southeast-3', 'QWEN.QWEN3-32B-V1:0'],
             'spasi' => ['ap-southeast-3', ' qwen.qwen3-32b-v1:0'],
             'versi lain' => ['ap-southeast-3', 'qwen.qwen3-32b-v2:0'],
@@ -48,7 +48,7 @@ class ModelClientTest extends TestCase
 
     public static function allowedIds(): array
     {
-        return [['qwen.qwen3-235b-a22b-2507-v1:0'], ['qwen.qwen3-32b-v1:0'], ['deepseek.v3.2'], ['openai.gpt-oss-120b-1:0']];
+        return [['qwen.qwen3-235b-a22b-2507-v1:0'], ['qwen.qwen3-32b-v1:0'], ['deepseek.v3.2'], ['openai.gpt-oss-120b-1:0'], ['amazon.nova-lite-v1:0']];
     }
 
     #[DataProvider('allowedIds')]

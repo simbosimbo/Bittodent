@@ -23,8 +23,8 @@ class FamilyTest extends TestCase
             ->assertJsonPath('is_minor', true)->assertJsonPath('guarantor.id', $p0->id)
             ->assertJsonPath('guardians.0.relationship', 'ibu')->assertJsonPath('guardians.0.guardian_patient_id', $p0->id);
         $this->assertCount(2, $f->json('household.members'));
-        $this->assertStringStartsWith('************', $f->json('guardians.0.nik')); // front desk: masked
-        $this->assertSame('9901000000000001', $this->as('dokter@senyum.test')->getJson("/api/patients/{$minor->id}/family")->json('guardians.0.nik'));
+        $this->assertSame('9901********0001', $f->json('guardians.0.nik')); // masked for everyone (A4)
+        $this->assertSame('9901********0001', $this->as('dokter@senyum.test')->getJson("/api/patients/{$minor->id}/family")->json('guardians.0.nik'));
         $this->as('depan@senyum.test')->getJson("/api/patients/{$p0->id}/family")->assertOk()->assertJsonPath('is_minor', false)->assertJsonPath('guarantor', null);
     }
 
@@ -48,7 +48,7 @@ class FamilyTest extends TestCase
         $minor = $this->minor();
         $id = $this->as('depan@senyum.test')->postJson("/api/patients/{$minor->id}/guardians",
             ['name' => 'Bapak Uji Contoh', 'relationship' => 'ayah', 'nik' => '9901 0000 0000 0777', 'phone' => '0899-0100-0777'])
-            ->assertCreated()->assertJsonPath('nik', '************0777')->json('id');
+            ->assertCreated()->assertJsonPath('nik', '9901********0777')->json('id');
         $g = Ctx::runAs($this->tenantA()->id, fn () => Guardian::findOrFail($id));
         $this->assertStringNotContainsString('0777', $g->nik_enc.$g->phone_enc);
         $this->assertSame(Crypto::blindIndex('9901000000000777'), $g->nik_bidx);

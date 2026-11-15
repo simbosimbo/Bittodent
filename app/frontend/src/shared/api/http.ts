@@ -13,11 +13,12 @@ export const csrfCookie = () => fetch('/sanctum/csrf-cookie', { credentials: 'sa
 export async function api<T = any>(path: string, opts: { method?: string; body?: unknown } = {}): Promise<T> {
   const method = opts.method ?? 'GET'
   if (method !== 'GET' && !xsrf()) await csrfCookie()
+  const form = opts.body instanceof FormData // multipart upload: the browser sets the boundary header
   const res = await fetch(path, {
     method,
     credentials: 'same-origin',
-    headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-XSRF-TOKEN': xsrf() },
-    body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
+    headers: { Accept: 'application/json', ...(form ? {} : { 'Content-Type': 'application/json' }), 'X-XSRF-TOKEN': xsrf() },
+    body: opts.body === undefined ? undefined : form ? (opts.body as FormData) : JSON.stringify(opts.body),
   })
   const data = res.status === 204 ? null : await res.json().catch(() => null)
   if (!res.ok) {
@@ -29,3 +30,14 @@ export async function api<T = any>(path: string, opts: { method?: string; body?:
 
 export const errorText = (e: unknown) =>
   e instanceof ApiError && e.status === 403 ? 'Anda tidak punya akses untuk ini.' : 'Gagal memuat data. Coba lagi.'
+
+/** Binary GET (KTP photo). Same cookies/XSRF as api(); does not parse JSON. */
+export async function apiBlob(path: string): Promise<Blob> {
+  const res = await fetch(path, { credentials: 'same-origin', headers: { Accept: '*/*', 'X-XSRF-TOKEN': xsrf() } })
+  if (!res.ok) {
+    if (res.status === 401) window.dispatchEvent(new Event('ehr:unauthorized'))
+    const data = await res.json().catch(() => null)
+    throw new ApiError(res.status, data)
+  }
+  return res.blob()
+}

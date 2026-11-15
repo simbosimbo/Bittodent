@@ -9,6 +9,7 @@ use App\Modules\Tenancy\Contracts\TenancyDirectory;
 use App\Shared\Audit\Audit;
 use App\Shared\Crypto\Crypto;
 use App\Shared\Http\Controller;
+use App\Shared\Identity\NikMask;
 use App\Shared\Tenancy\Ctx;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -65,16 +66,12 @@ class PatientController extends Controller
     public function show(string $id)
     {
         $p = Patient::findOrFail($id);
-        $nik = Crypto::decrypt($p->nik_enc);
-        if ($nik !== null && ! Ctx::current()->can('patient.read_nik')) {
-            $nik = str_repeat('*', strlen($nik) - 4).substr($nik, -4);
-        }
         Audit::log('baca', 'patient', $p->id);
 
         return response()->json([
             ...$p->only(['id', 'name', 'sex', 'home_branch_id', 'payer_type', 'payer_name', 'payer_member_no', 'payer_class', 'status']),
             'dob' => $p->dob?->format('Y-m-d'),
-            'nik' => $nik,
+            'nik' => NikMask::mask(Crypto::decrypt($p->nik_enc)), // always masked; unmasked only via GET .../ktp (patient.ktp.view)
             'phone' => Crypto::decrypt($p->phone_enc),
             'address' => Crypto::decrypt($p->address_enc),
         ]);

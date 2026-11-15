@@ -81,7 +81,7 @@ class RoleAccessTest extends TestCase
         $this->as($kasir)->getJson("/api/invoices/$inv")->assertOk();
         $this->as($kasir)->postJson("/api/invoices/$inv/adjustments", ['kind' => 'discount', 'amount_rp' => 1000, 'reason' => 'Uji kasir'])->assertCreated();
         $nik = $this->as($kasir)->getJson("/api/patients/$pid")->assertOk()->json('nik');
-        $this->assertMatchesRegularExpression('/^\*+\d{4}$/', (string) $nik); // demographics only, NIK masked
+        $this->assertMatchesRegularExpression('/^\d{4}\*{8}\d{4}$/', (string) $nik); // demographics only, NIK masked
         // alerts: front-desk view only (no free-text note, diseases, medications)
         $alerts = $this->as($kasir)->getJson("/api/patients/$pid/alerts")->assertOk()->json();
         $front = $this->as('depan@senyum.test')->getJson("/api/patients/$pid/alerts")->assertOk()->json();

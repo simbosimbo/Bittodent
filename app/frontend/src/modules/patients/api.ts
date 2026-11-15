@@ -1,4 +1,4 @@
-import { api } from '../../shared/api/http'
+import { api, apiBlob } from '../../shared/api/http'
 
 export type PatientRow = { id: string; name: string; dob: string | null; sex: string | null; payer_type: string }
 export type PatientFull = PatientRow & { nik: string | null; phone: string | null; address: string | null; payer_name: string | null; payer_member_no: string | null; payer_class: string | null }
@@ -29,3 +29,17 @@ export const getAlerts = (id: string) => api<Alerts>(pid(id) + '/alerts')
 export const getMedicalHistory = (id: string) => api<MedicalHistory>(pid(id) + '/medical-history')
 export const saveMedicalHistory = (id: string, body: HistoryInput) => api<HistoryVersion>(pid(id) + '/medical-history', { method: 'PUT', body })
 export const getFamily = (id: string) => api<Family>(pid(id) + '/family')
+
+// A4 KTP. GET .../ktp is the only unmasked NIK (patient.ktp.view, audited): keep it in component state only, never log it.
+export type KtpCodes = { province_code?: string; regency_code?: string; district_code?: string; photo_id?: string }
+export type KtpView = { nik: string | null; province_code: string | null; regency_code: string | null; district_code: string | null; photo: { id: string; mime: string } | null }
+export const uploadKtpPhoto = (file: File) => {
+  const fd = new FormData()
+  fd.append('photo', file)
+  return api<{ id: string }>('/api/ktp/photos', { method: 'POST', body: fd })
+}
+export const saveKtp = (id: string, body: KtpCodes) => api<{ mismatches: string[]; nik: string | null }>(pid(id) + '/ktp', { method: 'PUT', body })
+export const getKtp = (id: string) => api<KtpView>(pid(id) + '/ktp')
+
+export const getKtpPhoto = (id: string) => apiBlob(pid(id) + '/ktp/photo')
+export const getKtpAttachment = (id: string) => api<{ photo: { id: string; mime: string } | null }>(pid(id) + '/ktp/attachment')
