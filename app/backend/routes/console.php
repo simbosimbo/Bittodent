@@ -4,6 +4,7 @@ use App\Modules\Identity\Models\User;
 use App\Modules\Patients\Services\PatientCareStateService;
 use App\Modules\Recall\Services\ReminderService;
 use App\Modules\Scheduling\Services\FakeOtpSender;
+use App\Modules\Scribe\Contracts\ScribeEngine;
 use App\Modules\Tenancy\Models\Tenant;
 use App\Shared\Tenancy\Ctx;
 use App\Shared\Terminology\CsvIcdSource;
@@ -181,3 +182,12 @@ Artisan::command('booking:otp {phone}', function (string $phone) {
 
     return $code === null ? 1 : 0;
 })->purpose('Cetak kode OTP booking terakhir (driver fake, data sintetis)');
+
+Artisan::command('scribe:wipe-expired-audio', function () {
+    $n = 0;
+    foreach (Tenant::pluck('id') as $tenantId) {
+        $n += Ctx::runAs($tenantId, fn () => app(ScribeEngine::class)->sweepExpiredAudio(now()));
+    }
+    $this->line((string) $n);
+})->purpose('Hapus audio scribe yang gagal diproses lebih dari 24 jam');
+Schedule::command('scribe:wipe-expired-audio')->everyFifteenMinutes()->timezone('Asia/Jakarta')->withoutOverlapping();

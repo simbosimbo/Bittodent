@@ -17,7 +17,8 @@ final class Permissions
             'appointment.refer'], // DEVIATIONS #68: Rujuk = the only way to change an appointment's dentist (owner: any appointment)
         'dentist' => ['patient.read', 'patient.read_nik', 'patient.create', 'appointment.read', 'appointment.create',
             'appointment.transition', 'appointment.confirm', 'note.read', 'note.write', 'note.sign', 'patient.update', 'appointment.plan',
-            'appointment.refer'], // DEVIATIONS #68: only their own appointments (checked in AppointmentController::refer)
+            'appointment.refer', // DEVIATIONS #68: only their own appointments (checked in AppointmentController::refer)
+            'ai_draft.review'], // approve/reject agent drafts (D-001); never owner/assistant
         // procedure.confirm_external: second pair of eyes on an external entry made on a visit with `selesai` work that day (unit 2).
         // Not the dentist (who records it), not kasir; owner is an open decision (DEVIATIONS #48).
         'assistant' => ['patient.read', 'appointment.read', 'appointment.transition', 'note.read', 'note.write', 'appointment.plan',
