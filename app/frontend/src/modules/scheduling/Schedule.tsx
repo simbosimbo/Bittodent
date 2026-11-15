@@ -5,6 +5,8 @@ import { fmtDate, fmtTime, todayWib } from '../../shared/format'
 import type { Me } from '../../shared/session'
 import { Icon, ICONS } from '../../shared/ui/Icon'
 import { useDialog } from '../../shared/ui/Sheet'
+import { Presence, usePresenceClass } from '../../shared/ui/presence'
+import { PageSkeleton } from '../../shared/ui/Skeleton'
 import { useIsMobile } from '../../shared/useIsMobile'
 import { PatientPicker } from '../patients'
 import './scheduling.css'
@@ -351,7 +353,7 @@ export default function Schedule({ me }: { me: Me }) {
           ? <div className="sched-empty" role="alert"><Icon d={ICONS.cloudOff} size={40} /><p>Gagal memuat.</p>
               <button className="btn btn-outline" onClick={reload}><Icon d={ICONS.refresh} size={18} />Coba lagi</button></div>
           : <div className="card state-card error">{error} <button className="btn" onClick={reload}>Coba lagi</button></div>)
-        : !data || (mobile && loading && data.date !== date) ? <div className="card state-card muted" role="status">Memuat jadwal…</div>
+        : !data || (mobile && loading && data.date !== date) ? <PageSkeleton variant="schedule" label="Memuat jadwal…" />
         : data.chairs.length === 0 ? <div className="card state-card muted">Cabang ini belum punya kursi aktif.</div> : (
           <>
           {mobile && !dokter && cols.length > 1 && (
@@ -504,34 +506,50 @@ export default function Schedule({ me }: { me: Me }) {
         </div>
       )}
       {mobile ? <div className="sched-swipe" {...swipe}>{dayBody}</div> : dayBody}
-      {mobile && sheetAppt && data && (
-        <ApptSheet a={sheetAppt} tz={tz} chair={data.chairs.find((c) => c.id === sheetAppt.chair_id)?.label} acts={sheetActs(sheetAppt)}
-          onClose={() => setSheetId(null)} onReschedule={() => { setSheetId(null); setReschedId(sheetAppt.id) }}
-          onForm={(kind) => { setSheetId(null); setForm({ kind, id: sheetAppt.id }) }} />
+      {mobile && data && (
+        <Presence open={!!sheetAppt} exitMs={200}>
+          {sheetAppt && <ApptSheet a={sheetAppt} tz={tz} chair={data.chairs.find((c) => c.id === sheetAppt.chair_id)?.label} acts={sheetActs(sheetAppt)}
+            onClose={() => setSheetId(null)} onReschedule={() => { setSheetId(null); setReschedId(sheetAppt.id) }}
+            onForm={(kind) => { setSheetId(null); setForm({ kind, id: sheetAppt.id }) }} />}
+        </Presence>
       )}
-      {mobile && reschedId && data && all.find((a) => a.id === reschedId) && (
-        <RescheduleSheet a={all.find((a) => a.id === reschedId)!} tz={tz} date={date} chairs={data.chairs}
-          onClose={() => setReschedId(null)} onSaved={() => { setReschedId(null); reload(); changed(); say('Jadwal diubah') }} />
+      {mobile && data && (
+        <Presence open={!!(reschedId && all.find((a) => a.id === reschedId))} exitMs={200}>
+          {reschedId && all.find((a) => a.id === reschedId) && (
+            <RescheduleSheet a={all.find((a) => a.id === reschedId)!} tz={tz} date={date} chairs={data.chairs}
+              onClose={() => setReschedId(null)} onSaved={() => { setReschedId(null); reload(); changed(); say('Jadwal diubah') }} />
+          )}
+        </Presence>
       )}
-      {mobile && form && data && all.find((a) => a.id === form.id) && (form.kind === 'chair'
-        ? <ChairSheet a={all.find((a) => a.id === form.id)!} chairs={data.chairs} save={changeChair}
-            onClose={() => setForm(null)} onSaved={() => { setForm(null); reload(); changed(); say('Kursi diganti') }} />
-        : <ReferSheet a={all.find((a) => a.id === form.id)!} dentists={data.dentists} save={refer} unavailable={deskRole && isNotOwn(form.id)}
-            onClose={() => setForm(null)} onSaved={() => { setForm(null); reload(); changed(); say('Janji dirujuk') }} />)}
-      {mobile && payFor && all.find((a) => a.id === payFor)?.visit_id && (
-        <PayPrompt onLater={() => setPayFor(null)} onPay={() => {
-          const vid = all.find((a) => a.id === payFor)!.visit_id
-          setPayFor(null)
-          if (multi) setMode('depan')
-          location.hash = `#/tagihan/${vid}`
-        }} />
+      {mobile && data && (
+        <Presence open={!!(form && all.find((a) => a.id === form.id))} exitMs={200}>
+          {form && all.find((a) => a.id === form.id) && (form.kind === 'chair'
+            ? <ChairSheet a={all.find((a) => a.id === form.id)!} chairs={data.chairs} save={changeChair}
+                onClose={() => setForm(null)} onSaved={() => { setForm(null); reload(); changed(); say('Kursi diganti') }} />
+            : <ReferSheet a={all.find((a) => a.id === form.id)!} dentists={data.dentists} save={refer} unavailable={deskRole && isNotOwn(form.id)}
+                onClose={() => setForm(null)} onSaved={() => { setForm(null); reload(); changed(); say('Janji dirujuk') }} />)}
+        </Presence>
+      )}
+      {mobile && (
+        <Presence open={!!(payFor && all.find((a) => a.id === payFor)?.visit_id)} exitMs={200}>
+          {payFor && all.find((a) => a.id === payFor)?.visit_id && (
+            <PayPrompt onLater={() => setPayFor(null)} onPay={() => {
+              const vid = all.find((a) => a.id === payFor)!.visit_id
+              setPayFor(null)
+              if (multi) setMode('depan')
+              location.hash = `#/tagihan/${vid}`
+            }} />
+          )}
+        </Presence>
       )}
       {mobile && toast && <Toast key={toast.id} text={toast.text} undo={toast.undo} onDone={() => setToast(null)} />}
       {gridNow && !nowSeen && <button type="button" className="now-chip" onClick={() => toNow(true)}>Sekarang {dotTime(nowMin + START)}</button>}
       {mobile && canCreate && !dokter && <button type="button" className="fab" aria-label="Buat janji" onClick={() => setDialog({})}><Icon d={ICONS.plus} size={26} /></button>}
       {data && !(mobile && dokter) && <PlannedList sched={data} date={date} canCreate={canCreate} onScheduled={reload} />}
-      {dialog && data && (
-        <BookDialog sched={data} date={date} me={me} initial={dialog} onClose={() => setDialog(null)} onSaved={() => { setDialog(null); reload(); changed() }} />
+      {data && (
+        <Presence open={!!dialog} exitMs={200}>
+          {dialog && <BookDialog sched={data} date={date} me={me} initial={dialog} onClose={() => setDialog(null)} onSaved={() => { setDialog(null); reload(); changed() }} />}
+        </Presence>
       )}
     </>
   )
@@ -578,9 +596,10 @@ function BookDialog({ sched, date, me, initial, onClose, onSaved }: {
 
   // Phone: bottom sheet (styles.css) with modal focus/Escape/scroll lock; desktop behaviour unchanged.
   const dlg = useRef<HTMLFormElement>(null)
+  const phase = usePresenceClass()
   useDialog(dlg, onClose, useIsMobile())
   return (
-    <div className="overlay" onClick={onClose}>
+    <div className={`overlay ${phase}`} onClick={onClose}>
       <form ref={dlg} className="card dialog" role="dialog" aria-modal="true" aria-labelledby="book-title" onClick={(e) => e.stopPropagation()} onSubmit={submit} noValidate>
         <h2 id="book-title">Buat Janji</h2>
         <p className="muted">{fmtDate(date)} · {sched.branch.name}</p>

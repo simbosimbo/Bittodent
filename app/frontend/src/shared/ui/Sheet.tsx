@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, type ReactNode, type RefObject } from 'react'
+import { usePresenceClass } from './presence'
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
@@ -40,11 +41,13 @@ export function useDialog(ref: RefObject<HTMLElement | null>, onClose: () => voi
 export function Sheet({ title, onClose, className = '', children }: { title: ReactNode; onClose: () => void; className?: string; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null)
   const id = useId()
+  const phase = usePresenceClass()
   useDialog(ref, onClose)
   return (
     <>
-      <div className="sheet-backdrop" onClick={onClose} />
-      <div ref={ref} className={`sheet ${className}`} role="dialog" aria-modal="true" aria-labelledby={id} tabIndex={-1}>
+      <div className={`sheet-backdrop ${phase}`} onClick={onClose} />
+      <div ref={ref} className={`sheet ${className} ${phase}`} role="dialog" aria-modal="true" aria-labelledby={id} tabIndex={-1}>
+        <div className="sheet-handle" aria-hidden="true" />
         <div className="sheet-head">
           <h2 id={id}>{title}</h2>
           <button type="button" className="btn btn-ghost sheet-close" onClick={onClose}>Tutup</button>

@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { ApiError, errorText } from '../../shared/api/http'
 import { fmtDateTime, rp } from '../../shared/format'
+import { PageSkeleton } from '../../shared/ui/Skeleton'
 import type { Me } from '../../shared/session'
 import { addAdjustment, addCreditNote, addPayment, addRefund, approveZeroTariff, billFromCorrection, decideAdjustment, decideCreditNote, decideRefund, decideVoid, invoiceForVisit,
   paymentAccounts, reviewCorrection, voidInvoice, type Adjustment, type Invoice, type InvoiceLine, type PaymentAccount } from './api'
@@ -35,8 +36,16 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
   const [receipt, setReceipt] = useState(false)
   const can = (p: string) => me.permissions.includes(p)
 
-  const load = useCallback(() => invoiceForVisit(visitId).then(setInv, (e) => setError(e instanceof ApiError && e.status === 404 ? 'Belum ada tagihan untuk kunjungan ini.' : errorText(e))), [visitId])
-  useEffect(() => { load() }, [load])
+  const vid = useRef(visitId)
+  vid.current = visitId
+  const load = useCallback(() => {
+    const id = visitId
+    return invoiceForVisit(id).then((inv) => { if (vid.current === id) setInv(inv) }, (e) => {
+      if (vid.current !== id) return
+      setError(e instanceof ApiError && e.status === 404 ? 'Belum ada tagihan untuk kunjungan ini.' : errorText(e))
+    })
+  }, [visitId])
+  useEffect(() => { setInv(null); setError(''); setMsg(''); load() }, [load])
   useEffect(() => { paymentAccounts().then(setAccounts, () => setAccounts([])) }, [])
 
   async function run(fn: () => Promise<Invoice>, ok: (i: Invoice) => string) {
@@ -117,7 +126,7 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
       () => { setRefund(null); return 'Refund diajukan: menunggu persetujuan pemilik.' })
   }
 
-  if (!inv) return <div className="card state-card">{error || 'Memuat tagihan…'}</div>
+  if (!inv) return error ? <div className="card state-card">{error}</div> : <PageSkeleton variant="invoice" label="Memuat tagihan…" />
   return (
     <>
       <div className="page-head"><div><h1>Tagihan{inv.patient_name ? ` · ${inv.patient_name}` : ''}</h1><p className="muted small">Saldo {rp(inv.balance_rp)} · baris {rp(inv.lines_rp)} · penyesuaian {rp(inv.adjustments_rp)} · nota kredit {rp(inv.credit_notes_rp ?? 0)} · dibayar {rp(inv.payments_rp)}{(inv.refunds_rp ?? 0) > 0 && ` · refund ${rp(inv.refunds_rp)}`} · {INV_STATUS[inv.status]}</p></div></div>

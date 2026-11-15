@@ -1,0 +1,154 @@
+/* Motion patterns (design/motion.md). Tokens live in tokens.css; do not animate anything except transform/opacity
+   (accordion may use grid-template-rows). Never pointer-events: none on a layer just to wait for a transition. */
+
+/* 2. Buttons: hover colour, press scale, focus ring — no scale on focus, taps stay live. */
+.btn {
+  transition:
+    background-color var(--motion-fast) var(--motion-ease-standard),
+    border-color var(--motion-fast) var(--motion-ease-standard),
+    color var(--motion-fast) var(--motion-ease-standard),
+    box-shadow var(--motion-fast) var(--motion-ease-standard),
+    transform var(--motion-fast) var(--motion-ease-standard);
+}
+.btn:active:not(:disabled) { transform: scale(0.97); }
+.btn:disabled { transform: none; }
+.btn:focus-visible { outline: 2px solid var(--color-primary-700); outline-offset: 2px; }
+
+/* 3. Skeletons: reserved height + shine (one pass ≤ --motion-slow). */
+.sk { border-radius: 12px; background: var(--color-neutral-100); overflow: hidden; position: relative; min-height: 16px; }
+.sk::after {
+  content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+  animation: sk-shine var(--motion-slow) var(--motion-ease-standard) infinite;
+}
+@keyframes sk-shine { to { transform: translateX(100%); } }
+.sk-row { display: flex; flex-direction: column; gap: 10px; }
+.sk-title { height: 20px; width: 40%; }
+.sk-line { height: 14px; width: 100%; }
+.sk-line.w2 { width: 72%; }
+.sk-block { min-height: 120px; }
+.sk-page { display: grid; gap: 12px; }
+.sk-page > :not([aria-hidden]) { /* the status label is kept for tests / AT; the reserved block is the next sibling */ }
+.sk-kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+@media (min-width: 721px) { .sk-kpis { grid-template-columns: repeat(4, 1fr); } }
+.sk-kpi { min-height: 112px; }
+.sk-board { min-height: 240px; }
+.sk-search { height: 44px; }
+.sk-rowline { height: 56px; }
+.sk-head { display: flex; align-items: center; gap: 12px; }
+.sk-avatar { width: 48px; height: 48px; border-radius: 50%; flex: none; }
+.sk-col { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.sk-app { min-height: 100vh; }
+.sk-app .sk-brand { height: 32px; width: 70%; }
+.sk-app .sk-clinic { min-height: 88px; }
+.sk-app .sk-topbar { height: var(--shells-a-size-topbar, 64px); background: var(--surface); border-bottom: 1px solid var(--border); }
+.sk-app .shell-side { display: flex; flex-direction: column; gap: 12px; }
+@media (max-width: 720px) { .sk-app .shell-side { display: none; } }
+
+/* 4. Hash change: only the main area moves; Shell stays mounted. */
+.page-stage {
+  opacity: 0;
+  transform: translateY(var(--motion-distance-page));
+}
+.page-stage.is-in {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity var(--motion-std) var(--motion-ease-enter),
+    transform var(--motion-std) var(--motion-ease-enter);
+}
+
+/* 5. Sheets, dialogs, menu. Classes is-open / is-leave come from Presence. */
+.sheet-handle {
+  width: 36px; height: 4px; border-radius: 999px; background: var(--color-neutral-300);
+  margin: 8px auto 12px;
+}
+.sheet {
+  transform: translateY(0);
+}
+.sheet.is-leave {
+  transform: translateY(100%);
+  transition: transform var(--motion-std) var(--motion-ease-exit);
+}
+.sheet.is-open {
+  transform: translateY(0);
+  transition: transform var(--motion-slow) var(--motion-ease-spring);
+}
+.sheet-backdrop { opacity: 1; }
+.sheet-backdrop.is-leave {
+  opacity: 0;
+  transition: opacity var(--motion-std) var(--motion-ease-exit);
+}
+.sheet-backdrop.is-open {
+  opacity: 1;
+  transition: opacity var(--motion-slow) var(--motion-ease-standard);
+}
+
+.overlay { opacity: 1; }
+.overlay.is-leave {
+  opacity: 0;
+  transition: opacity var(--motion-std) var(--motion-ease-exit);
+}
+.overlay.is-open {
+  opacity: 1;
+  transition: opacity var(--motion-std) var(--motion-ease-standard);
+}
+.overlay .dialog {
+  opacity: 1;
+  transform: none;
+}
+.overlay.is-leave .dialog {
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity var(--motion-std) var(--motion-ease-exit),
+    transform var(--motion-std) var(--motion-ease-exit);
+}
+.overlay.is-open .dialog {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity var(--motion-std) var(--motion-ease-enter),
+    transform var(--motion-std) var(--motion-ease-enter);
+}
+
+.menu-pop { opacity: 1; transform: none; }
+.menu-pop.is-leave {
+  opacity: 0;
+  transform: translateY(4px);
+  transition:
+    opacity var(--motion-fast) var(--motion-ease-exit),
+    transform var(--motion-fast) var(--motion-ease-exit);
+}
+.menu-pop.is-open {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity var(--motion-fast) var(--motion-ease-enter),
+    transform var(--motion-fast) var(--motion-ease-enter);
+}
+
+/* Login: reserve Masuk cepat so the card does not grow after /api/dev/status (CLS 360 was 0.209). */
+.login-page { align-content: start; justify-items: center; padding: 48px 16px 32px; place-items: unset; }
+.login-card { width: min(400px, 100%); }
+.dev-quick { min-height: 430px; }
+.dev-quick-skel { display: grid; gap: 10px; }
+.dev-quick-skel .sk-title { height: 18px; width: 46%; }
+.dev-quick-list .sk-btn, .dev-quick-skel .sk-btn { min-height: 40px; height: 40px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; }
+  .sk::after { content: none; display: none; }
+  .sheet, .sheet.is-open, .sheet.is-leave,
+  .overlay .dialog, .overlay.is-open .dialog, .overlay.is-leave .dialog,
+  .menu-pop, .menu-pop.is-open, .menu-pop.is-leave,
+  .page-stage, .page-stage.is-in,
+  .btn:active:not(:disabled) {
+    transform: none !important;
+  }
+  .sheet, .sheet-backdrop, .overlay, .overlay .dialog, .menu-pop, .page-stage, .btn {
+    transition-property: opacity, background-color, border-color, color, box-shadow !important;
+    transition-duration: var(--motion-fast) !important;
+    transition-timing-function: var(--motion-ease-standard) !important;
+  }
+}

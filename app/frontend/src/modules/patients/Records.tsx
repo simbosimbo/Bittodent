@@ -4,6 +4,7 @@ import { setActivePatient } from '../../shared/activePatient'
 import { fmtDateTime, initials } from '../../shared/format'
 import { Icon, ICONS } from '../../shared/ui/Icon'
 import { Menu } from '../../shared/ui/Menu'
+import { PageSkeleton } from '../../shared/ui/Skeleton'
 import { ALERTS_CHANGED, AlertRibbon } from './AlertRibbon'
 import { getFamily, getMedicalHistory, getPatient, saveMedicalHistory, type Family, type MedicalHistory, type PatientFull } from './api'
 import { age, ageTahun, dob, SEX } from './Patients'
@@ -16,10 +17,14 @@ export function PatientPage({ id, tab, canChart, actions, alerts, status, childr
   const [p, setP] = useState<PatientFull | null>(null)
   const [error, setError] = useState('')
   useEffect(() => {
-    getPatient(id).then((x) => { setP(x); setActivePatient({ id: x.id, name: x.name }) }, (e) => setError(e?.status === 404 ? 'Pasien tidak ditemukan.' : errorText(e)))
+    let live = true
+    setP(null)
+    setError('')
+    getPatient(id).then((x) => { if (!live) return; setP(x); setActivePatient({ id: x.id, name: x.name }) }, (e) => { if (live) setError(e?.status === 404 ? 'Pasien tidak ditemukan.' : errorText(e)) })
+    return () => { live = false }
   }, [id])
   if (error) return <div className="card state-card error">{error} <a href="#/pasien">Kembali</a></div>
-  if (!p) return <div className="card state-card muted">Memuat…</div>
+  if (!p) return <PageSkeleton variant="record" />
   return (
     <>
       <nav className="crumbs small" aria-label="Breadcrumb"><a href="#/pasien">Daftar Pasien</a> <span aria-hidden="true">›</span> <span aria-current="page">{p.name}</span></nav>
@@ -58,9 +63,14 @@ const REL: Record<string, string> = { ayah: 'Ayah', ibu: 'Ibu', kakek_nenek: 'Ka
 export function FamilyPage({ id, canChart }: { id: string; canChart: boolean }) {
   const [f, setF] = useState<Family | null>(null)
   const [error, setError] = useState('')
-  useEffect(() => { getFamily(id).then(setF, (e) => setError(errorText(e))) }, [id])
+  useEffect(() => {
+    let live = true
+    setF(null); setError('')
+    getFamily(id).then((x) => { if (live) setF(x) }, (e) => { if (live) setError(errorText(e)) })
+    return () => { live = false }
+  }, [id])
   return (
-    <PatientPage id={id} tab="keluarga" canChart={canChart}>{() => error ? <div className="card state-card error">{error}</div> : !f ? <div className="card state-card muted">Memuat…</div> : (
+    <PatientPage id={id} tab="keluarga" canChart={canChart}>{() => error ? <div className="card state-card error">{error}</div> : !f ? <PageSkeleton variant="record" /> : (
       <div className="grid-2 gap">
         <div className="card">
           <h2>Anggota keluarga {f.household?.name && <span className="muted">· {f.household.name}</span>}</h2>
@@ -105,7 +115,12 @@ export function MedicalHistoryPage({ id, canChart, canEdit }: { id: string; canC
   const [edit, setEdit] = useState<Record<'allergies' | 'problems' | 'medications' | 'urgent_note', string> & { premed: boolean } | null>(null)
   const [msg, setMsg] = useState('')
   const load = () => getMedicalHistory(id).then(setH, (e) => setError(errorText(e)))
-  useEffect(() => { load() }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    let live = true
+    setH(null); setError(''); setEdit(null); setMsg('')
+    getMedicalHistory(id).then((x) => { if (live) setH(x) }, (e) => { if (live) setError(errorText(e)) })
+    return () => { live = false }
+  }, [id])
 
   function start() {
     const c = h?.current
@@ -131,7 +146,7 @@ export function MedicalHistoryPage({ id, canChart, canEdit }: { id: string; canC
   return (
     <PatientPage id={id} tab="riwayat-medis" canChart={canChart}
       actions={canEdit && h && !edit ? <button className="btn btn-primary" onClick={start}>{c ? 'Perbarui riwayat medis' : 'Isi riwayat medis'}</button> : undefined}>
-      {() => error ? <div className="card state-card error">{error}</div> : !h ? <div className="card state-card muted">Memuat…</div> : (
+      {() => error ? <div className="card state-card error">{error}</div> : !h ? <PageSkeleton variant="record" /> : (
         <div className="grid-2 gap">
           {edit ? (
             <form className="card" onSubmit={save}>
