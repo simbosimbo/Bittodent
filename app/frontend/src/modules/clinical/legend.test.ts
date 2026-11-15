@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { findingText, STATUSES, surfaceLabel, surfacesOf } from './legend'
+import { CHOOSABLE, findingText, procedureText, STATUSES, surfaceLabel, surfacesOf } from './legend'
 
 test('L is labelled P on upper teeth (quadrants 1, 2, 5, 6) and L on lower teeth', () => {
   for (const t of [16, 21, 55, 61]) expect(surfaceLabel(t, 'L')).toBe('P')
@@ -15,8 +15,14 @@ test('anterior teeth use I, posterior teeth use O', () => {
   expect(surfacesOf(46)).not.toContain('I')
 })
 
-test('procedure statuses mirror ProcedureStatus::TRANSITIONS: six keys, selesai final, every target exists', () => {
-  expect(STATUSES.map((s) => s.key)).toEqual(['kondisi_pantau', 'ada_di_klinik_ini', 'ada_di_tempat_lain', 'direncanakan', 'selesai', 'dirujuk'])
+test('procedure statuses mirror ProcedureStatus::TRANSITIONS: eight keys, selesai final, every target exists', () => {
+  expect(STATUSES.map((s) => s.key)).toEqual(['kondisi_pantau', 'ada_di_klinik_ini', 'ada_di_tempat_lain', 'direncanakan', 'selesai', 'dirujuk', 'cancelled', 'superseded'])
+  expect(CHOOSABLE.map((s) => s.key)).not.toContain('superseded')
   expect(STATUSES.find((s) => s.key === 'selesai')!.next).toEqual([])
   for (const s of STATUSES) for (const n of s.next) expect(STATUSES.some((x) => x.key === n)).toBe(true)
+})
+
+test('a MOD filling is one line of text with every surface (upper L shown as P)', () => {
+  expect(procedureText({ tooth: 26, surfaces: 'MODL', name: 'Tumpatan', procedure_code: '23.2' })).toBe('Gigi 26 MODP: Tumpatan (ICD-9-CM 23.2)')
+  expect(procedureText({ tooth: null, surfaces: null, name: 'Scaling', procedure_code: '96.54' })).toBe('Mulut: Scaling (ICD-9-CM 96.54)')
 })
