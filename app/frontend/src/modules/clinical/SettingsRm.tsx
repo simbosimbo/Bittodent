@@ -44,7 +44,7 @@ function ClinicSettingsForm({ onChanged }: { onChanged: () => void }) {
     <form className="card" onSubmit={save} noValidate>
       <h2>Pengaturan klinik</h2>
       <label>Tenggat koreksi bebas (jam) <input type="number" min={1} max={720} disabled={!loaded} value={hours} onChange={(e) => setHours(e.target.value)} /></label>
-      <p className="muted small">Bawaan 48 jam (2×24 jam) sejak tindakan difinalkan. Lewat tenggat, koreksi menunggu persetujuan pemilik. Dasar hukum untuk data klinis perlu dicek.</p>
+      <p className="muted small">Bawaan 48 jam (2×24 jam) sejak tindakan difinalkan. Lewat tenggat, koreksi menunggu persetujuan pemilik. Setiap koreksi disimpan sebagai versi baru dengan alasannya; versi lama tetap tersimpan.</p>
       <label className="check"><input type="checkbox" disabled={!loaded} checked={pin} onChange={(e) => setPin(e.target.checked)} /> Wajibkan PIN saat Selesai</label>
       <p className="muted small">Bawaan: mati. Bila nyala, dokter memasukkan PIN 6 angka miliknya setiap menekan Selesai.</p>
       {error && <p className="form-error" role="alert">{error}</p>}

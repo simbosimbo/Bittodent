@@ -89,7 +89,7 @@ a.tl-block:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px
   .sched-bar { flex-wrap: wrap; }
   .sched-bar .btn { flex: none; white-space: nowrap; }
   .sched-bar > .btn[aria-label] { width: 44px; padding: 0; }
-  .sched-bar input[type='date'] { flex: 1 1 0; min-width: 0; min-height: 44px; }
+  .sched-bar .date-field { flex: 1 1 0; min-width: 0; }
   .sched-bar .btn-primary { flex: 1 1 100%; }
   .chair-pills { display: flex; gap: var(--space-2); overflow-x: auto; scrollbar-width: thin; margin-bottom: var(--space-3); }
   .chair-pills button {

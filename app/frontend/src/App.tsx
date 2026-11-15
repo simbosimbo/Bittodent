@@ -6,6 +6,7 @@ import { pageTitle, Shell, withActivePatientHref, type NavItem } from './shared/
 import type { Me } from './shared/session'
 import { ComingSoon } from './shared/ui/ComingSoon'
 import { ICONS } from './shared/ui/Icon'
+import { useIsMobile } from './shared/useIsMobile'
 import { getMe, Login, logout as apiLogout, switchBranch as apiSwitchBranch } from './modules/auth'
 import { AlertRibbon, FamilyPage, MedicalHistoryPage, PatientDetail, PatientForm, PatientList } from './modules/patients'
 import { Home, Schedule } from './modules/scheduling'
@@ -39,6 +40,17 @@ export const NAV: (NavItem & { perm: string | null })[] = [
   { path: '/laporan', label: 'Laporan', perm: 'reporting.read', icon: ICONS.chart, section: 'KEUANGAN' },
 ]
 
+/** A route this user may not open (or an unknown one): show Beranda and make the URL say so (replace, no extra history entry). */
+function ToHome() {
+  useEffect(() => {
+    history.replaceState(history.state, '', '#/')
+    dispatchEvent(new HashChangeEvent('hashchange')) // replaceState fires no hashchange; useHash re-reads '/' and renders Home
+  }, [])
+  return null
+}
+// Pages without clinical work: on a phone the active-patient ribbon only costs height there.
+const NO_RIBBON_MOBILE = /^\/(laporan|kasir|tagihan\/|pengaturan-rm|antrean)/
+
 // Public patient pages (no login): #/book/{slug} and #/book/{slug}/manage/{token}.
 export default function App() {
   const hash = useHash().split('?')[0]
@@ -52,6 +64,7 @@ function StaffApp() {
   const [state, setState] = useState<'loading' | 'guest' | 'ready' | 'no2fa' | 'error'>('loading')
   const [hash, query = ''] = useHash().split('?')
   const patient = useActivePatient()
+  const mobile = useIsMobile()
 
   const load = useCallback(async () => {
     // No XSRF-TOKEN → never had a session here; skip /api/me so a fresh guest visit logs no 401.
@@ -119,8 +132,8 @@ function StaffApp() {
   else if (hash === '/laporan' && can('reporting.read')) page = <ReportPage />
   else if (hash === '/pengaturan-rm' && can('note.sign|settings.manage')) page = <SettingsRmPage me={me} onChanged={load} />
   else if (soon) page = <ComingSoon title={soon.label} />
-  else page = <Home me={me} />
+  else page = hash === '/' ? <Home me={me} /> : <ToHome />
 
-  return <Shell me={me} nav={nav} active={active} title={pageTitle(hash, active)} ribbon={patient && can('patient.read') && !/^\/rekam-medis\//.test(hash) && <AlertRibbon patientId={patient.id} />}
+  return <Shell me={me} nav={nav} active={active} title={pageTitle(hash, active)} ribbon={patient && can('patient.read') && !/^\/rekam-medis\//.test(hash) && !(mobile && NO_RIBBON_MOBILE.test(hash)) && <AlertRibbon patientId={patient.id} />}
     onSwitchBranch={switchBranch} onLogout={logout}>{page}</Shell>
 }

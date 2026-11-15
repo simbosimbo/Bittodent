@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent, useRef } from 'react'
+import { DateField } from '../../shared/ui/DateField'
 import { ApiError, errorText } from '../../shared/api/http'
 import { fmtDate, fmtTime, todayWib } from '../../shared/format'
 import type { Me } from '../../shared/session'
@@ -119,7 +120,7 @@ export default function Schedule({ me }: { me: Me }) {
   const prev = <button className="btn" onClick={() => shift(-1)} aria-label="Hari sebelumnya">{mobile ? <Icon d={ICONS.left} /> : '‹'}</button>
   const next = <button className="btn" onClick={() => shift(1)} aria-label="Hari berikutnya">{mobile ? <Icon d={ICONS.right} /> : '›'}</button>
   const today = <button className="btn" onClick={() => setDate(todayWib())}>Hari ini</button>
-  const dateInput = <input type="date" aria-label="Tanggal" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} />
+  const dateInput = <DateField aria-label="Tanggal" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} />
   const create = canCreate && <button className="btn btn-primary" onClick={() => setDialog({})}>+ Buat Janji</button>
 
   return (

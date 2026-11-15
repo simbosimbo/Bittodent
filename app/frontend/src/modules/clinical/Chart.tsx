@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type KeyboardEvent, type ReactNode, useRef } from 'react'
+import { DateField } from '../../shared/ui/DateField'
 import { useDialog } from '../../shared/ui/Sheet'
 import { ApiError, errorText } from '../../shared/api/http'
 import { setActivePatient } from '../../shared/activePatient'
@@ -637,7 +638,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
               {mine.length + myProcs.length > 0 && <span className="badge badge-draft">Draf: {mine.length} temuan, {myProcs.length} tindakan</span>}
               {mine.some((d) => d.source === 'ai_draft') && <span className="badge badge-ai">{AI_BADGE}</span>}
               <div className="card-head-tools">
-                <label className="small">Lihat per tanggal <input type="date" value={asOf} max={new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' })}
+                <label className="small">Lihat per tanggal <DateField value={asOf} placeholder="Hari ini" max={new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' })}
                   onChange={(e) => setAsOf(e.target.value)} /></label>
                 {asOf && <button className="btn btn-xs" onClick={() => setAsOf('')}>Kembali ke hari ini</button>}
                 <Seg label="Dentisi" value={dent ?? 'tetap'} onChange={(v) => setDentPick({ base: defDent, v })} options={[['tetap', 'Tetap'], ['sulung', 'Sulung'], ['campuran', 'Campuran']]} />

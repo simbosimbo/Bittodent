@@ -232,3 +232,45 @@ test('patient header menu without chart permission: Profil / Keluarga / Riwayat 
   expect(screen.getByRole('link', { name: 'Keluarga' })).toHaveAttribute('aria-current', 'page')
   expect(screen.queryByRole('navigation', { name: 'Data pasien' })).toBeNull()
 })
+
+// ---- Stage 6: permission redirect, ribbon on non-clinical pages ----
+const kasir: Me = { ...me, roles: ['kasir'], permissions: ['patient.read', 'billing.read'], branches: [me.branches[0]] }
+const serveApp = (m: Me) => {
+  document.cookie = 'XSRF-TOKEN=abc'
+  vi.stubGlobal('fetch', vi.fn(async (url: string) => new Response(JSON.stringify(url === '/api/me' ? m : url.includes('/alerts') ? { version: 1, premedication_required: false, allergies: ['Penisilin'], has_urgent_note: false, full: false } : {}),
+    { status: url === '/api/me' || url.includes('/alerts') ? 200 : 404 })))
+}
+
+test('route without permission: Beranda shown and the URL replaced with #/ (no extra history entry)', async () => {
+  viewport(1280)
+  serveApp(kasir)
+  location.hash = '/laporan'
+  const before = history.length
+  render(<App />)
+  await vi.waitFor(() => expect(location.hash).toBe('#/'))
+  expect(history.length).toBe(before)
+  expect(await screen.findByRole('heading', { level: 1, name: 'Beranda' })).toBeInTheDocument()
+  expect(screen.queryByRole('heading', { name: /Laporan/ })).toBeNull()
+  document.cookie = 'XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+})
+
+test('allowed route keeps its URL', async () => {
+  viewport(1280)
+  serveApp(me)
+  location.hash = '/kasir'
+  render(<App />)
+  expect(await screen.findByText('Segera hadir')).toBeInTheDocument()
+  expect(location.hash).toBe('#/kasir')
+  document.cookie = 'XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+})
+
+test.each([[390, false], [1280, true]])('%ipx: active-patient ribbon on Kasir shown = %s (phone hides it on non-clinical pages)', async (w, shown) => {
+  viewport(w)
+  serveApp(me)
+  act(() => setActivePatient({ id: 'p1', name: 'Sari Sintetis' } as never))
+  location.hash = '/kasir'
+  const { container } = render(<App />)
+  expect(await screen.findByText('Segera hadir')).toBeInTheDocument()
+  expect(!!container.querySelector('.alert-ribbon')).toBe(shown)
+  document.cookie = 'XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+})
