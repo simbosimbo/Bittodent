@@ -68,10 +68,25 @@ Artisan::command('staging:seed {--force : seed walau sudah ada tenant/pengguna l
 
         return 1;
     }
+    // A public URL must not accept the documented dev credentials: both come from env, are validated, and are never printed.
+    $password = (string) config('ehr.staging_demo_password');
+    $totp = (string) config('ehr.staging_demo_totp_secret');
+    if (strlen($password) < 16 || $password === DatabaseSeeder::PASSWORD) {
+        $this->error('STAGING_DEMO_PASSWORD wajib diisi (min. 16 karakter, bukan kata sandi dev). Tidak ada yang diubah.');
+
+        return 1;
+    }
+    if (! preg_match('/^[A-Z2-7]{16,}$/', $totp) || $totp === DatabaseSeeder::TOTP_SECRET) {
+        $this->error('STAGING_DEMO_TOTP_SECRET wajib diisi (base32 A-Z/2-7, min. 16 karakter, bukan secret contoh dev). Tidak ada yang diubah.');
+
+        return 1;
+    }
+    app()->when(DatabaseSeeder::class)->needs('$password')->give($password);
+    app()->when(DatabaseSeeder::class)->needs('$totpSecret')->give($totp);
     $this->call('db:seed', ['--database' => 'mysql_admin', '--force' => true]);
     $this->newLine();
-    $this->warn('AKUN PALSU (data sintetis). Jangan dipakai untuk data pasien asli. Kata sandi: '.DatabaseSeeder::PASSWORD
-        .' | TOTP secret (publik, contoh): '.DatabaseSeeder::TOTP_SECRET);
+    $this->warn('AKUN PALSU (data sintetis). Jangan dipakai untuk data pasien asli. Kata sandi = STAGING_DEMO_PASSWORD, '
+        .'TOTP secret = STAGING_DEMO_TOTP_SECRET (dari env server; tidak dicetak).');
     $this->table(['Email', 'Nama'], User::on('mysql_admin')->where('email', 'like', '%.test')->orderBy('email')->get(['email', 'name'])->toArray());
 
     return 0;
@@ -87,6 +102,10 @@ Artisan::command('recall:send-reminders', function () {
 // Reminders are due H-1 and 2 hours before the start; every 15 minutes keeps them at most ~15 min late.
 // Needs a scheduler process: `php artisan schedule:work` (Docker) or cron `* * * * * php artisan schedule:run` (Forge/VPS).
 Schedule::command('recall:send-reminders')->everyFifteenMinutes()->withoutOverlapping();
+// Shared hosting without a long-running worker (QUEUE_VIA_SCHEDULER=true): drain the queue each minute from the one
+// `schedule:run` cron line. --max-time=50 ends before the next run; withoutOverlapping guards a slow job.
+Schedule::command('queue:work --stop-when-empty --max-time=50 --tries=3')->everyMinute()->withoutOverlapping()
+    ->when(fn () => (bool) config('ehr.queue_via_scheduler'));
 
 // Official ICD-10 2010 / ICD-9-CM 2010 reference lists (global tables, written as ehr_admin). Safe to run twice.
 Artisan::command('icd:import {--source=file : file (CSV lokal) | satusehat (API FHIR, butuh kredensial) | satusehat-spreadsheet (spreadsheet publik resmi)} {--path= : berkas/folder CSV (default database/data/icd)} {--fallback= : hanya untuk --source=satusehat: spreadsheet = pakai spreadsheet publik bila API gagal} {--force : izinkan di production}', function (IcdImporter $importer) {

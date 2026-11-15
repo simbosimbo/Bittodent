@@ -39,6 +39,7 @@ use App\Shared\Terminology\CsvIcdSource;
 use App\Shared\Terminology\IcdImporter;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 // SYNTHETIC DATA ONLY: invented clinics, names, NIK-like numbers (prefix 99 = no real province), 0899 phones.
 class DatabaseSeeder extends Seeder
@@ -51,6 +52,9 @@ class DatabaseSeeder extends Seeder
         'Fitri', 'Bayu', 'Nur', 'Dimas', 'Indah', 'Fajar', 'Lestari', 'Teguh'];
 
     private const LAST = ['Rahmawati', 'Santoso', 'Pratama', 'Wijaya', 'Kusuma', 'Hidayat', 'Saputra', 'Permata', 'Nugroho', 'Halim'];
+
+    // staging:seed binds its own credentials from env (never the public dev ones on a public URL); local/tests use the defaults.
+    public function __construct(private string $password = self::PASSWORD, private string $totpSecret = self::TOTP_SECRET) {}
 
     public function run(): void
     {
@@ -67,7 +71,7 @@ class DatabaseSeeder extends Seeder
             'dokter@ceria.test' => ['drg. Citra Contoh', 'dokter_gigi'],
             'kasir@ceria.test' => ['Kasir Ceria (dummy)', 'lainnya'],
         ] as $email => [$name, $license]) {
-            $users[$email] = self::user($email, $name, $license);
+            $users[$email] = self::user($email, $name, $license, password: $this->password, totpSecret: $this->totpSecret);
         }
 
         $a = Tenant::create(['name' => 'Klinik Gigi Senyum Sehat', 'is_demo' => true]);
@@ -104,13 +108,16 @@ class DatabaseSeeder extends Seeder
         }, $users['dokter@ceria.test']->id);
     }
 
-    public static function user(string $email, string $name, string $license = 'lainnya', bool $twoFactor = true): User
+    public static function user(string $email, string $name, string $license = 'lainnya', bool $twoFactor = true,
+        string $password = self::PASSWORD, string $totpSecret = self::TOTP_SECRET): User
     {
-        $u = User::create(['name' => $name, 'email' => $email, 'password' => self::PASSWORD, 'license_type' => $license]);
+        $u = User::create(['name' => $name, 'email' => $email, 'password' => $password, 'license_type' => $license]);
         if ($twoFactor) {
+            // Known recovery codes only with the public dev secret; otherwise random (they would bypass TOTP).
+            $recovery = $totpSecret === self::TOTP_SECRET ? ['dev-recovery-1', 'dev-recovery-2'] : [Str::random(20), Str::random(20)];
             $u->forceFill([
-                'two_factor_secret' => encrypt(self::TOTP_SECRET),
-                'two_factor_recovery_codes' => encrypt(json_encode(['dev-recovery-1', 'dev-recovery-2'])),
+                'two_factor_secret' => encrypt($totpSecret),
+                'two_factor_recovery_codes' => encrypt(json_encode($recovery)),
                 'two_factor_confirmed_at' => now(),
             ])->save();
         }
