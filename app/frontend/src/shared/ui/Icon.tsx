@@ -20,4 +20,5 @@ export const ICONS = {
   plus: 'M12 5v14M5 12h14',
   bell: 'M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5a2 2 0 0 0 4 0',
   more: 'M5 11.5h1v1H5zM11.5 11.5h1v1h-1zM18 11.5h1v1h-1z',
+  grid: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',
 }

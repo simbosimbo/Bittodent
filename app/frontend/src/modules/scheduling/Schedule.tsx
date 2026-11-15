@@ -1,25 +1,18 @@
-import { useCallback, useEffect, useState, type FormEvent, type ReactNode, useRef } from 'react'
+import { useCallback, useEffect, useState, type FormEvent, useRef } from 'react'
 import { DateField } from '../../shared/ui/DateField'
 import { ApiError, errorText } from '../../shared/api/http'
 import { fmtDate, fmtTime, todayWib } from '../../shared/format'
 import type { Me } from '../../shared/session'
 import { Icon, ICONS } from '../../shared/ui/Icon'
-import { Sheet, useDialog } from '../../shared/ui/Sheet'
+import { useDialog } from '../../shared/ui/Sheet'
 import { useIsMobile } from '../../shared/useIsMobile'
 import { PatientPicker } from '../patients'
 import './scheduling.css'
 import { createAppointment, getPlanned, getSchedule, schedulePlanned, STATUS, transition, type Appointment, type Planned, type Schedule as Sched } from './api'
+import { Agenda, ApptSheet, DaySummary, ModeToggle, PayPrompt, RescheduleSheet, Toast, useInvoiceStatus, useJadwalMode, type Act } from './MobileJadwal'
+import { addDays, dotTime, END, hhmm, minutesOfDay, ROW, SLOTS, START, StatusChip, STEP } from './parts'
 
-const START = 8 * 60, END = 20 * 60, STEP = 30, ROW = 52
-const SLOTS = Array.from({ length: (END - START) / STEP }, (_, i) => START + i * STEP)
-const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
-
-export function minutesOfDay(iso: string, tz: string) {
-  const p = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(iso))
-  return Number(p.find((x) => x.type === 'hour')!.value) * 60 + Number(p.find((x) => x.type === 'minute')!.value)
-}
-
-export const StatusChip = ({ status }: { status: string }) => <span className={`chip chip-${status}`}>{STATUS[status] ?? status}</span>
+export { minutesOfDay, StatusChip } from './parts'
 
 /** Current time, re-read every minute while `on` (mobile now-line). */
 function useNow(on: boolean) {
@@ -33,12 +26,6 @@ function useNow(on: boolean) {
   return now
 }
 
-/** YYYY-MM-DD + n days (calendar dates, no time zone). */
-const addDays = (ymd: string, n: number) => {
-  const d = new Date(ymd + 'T00:00:00Z')
-  d.setUTCDate(d.getUTCDate() + n)
-  return d.toISOString().slice(0, 10)
-}
 /** Monday of the week containing ymd. */
 const weekStart = (ymd: string) => addDays(ymd, -((new Date(ymd + 'T00:00:00Z').getUTCDay() + 6) % 7))
 const dayFmt = (opts: Intl.DateTimeFormatOptions) => (ymd: string) => new Intl.DateTimeFormat('id-ID', { timeZone: 'UTC', ...opts }).format(new Date(ymd + 'T00:00:00Z'))
@@ -113,11 +100,15 @@ export default function Schedule({ me }: { me: Me }) {
   const { data, error, loading, reload } = useSchedule(me.active.branch_id, date)
   const [dialog, setDialog] = useState<{ chairId?: string; minute?: number } | null>(null)
   const [actionError, setActionError] = useState('')
-  const canCreate = me.permissions.includes('appointment.create')
-  const canMove = me.permissions.includes('appointment.transition')
-  const canConfirm = me.permissions.includes('appointment.confirm')
-  const canChart = me.permissions.includes('note.read')
-  const canVisit = me.permissions.includes('note.write') // opening from the card starts/reuses the visit
+  // Same checks the API enforces; actions an impersonation session blocks are hidden too (never shown disabled).
+  const blocked = me.impersonation?.blocked_actions ?? []
+  const can = (p: string) => me.permissions.includes(p) && !blocked.includes(p)
+  const canCreate = can('appointment.create')
+  const canMove = can('appointment.transition')
+  const canConfirm = can('appointment.confirm')
+  const canChart = can('note.read')
+  const canVisit = can('note.write') // opening from the card starts/reuses the visit
+  const canBill = can('billing.read')
   const tz = data?.branch.timezone ?? 'Asia/Jakarta'
   const mobile = useIsMobile()
   const [chairPick, setChairPick] = useState<string | null>(null) // null = Semua (agenda) / auto chair (grid)
@@ -127,16 +118,23 @@ export default function Schedule({ me }: { me: Me }) {
   const now = useNow(mobile && isToday)
   const shift = (days: number) => setDate(addDays(date, days))
   const week = useWeekCounts(me.active.branch_id, weekStart(date), mobile)
+  const { mode, setMode, multi, owner } = useJadwalMode(me)
+  const [toast, setToast] = useState<{ id: number; text: string; undo?: () => void } | null>(null)
+  const say = (text: string, undo?: () => void) => setToast({ id: Date.now(), text, undo })
+  const [payFor, setPayFor] = useState<string | null>(null) // appointment just finished -> "Lanjut ke Bayar?"
+  const [reschedId, setReschedId] = useState<string | null>(null)
 
   async function move(a: Appointment, to: string) {
     setActionError('')
     try {
       await transition(a.id, to)
       await reload()
+      return true
     } catch (e) {
       // 409 invoice_required: done also closes the visit; completed work without an invoice line blocks it (unit 4)
       setActionError(e instanceof ApiError && e.status === 409 && e.data?.message ? e.data.message
         : e instanceof ApiError && e.status === 422 ? 'Status janji tidak bisa diubah.' : errorText(e))
+      return false
     }
   }
 
@@ -150,7 +148,74 @@ export default function Schedule({ me }: { me: Me }) {
     canConfirm && a.status === 'pending_confirmation' && a.source === 'online' && { label: 'Konfirmasi', run: () => move(a, 'booked'), primary: true, sheetOnly: true },
     canConfirm && a.status === 'pending_confirmation' && a.source === 'online' && { label: 'Tolak', run: () => move(a, 'rejected'), sheetOnly: true },
   ] as (Action | false | null | undefined)[]).filter((x): x is Action => !!x)
-  const sheetAppt = sheetId ? data?.chairs.flatMap((c) => c.appointments).find((a) => a.id === sheetId) : undefined
+  const all = (data?.chairs.flatMap((c) => c.appointments) ?? []).sort((x, y) => x.starts_at.localeCompare(y.starts_at))
+  const sheetAppt = sheetId ? all.find((a) => a.id === sheetId) : undefined
+  const inv = useInvoiceStatus(all, mobile && canBill)
+
+  // ---- Phone actions: one primary per card (by mode + status), the full list in the sheet ----
+  const chartHref = (a: Appointment) => `#/rekam-medis/${a.patient!.id}${canVisit ? `/janji/${a.id}` : ''}`
+  const online = (a: Appointment) => a.status === 'pending_confirmation' && a.source === 'online'
+  async function confirm(a: Appointment) {
+    if (await move(a, 'booked')) say('Dikonfirmasi', () => { move(a, 'pending_confirmation') }) // booked -> pending is a real API move
+  }
+  async function startVisit(a: Appointment) {
+    if (!(await move(a, 'in_treatment'))) return
+    if (multi && mode !== 'dokter') { setMode('dokter'); say('Mode Dokter') }
+  }
+  async function finish(a: Appointment) {
+    if ((await move(a, 'done')) && canBill) setPayFor(a.id)
+  }
+  const A = {
+    confirm: (a: Appointment): Act => ({ key: 'confirm', label: 'Konfirmasi', run: () => confirm(a), tone: 'primary' }),
+    reject: (a: Appointment): Act => ({ key: 'reject', label: 'Tolak', run: () => move(a, 'rejected') }),
+    checkin: (a: Appointment): Act => ({ key: 'checkin', label: 'Check-in', run: () => move(a, 'checked_in'), tone: 'primary' }),
+    start: (a: Appointment): Act => ({ key: 'start', label: 'Mulai kunjungan', run: () => startVisit(a), tone: 'primary' }),
+    finish: (a: Appointment): Act => ({ key: 'finish', label: 'Selesai', run: () => finish(a) }),
+    pay: (a: Appointment): Act => ({ key: 'pay', label: 'Bayar', href: `#/tagihan/${a.visit_id}`, tone: 'primary' }),
+    chart: (a: Appointment): Act => ({ key: 'chart', label: 'Buka RM', href: chartHref(a) }),
+  }
+  const may = {
+    confirm: (a: Appointment) => online(a) && canMove && canConfirm,
+    checkin: (a: Appointment) => a.status === 'booked' && isToday && canMove,
+    start: (a: Appointment) => a.status === 'checked_in' && canMove && canVisit,
+    finish: (a: Appointment) => a.status === 'in_treatment' && canMove,
+    pay: (a: Appointment) => a.status === 'done' && canBill && inv.unpaid(a),
+    chart: (a: Appointment) => canChart && !!a.patient && !['cancelled', 'no_show', 'rejected', 'pending_confirmation'].includes(a.status),
+  }
+  const primary = (a: Appointment): Act | null => mode === 'dokter'
+    ? may.start(a) ? A.start(a) : a.status === 'in_treatment' && may.chart(a) ? A.chart(a) : null
+    : may.confirm(a) ? A.confirm(a) : may.checkin(a) ? A.checkin(a) : may.pay(a) ? A.pay(a) : null
+  const sheetActs = (a: Appointment): Act[] => ([
+    mode === 'depan' && may.confirm(a) && A.confirm(a),
+    mode === 'depan' && may.confirm(a) && A.reject(a),
+    mode === 'depan' && may.checkin(a) && A.checkin(a),
+    mode === 'depan' && may.pay(a) && A.pay(a),
+    may.start(a) && A.start(a),
+    may.finish(a) && A.finish(a),
+    may.chart(a) && A.chart(a),
+    mode === 'depan' && a.status === 'booked' && canCreate && { key: 'reschedule', label: 'Ubah jadwal' },
+    mode === 'depan' && a.status === 'booked' && canMove && date <= todayWib() && { key: 'noshow', label: 'Tidak datang', run: () => move(a, 'no_show') },
+    mode === 'depan' && ((a.status === 'booked' && canMove) || (a.status === 'pending_confirmation' && canMove && canConfirm)) &&
+      { key: 'cancel', label: 'Batalkan', run: () => move(a, 'cancelled'), tone: 'danger' },
+  ] as (Act | false)[]).filter((x): x is Act => !!x)
+  // Dokter: "Hari berikutnya" from the empty state = the nearest later date with one of my appointments (up to 30 days).
+  const [seek, setSeek] = useState<'idle' | 'busy' | 'none'>('idle')
+  async function nextOwnDay() {
+    setSeek('busy')
+    try {
+      for (let i = 1; i <= 30; i++) {
+        const d = addDays(date, i)
+        const s = await getSchedule(me.active.branch_id!, d)
+        if (s.chairs.some((c) => c.appointments.some((a) => a.dentist?.id === me.user.id && !['cancelled', 'rejected', 'no_show'].includes(a.status))))
+          return (setSeek('idle'), setDate(d))
+      }
+      setSeek('none')
+    } catch {
+      setSeek('idle')
+      setActionError('Gagal memuat.')
+    }
+  }
+  useEffect(() => setSeek('idle'), [date, mode])
 
   const count = data ? apptCount(data) : 0
   // The selected day's dot follows the live day data (after a booking or a status change), not the week fetch.
@@ -168,13 +233,14 @@ export default function Schedule({ me }: { me: Me }) {
   }
   const shownChair = mobile ? (data?.chairs.find((c) => c.id === chairPick) ?? data?.chairs.find((c) => c.id === nextChair())) : undefined
   const chairs = data ? (shownChair ? [shownChair] : data.chairs) : []
-  const agendaList = (data?.chairs.filter((c) => !chairPick || c.id === chairPick).flatMap((c) => c.appointments) ?? [])
-    .sort((x, y) => x.starts_at.localeCompare(y.starts_at))
+  const dokter = mode === 'dokter'
+  const agendaList = dokter ? all.filter((a) => a.dentist?.id === me.user.id) : all.filter((a) => !chairPick || a.chair_id === chairPick)
+  const gridOn = mobile && !dokter && view === 'grid'
   const nowMin = mobile && isToday ? minutesOfDay(new Date(now).toISOString(), tz) - START : -1
   const nowTop = nowMin >= 0 && nowMin <= END - START ? (nowMin / STEP) * ROW : null
 
   // Phone grid on today: open with the now-line at ~35% of the screen; a "Sekarang" chip brings it back once scrolled away.
-  const gridNow = mobile && view === 'grid' && nowTop !== null && !!data && data.date === date
+  const gridNow = gridOn && nowTop !== null && !!data && data.date === date
   const nowRef = useRef<HTMLDivElement>(null)
   const [nowSeen, setNowSeen] = useState(true)
   const toNow = (smooth: boolean) => {
@@ -205,8 +271,16 @@ export default function Schedule({ me }: { me: Me }) {
     <>
       {mobile ? (
         // Phone: one compact row (date picker · count · Hari ini when elsewhere · week arrows) + the week strip, pinned under the top bar.
+        <>
+        <div className="sched-title">
+          <h1>{dokter ? 'Pasien saya' : 'Jadwal'}</h1>
+          {multi && <ModeToggle mode={mode} onChange={setMode} />}
+          {!dokter && (
+            <button type="button" className="btn sched-grid-btn" aria-pressed={view === 'grid'} aria-label="Tampilan grid"
+              onClick={() => setView(view === 'grid' ? 'agenda' : 'grid')}><Icon d={ICONS.grid} /></button>
+          )}
+        </div>
         <div className="sched-top">
-          <h1 className="sr-only">Jadwal</h1>
           <div className="sched-bar">
             {dateInput}
             <span className="muted small sched-count">{count} janji</span>
@@ -216,6 +290,8 @@ export default function Schedule({ me }: { me: Me }) {
           </div>
           <WeekStrip date={date} counts={weekCounts} error={week.error} onPick={setDate} onRetry={week.retry} />
         </div>
+        {owner && !dokter && data && data.date === date && <DaySummary list={all} isToday={isToday} canBill={canBill} />}
+        </>
       ) : (
         <div className="page-head">
           <div>
@@ -226,7 +302,7 @@ export default function Schedule({ me }: { me: Me }) {
         </div>
       )}
       {actionError && <p className="form-error" role="alert">{actionError}</p>}
-      {canConfirm && pending.length > 0 && (
+      {!mobile && canConfirm && pending.length > 0 && (
         <div className="card confirm-card">
           <h2>Perlu konfirmasi <span className="muted small">· {pending.length}</span></h2>
           <ul className="confirm-list">
@@ -245,36 +321,41 @@ export default function Schedule({ me }: { me: Me }) {
           </ul>
         </div>
       )}
-      {error ? <div className="card state-card error">{error} <button className="btn" onClick={reload}>Coba lagi</button></div>
+      {error ? (mobile
+          ? <div className="card state-card error" role="alert">Gagal memuat. <button className="btn" onClick={reload}>Coba lagi</button></div>
+          : <div className="card state-card error">{error} <button className="btn" onClick={reload}>Coba lagi</button></div>)
         : !data || (mobile && loading && data.date !== date) ? <div className="card state-card muted" role="status">Memuat jadwal…</div>
         : data.chairs.length === 0 ? <div className="card state-card muted">Cabang ini belum punya kursi aktif.</div> : (
           <>
-          {mobile && (
+          {mobile && !dokter && data.chairs.length > 1 && (
             // Agenda: "Semua" + one pill per chair. Grid shows one chair column, so it has no "Semua" (see chairPick).
-            <div className="sched-filters">
-              {data.chairs.length > 1 && (
-                <div className="chair-pills" role="group" aria-label="Pilih kursi">
-                  {view === 'agenda' && <button type="button" aria-pressed={!chairPick} onClick={() => setChairPick(null)}>Semua <span className="muted small">· {count}</span></button>}
-                  {data.chairs.map((c) => (
-                    <button key={c.id} type="button" aria-pressed={view === 'agenda' ? c.id === chairPick : c === shownChair} onClick={() => setChairPick(c.id)}>
-                      {c.label} <span className="muted small">· {c.appointments.length}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-              <div className="seg sched-view" role="group" aria-label="Tampilan">
-                <button type="button" className="btn" aria-pressed={view === 'agenda'} onClick={() => setView('agenda')}>Agenda</button>
-                <button type="button" className="btn" aria-pressed={view === 'grid'} onClick={() => setView('grid')}>Grid</button>
-              </div>
+            <div className="chair-pills" role="group" aria-label="Pilih kursi">
+              {!gridOn && <button type="button" aria-pressed={!chairPick} onClick={() => setChairPick(null)}>Semua <span className="muted small">· {count}</span></button>}
+              {data.chairs.map((c) => (
+                <button key={c.id} type="button" aria-pressed={gridOn ? c === shownChair : c.id === chairPick} onClick={() => setChairPick(c.id)}>
+                  {c.label} <span className="muted small">· {c.appointments.length}</span>
+                </button>
+              ))}
             </div>
           )}
-          {mobile && (view === 'grid' ? count === 0 : agendaList.length === 0) && (
-            <p className="sched-empty muted" role="status">{isToday ? 'Tidak ada janji hari ini' : 'Tidak ada janji pada tanggal ini'}</p>
+          {mobile && inv.error && <p className="week-error small" role="alert">Status bayar gagal dimuat. <button type="button" className="btn btn-ghost" onClick={inv.retry}>Coba lagi</button></p>}
+          {mobile && (
+            <Agenda mode={mode} list={agendaList} tz={tz} chairs={data.chairs} nowMin={isToday ? minutesOfDay(new Date(now).toISOString(), tz) : null}
+              unpaid={inv.unpaid} primary={primary} onOpen={(a) => setSheetId(a.id)} confirmOnly={gridOn}
+              empty={dokter ? (
+                <div className="sched-empty" role="status">
+                  <p>{isToday ? 'Tidak ada pasien hari ini.' : 'Tidak ada pasien.'}</p>
+                  {seek === 'none' ? <p className="muted">Tidak ada janji 30 hari ke depan.</p>
+                    : <button type="button" className="btn btn-ghost" disabled={seek === 'busy'} onClick={nextOwnDay}>{seek === 'busy' ? 'Mencari…' : 'Hari berikutnya'}</button>}
+                </div>
+              ) : (
+                <p className="sched-empty" role="status">
+                  {chairPick ? `${data.chairs.find((c) => c.id === chairPick)?.label ?? 'Kursi'} kosong${isToday ? ' hari ini' : ''}.` : 'Belum ada janji.'}
+                </p>
+              )} />
           )}
-          {mobile && view === 'agenda' ? (
-            <Agenda list={agendaList} chairs={data.chairs} tz={tz} nowMin={isToday ? minutesOfDay(new Date(now).toISOString(), tz) : null}
-              onOpen={(a) => setSheetId(a.id)} onGap={canCreate ? (minute) => setDialog({ chairId: chairPick ?? undefined, minute }) : undefined} />
-          ) : (
+          {gridOn && count === 0 && <p className="sched-empty" role="status">Belum ada janji.</p>}
+          {mobile && !gridOn ? null : (
           <div className={'card schedule' + (loading ? ' is-loading' : '')}>
             <div className="sched-grid" style={{ gridTemplateColumns: `64px repeat(${chairs.length}, minmax(${mobile ? 0 : 180}px, 1fr))` }}>
               <div className="sched-head" />
@@ -333,22 +414,23 @@ export default function Schedule({ me }: { me: Me }) {
           )}
           </>
         )}
-      {mobile && sheetAppt && (
-        <Sheet title={sheetAppt.patient?.name ?? 'Janji'} onClose={() => setSheetId(null)} className="appt-sheet">
-          <p className="appt-sheet-meta">
-            <span>{fmtTime(sheetAppt.starts_at, tz)}–{fmtTime(sheetAppt.ends_at, tz)}</span>
-            {sheetAppt.source === 'online' && <span className="chip chip-online">Online</span>}
-            <StatusChip status={sheetAppt.status} />
-          </p>
-          {(sheetAppt.reason || sheetAppt.dentist) && <p className="muted">{[sheetAppt.reason, sheetAppt.dentist?.name].filter(Boolean).join(' · ')}</p>}
-          <div className="appt-sheet-actions">
-            {actions(sheetAppt).map((x) => x.href
-              ? <a key={x.label} className="btn" href={x.href} onClick={() => setSheetId(null)}>{x.label}</a>
-              : <button key={x.label} type="button" className={x.primary ? 'btn btn-primary' : 'btn'} onClick={() => { setSheetId(null); x.run?.() }}>{x.label}</button>)}
-            {actions(sheetAppt).length === 0 && <p className="muted">Tidak ada aksi untuk janji ini.</p>}
-          </div>
-        </Sheet>
+      {mobile && sheetAppt && data && (
+        <ApptSheet a={sheetAppt} tz={tz} chair={data.chairs.find((c) => c.id === sheetAppt.chair_id)?.label} acts={sheetActs(sheetAppt)}
+          onClose={() => setSheetId(null)} onReschedule={() => { setSheetId(null); setReschedId(sheetAppt.id) }} />
       )}
+      {mobile && reschedId && data && all.find((a) => a.id === reschedId) && (
+        <RescheduleSheet a={all.find((a) => a.id === reschedId)!} tz={tz} date={date} chairs={data.chairs}
+          onClose={() => setReschedId(null)} onSaved={() => { setReschedId(null); reload(); say('Jadwal diubah') }} />
+      )}
+      {mobile && payFor && all.find((a) => a.id === payFor)?.visit_id && (
+        <PayPrompt onLater={() => setPayFor(null)} onPay={() => {
+          const vid = all.find((a) => a.id === payFor)!.visit_id
+          setPayFor(null)
+          if (multi) setMode('depan')
+          location.hash = `#/tagihan/${vid}`
+        }} />
+      )}
+      {mobile && toast && <Toast key={toast.id} text={toast.text} undo={toast.undo} onDone={() => setToast(null)} />}
       {gridNow && !nowSeen && <button type="button" className="now-chip" onClick={() => toNow(true)}>Sekarang {dotTime(nowMin + START)}</button>}
       {mobile && canCreate && <button type="button" className="fab" aria-label="Buat janji" onClick={() => setDialog({})}><Icon d={ICONS.plus} size={26} /></button>}
       {data && <PlannedList sched={data} date={date} canCreate={canCreate} onScheduled={reload} />}
@@ -357,49 +439,6 @@ export default function Schedule({ me }: { me: Me }) {
       )}
     </>
   )
-}
-
-const OFF = ['cancelled', 'no_show', 'rejected'] // shown in the agenda, but the chair is free
-const dotTime = (m: number) => hhmm(m).replace(':', '.') // fmtTime style (id-ID "09.30")
-
-/**
- * Mobile agenda: the day's appointments in time order (all chairs or one), a "Sekarang" divider on today, and
- * "Kosong" rows for free stretches (≥ one 30-min slot, from now on today) that open Buat Janji at that time.
- */
-function Agenda({ list, chairs, tz, nowMin, onOpen, onGap }: {
-  list: Appointment[]; chairs: Sched['chairs']; tz: string; nowMin: number | null; onOpen: (a: Appointment) => void; onGap?: (minute: number) => void
-}) {
-  type Row = { at: number; rank: number; key: string; el: ReactNode }
-  const rows: Row[] = []
-  const label = Object.fromEntries(chairs.map((c) => [c.id, c.label]))
-  const earliest = nowMin === null ? START : Math.ceil(nowMin / STEP) * STEP
-  const gap = (from: number, to: number) => {
-    from = Math.max(Math.ceil(from / STEP) * STEP, earliest)
-    if (onGap && to - from >= STEP) rows.push({ at: from, rank: 1, key: 'gap' + from, el: (
-      <button type="button" className="agenda-gap" onClick={() => onGap(from)}>
-        <Icon d={ICONS.plus} size={16} /> Kosong {dotTime(from)}–{dotTime(to)} · ketuk untuk buat janji
-      </button>
-    ) })
-  }
-  let free = START
-  for (const a of list) {
-    const s = minutesOfDay(a.starts_at, tz), mins = Math.round((new Date(a.ends_at).getTime() - new Date(a.starts_at).getTime()) / 60000)
-    if (!OFF.includes(a.status)) { gap(free, Math.min(s, END)); free = Math.max(free, s + mins) }
-    rows.push({ at: s, rank: 2, key: a.id, el: (
-      <button type="button" className={`agenda-item appt-${a.status}`} aria-haspopup="dialog" onClick={() => onOpen(a)}>
-        <span className="agenda-time"><strong>{fmtTime(a.starts_at, tz)}</strong><span>{mins} mnt</span></span>
-        <span className="agenda-main">
-          <span className="agenda-name">{a.patient?.name}</span>
-          <span className="agenda-meta">{[a.reason, label[a.chair_id], a.dentist?.name].filter(Boolean).join(' · ')}</span>
-        </span>
-        <span className="agenda-chips">{a.source === 'online' && <span className="chip chip-online">Online</span>}<StatusChip status={a.status} /></span>
-      </button>
-    ) })
-  }
-  gap(free, END)
-  if (nowMin !== null) rows.push({ at: nowMin, rank: 0, key: 'now', el: <span className="agenda-now">Sekarang {dotTime(nowMin)}</span> })
-  rows.sort((x, y) => x.at - y.at || x.rank - y.rank)
-  return <ul className="agenda" aria-label="Agenda">{rows.map((r) => <li key={r.key}>{r.el}</li>)}</ul>
 }
 
 function BookDialog({ sched, date, me, initial, onClose, onSaved }: {

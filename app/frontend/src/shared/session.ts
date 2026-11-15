@@ -7,6 +7,8 @@ export type Me = {
   branches: { id: string; name: string; timezone: string }[]
   /** clinic asks for a PIN at Selesai; whether I already have one (never the PIN itself) */
   selesai?: { pin_required: boolean; has_pin: boolean }
+  /** Not sent by /api/me yet: actions (permission names) hidden while a support session impersonates this user. */
+  impersonation?: { blocked_actions: string[] }
 }
 
 export const ROLE_LABELS: Record<string, string> = {

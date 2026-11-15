@@ -150,40 +150,68 @@ a.tl-block:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px
   .shell-main:has(.sched-top) { padding-bottom: calc(152px + env(safe-area-inset-bottom)); }
 }
 
-/* Phone Jadwal: chair chips + Agenda|Grid switch, then the agenda (default) or the one-chair grid. */
+/* Phone Jadwal (MobileJadwal.tsx): title + mode switch, owner summary, sections of cards with at most one primary button. */
 @media (max-width: 720px) {
-  .sched-filters { display: grid; gap: var(--space-2); margin-bottom: var(--space-3); min-width: 0; }
-  .sched-filters .chair-pills { margin-bottom: 0; }
-  .sched-view { display: grid; grid-template-columns: 1fr 1fr; }
-  .sched-view .btn { min-height: 40px; }
+  .sched-title { display: flex; align-items: center; gap: var(--space-2); min-width: 0; margin-bottom: var(--space-2); }
+  .sched-title h1 { flex: 1 1 auto; min-width: 0; margin: 0; font-size: var(--font-size-xl); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sched-grid-btn { flex: none; width: 44px; padding: 0; }
+  .sched-grid-btn[aria-pressed='true'] { background: var(--color-primary-700); border-color: var(--color-primary-700); color: #fff; }
+  .mode-toggle { flex: none; display: inline-flex; padding: 2px; gap: 2px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--surface); }
+  .mode-toggle label {
+    display: inline-flex; flex-direction: row; align-items: center; min-height: 40px; margin: 0; padding: 0 var(--space-3); border-radius: var(--radius-pill);
+    font-weight: 600; font-size: var(--font-size-base); color: var(--color-neutral-700); cursor: pointer; white-space: nowrap;
+  }
+  .mode-toggle input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .mode-toggle label.on { background: var(--color-primary-700); color: #fff; }
+  .mode-toggle label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .day-sum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); margin: 0 0 var(--space-3); max-height: 56px; }
+  .day-sum div { display: flex; flex-direction: column; justify-content: center; min-width: 0; padding: 4px var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
+  .day-sum dt { font-size: 11px; color: var(--muted); }
+  .day-sum dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chair-pills { margin-bottom: var(--space-3); }
+  .agenda-sec { margin-bottom: var(--space-3); }
+  .agenda-sec h2 { margin: 0 0 var(--space-2); font-size: var(--font-size-base); }
+  .agenda-sec summary { display: flex; align-items: center; min-height: 44px; cursor: pointer; }
+  .agenda-sec summary h2 { margin: 0; }
+  .agenda-sec summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .agenda { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
   .agenda-item {
-    display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: 'time main' 'time chips'; column-gap: var(--space-3); row-gap: 4px;
-    width: 100%; min-height: 64px; padding: var(--space-3); border-style: solid; border-width: 0 0 0 4px; border-radius: var(--radius-sm);
-    font: inherit; color: var(--text); text-align: left; cursor: pointer;
+    display: flex; align-items: center; gap: var(--space-2); min-height: 72px; min-width: 0; padding-right: var(--space-3);
+    background: var(--surface); border: 1px solid var(--border); border-left: 4px solid; border-radius: var(--radius-sm);
   }
-  :where(.agenda-item) { background: var(--color-appointment-terjadwal-bg); border-color: var(--color-appointment-terjadwal-border); }
-  .agenda-item:focus-visible, .agenda-gap:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .agenda-time { grid-area: time; display: flex; flex-direction: column; font-variant-numeric: tabular-nums; min-width: 3.2em; }
+  /* status colour of the bar (the chip carries the status text, so colour is never the only cue) */
+  :where(.agenda-item) { border-left-color: var(--color-appointment-terjadwal-border); }
+  .agenda-item.appt-checked_in, .agenda-item.appt-in_treatment, .agenda-item.appt-done, .agenda-item.appt-cancelled, .agenda-item.appt-no_show,
+  .agenda-item.appt-rejected { background: var(--surface); }
+  .agenda-item.appt-pending_confirmation { border-style: solid; border-left-color: var(--warn); }
+  .agenda-open {
+    flex: 1 1 auto; min-width: 0; align-self: stretch; display: flex; gap: var(--space-3); padding: var(--space-3) 0 var(--space-3) var(--space-3);
+    border: 0; background: transparent; font: inherit; color: var(--text); text-align: left; cursor: pointer;
+  }
+  .agenda-open:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: var(--radius-sm); }
+  .agenda-time { flex: none; display: flex; flex-direction: column; font-variant-numeric: tabular-nums; min-width: 3.2em; }
   .agenda-time span { font-size: var(--font-size-xs); color: var(--muted); }
-  .agenda-main { grid-area: main; display: flex; flex-direction: column; min-width: 0; }
+  .agenda-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
   .agenda-name { font-weight: 650; font-size: var(--font-size-base); overflow-wrap: anywhere; }
   .agenda-meta { font-size: var(--font-size-xs); color: var(--muted); overflow-wrap: anywhere; }
-  .appt-in_treatment .agenda-time span, .appt-in_treatment .agenda-meta { color: var(--color-appointment-merawat-fg); }
-  .agenda-chips { grid-area: chips; display: flex; flex-wrap: wrap; gap: 6px; }
-  .agenda-gap {
-    display: flex; align-items: center; gap: var(--space-2); width: 100%; min-height: 44px; padding: 0 var(--space-3);
-    border: 1px dashed var(--border); border-radius: var(--radius-sm); background: transparent; font: inherit; font-size: 13px;
-    color: var(--color-neutral-700); text-align: left; cursor: pointer;
-  }
+  .agenda-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .agenda-cta { flex: none; min-height: 44px; white-space: nowrap; }
+  .agenda-now-row { list-style: none; }
   .agenda-now { display: flex; align-items: center; gap: var(--space-2); font-size: var(--font-size-xs); font-weight: 700; color: var(--danger); }
   .agenda-now::before, .agenda-now::after { content: ''; flex: 1; height: 2px; background: var(--danger); }
   .agenda-now::before { flex: 0 0 12px; }
-}
-@media (min-width: 413px) and (max-width: 720px) {
-  .agenda-item { min-height: 72px; padding: var(--space-3) var(--space-4); }
-  .agenda-item { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: 'time main chips'; align-items: start; }
-  .agenda-chips { justify-content: flex-end; }
+  .appt-sheet .btn-danger { color: var(--danger); border-color: var(--danger); background: var(--surface); }
+  .resched { display: grid; gap: var(--space-2); }
+  .resched .date-field { display: grid; }
+  .toast {
+    position: fixed; left: var(--space-3); right: calc(56px + 2 * var(--space-4)); bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 25;
+    display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); min-height: 48px; padding: 0 var(--space-2) 0 var(--space-4);
+    border-radius: var(--radius-sm); background: var(--color-neutral-900); color: #fff; box-shadow: var(--shadow-lg); font-weight: 600;
+  }
+  .toast .btn-ghost { color: #fff; text-decoration: underline; }
+  .week-dots i { background: var(--color-neutral-500); }
+  .sched-empty { display: grid; justify-items: center; gap: var(--space-1); }
+  .sched-empty p { margin: 0; }
 }
 
 /* Phone grid: the chair pills name the column (no sticky header row under the pinned week strip); empty half hours show "+". */
