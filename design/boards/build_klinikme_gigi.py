@@ -8,6 +8,8 @@ Gaya Zendenta; merek tetap #0B6B62.
 """
 from __future__ import annotations
 
+import base64
+from io import BytesIO
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -142,8 +144,25 @@ def av(name: str, tone: str = "") -> str:
     return f'<span class="av{cls}" aria-hidden="true">{initials(name)}</span>'
 
 
-def chip(label: str, kind: str) -> str:
-    return f'<span class="chip st-{kind}">{label}</span>'
+def chip(label: str, kind: str, icon: str | None = None) -> str:
+    if icon is None:
+        icon = {
+            "draf": "pen",
+            "ok": "check",
+            "tolak": "x",
+            "warn": "alert",
+            "karies": "alert",
+            "konfirm": "alert",
+            "tunggu": "clock",
+            "rawat": "tooth",
+            "bayar": "alert",
+            "med": "alert",
+            "isi": "lock",
+            "ada": "check",
+            "sebagian": "clock",
+        }.get(kind)
+    ic = ico(icon, "ic-sm") if icon else ""
+    return f'<span class="chip st-{kind}">{ic}{label}</span>'
 
 
 def btn(label: str, kind: str = "pri", icon: str | None = None, disabled: bool = False) -> str:
@@ -157,6 +176,51 @@ def btn(label: str, kind: str = "pri", icon: str | None = None, disabled: bool =
 
 def syn() -> str:
     return '<span class="syn">DATA SINTETIS</span>'
+
+
+def sum_row(*parts: str) -> str:
+    return f'<div class="sum-row">{"".join(parts)}</div>'
+
+
+def seg(items: list[tuple[str, bool]]) -> str:
+    btns = []
+    for lab, on in items:
+        cls = "seg-btn on" if on else "seg-btn"
+        btns.append(f'<button class="{cls}" type="button">{lab}</button>')
+    return f'<div class="seg" role="tablist">{"".join(btns)}</div>'
+
+
+def fold(title: str, body: str, open_: bool = False, hint: str = "") -> str:
+    op = " open" if open_ else ""
+    hint_h = f'<span class="mu">{hint}</span>' if hint else ""
+    return (
+        f'<details class="fold"{op}><summary>{title}{hint_h}'
+        f'{ico("chevron-down", "ic-sm chev")}</summary>'
+        f'<div class="fold-body">{body}</div></details>'
+    )
+
+
+def dock(*buttons: str) -> str:
+    return f'<div class="dock">{"".join(buttons)}</div>'
+
+
+def empty_scribe_img() -> str:
+    src = Path("/workspace/artifacts/illustrations/test-magnific.png")
+    if not src.exists():
+        return ""
+    try:
+        from PIL import Image
+        im = Image.open(src).convert("RGB")
+        im.thumbnail((280, 280), Image.Resampling.LANCZOS)
+        buf = BytesIO()
+        im.save(buf, format="JPEG", quality=72, optimize=True)
+        b64 = base64.b64encode(buf.getvalue()).decode()
+        return (
+            f'<img class="empty-fig" src="data:image/jpeg;base64,{b64}" '
+            f'width="160" height="160" alt=""/>'
+        )
+    except Exception:
+        return ""
 
 
 CSS = r"""
@@ -182,8 +246,9 @@ h1.page{font-size:28px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px;colo
 
 .syn{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;
   background:#FFFAEB;color:#B54708;border:1px solid #F5C14A;font-size:10px;font-weight:700;letter-spacing:.04em}
-.chip{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;
+.chip{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:16px;gap:4px;
   font-size:11px;font-weight:700;letter-spacing:.01em;white-space:nowrap}
+.chip .ic-sm{width:12px;height:12px}
 .st-draf{background:#FFF6E5;color:#7A5200}
 .st-ai{background:var(--color-appointment-checkin-bg);color:var(--color-appointment-checkin-fg)}
 .st-ok{background:var(--color-appointment-selesai-bg);color:var(--color-appointment-selesai-fg)}
@@ -192,33 +257,52 @@ h1.page{font-size:28px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px;colo
 .st-info{background:var(--color-info-bg);color:var(--color-info-fg)}
 .st-mute{background:var(--color-neutral-100);color:var(--color-neutral-600)}
 .st-ada{background:var(--color-appointment-selesai-bg);color:var(--color-appointment-selesai-fg)}
-.st-sebagian{background:#FFF6E5;color:#9A6700}
+.st-sebagian{background:#FFF6E5;color:#7A5200}
 .st-belum{background:var(--color-neutral-100);color:var(--color-neutral-600)}
 .st-karies{background:#FDECEC;color:#B42318}
 .st-isi{background:var(--color-primary-50);color:var(--color-primary-800)}
+.st-konfirm{background:var(--color-appointment-terjadwal-bg);color:var(--color-appointment-terjadwal-fg)}
+.st-tunggu{background:var(--color-appointment-checkin-bg);color:var(--color-appointment-checkin-fg)}
+.st-rawat{background:var(--color-appointment-merawat-bg);color:var(--color-appointment-merawat-fg)}
+.st-bayar{background:var(--color-warning-bg);color:var(--color-warning-fg)}
+.st-med{background:var(--color-danger-bg);color:var(--color-danger-fg)}
 
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 16px;
-  border-radius:12px;font-size:13px;font-weight:700;border:0;background:transparent;color:var(--color-neutral-800);cursor:default}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 18px;
+  border-radius:24px;font-size:13px;font-weight:700;border:0;background:transparent;color:var(--color-neutral-800);
+  cursor:default;transition:background .15s,box-shadow .15s,transform .1s,border-color .15s,filter .15s}
 .btn.pri{background:var(--color-primary-700);color:#fff}
+.btn.pri:hover{background:#0A5650}
 .btn.sec{background:var(--color-neutral-0);color:var(--color-primary-800);border:1px solid var(--color-primary-200)}
+.btn.sec:hover{background:var(--color-primary-50)}
 .btn.ghost{background:var(--color-neutral-0);color:var(--color-neutral-700);border:1px solid var(--color-neutral-200)}
+.btn.ghost:hover{background:var(--color-neutral-50)}
+.btn.danger{background:var(--color-danger-solid);color:#fff}
+.btn.danger:hover{filter:brightness(.95)}
+.btn.danger-soft{background:var(--color-danger-bg);color:var(--color-danger-fg)}
+.btn.danger-soft:hover{background:#FEE4E2}
+.btn:active{transform:scale(.97)}
+.btn:focus-visible,.icon-btn:focus-visible,.cite:focus-visible,.phrase:focus-visible,
+.navi:focus-visible,.rbtn:focus-visible,.seg-btn:focus-visible,.od-t:focus-visible{
+  outline:2px solid var(--color-primary-700);outline-offset:2px}
 .btn.dis{opacity:.45}
-.icon-btn{width:44px;height:44px;display:grid;place-items:center;border:0;background:transparent;
-  border-radius:12px;color:var(--color-neutral-700);flex:none;padding:0}
+.icon-btn{width:48px;height:48px;display:grid;place-items:center;border:0;background:transparent;
+  border-radius:16px;color:var(--color-neutral-700);flex:none;padding:0;transition:background .15s}
+.icon-btn:hover{background:var(--color-neutral-50)}
+.icon-btn:active{transform:scale(.97)}
 
-.av{width:32px;height:32px;border-radius:10px;background:var(--color-primary-100);color:var(--color-primary-800);
+.av{width:32px;height:32px;border-radius:999px;background:var(--color-primary-100);color:var(--color-primary-800);
   display:grid;place-items:center;font-size:11px;font-weight:800;flex:none}
 .av-fd{background:#E8F0FE;color:#1D4ED8}
 
 .desk{width:1280px;background:var(--color-neutral-0);border:1px solid var(--color-neutral-200);
-  border-radius:20px;overflow:hidden;display:flex;flex:none;box-shadow:0 8px 28px rgba(22,33,43,.06)}
+  border-radius:24px;overflow:hidden;display:flex;flex:none;box-shadow:0 8px 24px rgba(22,33,43,.06)}
 .rail{width:72px;background:#F4F7F7;border-right:1px solid var(--color-neutral-200);display:flex;flex-direction:column;
   align-items:center;padding:16px 8px 12px;gap:4px;flex:none}
-.rail .logo{width:40px;height:40px;border-radius:12px;background:var(--color-primary-700);color:#fff;
+.rail .logo{width:40px;height:40px;border-radius:16px;background:var(--color-primary-700);color:#fff;
   display:grid;place-items:center;margin-bottom:8px}
 .rail .logo .ic{width:20px;height:20px}
 .rspacer{flex:1}
-.rbtn{width:48px;height:48px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+.rbtn{width:48px;height:48px;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:2px;color:var(--color-neutral-500);font-size:9px;font-weight:700;letter-spacing:.02em;border:0;background:transparent}
 .rbtn .ic{width:20px;height:20px}
 .rbtn.on{background:var(--color-primary-700);color:#fff}
@@ -231,46 +315,69 @@ h1.page{font-size:28px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px;colo
 .crumb b{color:var(--color-neutral-800);font-weight:700}
 .desk-body{flex:1;padding:16px;display:flex;gap:16px;min-height:0}
 .desk-body.col{flex-direction:column}
+.dock{flex:none;display:flex;align-items:center;justify-content:flex-end;gap:8px;
+  padding:12px 16px;background:var(--color-neutral-0);border-top:1px solid var(--color-neutral-200);
+  box-shadow:0 -8px 24px rgba(22,33,43,.05)}
+.ph .dock{justify-content:stretch}
+.ph .dock .btn.pri{flex:1}
 
 .ph{width:360px;background:var(--color-neutral-0);border:1px solid var(--color-neutral-200);
-  border-radius:24px;overflow:hidden;position:relative;display:flex;flex-direction:column;flex:none}
+  border-radius:28px;overflow:hidden;position:relative;display:flex;flex-direction:column;flex:none;
+  box-shadow:0 8px 24px rgba(22,33,43,.06)}
 .ph-bar{display:flex;align-items:center;justify-content:space-between;padding:8px 16px 0;min-height:28px;
   background:var(--color-neutral-0)}
 .ph-time{font-size:12px;font-weight:600;color:var(--color-neutral-700)}
-.hd{background:var(--color-neutral-0);padding:0 8px 8px;display:flex;align-items:center;justify-content:space-between;
-  min-height:44px;gap:8px;border-bottom:1px solid var(--color-neutral-100)}
+.hd{background:var(--color-neutral-0);padding:0 8px;display:flex;align-items:center;justify-content:space-between;
+  min-height:56px;gap:8px;border-bottom:1px solid var(--color-neutral-100)}
 .h-sm{margin:0;font-size:16px;font-weight:700;flex:1}
-.ph-body{flex:1;background:var(--color-canvas);padding:8px 16px 120px;display:flex;flex-direction:column;gap:8px}
-.bnav{position:absolute;left:0;right:0;bottom:0;height:72px;background:var(--color-neutral-0);
-  border-top:1px solid var(--color-neutral-200);display:flex;padding:0 4px 8px}
+.ph-body{flex:1;background:var(--color-canvas);padding:12px 16px;display:flex;flex-direction:column;gap:10px}
+.bnav{position:relative;flex:none;min-height:80px;height:auto;background:var(--color-neutral-0);
+  border-top:1px solid var(--color-neutral-200);display:flex;padding:4px 4px 12px}
 .navi{flex:1;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:2px;font-size:10px;font-weight:700;color:var(--color-neutral-500);min-height:44px}
+  gap:2px;font-size:10px;font-weight:700;color:var(--color-neutral-500);min-height:48px;min-width:48px;border-radius:16px}
 .navi .ic{width:20px;height:20px}
 .navi.on{color:var(--color-primary-700)}
 
-.card{background:var(--color-neutral-0);border:1px solid var(--color-neutral-200);border-radius:16px;padding:14px 16px}
-.card h3{margin:0 0 8px;font-size:13px;font-weight:700;color:var(--color-neutral-800);display:flex;align-items:center;gap:8px}
+.card{background:var(--color-neutral-0);border:1px solid var(--color-neutral-200);border-radius:24px;padding:16px;
+  display:flex;flex-direction:column;gap:12px;box-shadow:0 8px 24px rgba(22,33,43,.04)}
+.card h3{margin:0;font-size:13px;font-weight:700;color:var(--color-neutral-800);display:flex;align-items:center;gap:8px}
 .note{font-size:13px;line-height:1.45;color:var(--color-neutral-700)}
 .note b{font-weight:700;color:var(--color-neutral-900)}
 .mu{font-size:12px;font-weight:500;color:var(--color-neutral-500)}
 .kicker{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500)}
-.banner{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;border-radius:12px;font-size:12px;font-weight:600;line-height:1.4}
+.banner{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;border-radius:16px;font-size:12px;font-weight:600;line-height:1.4}
 .banner.warn{background:var(--color-warning-bg);color:var(--color-warning-fg);border:1px solid var(--color-warning-border)}
 .banner.info{background:var(--color-info-bg);color:var(--color-info-fg);border:1px solid var(--color-info-border)}
 .banner.ok{background:var(--color-success-bg);color:var(--color-success-fg);border:1px solid var(--color-success-border)}
 .banner .ic{margin-top:1px}
-.field{display:flex;flex-direction:column;gap:4px;margin:0 0 10px}
+.field{display:flex;flex-direction:column;gap:4px;margin:0}
 .lab{font-size:11px;font-weight:700;color:var(--color-neutral-500);letter-spacing:.04em;text-transform:uppercase}
-.inp{min-height:44px;border:1px solid var(--color-neutral-200);border-radius:12px;background:var(--color-neutral-0);
-  padding:10px 12px;font-size:14px;font-weight:600;color:var(--color-neutral-800);display:flex;align-items:center}
+.inp{min-height:48px;border:1px solid var(--color-neutral-200);border-radius:16px;background:var(--color-neutral-0);
+  padding:10px 12px;font-size:14px;font-weight:600;color:var(--color-neutral-800);display:flex;align-items:center;gap:8px}
 .inp.area{min-height:52px;align-items:flex-start;font-weight:500;line-height:1.4}
-.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
 .split{display:grid;grid-template-columns:1fr 1fr;gap:16px;flex:1;min-height:0}
 .split-5{display:grid;grid-template-columns:1.15fr .85fr;gap:16px;flex:1;min-height:0}
 .scroll-col{display:flex;flex-direction:column;gap:10px;min-width:0}
 
+.sum-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.seg{display:inline-flex;padding:4px;gap:4px;background:var(--color-neutral-100);border-radius:16px}
+.seg-btn{min-height:48px;padding:0 14px;border:0;border-radius:12px;background:transparent;
+  font-size:13px;font-weight:700;color:var(--color-neutral-600)}
+.seg-btn.on{background:#fff;color:var(--color-primary-800);box-shadow:0 1px 3px rgba(22,33,43,.08)}
+.fold{border:1px solid var(--color-neutral-200);border-radius:24px;background:var(--color-neutral-0);
+  padding:0 16px;box-shadow:0 8px 24px rgba(22,33,43,.04)}
+.fold>summary{min-height:48px;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;
+  color:var(--color-neutral-800);cursor:default;list-style:none}
+.fold>summary::-webkit-details-marker{display:none}
+.fold>summary .chev{margin-left:auto;flex:none}
+.fold[open]>summary .chev{transform:rotate(180deg)}
+.fold-body{padding:0 0 14px;display:flex;flex-direction:column;gap:8px}
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:12px;padding:8px}
+.empty-fig{width:160px;height:160px;object-fit:cover;border-radius:24px;display:block}
+
 .icode{display:flex;gap:10px;align-items:flex-start;padding:12px;border:1px solid var(--color-neutral-200);
-  border-radius:14px;background:var(--color-neutral-0)}
+  border-radius:16px;background:var(--color-neutral-0)}
 .icode.on{border-color:var(--color-primary-300);background:var(--color-primary-50);box-shadow:0 0 0 2px var(--color-primary-100)}
 .icode .code,.aitem .code{font-size:14px;font-weight:800;color:var(--color-neutral-900);font-variant-numeric:tabular-nums}
 .icode .nm,.aitem .nm{font-size:13px;font-weight:600;color:var(--color-neutral-800)}
@@ -278,36 +385,45 @@ h1.page{font-size:28px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px;colo
   display:grid;place-items:center;color:#fff}
 .icode.on .checkb{background:var(--color-primary-700);border-color:var(--color-primary-700)}
 
-.aitem{border:1px solid var(--color-neutral-200);border-radius:14px;padding:12px;background:var(--color-neutral-0);
+.aitem{border:1px solid var(--color-neutral-200);border-radius:20px;padding:12px;background:var(--color-neutral-0);
   display:flex;flex-direction:column;gap:8px;border-left-width:4px;border-left-color:var(--color-neutral-300)}
 .aitem.st-draf{border-left-color:#7A5200}
 .aitem.st-ok{border-left-color:var(--color-appointment-selesai-fg)}
 .aitem.st-tolak{border-left-color:var(--color-danger-fg)}
-.aitem-top{display:flex;align-items:flex-start;gap:8px}
+.aitem.compact{padding:8px 12px}
+.aitem-top{display:flex;align-items:center;gap:8px}
 .aitem-top .grow{flex:1;min-width:0}
 .iacts{display:flex;gap:8px}
 .iacts .btn{flex:1;padding:0 12px}
-.cite{display:inline-flex;align-items:center;justify-content:center;gap:4px;min-height:44px;min-width:44px;
-  padding:0 10px;border-radius:999px;border:1px solid var(--color-primary-200);background:var(--color-neutral-0);
-  color:var(--color-primary-800);font-size:12px;font-weight:700;flex:none}
+.cite{display:inline-flex;align-items:center;justify-content:center;gap:4px;min-height:48px;min-width:48px;
+  padding:0 10px;border-radius:16px;border:1px solid var(--color-primary-200);background:var(--color-neutral-0);
+  color:var(--color-primary-800);font-size:12px;font-weight:700;flex:none;transition:background .15s,box-shadow .15s}
+.cite:hover{background:var(--color-primary-50)}
 .cite.on{background:var(--color-primary-50);border-color:var(--color-primary-400);
   box-shadow:0 0 0 2px var(--color-primary-100)}
 .cite .ic-sm{width:14px;height:14px}
-.pop{background:var(--color-neutral-0);border:1px solid var(--color-neutral-200);border-radius:16px;
-  box-shadow:0 8px 24px rgba(22,33,43,.12);padding:12px 14px}
+.pop{position:relative;background:var(--color-neutral-0);border:1px solid var(--color-neutral-200);border-radius:24px;
+  box-shadow:0 8px 24px rgba(22,33,43,.12);padding:14px 16px;margin-top:8px}
+.pop:before{content:"";position:absolute;top:-6px;right:28px;width:12px;height:12px;background:#fff;
+  border-left:1px solid var(--color-neutral-200);border-top:1px solid var(--color-neutral-200);transform:rotate(45deg)}
+.pop-hd{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.pop-hd .kicker{margin:0}
 .pop .src{font-size:13px;font-weight:500;line-height:1.5;color:var(--color-neutral-700)}
 .hl{background:var(--color-primary-100);color:var(--color-primary-900);font-weight:700;padding:0 3px;border-radius:4px}
 .note .hl{font-weight:700}
 .sheet{position:absolute;left:0;right:0;bottom:0;z-index:4;background:var(--color-neutral-0);
-  border-top:1px solid var(--color-neutral-200);border-radius:20px 20px 0 0;
-  box-shadow:0 -8px 24px rgba(22,33,43,.12);padding:8px 16px 20px}
-.sheet .grab{width:36px;height:4px;border-radius:999px;background:var(--color-neutral-300);margin:4px auto 12px}
-.sheet h3{margin:0 0 8px;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:space-between;gap:8px}
+  border-top:1px solid var(--color-neutral-200);border-radius:24px 24px 0 0;
+  box-shadow:0 -8px 24px rgba(22,33,43,.12);padding:8px 16px 16px;display:flex;flex-direction:column;gap:8px}
+.sheet .grab{width:36px;height:4px;border-radius:999px;background:var(--color-neutral-300);margin:4px auto}
+.sheet-hd{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:48px}
+.sheet-hd h3{margin:0;font-size:14px;font-weight:700}
 .sheet .src{font-size:13px;font-weight:500;line-height:1.5;color:var(--color-neutral-700)}
+.sheet-ft{display:flex;justify-content:flex-end;padding-top:4px}
 
-.phrase{display:inline-flex;align-items:center;min-height:44px;padding:0 12px;border-radius:999px;
+.phrase{display:inline-flex;align-items:center;min-height:48px;padding:0 14px;border-radius:16px;
   border:1px solid var(--color-primary-200);background:var(--color-neutral-0);color:var(--color-primary-800);
-  font-size:12px;font-weight:700}
+  font-size:12px;font-weight:700;transition:background .15s,color .15s}
+.phrase:hover{background:var(--color-primary-50)}
 .phrase.on{background:var(--color-primary-700);color:#fff;border-color:var(--color-primary-700)}
 .phrases{display:flex;flex-wrap:wrap;gap:8px}
 
@@ -321,30 +437,30 @@ h1.page{font-size:28px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px;colo
 .od-t.on .sq{background:#FDECEC;border-color:#B42318}
 .od-lab{text-align:center;font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--color-neutral-500)}
 .surf{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
-.surf b{min-height:44px;border-radius:10px;border:1px solid var(--color-neutral-200);background:#fff;
+.surf b{min-height:48px;border-radius:16px;border:1px solid var(--color-neutral-200);background:#fff;
   display:grid;place-items:center;font-size:12px;font-weight:800;color:var(--color-neutral-600)}
 .surf b.on{background:var(--color-primary-700);color:#fff;border-color:var(--color-primary-700)}
 
-.ktp{width:100%;aspect-ratio:1.6;border-radius:16px;background:linear-gradient(180deg,#1F4E79,#163A5F);
+.ktp{width:100%;max-height:168px;aspect-ratio:1.6;border-radius:24px;background:linear-gradient(180deg,#1F4E79,#163A5F);
   color:#fff;padding:16px;display:flex;flex-direction:column;justify-content:space-between;position:relative}
 .ktp .idlab{font-size:10px;font-weight:800;letter-spacing:.12em}
 .ktp .who{font-size:16px;font-weight:800}
 .ktp .meta{font-size:11px;font-weight:600;opacity:.85;line-height:1.5}
-.ktp .photo{position:absolute;right:16px;top:40px;width:72px;height:88px;border-radius:8px;background:#C5D4E3}
+.ktp .photo{position:absolute;right:16px;top:36px;width:64px;height:80px;border-radius:12px;background:#C5D4E3}
 
-.sig{height:120px;border:1.5px dashed var(--color-neutral-300);border-radius:14px;background:var(--color-neutral-25);
+.sig{height:88px;border:1.5px dashed var(--color-neutral-300);border-radius:16px;background:var(--color-neutral-25);
   display:flex;align-items:flex-end;padding:8px 16px;color:var(--color-neutral-400)}
 .sig svg{width:180px;height:70px;stroke:var(--color-neutral-800);fill:none;stroke-width:2;stroke-linecap:round}
 
 .ba{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.well{min-height:180px;border:1.5px dashed var(--color-neutral-300);border-radius:14px;background:var(--color-neutral-25);
+.well{min-height:120px;border:1.5px dashed var(--color-neutral-300);border-radius:24px;background:var(--color-neutral-25);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--color-neutral-500);
   font-size:12px;font-weight:700;text-align:center;padding:16px}
 .well.has{border-style:solid;background:#E8F0E9;color:var(--color-primary-900);border-color:var(--color-primary-200)}
 .well .ic{width:28px;height:28px}
 
-.rx,.attach{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;
-  border:1px solid var(--color-neutral-200);border-radius:14px;background:#fff}
+.rx,.attach{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;min-height:48px;
+  border:1px solid var(--color-neutral-200);border-radius:20px;background:#fff}
 .attach{gap:10px}
 .attach .grow{flex:1;min-width:0}
 .attach .nm{font-size:13px;font-weight:700}
@@ -353,14 +469,14 @@ h1.page{font-size:28px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px;colo
 .rx .ds{font-size:12px;font-weight:500;color:var(--color-neutral-500)}
 
 table.gap{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid var(--color-neutral-200);
-  border-radius:16px;overflow:hidden;font-size:13px}
+  border-radius:24px;overflow:hidden;font-size:13px;box-shadow:0 8px 24px rgba(22,33,43,.04)}
 table.gap th,table.gap td{padding:10px 12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--color-neutral-100);
   line-height:1.4}
 table.gap th{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--color-neutral-500);
   background:var(--color-neutral-50)}
 table.gap tr:last-child td{border-bottom:0}
 table.gap td.ft{font-weight:700;color:var(--color-neutral-900);white-space:nowrap}
-.legend{display:flex;gap:12px;align-items:center;margin:0 0 12px;font-size:12px;font-weight:600;color:var(--color-neutral-600)}
+.legend{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12px;font-weight:600;color:var(--color-neutral-600)}
 
 figcaption{font-size:12px;font-weight:600;color:var(--color-neutral-500);margin-top:8px}
 """
@@ -399,8 +515,9 @@ def desk(
     user: str = "Nadia Putri",
     role: str = "dokter",
     height: int = 0,
+    dock_html: str = "",
 ) -> str:
-    role_lab = "Dokter" if role == "dokter" else "Resepsionis"
+    prefix = "drg. " if role == "dokter" else ""
     mid = f'<div><h2>{title}</h2>{f"<div class=crumb>{crumb}</div>" if crumb else ""}</div>'
     return f"""
     <div class="desk" style="height:auto">
@@ -408,9 +525,10 @@ def desk(
       <div class="desk-col">
         <header class="top">{mid}
           <div class="who">{syn()}{av(user, "fd" if role == "resepsionis" else "")}
-            <span>drg. {user}</span></div>
+            <span>{prefix}{user}</span></div>
         </header>
         {body}
+        {dock_html}
       </div>
     </div>"""
 
@@ -437,12 +555,13 @@ def bnav(active: str = "RM") -> str:
 def phone(
     inner: str,
     title: str,
-    height: int = 800,
+    height: int | None = None,
     nav: str = "RM",
     back: bool = True,
     mic: bool = False,
     pad_bottom: int | None = None,
     overlay: str = "",
+    dock_html: str = "",
 ) -> str:
     left = (
         f'<button class="icon-btn" type="button" aria-label="Kembali">{ico("chevron-left")}</button>'
@@ -454,14 +573,14 @@ def phone(
         if mic
         else ""
     )
-    # Nav tinggi 72px. Padding bawah default 120 (>= nav + ruang aman).
-    pb = 120 if pad_bottom is None else pad_bottom
+    hstyle = f"height:{height}px" if height else "height:auto"
     return f"""
-    <div class="ph" style="height:{height}px">
+    <div class="ph" style="{hstyle}">
       <div class="ph-bar">{syn()}<span class="ph-time">09.40</span></div>
       <header class="hd">{left}<h1 class="h-sm">{title}</h1>
         {mic_btn}<button class="icon-btn" type="button" aria-label="Lainnya">{ico("more")}</button></header>
-      <div class="ph-body" style="padding-bottom:{pb}px">{inner}</div>
+      <div class="ph-body">{inner}</div>
+      {dock_html}
       {bnav(nav)}
       {overlay}
     </div>"""
@@ -514,6 +633,7 @@ def ai_item(
     cite_on: bool = False,
     popover: str = "",
     kind: str = "",
+    compact: bool = False,
 ) -> str:
     lab, kind_st = {
         "draf": ("Draf", "draf"),
@@ -521,24 +641,28 @@ def ai_item(
         "tolak": ("Ditolak", "tolak"),
     }[status]
     acts = ""
-    if status == "draf":
-        acts = f'<div class="iacts">{btn("Tolak", "ghost")}{btn("Setujui", "pri", "check")}</div>'
+    if status == "draf" and not compact:
+        acts = f'<div class="iacts">{btn("Tolak", "danger-soft")}{btn("Setujui", "pri", "check")}</div>'
     cite_h = cite_btn(cite, cite_on) if cite else ""
     pop = ""
     if popover:
         pop = (
             '<div class="pop" role="dialog" aria-label="Kalimat sumber">'
-            f'<div class="kicker">Sumber</div><div class="src">{popover}</div></div>'
+            '<div class="pop-hd"><span class="kicker">Sumber</span>'
+            f'<button class="icon-btn" type="button" aria-label="Tutup">{ico("x")}</button></div>'
+            f'<div class="src">{popover}</div></div>'
         )
     k = f' <span class="mu">{kind}</span>' if kind else ""
+    sub = "" if compact else f'<div class="nm">{subtitle}</div>'
+    cls = "aitem compact" if compact else "aitem"
     return f"""
-    <div class="aitem st-{kind_st}">
+    <div class="{cls} st-{kind_st}">
       <div class="aitem-top">
         <div class="code grow">{title}{k}</div>
         {chip(lab, kind_st)}
         {cite_h}
       </div>
-      <div class="nm">{subtitle}</div>
+      {sub}
       {acts}
       {pop}
     </div>"""
@@ -575,39 +699,27 @@ def soap_block(highlight: str | None = "P") -> str:
 # ---------- artboards ----------
 
 def ab01() -> str:
-    items = (
-        ai_item("K02.1", "Karies dentin", "ok", cite="A", kind="ICD-10")
-        + ai_item("K05.10", "Gingivitis kronis", "tolak", cite="O", kind="ICD-10")
-        + ai_item(
-            "23.2",
-            "Restorasi gigi",
-            "draf",
-            cite="P",
-            cite_on=True,
-            kind="ICD-9-CM",
-            popover=f'{hl("Restorasi komposit 26.")} Edukasi kebersihan. Kontrol 7 hari.',
-        )
+    pending = ai_item(
+        "23.2",
+        "Restorasi gigi",
+        "draf",
+        cite="P",
+        cite_on=True,
+        kind="ICD-9-CM",
+        popover=f'{hl("Restorasi komposit 26.")} Edukasi kebersihan. Kontrol 7 hari.',
+    )
+    reviewed = (
+        ai_item("K02.1", "Karies dentin", "ok", cite="A", kind="ICD-10", compact=True)
+        + ai_item("K05.10", "Gingivitis kronis", "tolak", cite="O", kind="ICD-10", compact=True)
     )
     body = f"""
-    <div class="desk-body">
-      <div class="split-5" style="flex:1">
-        <div class="scroll-col">
-          <div class="kicker">Catatan disetujui</div>
-          {soap_block("P")}
-        </div>
-        <div class="scroll-col">
-          <article class="card">
-            <h3>{ico("spark", "ic-sm")} Saran kode</h3>
-            <div class="banner warn">{ico("alert", "ic-sm")}
-              Draf tidak ke SATUSEHAT atau klaim.</div>
-            {items}
-            <div class="actions">
-              {btn("Setujui semua", "pri", "check")}
-            </div>
-            <p class="mu" style="margin:10px 0 0">Selesai (tanda tangan) aktif setelah tidak ada draf.</p>
-          </article>
-        </div>
-      </div>
+    <div class="desk-body col">
+      {sum_row(chip("1 draf", "draf"), chip("1 disetujui", "ok"), chip("1 ditolak", "tolak"))}
+      <div class="sum-row">{seg([("Semua", False), ("Draf", True), ("Diulas", False)])}
+        <span class="mu">Draf tidak ke SATUSEHAT atau klaim.</span></div>
+      {fold("Catatan SOAP", soap_block("P"), hint="Sumber: Restorasi komposit 26.")}
+      {pending}
+      {fold("2 sudah diulas", reviewed)}
     </div>"""
     frame = desk(
         body,
@@ -615,79 +727,91 @@ def ab01() -> str:
         "Budi Santoso · Gigi 26 · 15 Nov 2026",
         "RM",
         "Nadia Putri",
-        "dokter")
+        "dokter",
+        dock_html=dock(btn("Setujui semua", "pri", "check")),
+    )
     return ab(
         "01",
         "AI saran ICD dari catatan",
-        "Tiap kode punya status Draf, Disetujui, atau Ditolak. Setujui atau Tolak per item, atau Setujui semua. Ketuk sitasi untuk melihat kalimat sumber.",
+        "Ringkasan dan filter Draf di atas. Item yang sudah diulas dilipat. Sitasi membuka kalimat sumber. Setujui semua menempel di bawah.",
         frame,
     )
 
 
 def ab02() -> str:
-    items = (
-        ai_item("S", "Nyeri gigit rahang kiri atas sejak 3 hari. Tidak alergi obat.", "ok", cite="Ucapan")
-        + ai_item("O", "Gigi 26 karies dentin. Perkusi ringan positif.", "ok", cite="Ucapan")
-        + ai_item("A", "Karies dentin 26.", "draf", cite="Ucapan")
-        + ai_item("P", "Restorasi komposit 26. Kontrol 7 hari.", "tolak", cite="Ucapan")
+    pending = ai_item("A", "Karies dentin 26.", "draf", cite="Ucapan")
+    reviewed = (
+        ai_item("S", "Nyeri gigit rahang kiri atas sejak 3 hari. Tidak alergi obat.", "ok", cite="Ucapan", compact=True)
+        + ai_item("O", "Gigi 26 karies dentin. Perkusi ringan positif.", "ok", cite="Ucapan", compact=True)
+        + ai_item("P", "Restorasi komposit 26. Kontrol 7 hari.", "tolak", cite="Ucapan", compact=True)
     )
-    inner = f"""
-      <article class="card">
-        <h3>{ico("mic", "ic-sm")} Ucapan</h3>
-        <p class="note">Nyeri gigit kiri atas tiga hari, gigi 26 karies dentin, tambal komposit, kontrol tujuh hari, tidak alergi.</p>
-      </article>
-      {items}
-      <div class="actions">
-        {btn("Setujui semua", "pri", "check")}
-      </div>
-      <p class="mu">AI hanya merapikan yang diucapkan. Audio dihapus setelah Selesai.</p>
+    ucapan = '<p class="note">Nyeri gigit kiri atas tiga hari, gigi 26 karies dentin, tambal komposit, kontrol tujuh hari, tidak alergi.</p>'
+    review_inner = f"""
+      {sum_row(chip("1 draf", "draf"), chip("2 disetujui", "ok"), chip("1 ditolak", "tolak"))}
+      {fold("Ucapan", ucapan, hint="Audio dihapus setelah Selesai.")}
+      {pending}
+      {fold("3 sudah diulas", reviewed)}
     """
-    ph = phone(inner, "Draf SOAP", 1020, "RM", mic=True, pad_bottom=120)
+    review = phone(
+        review_inner,
+        "Draf SOAP",
+        None,
+        "RM",
+        mic=True,
+        dock_html=dock(btn("Setujui semua", "pri", "check")),
+    )
+    empty_inner = f"""
+      <div class="empty">
+        {empty_scribe_img()}
+        <p class="note">Rekam ucapan untuk buat draf SOAP.</p>
+        <p class="mu">AI hanya merapikan yang diucapkan.</p>
+      </div>
+    """
+    empty = phone(
+        empty_inner,
+        "SOAP",
+        None,
+        "RM",
+        mic=False,
+        dock_html=dock(btn("Rekam", "pri", "mic")),
+    )
     return ab(
         "02",
         "AI draf SOAP dari suara",
-        "Setiap kolom SOAP adalah item draf. Setujui atau Tolak per item, atau Setujui semua. Sitasi membuka kalimat di transkrip (lihat artboard 11 untuk sheet).",
-        ph,
+        "Kiri: mulai rekam, satu ketuk. Kanan: hanya draf yang terbuka; S, O, dan P dilipat. Setujui semua menempel di atas navigasi. Mikrofon selalu siap.",
+        f'<div class="row">{empty}{review}</div>',
     )
 
 
 def ab03() -> str:
-    items = (
-        ai_item(
-            "Restorasi komposit",
-            "Gigi 26 · permukaan O, M",
-            "ok",
-            cite="26",
-            kind="Tindakan",
-        )
-        + ai_item("Foto bitewing", "Rahang kiri atas", "tolak", cite="26", kind="Tindakan")
-        + ai_item("Kontrol", "7 hari", "draf", cite="P", kind="Jadwal")
+    pending = ai_item("Kontrol", "7 hari", "draf", cite="P", kind="Jadwal")
+    reviewed = (
+        ai_item("Restorasi komposit", "Gigi 26 · permukaan O, M", "ok", cite="26", kind="Tindakan", compact=True)
+        + ai_item("Foto bitewing", "Rahang kiri atas", "tolak", cite="26", kind="Tindakan", compact=True)
     )
+    od_body = f'{odonto("26")}<p class="mu">Perkusi ringan.</p>'
     body = f"""
-    <div class="desk-body">
-      <div class="split-5" style="flex:1">
-        <article class="card">
-          <h3>Odontogram {chip("26 karies", "karies")}</h3>
-          {odonto("26")}
-          <p class="mu" style="margin:10px 0 0">Temuan tercatat: {hl("26 karies O, M")}. Perkusi ringan.</p>
-        </article>
-        <article class="card">
-          <h3>{ico("spark", "ic-sm")} Saran tindakan</h3>
-          <div class="banner info">{ico("alert", "ic-sm")}
-            Hanya dari temuan di chart.</div>
-          {items}
-          <div class="actions">
-            {btn("Setujui semua", "pri", "check")}
-          </div>
-          <p class="mu" style="margin:10px 0 0">Selesai aktif setelah tidak ada draf.</p>
-        </article>
-      </div>
+    <div class="desk-body col">
+      {sum_row(chip("1 draf", "draf"), chip("1 disetujui", "ok"), chip("1 ditolak", "tolak"))}
+      <div class="sum-row">{seg([("Semua", False), ("Draf", True), ("Diulas", False)])}
+        <span class="mu">Hanya dari temuan di chart.</span></div>
+      {fold("Odontogram 26", od_body, hint=hl("26 karies O, M"))}
+      {pending}
+      {fold("2 sudah diulas", reviewed)}
     </div>"""
-    frame = desk(body, "Saran tindakan", "Budi Santoso · Gigi 26", "RM", "Nadia Putri", "dokter")
+    frame = desk(
+        body,
+        "Saran tindakan",
+        "Budi Santoso · Gigi 26",
+        "RM",
+        "Nadia Putri",
+        "dokter",
+        dock_html=dock(btn("Setujui semua", "pri", "check")),
+    )
     return ab(
         "03",
         "AI saran tindakan dari odontogram",
-        "Status per saran: Draf, Disetujui, atau Ditolak. Setujui atau Tolak per item, atau Setujui semua. Sitasi merujuk temuan di chart atau catatan.",
+        "Saran tetap draf sampai Setujui. Chart dilipat; temuan sumber tetap terlihat. Setujui semua menempel di bawah.",
         frame,
     )
 
@@ -702,22 +826,22 @@ def ab11() -> str:
         kind="ICD-9-CM",
         popover=f'{hl("Restorasi komposit 26.")} Edukasi kebersihan. Kontrol 7 hari.',
     )
+    legend = (
+        chip("Draf", "draf")
+        + chip("Disetujui", "ok")
+        + chip("Ditolak", "tolak")
+        + chip("Perlu konfirmasi", "konfirm")
+        + chip("Menunggu", "tunggu")
+        + chip("Sedang dirawat", "rawat")
+        + chip("Belum bayar", "bayar")
+        + chip("Selesai", "ok")
+        + chip("Peringatan medis", "med")
+    )
     body = f"""
-    <div class="desk-body">
-      <div class="split-5" style="flex:1">
-        <div class="scroll-col">
-          <div class="kicker">Catatan · kalimat sumber</div>
-          {soap_block("P")}
-        </div>
-        <div class="scroll-col">
-          <article class="card">
-            <h3>Status dan sitasi</h3>
-            <div class="legend">{chip("Draf", "draf")} {chip("Disetujui", "ok")} {chip("Ditolak", "tolak")}</div>
-            {desk_item}
-            <p class="mu" style="margin:10px 0 0">Ketuk chip sitasi. Popover menampilkan kalimat yang ditandai di catatan.</p>
-          </article>
-        </div>
-      </div>
+    <div class="desk-body col">
+      <div class="legend">{legend}</div>
+      {fold("Catatan SOAP", soap_block("P"), open_=True, hint="Kalimat sumber ditandai.")}
+      {desk_item}
     </div>"""
     frame = desk(
         body,
@@ -726,26 +850,28 @@ def ab11() -> str:
         "RM",
         "Nadia Putri",
         "dokter",
+        dock_html=dock(btn("Setujui", "pri", "check")),
     )
     sheet = f"""
     <div class="sheet" role="dialog" aria-label="Kalimat sumber">
       <div class="grab" aria-hidden="true"></div>
-      <h3>Sumber · Ucapan <button class="icon-btn" type="button" aria-label="Tutup">{ico("x")}</button></h3>
+      <div class="sheet-hd">
+        <h3>Sumber · Ucapan</h3>
+        <button class="icon-btn" type="button" aria-label="Tutup">{ico("x")}</button>
+      </div>
       <div class="src">Nyeri gigit kiri atas tiga hari, {hl("gigi 26 karies dentin")}, tambal komposit, kontrol tujuh hari, tidak alergi.</div>
+      <div class="sheet-ft">{btn("Tutup", "ghost")}</div>
     </div>"""
     inner = f"""
-      <article class="card">
-        <h3>{ico("mic", "ic-sm")} Ucapan</h3>
-        <p class="note">Nyeri gigit kiri atas tiga hari, gigi 26 karies dentin, tambal komposit, kontrol tujuh hari, tidak alergi.</p>
-      </article>
+      {sum_row(chip("2 draf", "draf"))}
       {ai_item("A", "Karies dentin 26.", "draf", cite="Ucapan", cite_on=True)}
-      {ai_item("P", "Restorasi komposit 26. Kontrol 7 hari.", "draf", cite="Ucapan")}
+      {fold("1 item lain", ai_item("P", "Restorasi komposit 26. Kontrol 7 hari.", "draf", cite="Ucapan", compact=True))}
     """
-    ph = phone(inner, "Draf SOAP", 760, "RM", mic=True, pad_bottom=200, overlay=sheet)
+    ph = phone(inner, "Draf SOAP", None, "RM", mic=True, overlay=sheet)
     return ab(
         "11",
         "Status dan sitasi",
-        "Desktop: popover menampilkan kalimat sumber yang ditandai. HP: sheet dari bawah, kalimat yang sama ditandai di transkrip.",
+        "Chip status punya label dan ikon. Desktop: popover dengan anak panah. HP: laci dari bawah, pegangan, tutup, dan kalimat yang ditandai.",
         f'<div class="row">{frame}{ph}</div>',
     )
 
@@ -760,49 +886,29 @@ def ab04() -> str:
             </div>
             <div class="photo" aria-hidden="true"></div>
           </div>"""
-    body_scan = f"""
-    <div class="desk-body">
-      <div class="split" style="flex:1">
+    lampiran = f"""
+        <div class="kicker">Setelah daftar · RM BT-000214</div>
+        <div class="attach">
+          <span>{ico("id-card")}</span>
+          <div class="grow">
+            <div class="nm">KTP</div>
+            <div class="ds">15 Nov 2026 · hanya peran berizin · NIK ···· 4281</div>
+          </div>
+          {chip("Terenkripsi", "isi")}
+          {btn("Buka", "sec")}
+        </div>
+        <p class="mu">Peran tanpa izin tidak melihat lampiran ini.</p>"""
+    body = f"""
+    <div class="desk-body col">
+      {seg([("Daftar", True), ("Profil", False)])}
+      <div class="split">
         <article class="card">
           <h3>{ico("camera", "ic-sm")} Hasil pindai</h3>
           {ktp}
-          <p class="mu" style="margin:10px 0 0">Foto disimpan terenkripsi di profil setelah daftar. NIK tidak tampil penuh.</p>
+          {lampiran}
         </article>
         <article class="card">
-          <h3>Draf pasien baru</h3>
-          <div class="banner warn">{ico("lock", "ic-sm")}
-            NIK dienkripsi. Periksa kesesuaian dengan KTP fisik sebelum daftar.</div>
-          <div class="field"><span class="lab">Nama</span><div class="inp">Budi Santoso</div></div>
-          <div class="split" style="gap:10px">
-            <div class="field"><span class="lab">Lahir</span><div class="inp">12 Mar 1988</div></div>
-            <div class="field"><span class="lab">Kelamin</span><div class="inp">Laki-laki</div></div>
-          </div>
-          <div class="field"><span class="lab">Alamat</span><div class="inp">Tebet, Jakarta Selatan</div></div>
-          <div class="field"><span class="lab">NIK</span><div class="inp">{ico("lock", "ic-sm")} ···· 4281</div></div>
-          <div class="actions">
-            {btn("Batal", "ghost")}
-            {btn("Simpan draf", "sec")}
-            {btn("Verifikasi dan daftar", "pri", "check")}
-          </div>
-        </article>
-      </div>
-    </div>"""
-    scan = f"""
-    <div class="desk" style="height:auto">
-      {rail("Pasien", "resepsionis")}
-      <div class="desk-col">
-        <header class="top"><div><h2>Pasien baru · pindai KTP</h2>
-          <div class="crumb">Klinik Gigi Senyum Sehat · Tebet</div></div>
-          <div class="who">{syn()}{av("Sari Front", "fd")}<span>Sari Front Desk</span></div>
-        </header>
-        {body_scan}
-      </div>
-    </div>"""
-    body_prof = f"""
-    <div class="desk-body">
-      <div class="split" style="flex:1">
-        <article class="card">
-          <h3>Identitas</h3>
+          <h3>Apakah data sudah sesuai KTP fisik?</h3>
           <div class="field"><span class="lab">Nama</span><div class="inp">Budi Santoso</div></div>
           <div class="split" style="gap:10px">
             <div class="field"><span class="lab">Lahir</span><div class="inp">12 Mar 1988</div></div>
@@ -811,39 +917,22 @@ def ab04() -> str:
           <div class="field"><span class="lab">Alamat</span><div class="inp">Tebet, Jakarta Selatan</div></div>
           <div class="field"><span class="lab">NIK</span><div class="inp">{ico("lock", "ic-sm")} ···· 4281</div></div>
         </article>
-        <article class="card">
-          <h3>Lampiran {chip("Terenkripsi", "isi")}</h3>
-          <div class="attach">
-            <span>{ico("id-card")}</span>
-            <div class="grow">
-              <div class="nm">KTP</div>
-              <div class="ds">15 Nov 2026 · hanya peran berizin</div>
-            </div>
-            {chip("Terenkripsi", "isi")}
-            {btn("Buka", "pri")}
-          </div>
-          <p class="kicker" style="margin:14px 0 8px">Pratinjau · NIK tetap mask</p>
-          {ktp}
-          <p class="mu" style="margin:10px 0 0">Peran tanpa izin tidak melihat lampiran ini.</p>
-        </article>
       </div>
     </div>"""
-    prof = f"""
-    <div class="desk" style="height:auto;margin-top:16px">
-      {rail("Pasien", "resepsionis")}
-      <div class="desk-col">
-        <header class="top"><div><h2>Profil pasien</h2>
-          <div class="crumb">Budi Santoso · RM BT-000214</div></div>
-          <div class="who">{syn()}{av("Sari Front", "fd")}<span>Sari Front Desk</span></div>
-        </header>
-        {body_prof}
-      </div>
-    </div>"""
+    frame = desk(
+        body,
+        "Pasien baru · pindai KTP",
+        "Klinik Gigi Senyum Sehat · Tebet",
+        "Pasien",
+        "Sari Front Desk",
+        "resepsionis",
+        dock_html=dock(btn("Batal", "ghost"), btn("Verifikasi dan daftar", "pri", "check")),
+    )
     return ab(
         "04",
         "Pindai KTP dan lampiran profil",
-        "Identitas terisi otomatis sebagai draf. Setelah verifikasi, foto KTP disimpan terenkripsi di profil. Hanya peran berizin yang dapat membuka. Peran lain tidak melihat lampiran. NIK tetap mask, termasuk di pratinjau.",
-        f'<div class="pair">{scan}{prof}</div>',
+        "Satu layar: pindai, cek data, lalu Verifikasi dan daftar di bilah bawah. Setelah daftar, foto KTP jadi lampiran terenkripsi. Hanya peran berizin yang melihat. NIK tetap mask.",
+        frame,
     )
 
 
@@ -862,7 +951,7 @@ def ab05() -> str:
       <article class="card">
         <h3>Frasa cepat</h3>
         <div class="phrases">{chips}</div>
-        <p class="mu" style="margin:10px 0 0">Satu ketuk mengisi atau menambah kolom SOAP. Boleh diubah setelahnya.</p>
+        <p class="mu">Satu ketuk mengisi kolom SOAP. Boleh diubah setelahnya.</p>
       </article>
       <div class="split">
         <article class="card">
@@ -879,24 +968,29 @@ def ab05() -> str:
         </article>
       </div>
     </div>"""
-    frame_d = desk(desk_body, "SOAP · frasa cepat", "Budi Santoso", "RM", "Nadia Putri", "dokter")
+    frame_d = desk(
+        desk_body,
+        "SOAP · frasa cepat",
+        "Budi Santoso",
+        "RM",
+        "Nadia Putri",
+        "dokter",
+        dock_html=dock(btn("Simpan", "pri", "check")),
+    )
     ph_inner = f"""
       <div class="phrases">{chips}</div>
+      {fold("S dan O", "<div class=\"field\"><span class=\"lab\">S</span><div class=\"inp area\">Nyeri gigit di rahang kiri atas. Tidak alergi obat.</div></div><div class=\"field\"><span class=\"lab\">O</span><div class=\"inp area\">Gigi 26 karies dentin O, M.</div></div>", hint="Terisi dari frasa.")}
       <article class="card">
-        <div class="field"><span class="lab">S</span><div class="inp area">Nyeri gigit di rahang kiri atas. Tidak alergi obat.</div></div>
-        <div class="field"><span class="lab">O</span><div class="inp area">Gigi 26 karies dentin O, M.</div></div>
         <div class="field"><span class="lab">A</span><div class="inp area">Karies dentin 26.</div></div>
         <div class="field"><span class="lab">P</span><div class="inp area">Restorasi komposit 26. Kontrol 7 hari.</div></div>
       </article>
-      {btn("Simpan", "pri")}
     """
-    ph = phone(ph_inner, "SOAP", 800, "RM")
-    body = f'<div class="row">{frame_d}{ph}</div>'
+    ph = phone(ph_inner, "SOAP", None, "RM", dock_html=dock(btn("Simpan", "pri")))
     return ab(
         "05",
         "Frasa cepat SOAP",
-        "KlinikMe punya SOAP dan CPPT, frasa cepat tidak terverifikasi. Bittodent belum punya makro. Satu ketuk mengisi kolom, dokter tetap bisa mengubah.",
-        body,
+        "Satu ketuk mengisi kolom. Di HP, S dan O dilipat supaya A dan P serta Simpan terlihat dulu.",
+        f'<div class="row">{frame_d}{ph}</div>',
     )
 
 
@@ -921,34 +1015,39 @@ def ab06() -> str:
         </article>
         <article class="card">
           <h3>Gigi 26 {chip("Karies", "karies")}</h3>
-          <div class="lab" style="margin-bottom:6px">Permukaan</div>
+          <div class="lab">Permukaan</div>
           <div class="surf">{surf}</div>
-          <div class="lab" style="margin:12px 0 6px">Kondisi</div>
+          <div class="lab">Kondisi</div>
           <div class="phrases">{cond}</div>
-          <div class="actions">
-            {btn("Batal", "ghost")}
-            {btn("Simpan 26", "pri", "check")}
-          </div>
         </article>
       </div>
     </div>"""
-    frame = desk(body, "Odontogram cepat", "Budi Santoso", "RM", "Nadia Putri", "dokter")
+    frame = desk(
+        body,
+        "Odontogram cepat",
+        "Budi Santoso",
+        "RM",
+        "Nadia Putri",
+        "dokter",
+        dock_html=dock(btn("Batal", "ghost"), btn("Simpan 26", "pri", "check")),
+    )
     return ab(
         "06",
         "Input odontogram cepat",
-        "KlinikMe sudah memasarkan odontogram interaktif. Bittodent punya 2D dan 3D; alur ketuk cepat (gigi, permukaan, kondisi) masih perlu diperketat agar setara dalam kecepatan catat.",
+        "Ketuk gigi, permukaan, dan kondisi. Simpan 26 menempel di bawah. Tanpa ketik panjang.",
         frame,
     )
 
 
 def ab07() -> str:
-    item = lambda n, d, draf=True: f"""
+    def item(n, d, draf=True):
+        return f"""
       <div class="rx">
         <div><div class="nm">{n}</div><div class="ds">{d}</div></div>
         {chip("Draf", "draf") if draf else chip("Disetujui", "ok")}
       </div>"""
     inner = f"""
-      <div class="banner warn">{ico("alert", "ic-sm")} AI tidak meresepkan. Dokter memilih template, lalu Setujui dan Selesai.</div>
+      <div class="banner warn">{ico("alert", "ic-sm")} AI tidak meresepkan. Pilih template, lalu Setujui.</div>
       <article class="card">
         <h3>Template cepat</h3>
         <div class="phrases">
@@ -961,18 +1060,14 @@ def ab07() -> str:
         <h3>Resep {chip("Draf", "draf")}</h3>
         {item("Amoksisilin 500 mg", "3x1, 5 hari, sesudah makan")}
         {item("Ibuprofen 400 mg", "3x1, bila nyeri")}
-        <div class="actions">
-          {btn("Cetak", "ghost", "printer")}
-          {btn("Setujui", "pri", "check")}
-        </div>
-        <p class="mu" style="margin:10px 0 0">Selesai (tanda tangan) setelah Setujui. MVP tetap bisa cetak kertas.</p>
+        <p class="mu">Cetak ada di Lainnya. Selesai setelah Setujui.</p>
       </article>
     """
-    ph = phone(inner, "Resep", 760, "RM")
+    ph = phone(inner, "Resep", None, "RM", dock_html=dock(btn("Setujui", "pri", "check")))
     return ab(
         "07",
         "e-resep cepat",
-        "KlinikMe menyebut e-resep di FAQ; kedalaman UX tidak terverifikasi. Bittodent masih kerangka, MVP resep kertas (D-036). Template obat gigi, draf sampai Setujui. AI tidak mengisi resep.",
+        "Template obat gigi, draf sampai Setujui. AI tidak mengisi resep. Satu aksi utama di bilah bawah.",
         ph,
     )
 
@@ -997,19 +1092,23 @@ def ab08() -> str:
           <h3>Tanda tangan pasien</h3>
           <div class="field"><span class="lab">Penandatangan</span><div class="inp">Budi Santoso · pasien</div></div>
           {sig}
-          <div class="mu" style="margin:8px 0">Hash dokumen akan disimpan. Bukan TTE tersertifikasi.</div>
-          <div class="actions">
-            {btn("Ulangi", "ghost")}
-            {btn("Setujui dan simpan", "pri", "stamp")}
-          </div>
+          <p class="mu">Hash dokumen akan disimpan. Bukan TTE tersertifikasi. Ulangi ada di Lainnya.</p>
         </article>
       </div>
     </div>"""
-    frame = desk(body, "Informed consent", "Budi Santoso · gigi 38", "RM", "Nadia Putri", "dokter")
+    frame = desk(
+        body,
+        "Informed consent",
+        "Budi Santoso · gigi 38",
+        "RM",
+        "Nadia Putri",
+        "dokter",
+        dock_html=dock(btn("Setujui dan simpan", "pri", "stamp")),
+    )
     return ab(
         "08",
         "Informed consent digital",
-        "KlinikMe sudah menandatangani formulir secara digital. Bittodent punya rekam consent (D-012), alur pad tanda tangan belum. Wali wajib jika pasien anak. Fitur tanpa izin disembunyikan.",
+        "Satu aksi utama di bilah bawah. Wali wajib jika pasien anak. Fitur tanpa izin disembunyikan.",
         frame,
     )
 
@@ -1021,49 +1120,54 @@ def ab09() -> str:
         <article class="card">
           <h3>Gigi 26</h3>
           {odonto("26")}
-          <p class="mu" style="margin:10px 0 0">Foto menempel pada nomor gigi dan kunjungan, bukan galeri wajah.</p>
+          <p class="mu">Foto menempel pada nomor gigi dan kunjungan, bukan galeri wajah.</p>
         </article>
         <article class="card">
           <h3>Sebelum dan sesudah {chip("26", "isi")}</h3>
           <div class="ba">
             <div class="well has">{ico("image", "ic-lg")}<span>Sebelum · 15 Nov 2026</span><span class="mu">Karies O, M</span></div>
-            <div class="well">{ico("camera", "ic-lg")}<span>Sesudah</span><span class="mu">Ambil atau unggah setelah restorasi</span></div>
-          </div>
-          <div class="actions">
-            {btn("Ambil foto sesudah", "pri", "camera")}
+            <div class="well">{ico("camera", "ic-lg")}<span>Sesudah</span><span class="mu">Ambil setelah restorasi</span></div>
           </div>
         </article>
       </div>
     </div>"""
-    frame = desk(body, "Foto per gigi", "Budi Santoso · kunjungan hari ini", "RM", "Nadia Putri", "dokter")
+    frame = desk(
+        body,
+        "Foto per gigi",
+        "Budi Santoso · kunjungan hari ini",
+        "RM",
+        "Nadia Putri",
+        "dokter",
+        dock_html=dock(btn("Ambil foto sesudah", "pri", "camera")),
+    )
     return ab(
         "09",
         "Foto before-after per gigi",
-        "KlinikMe punya Preview Before-After; visual pemasaran di /produk berupa wajah, dan teks pendukung juga membingkai klinik kecantikan. Per gigi tidak terverifikasi. Bittodent belum punya. Usulan: foto di nomor gigi.",
+        "Foto di nomor gigi. Ambil foto sesudah menempel di bawah.",
         frame,
     )
 
 
 def ab10() -> str:
     data = [
-        ("Scan KTP", "Ada", "ada", "Sebagian", "sebagian",
-         "Pindai ke draf, NIK mask, verifikasi resepsionis. Foto KTP disimpan terenkripsi di profil, hanya peran berizin yang dapat membuka."),
-        ("Saran ICD dari catatan", "Sebagian", "sebagian", "Sebagian", "sebagian",
-         "Saran Draf dari catatan, Setujui, lalu Selesai. KlinikMe: pencarian dan standarisasi; saran dari SOAP tidak terverifikasi."),
-        ("Draf SOAP dari suara", "Belum", "belum", "Sebagian", "sebagian",
-         "Scribe merapikan ucapan. Mikrofon selalu ada untuk dokter. Audio hapus setelah Selesai."),
-        ("Saran tindakan dari odontogram", "Belum", "belum", "Belum", "belum",
-         "Saran dari temuan di chart, Draf sampai Setujui, lalu Selesai."),
+        ("Scribe suara ke SOAP", "Belum", "belum", "Sebagian", "sebagian",
+         "Draf dari ucapan, tanpa izin rekam pasien. Audio dihapus setelah Selesai."),
+        ("AI ICD dari catatan", "Sebagian", "sebagian", "Belum", "belum",
+         "Saran draf, sitasi sumber, Setujui per item lalu Selesai."),
+        ("AI saran tindakan", "Belum", "belum", "Belum", "belum",
+         "Dari odontogram, tetap draf sampai Setujui."),
+        ("Pindai KTP", "Ada", "ada", "Sebagian", "sebagian",
+         "Foto tersimpan terenkripsi, akses terbatas, NIK mask."),
         ("Frasa cepat SOAP", "Belum", "belum", "Belum", "belum",
-         "Satu ketuk mengisi kolom SOAP."),
+         "Satu ketuk mengisi kolom, dokter bisa ubah."),
         ("Odontogram cepat", "Ada", "ada", "Sebagian", "sebagian",
-         "Ketuk gigi, permukaan, kondisi. 2D dan 3D Bittodent sudah ada."),
-        ("e-resep cepat", "Sebagian", "sebagian", "Sebagian", "sebagian",
-         "Template obat, Draf sampai Setujui. AI tidak meresepkan. KlinikMe hanya disebut di FAQ."),
+         "Ketuk gigi, permukaan, kondisi."),
+        ("e-resep template", "Sebagian", "sebagian", "Sebagian", "sebagian",
+         "Template obat, Draf sampai Setujui. AI tidak meresepkan."),
         ("Consent tanda tangan", "Ada", "ada", "Sebagian", "sebagian",
          "Pad tablet, hash dokumen, wali jika anak."),
         ("Foto before-after per gigi", "Sebagian", "sebagian", "Belum", "belum",
-         "KlinikMe: galeri umum, per gigi tidak terverifikasi. Usulan: foto di nomor gigi."),
+         "Foto menempel di nomor gigi."),
     ]
     rows = []
     for feat, km, kms, bt, bts, use in data:
@@ -1073,15 +1177,13 @@ def ab10() -> str:
             )
         )
     table = """
-    <div class="desk" style="height:auto;min-height:720px;width:1280px;display:block;padding:20px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <div class="desk" style="height:auto;width:1280px;display:block;padding:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:12px">
         <div><h2 style="margin:0;font-size:16px">Ringkasan gap · klinik gigi</h2>
           <div class="crumb">Sumber publik KlinikMe, 15 Nov 2026, WIB. Bittodent dari repo dan papan.</div></div>
         {syn}
       </div>
-      <div class="legend">{leg}
-        <span>Yang tidak terverifikasi dari halaman publik dicatat di usulan.</span>
-      </div>
+      <div class="legend" style="margin-bottom:12px">{leg}</div>
       <table class="gap">
         <thead><tr><th>Fitur</th><th>KlinikMe</th><th>Bittodent</th><th>Usulan</th></tr></thead>
         <tbody>{rows}</tbody>
