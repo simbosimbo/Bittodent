@@ -169,6 +169,7 @@ h1.page{font-size:28px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px;colo
 .ab-t{font-size:16px;font-weight:650;color:var(--color-neutral-800)}
 .ab-d{font-size:12px;font-weight:500;color:var(--color-neutral-500);margin:0 0 14px;max-width:820px;line-height:1.45}
 .row{display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap}
+.pair{display:flex;flex-direction:column;gap:0}
 
 .ic{width:20px;height:20px;flex:none}
 .ic-btn{width:16px;height:16px}
@@ -310,8 +311,12 @@ h1.page{font-size:28px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px;colo
 .well.has{border-style:solid;background:#E8F0E9;color:var(--color-primary-900);border-color:var(--color-primary-200)}
 .well .ic{width:28px;height:28px}
 
-.rx{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;
+.rx,.attach{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;
   border:1px solid var(--color-neutral-200);border-radius:14px;background:#fff}
+.attach{gap:10px}
+.attach .grow{flex:1;min-width:0}
+.attach .nm{font-size:13px;font-weight:700}
+.attach .ds{font-size:12px;font-weight:500;color:var(--color-neutral-500)}
 .rx .nm{font-size:13px;font-weight:700}
 .rx .ds{font-size:12px;font-weight:500;color:var(--color-neutral-500)}
 
@@ -397,17 +402,22 @@ def bnav(active: str = "RM") -> str:
     return f'<nav class="bnav">{"".join(out)}</nav>'
 
 
-def phone(inner: str, title: str, height: int = 800, nav: str = "RM", back: bool = True) -> str:
+def phone(inner: str, title: str, height: int = 800, nav: str = "RM", back: bool = True, mic: bool = False) -> str:
     left = (
         f'<button class="icon-btn" type="button" aria-label="Kembali">{ico("chevron-left")}</button>'
         if back
+        else ""
+    )
+    mic_btn = (
+        f'<button class="icon-btn" type="button" aria-label="Rekam">{ico("mic")}</button>'
+        if mic
         else ""
     )
     return f"""
     <div class="ph" style="height:{height}px">
       <div class="ph-bar">{syn()}<span class="ph-time">09.40</span></div>
       <header class="hd">{left}<h1 class="h-sm">{title}</h1>
-        <button class="icon-btn" type="button" aria-label="Lainnya">{ico("more")}</button></header>
+        {mic_btn}<button class="icon-btn" type="button" aria-label="Lainnya">{ico("more")}</button></header>
       <div class="ph-body">{inner}</div>
       {bnav(nav)}
     </div>"""
@@ -514,7 +524,6 @@ def ab01() -> str:
 
 def ab02() -> str:
     inner = f"""
-      <div class="banner ok">{ico("shield", "ic-sm")} Izin rekam pasien ada. Audio dihapus setelah Selesai.</div>
       <article class="card">
         <h3>{ico("mic", "ic-sm")} Ucapan {chip("Draf AI", "ai")}</h3>
         <p class="note">Nyeri gigit kiri atas tiga hari, gigi 26 karies dentin, tambal komposit, kontrol tujuh hari, tidak alergi.</p>
@@ -529,13 +538,13 @@ def ab02() -> str:
         {btn("Ubah", "ghost")}
         {btn("Setujui draf", "pri", "check")}
       </div>
-      <p class="mu">AI hanya merapikan yang diucapkan. Tidak menambah diagnosis atau obat.</p>
+      <p class="mu">AI hanya merapikan yang diucapkan. Tidak menambah diagnosis atau obat. Audio dihapus setelah Selesai.</p>
     """
-    ph = phone(inner, "Draf SOAP", 840, "RM")
+    ph = phone(inner, "Draf SOAP", 840, "RM", mic=True)
     return ab(
         "02",
         "AI draf SOAP dari suara",
-        "Agen Scribe merapikan ucapan jadi SOAP. Selalu Draf. Dokter boleh ubah, lalu Setujui, kemudian Selesai. Tanpa izin rekam, tombol mikrofon tidak ditampilkan.",
+        "Agen Scribe merapikan ucapan jadi SOAP. Mikrofon selalu ada untuk dokter. Hasil selalu Draf sampai Setujui, lalu Selesai. Audio dihapus setelah Selesai.",
         ph,
     )
 
@@ -567,18 +576,13 @@ def ab03() -> str:
     return ab(
         "03",
         "AI saran tindakan dari odontogram",
-        "Usulan Bittodent. Tidak ada bukti publik KlinikMe punya fitur ini. Saran tetap Draf sampai Setujui. AI tidak menambah temuan yang tidak ada di chart.",
+        "Saran dari temuan di odontogram, selalu Draf sampai dokter Setujui, lalu Selesai. AI tidak menambah temuan yang tidak ada di chart.",
         frame,
     )
 
 
 def ab04() -> str:
-    # desk() always prefixes drg. For receptionist that's wrong. I'll special-case in a local frame.
-    body_inner = f"""
-    <div class="desk-body">
-      <div class="split" style="flex:1">
-        <article class="card">
-          <h3>{ico("camera", "ic-sm")} Hasil pindai</h3>
+    ktp = """
           <div class="ktp">
             <div class="idlab">KTP · DATA SINTETIS</div>
             <div>
@@ -586,8 +590,14 @@ def ab04() -> str:
               <div class="meta">Tebet, Jakarta Selatan<br/>NIK berakhir 4281</div>
             </div>
             <div class="photo" aria-hidden="true"></div>
-          </div>
-          <p class="mu" style="margin:10px 0 0">Foto dipakai untuk isi draf. NIK tidak tampil penuh.</p>
+          </div>"""
+    body_scan = f"""
+    <div class="desk-body">
+      <div class="split" style="flex:1">
+        <article class="card">
+          <h3>{ico("camera", "ic-sm")} Hasil pindai</h3>
+          {ktp}
+          <p class="mu" style="margin:10px 0 0">Foto disimpan terenkripsi di profil setelah daftar. NIK tidak tampil penuh.</p>
         </article>
         <article class="card">
           <h3>Draf pasien baru</h3>
@@ -608,8 +618,7 @@ def ab04() -> str:
         </article>
       </div>
     </div>"""
-    # custom topbar for receptionist without drg. prefix
-    frame = f"""
+    scan = f"""
     <div class="desk" style="height:auto">
       {rail("Pasien", "resepsionis")}
       <div class="desk-col">
@@ -617,14 +626,55 @@ def ab04() -> str:
           <div class="crumb">Klinik Gigi Senyum Sehat · Tebet</div></div>
           <div class="who">{syn()}{av("Sari Front", "fd")}<span>Sari Front Desk</span></div>
         </header>
-        {body_inner}
+        {body_scan}
+      </div>
+    </div>"""
+    body_prof = f"""
+    <div class="desk-body">
+      <div class="split" style="flex:1">
+        <article class="card">
+          <h3>Identitas</h3>
+          <div class="field"><span class="lab">Nama</span><div class="inp">Budi Santoso</div></div>
+          <div class="split" style="gap:10px">
+            <div class="field"><span class="lab">Lahir</span><div class="inp">12 Mar 1988</div></div>
+            <div class="field"><span class="lab">Kelamin</span><div class="inp">Laki-laki</div></div>
+          </div>
+          <div class="field"><span class="lab">Alamat</span><div class="inp">Tebet, Jakarta Selatan</div></div>
+          <div class="field"><span class="lab">NIK</span><div class="inp">{ico("lock", "ic-sm")} ···· 4281</div></div>
+        </article>
+        <article class="card">
+          <h3>Lampiran {chip("Terenkripsi", "isi")}</h3>
+          <div class="attach">
+            <span>{ico("id-card")}</span>
+            <div class="grow">
+              <div class="nm">KTP</div>
+              <div class="ds">15 Nov 2026 · hanya peran berizin</div>
+            </div>
+            {chip("Terenkripsi", "isi")}
+            {btn("Buka", "pri")}
+          </div>
+          <p class="kicker" style="margin:14px 0 8px">Pratinjau · NIK tetap mask</p>
+          {ktp}
+          <p class="mu" style="margin:10px 0 0">Peran tanpa izin tidak melihat lampiran ini.</p>
+        </article>
+      </div>
+    </div>"""
+    prof = f"""
+    <div class="desk" style="height:auto;margin-top:16px">
+      {rail("Pasien", "resepsionis")}
+      <div class="desk-col">
+        <header class="top"><div><h2>Profil pasien</h2>
+          <div class="crumb">Budi Santoso · RM BT-000214</div></div>
+          <div class="who">{syn()}{av("Sari Front", "fd")}<span>Sari Front Desk</span></div>
+        </header>
+        {body_prof}
       </div>
     </div>"""
     return ab(
         "04",
-        "Pindai KTP pasien baru",
-        "Identitas terisi otomatis sebagai draf. Resepsionis memverifikasi. NIK hanya mask. Nomor RM belum final sebelum Verifikasi dan daftar.",
-        frame,
+        "Pindai KTP dan lampiran profil",
+        "Identitas terisi otomatis sebagai draf. Setelah verifikasi, foto KTP disimpan terenkripsi di profil. Hanya peran berizin yang dapat membuka. Peran lain tidak melihat lampiran. NIK tetap mask, termasuk di pratinjau.",
+        f'<div class="pair">{scan}{prof}</div>',
     )
 
 
@@ -828,13 +878,13 @@ def ab09() -> str:
 def ab10() -> str:
     data = [
         ("Scan KTP", "Ada", "ada", "Sebagian", "sebagian",
-         "Pindai ke draf, NIK mask, verifikasi resepsionis."),
+         "Pindai ke draf, NIK mask, verifikasi resepsionis. Foto KTP disimpan terenkripsi di profil, hanya peran berizin yang dapat membuka."),
         ("Saran ICD dari catatan", "Sebagian", "sebagian", "Sebagian", "sebagian",
          "Saran Draf dari catatan, Setujui, lalu Selesai. KlinikMe: pencarian dan standarisasi; saran dari SOAP tidak terverifikasi."),
         ("Draf SOAP dari suara", "Belum", "belum", "Sebagian", "sebagian",
-         "Scribe merapikan ucapan. Izin rekam. Audio hapus setelah Selesai."),
+         "Scribe merapikan ucapan. Mikrofon selalu ada untuk dokter. Audio hapus setelah Selesai."),
         ("Saran tindakan dari odontogram", "Belum", "belum", "Belum", "belum",
-         "Saran dari temuan di chart, Draf sampai Setujui."),
+         "Saran dari temuan di chart, Draf sampai Setujui, lalu Selesai."),
         ("Frasa cepat SOAP", "Belum", "belum", "Belum", "belum",
          "Satu ketuk mengisi kolom SOAP."),
         ("Odontogram cepat", "Ada", "ada", "Sebagian", "sebagian",

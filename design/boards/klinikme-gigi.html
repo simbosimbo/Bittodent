@@ -268,6 +268,7 @@ h1.page{font-size:28px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px;colo
 .ab-t{font-size:16px;font-weight:650;color:var(--color-neutral-800)}
 .ab-d{font-size:12px;font-weight:500;color:var(--color-neutral-500);margin:0 0 14px;max-width:820px;line-height:1.45}
 .row{display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap}
+.pair{display:flex;flex-direction:column;gap:0}
 
 .ic{width:20px;height:20px;flex:none}
 .ic-btn{width:16px;height:16px}
@@ -409,8 +410,12 @@ h1.page{font-size:28px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px;colo
 .well.has{border-style:solid;background:#E8F0E9;color:var(--color-primary-900);border-color:var(--color-primary-200)}
 .well .ic{width:28px;height:28px}
 
-.rx{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;
+.rx,.attach{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;
   border:1px solid var(--color-neutral-200);border-radius:14px;background:#fff}
+.attach{gap:10px}
+.attach .grow{flex:1;min-width:0}
+.attach .nm{font-size:13px;font-weight:700}
+.attach .ds{font-size:12px;font-weight:500;color:var(--color-neutral-500)}
 .rx .nm{font-size:13px;font-weight:700}
 .rx .ds{font-size:12px;font-weight:500;color:var(--color-neutral-500)}
 
@@ -508,14 +513,13 @@ figcaption{font-size:12px;font-weight:600;color:var(--color-neutral-500);margin-
     </section>
     <section class="ab" id="ab-02">
       <div class="ab-k"><span class="ab-n">02</span><span class="ab-t">AI draf SOAP dari suara</span></div>
-      <p class="ab-d">Agen Scribe merapikan ucapan jadi SOAP. Selalu Draf. Dokter boleh ubah, lalu Setujui, kemudian Selesai. Tanpa izin rekam, tombol mikrofon tidak ditampilkan.</p>
+      <p class="ab-d">Agen Scribe merapikan ucapan jadi SOAP. Mikrofon selalu ada untuk dokter. Hasil selalu Draf sampai Setujui, lalu Selesai. Audio dihapus setelah Selesai.</p>
       
     <div class="ph" style="height:840px">
       <div class="ph-bar"><span class="syn">DATA SINTETIS</span><span class="ph-time">09.40</span></div>
       <header class="hd"><button class="icon-btn" type="button" aria-label="Kembali"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button><h1 class="h-sm">Draf SOAP</h1>
-        <button class="icon-btn" type="button" aria-label="Lainnya"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg></button></header>
+        <button class="icon-btn" type="button" aria-label="Rekam"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg></button><button class="icon-btn" type="button" aria-label="Lainnya"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg></button></header>
       <div class="ph-body">
-      <div class="banner ok"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 5 6v6c0 5 3.5 8 7 9 3.5-1 7-4 7-9V6z"/><path d="M9 12l2 2 4-4"/></svg> Izin rekam pasien ada. Audio dihapus setelah Selesai.</div>
       <article class="card">
         <h3><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg> Ucapan <span class="chip st-ai">Draf AI</span></h3>
         <p class="note">Nyeri gigit kiri atas tiga hari, gigi 26 karies dentin, tambal komposit, kontrol tujuh hari, tidak alergi.</p>
@@ -530,14 +534,14 @@ figcaption{font-size:12px;font-weight:600;color:var(--color-neutral-500);margin-
         <button class="btn ghost" type="button">Ubah</button>
         <button class="btn pri" type="button"><svg class="ic-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Setujui draf</button>
       </div>
-      <p class="mu">AI hanya merapikan yang diucapkan. Tidak menambah diagnosis atau obat.</p>
+      <p class="mu">AI hanya merapikan yang diucapkan. Tidak menambah diagnosis atau obat. Audio dihapus setelah Selesai.</p>
     </div>
       <nav class="bnav"><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><span>Beranda</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Jadwal</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Pasien</span></button><button class="navi on" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg><span>Rekam Medis</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg><span>Lainnya</span></button></nav>
     </div>
     </section>
     <section class="ab" id="ab-03">
       <div class="ab-k"><span class="ab-n">03</span><span class="ab-t">AI saran tindakan dari odontogram</span></div>
-      <p class="ab-d">Usulan Bittodent. Tidak ada bukti publik KlinikMe punya fitur ini. Saran tetap Draf sampai Setujui. AI tidak menambah temuan yang tidak ada di chart.</p>
+      <p class="ab-d">Saran dari temuan di odontogram, selalu Draf sampai dokter Setujui, lalu Selesai. AI tidak menambah temuan yang tidak ada di chart.</p>
       
     <div class="desk" style="height:auto">
       <aside class="rail"><div class="logo"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg></div><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg>Beranda</button><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Jadwal</button><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Pasien</button><button class="rbtn on" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg>RM</button><span class="rspacer"></span><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg>Lainnya</button></aside>
@@ -600,9 +604,9 @@ figcaption{font-size:12px;font-weight:600;color:var(--color-neutral-500);margin-
     </div>
     </section>
     <section class="ab" id="ab-04">
-      <div class="ab-k"><span class="ab-n">04</span><span class="ab-t">Pindai KTP pasien baru</span></div>
-      <p class="ab-d">Identitas terisi otomatis sebagai draf. Resepsionis memverifikasi. NIK hanya mask. Nomor RM belum final sebelum Verifikasi dan daftar.</p>
-      
+      <div class="ab-k"><span class="ab-n">04</span><span class="ab-t">Pindai KTP dan lampiran profil</span></div>
+      <p class="ab-d">Identitas terisi otomatis sebagai draf. Setelah verifikasi, foto KTP disimpan terenkripsi di profil. Hanya peran berizin yang dapat membuka. Peran lain tidak melihat lampiran. NIK tetap mask, termasuk di pratinjau.</p>
+      <div class="pair">
     <div class="desk" style="height:auto">
       <aside class="rail"><div class="logo"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg></div><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg>Beranda</button><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Jadwal</button><button class="rbtn on" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Pasien</button><span class="rspacer"></span><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg>Lainnya</button></aside>
       <div class="desk-col">
@@ -615,6 +619,7 @@ figcaption{font-size:12px;font-weight:600;color:var(--color-neutral-500);margin-
       <div class="split" style="flex:1">
         <article class="card">
           <h3><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Hasil pindai</h3>
+          
           <div class="ktp">
             <div class="idlab">KTP · DATA SINTETIS</div>
             <div>
@@ -623,7 +628,7 @@ figcaption{font-size:12px;font-weight:600;color:var(--color-neutral-500);margin-
             </div>
             <div class="photo" aria-hidden="true"></div>
           </div>
-          <p class="mu" style="margin:10px 0 0">Foto dipakai untuk isi draf. NIK tidak tampil penuh.</p>
+          <p class="mu" style="margin:10px 0 0">Foto disimpan terenkripsi di profil setelah daftar. NIK tidak tampil penuh.</p>
         </article>
         <article class="card">
           <h3>Draf pasien baru</h3>
@@ -646,6 +651,53 @@ figcaption{font-size:12px;font-weight:600;color:var(--color-neutral-500);margin-
     </div>
       </div>
     </div>
+    <div class="desk" style="height:auto;margin-top:16px">
+      <aside class="rail"><div class="logo"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg></div><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg>Beranda</button><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Jadwal</button><button class="rbtn on" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Pasien</button><span class="rspacer"></span><button class="rbtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg>Lainnya</button></aside>
+      <div class="desk-col">
+        <header class="top"><div><h2>Profil pasien</h2>
+          <div class="crumb">Budi Santoso · RM BT-000214</div></div>
+          <div class="who"><span class="syn">DATA SINTETIS</span><span class="av av-fd" aria-hidden="true">SF</span><span>Sari Front Desk</span></div>
+        </header>
+        
+    <div class="desk-body">
+      <div class="split" style="flex:1">
+        <article class="card">
+          <h3>Identitas</h3>
+          <div class="field"><span class="lab">Nama</span><div class="inp">Budi Santoso</div></div>
+          <div class="split" style="gap:10px">
+            <div class="field"><span class="lab">Lahir</span><div class="inp">12 Mar 1988</div></div>
+            <div class="field"><span class="lab">Kelamin</span><div class="inp">Laki-laki</div></div>
+          </div>
+          <div class="field"><span class="lab">Alamat</span><div class="inp">Tebet, Jakarta Selatan</div></div>
+          <div class="field"><span class="lab">NIK</span><div class="inp"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> ···· 4281</div></div>
+        </article>
+        <article class="card">
+          <h3>Lampiran <span class="chip st-isi">Terenkripsi</span></h3>
+          <div class="attach">
+            <span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="8" cy="12" r="2"/><path d="M13 10h5M13 14h5"/></svg></span>
+            <div class="grow">
+              <div class="nm">KTP</div>
+              <div class="ds">15 Nov 2026 · hanya peran berizin</div>
+            </div>
+            <span class="chip st-isi">Terenkripsi</span>
+            <button class="btn pri" type="button">Buka</button>
+          </div>
+          <p class="kicker" style="margin:14px 0 8px">Pratinjau · NIK tetap mask</p>
+          
+          <div class="ktp">
+            <div class="idlab">KTP · DATA SINTETIS</div>
+            <div>
+              <div class="who">BUDI SANTOSO</div>
+              <div class="meta">Tebet, Jakarta Selatan<br/>NIK berakhir 4281</div>
+            </div>
+            <div class="photo" aria-hidden="true"></div>
+          </div>
+          <p class="mu" style="margin:10px 0 0">Peran tanpa izin tidak melihat lampiran ini.</p>
+        </article>
+      </div>
+    </div>
+      </div>
+    </div></div>
     </section>
     <section class="ab" id="ab-05">
       <div class="ab-k"><span class="ab-n">05</span><span class="ab-t">Frasa cepat SOAP</span></div>
@@ -870,7 +922,7 @@ figcaption{font-size:12px;font-weight:600;color:var(--color-neutral-500);margin-
       </div>
       <table class="gap">
         <thead><tr><th>Fitur</th><th>KlinikMe</th><th>Bittodent</th><th>Usulan</th></tr></thead>
-        <tbody><tr><td class='ft'>Scan KTP</td><td><span class="chip st-ada">Ada</span></td><td><span class="chip st-sebagian">Sebagian</span></td><td>Pindai ke draf, NIK mask, verifikasi resepsionis.</td></tr><tr><td class='ft'>Saran ICD dari catatan</td><td><span class="chip st-sebagian">Sebagian</span></td><td><span class="chip st-sebagian">Sebagian</span></td><td>Saran Draf dari catatan, Setujui, lalu Selesai. KlinikMe: pencarian dan standarisasi; saran dari SOAP tidak terverifikasi.</td></tr><tr><td class='ft'>Draf SOAP dari suara</td><td><span class="chip st-belum">Belum</span></td><td><span class="chip st-sebagian">Sebagian</span></td><td>Scribe merapikan ucapan. Izin rekam. Audio hapus setelah Selesai.</td></tr><tr><td class='ft'>Saran tindakan dari odontogram</td><td><span class="chip st-belum">Belum</span></td><td><span class="chip st-belum">Belum</span></td><td>Saran dari temuan di chart, Draf sampai Setujui.</td></tr><tr><td class='ft'>Frasa cepat SOAP</td><td><span class="chip st-belum">Belum</span></td><td><span class="chip st-belum">Belum</span></td><td>Satu ketuk mengisi kolom SOAP.</td></tr><tr><td class='ft'>Odontogram cepat</td><td><span class="chip st-ada">Ada</span></td><td><span class="chip st-sebagian">Sebagian</span></td><td>Ketuk gigi, permukaan, kondisi. 2D dan 3D Bittodent sudah ada.</td></tr><tr><td class='ft'>e-resep cepat</td><td><span class="chip st-sebagian">Sebagian</span></td><td><span class="chip st-sebagian">Sebagian</span></td><td>Template obat, Draf sampai Setujui. AI tidak meresepkan. KlinikMe hanya disebut di FAQ.</td></tr><tr><td class='ft'>Consent tanda tangan</td><td><span class="chip st-ada">Ada</span></td><td><span class="chip st-sebagian">Sebagian</span></td><td>Pad tablet, hash dokumen, wali jika anak.</td></tr><tr><td class='ft'>Foto before-after per gigi</td><td><span class="chip st-sebagian">Sebagian</span></td><td><span class="chip st-belum">Belum</span></td><td>KlinikMe: galeri umum, per gigi tidak terverifikasi. Usulan: foto di nomor gigi.</td></tr></tbody>
+        <tbody><tr><td class='ft'>Scan KTP</td><td><span class="chip st-ada">Ada</span></td><td><span class="chip st-sebagian">Sebagian</span></td><td>Pindai ke draf, NIK mask, verifikasi resepsionis. Foto KTP disimpan terenkripsi di profil, hanya peran berizin yang dapat membuka.</td></tr><tr><td class='ft'>Saran ICD dari catatan</td><td><span class="chip st-sebagian">Sebagian</span></td><td><span class="chip st-sebagian">Sebagian</span></td><td>Saran Draf dari catatan, Setujui, lalu Selesai. KlinikMe: pencarian dan standarisasi; saran dari SOAP tidak terverifikasi.</td></tr><tr><td class='ft'>Draf SOAP dari suara</td><td><span class="chip st-belum">Belum</span></td><td><span class="chip st-sebagian">Sebagian</span></td><td>Scribe merapikan ucapan. Mikrofon selalu ada untuk dokter. Audio hapus setelah Selesai.</td></tr><tr><td class='ft'>Saran tindakan dari odontogram</td><td><span class="chip st-belum">Belum</span></td><td><span class="chip st-belum">Belum</span></td><td>Saran dari temuan di chart, Draf sampai Setujui, lalu Selesai.</td></tr><tr><td class='ft'>Frasa cepat SOAP</td><td><span class="chip st-belum">Belum</span></td><td><span class="chip st-belum">Belum</span></td><td>Satu ketuk mengisi kolom SOAP.</td></tr><tr><td class='ft'>Odontogram cepat</td><td><span class="chip st-ada">Ada</span></td><td><span class="chip st-sebagian">Sebagian</span></td><td>Ketuk gigi, permukaan, kondisi. 2D dan 3D Bittodent sudah ada.</td></tr><tr><td class='ft'>e-resep cepat</td><td><span class="chip st-sebagian">Sebagian</span></td><td><span class="chip st-sebagian">Sebagian</span></td><td>Template obat, Draf sampai Setujui. AI tidak meresepkan. KlinikMe hanya disebut di FAQ.</td></tr><tr><td class='ft'>Consent tanda tangan</td><td><span class="chip st-ada">Ada</span></td><td><span class="chip st-sebagian">Sebagian</span></td><td>Pad tablet, hash dokumen, wali jika anak.</td></tr><tr><td class='ft'>Foto before-after per gigi</td><td><span class="chip st-sebagian">Sebagian</span></td><td><span class="chip st-belum">Belum</span></td><td>KlinikMe: galeri umum, per gigi tidak terverifikasi. Usulan: foto di nomor gigi.</td></tr></tbody>
       </table>
     </div>
     </section>
