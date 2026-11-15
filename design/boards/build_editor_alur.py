@@ -532,8 +532,8 @@ st_html += '</div>'
 mobile_main = (
     '<main class="cnt" style="padding:16px;display:flex;flex-direction:column;gap:12px">'
     '<div class="card" style="padding:12px 14px;background:var(--ibg);border-color:var(--ibd)">'
-    '<b>Hanya baca</b>'
-    '<div class="mu t12">Ubah alur di desktop. Ponsel menampilkan langkah kunjungan yang sedang berjalan.</div></div>'
+    '<b>Ubah alur di desktop</b>'
+    '<div class="mu t12">Ponsel menampilkan langkah kunjungan yang sedang berjalan.</div></div>'
     '<div class="f jb ac"><h1 class="t20" style="margin:0">Kunjungan hari ini</h1>'
     '<span class="bdg ok">Alur v2</span></div>'
     '<span class="mu t12">Budi Santoso. 15 Nov 2026.</span>'
@@ -557,10 +557,6 @@ cvs8 = hint8 + chain(NO_TX_FLOW) + exceptions()
 ed8 = editor(cvs8, inspector_selesai(False), used=used_no_tx)
 board8 = shell(ed8)
 
-hint9 = '<p class="hint">Templat terbit, hanya baca.</p>'
-cvs9 = hint9 + chain(DEFAULT_FLOW) + exceptions()
-ed9 = editor(cvs9, inspector_empty(), state='published', publish_on=False, locked=True)
-board9 = shell(ed9, who='drg. Arif Hidayat', role='Dokter gigi', ini='AH')
 
 sec_ed = section(
     'Editor alur, desktop',
@@ -577,11 +573,10 @@ sec_ver = section(
     [ab('06', 'Jalur pengecualian, terkunci', '1440×1080', board6)],
 )
 sec_var = section(
-    'Tanpa tindakan, peran, dan ponsel',
-    'Tindakan boleh dihapus. Editor terkunci untuk peran di luar pemilik dan admin. Ponsel hanya baca.',
+    'Tanpa tindakan dan ponsel',
+    'Tindakan boleh dihapus. Editor hanya untuk pemilik dan admin; peran lain tidak melihatnya. Ponsel menampilkan langkah kunjungan.',
     [ab('07', 'Tanpa Tindakan, kasir tidak dibuka', '1440×1080', board8)],
-    [ab('08', 'Terkunci, bukan pemilik atau admin', '1440×1080', board9)],
-    [ab('09', 'Stepper kunjungan, hanya baca', '390×900', board7)],
+    [ab('08', 'Stepper kunjungan di ponsel', '390×900', board7)],
 )
 
 html = (

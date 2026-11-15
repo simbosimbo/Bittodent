@@ -105,9 +105,8 @@ EXTRA_CSS = """
 .cnt.set{gap:16px;padding:20px 28px}.cnt.set .gd{align-items:start;flex:1}
 .crumb{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--mu)}
 .back-hint{font-size:12px;line-height:16px;color:var(--mu);padding:0 10px}
-.lock-pane{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:28px;background:var(--cv)}
-.lock-card{width:420px;background:#fff;border:1px solid var(--bd);border-radius:16px;padding:32px 28px;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center}
-.lock-ico{width:56px;height:56px;border-radius:16px;background:var(--n50);color:var(--n700);display:flex;align-items:center;justify-content:center}
+.toast-wrap{position:absolute;left:50%;bottom:32px;transform:translateX(-50%);z-index:8}
+.toast{min-height:44px;box-shadow:0 8px 24px rgba(22,33,43,.18);white-space:nowrap}
 .loc{display:flex;align-items:center;gap:12px;min-height:64px;padding:12px 16px;border:1px solid var(--bd);border-radius:12px;background:#fff}
 """
 
@@ -434,7 +433,7 @@ rm_main = (
 )
 board5 = set_shell('Pengaturan RM', 'Pengaturan RM', rm_main)
 
-# ---------- 07 role locked: no entry ----------
+# ---------- 07 no entry for other roles ----------
 menu_doc = menu([
     ('Profil saya', 'user', False, True),
     ('Keluar', 'x', False, True),
@@ -467,7 +466,7 @@ mobile = (
     + mrow('Profil klinik') + mrow('Cabang', 'Daftar lokasi', '')
     + '<div class="phead">Rekam medis</div>'
     + mrow('Pengaturan RM')
-    + mrow('Alur kunjungan', 'Hanya baca', 'bdg')
+    + mrow('Alur kunjungan')
     + '<div class="phead">Keuangan</div>'
     + mrow('Tarif') + mrow('Metode bayar') + mrow('Diskon')
     + '<div class="phead">Tim</div>'
@@ -475,7 +474,7 @@ mobile = (
     + '<div class="phead">Sistem</div>'
     + mrow('Audit log')
     + '</div>'
-    '<span class="mu t12">Hanya pemilik dan admin. Pengaturan berlaku untuk seluruh klinik. Alur kunjungan di ponsel tampil sebagai langkah baca saja.</span>'
+    '<span class="mu t12">Hanya pemilik dan admin. Pengaturan berlaku untuk seluruh klinik. Di ponsel, alur kunjungan tampil sebagai langkah.</span>'
     '</main></div></div>'
 )
 
@@ -493,21 +492,12 @@ cabang_main = (
 )
 board6 = set_shell('Cabang', 'Cabang', cabang_main, size='d')
 
-# ---------- 08 locked settings URL ----------
-locked = (
-    '<div class="scr d"><div class="app" style="width:100%">'
-    + set_topbar(
-        'Terkunci',
-        who='drg. Arif Hidayat', role='Dokter gigi', ini='AH',
-        syn=True, badge=True,
-    )
-    + '<main class="lock-pane"><div class="lock-card">'
-    f'<div class="lock-ico">{ico("lock", 24)}</div>'
-    '<h1 class="t20" style="margin:0">Pengaturan terkunci</h1>'
-    '<span class="mu">Hanya pemilik dan admin yang dapat membuka halaman ini.</span>'
-    '<button class="btn pri">Kembali ke klinik</button>'
-    '<span class="mu t12">Kembali ke Antrean, layar terakhir.</span>'
-    '</div></main></div></div>'
+# ---------- 08 settings URL redirects to last operational screen ----------
+toast = '<div class="toast-wrap"><div class="toast">Kembali ke Antrean</div></div>'
+board8 = ops_shell(
+    NAV_OPS, active='Antrean',
+    who='drg. Arif Hidayat', role='Dokter gigi', ini='AH',
+    gear=False, overlay=toast,
 )
 
 # ---------- assemble ----------
@@ -527,9 +517,9 @@ sec_set = section(
 )
 sec_role = section(
     'Hak akses dan ponsel',
-    'Dokter dan resepsionis tidak melihat ikon gigi. URL pengaturan langsung menampilkan halaman terkunci.',
+    'Dokter dan resepsionis tidak melihat ikon gigi. URL pengaturan mengembalikan ke layar operasional terakhir.',
     [ab('07', 'Peran lain, tidak ada pintu masuk', '1440×900', board7)],
-    [ab('08', 'URL pengaturan dibuka oleh peran lain, halaman terkunci', '1440×900', locked)],
+    [ab('08', 'URL pengaturan mengembalikan ke Antrean, layar terakhir', '1440×900', board8)],
     [ab('09', 'Ponsel, daftar pengaturan. Kembali ke Antrean', '390×960', mobile)],
 )
 
