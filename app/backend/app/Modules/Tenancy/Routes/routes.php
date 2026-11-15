@@ -11,4 +11,5 @@ Route::middleware(['auth:sanctum', '2fa', 'tenant'])->group(function () {
     Route::put('/dentists/{userId}/profile', [DentistProfileController::class, 'update'])->middleware('perm:tariff.manage');
     Route::get('/settings/clinic', [ClinicSettingsController::class, 'show'])->middleware('perm:settings.manage');
     Route::put('/settings/clinic', [ClinicSettingsController::class, 'update'])->middleware('perm:settings.manage');
+    Route::put('/settings/branches/{id}', [ClinicSettingsController::class, 'updateBranch'])->middleware('perm:settings.manage');
 });

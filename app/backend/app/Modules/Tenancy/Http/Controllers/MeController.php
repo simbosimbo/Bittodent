@@ -17,7 +17,7 @@ class MeController extends Controller
         $user = $request->user();
         $branches = Branch::whereNull('archived_at')
             ->when($ctx->branchIds !== null, fn ($q) => $q->whereIn('id', $ctx->branchIds))
-            ->orderBy('name')->get(['id', 'name', 'timezone']);
+            ->orderBy('name')->get(['id', 'name', 'timezone', 'address', 'phone']);
         $active = $branches->firstWhere('id', $ctx->branchId);
 
         return response()->json([
@@ -31,6 +31,8 @@ class MeController extends Controller
                 'branch_id' => $ctx->branchId,
                 'branch_name' => $active?->name,
                 'timezone' => $active?->timezone,
+                // Pengaturan Klinik: the branch address, else the clinic address; null = not filled in yet (UI shows the branch name)
+                'address' => $active?->address ?? Tenant::whereKey($ctx->tenantId)->value('address'),
             ],
             'branches' => $branches,
             // Selesai (#55): whether this clinic asks for a PIN and whether I have one; never the hash

@@ -19,6 +19,39 @@ use Illuminate\Validation\Rule;
 class TariffController extends Controller
 {
     /**
+     * GET /api/tariffs?q=&category= (owner, perm tariff.manage): the price list for Pengaturan Klinik > Harga. One item per procedure:
+     * the level set in force today, a scheduled future set (if any) and `editable_from` = the first date a new version may start
+     * (today, or the day after the latest version: one version per day, see versionLevels). Reads are not audited (no patient
+     * data); every change is.
+     */
+    public function index(Request $request)
+    {
+        $d = $request->validate(['q' => ['nullable', 'string', 'max:60'], 'category' => ['nullable', 'regex:/^[a-z0-9_]{1,30}$/']]);
+        $today = now()->toDateString();
+        $all = Tariff::when($d['category'] ?? null, fn ($q, $c) => $q->where('category', $c))
+            ->when(trim($d['q'] ?? '') !== '', fn ($q) => $q->where(fn ($w) => $w->where('procedure_code', 'like', trim($d['q']).'%')
+                ->orWhere('name', 'like', '%'.trim($d['q']).'%')))
+            ->where(fn ($q) => $q->whereNull('valid_to')->orWhere('valid_to', '>', $today))
+            ->orderBy('procedure_code')->orderBy('valid_from')->orderBy('level_rank')->get();
+        $levels = fn (Collection $g) => $g->sortBy('level_rank')->map(fn ($t) => ['id' => $t->id, 'variant' => $t->variant,
+            'label' => $t->level_label, 'price_rp' => $t->price_rp])->values()->all();
+        $items = $all->groupBy('procedure_code')->map(function (Collection $rows, $code) use ($today, $levels) {
+            $byFrom = $rows->groupBy(fn ($t) => $t->valid_from->toDateString())->sortKeys();
+            $nowFrom = $byFrom->keys()->filter(fn ($f) => $f <= $today)->last();
+            $next = $byFrom->keys()->filter(fn ($f) => $f > $today)->first();
+            $latest = Tariff::where('procedure_code', $code)->max('valid_from');
+            $first = $rows->first();
+
+            return ['procedure_code' => $code, 'name' => $first->name, 'category' => $first->category, 'id' => $first->id,
+                'valid_from' => $nowFrom, 'levels' => $nowFrom ? $levels($byFrom[$nowFrom]) : [],
+                'next' => $next ? ['valid_from' => $next, 'levels' => $levels($byFrom[$next])] : null,
+                'editable_from' => max($today, \Carbon\Carbon::parse($latest)->addDay()->toDateString())];
+        })->values();
+
+        return response()->json(['items' => $items, 'categories' => Tariff::whereNotNull('category')->distinct()->orderBy('category')->pluck('category')]);
+    }
+
+    /**
      * PUT /api/tariffs/{id}/levels {valid_from, levels: [{code, label, price_rp}]} (owner, perm tariff.manage).
      * Replaces the level set of {id}'s procedure from valid_from on: open rows get valid_to = valid_from, new rows are inserted.
      * Past versions keep their prices; invoice lines keep their own snapshot. Order = rank (last = highest).
@@ -123,6 +156,12 @@ class TariffController extends Controller
         $latest = $rows->sortByDesc('valid_from')->first();
         // shortcut: one version per day per procedure (a same-day fix needs the next day), revisit if owners need same-day edits.
         if ($latest->valid_from->toDateString() >= $validFrom) {
+            // A scheduled (future, so never billed) version may be corrected in place on its own date, same level set only.
+            $sched = $rows->filter(fn ($t) => $t->valid_from->toDateString() === $validFrom)->sortBy('level_rank')->values();
+            if ($validFrom > now()->toDateString() && $sched->isNotEmpty() && $sched->pluck('variant')->all() === array_column($levels, 'code')) {
+                return $sched->each(fn ($t, $i) => $t->update(['level_label' => $levels[$i]['label'], 'price_rp' => $levels[$i]['price_rp']]));
+            }
+
             return $this->notAfterCurrent();
         }
         Tariff::where('procedure_code', $code)->whereNull('valid_to')->update(['valid_to' => $validFrom]);
