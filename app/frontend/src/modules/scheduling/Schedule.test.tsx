@@ -498,18 +498,21 @@ test('HP Dokter: hanya janji sendiri; Sedang dirawat -> Berikutnya -> Selesai; p
   expect(screen.getByText('Sekarang')).toBeInTheDocument()
 })
 
-test('HP Meja depan: Perlu konfirmasi -> Belum bayar -> Berikutnya -> Selesai (terlipat); satu tombol primer per kartu', async () => {
+test('HP Meja depan (#70): Perlu tindakan sekarang (Check-in jatuh tempo, Bayar, Konfirmasi) -> Berikutnya -> Selesai (terlipat); satu tombol primer per kartu', async () => {
   phoneToday()
   mockApi(() => [
     ap('p', 'pending_confirmation', '13:00', { source: 'online' }), ap('u', 'done', '08:00', { visit_id: 'vu' }), ap('l', 'done', '08:30', { visit_id: 'vl', chair_id: 'c2', dentist: LAIN }),
-    ap('b', 'booked', '11:00'), ap('c', 'checked_in', '09:30', { chair_id: 'c2', dentist: LAIN }), ap('x', 'cancelled', '15:00'),
+    ap('b', 'booked', '10:15'), ap('f', 'booked', '11:00'), ap('c', 'checked_in', '09:30', { chair_id: 'c2', dentist: LAIN }), ap('x', 'cancelled', '15:00'),
   ], { invoices: { vu: 'terbuka', vl: 'lunas' } })
   const { container } = render(<Schedule me={who(['front_desk'])} />)
-  await screen.findByRole('heading', { name: 'Belum bayar · 1' })
+  await screen.findByRole('link', { name: 'Bayar Pasien u' })
   expect([...container.querySelectorAll('.agenda-sec h2')].map((h) => h.textContent))
-    .toEqual(['Perlu konfirmasi · 1', 'Belum bayar · 1', 'Berikutnya · 2', 'Selesai · 2'])
+    .toEqual(['Perlu tindakan sekarang · 3', 'Berikutnya · 2', 'Selesai · 2'])
   const folds = [...container.querySelectorAll('details.agenda-sec')]
-  expect(folds.map((d) => d.hasAttribute('open'))).toEqual([true, true, true, false]) // Selesai collapsed
+  expect(folds.map((d) => d.hasAttribute('open'))).toEqual([true, true, false]) // Selesai collapsed
+  const first = [...folds[0].querySelectorAll('.agenda-cta')].map((b) => b.getAttribute('aria-label'))
+  expect(first).toEqual(['Check-in Pasien b', 'Bayar Pasien u', 'Konfirmasi Pasien p']) // check-in due first (10:15 at 10:00)
+  expect(within(folds[1] as HTMLElement).getByRole('button', { name: 'Check-in Pasien f' })).toBeInTheDocument() // 11:00 not due yet
   expect(screen.getByRole('button', { name: 'Konfirmasi Pasien p' })).toBeInTheDocument()
   expect(screen.getByRole('link', { name: 'Bayar Pasien u' })).toHaveAttribute('href', '#/tagihan/vu')
   expect(screen.getByRole('button', { name: 'Check-in Pasien b' })).toBeInTheDocument()
@@ -528,7 +531,7 @@ test('HP Kasir (#67/#68 kasir = meja depan): Konfirmasi, Check-in, FAB, Ubah jad
     { invoices: { vu: 'terbuka' } })
   render(<Schedule me={who(['kasir'], 'k1')} />)
   expect(await screen.findByRole('link', { name: 'Bayar Pasien u' })).toBeInTheDocument()
-  expect(screen.getByRole('heading', { name: 'Perlu konfirmasi · 1' })).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: 'Perlu tindakan sekarang · 2' })).toBeInTheDocument()
   expect(screen.getByRole('button', { name: 'Konfirmasi Pasien p' })).toBeInTheDocument()
   expect(screen.getByRole('button', { name: 'Check-in Pasien b' })).toBeInTheDocument()
   expect(screen.getByRole('button', { name: 'Buat janji' })).toHaveClass('fab')
@@ -683,7 +686,8 @@ test('HP Dokter: Selesai -> tanpa prompt Bayar, toast "masuk antrean bayar"; pas
   expect(screen.queryByRole('dialog', { name: 'Lanjut ke Bayar?' })).toBeNull()
   expect(screen.getByRole('radio', { name: 'Dokter' })).toBeChecked()
   fireEvent.click(screen.getByRole('radio', { name: 'Meja depan' }))
-  expect(await screen.findByRole('heading', { name: 'Belum bayar · 1' })).toBeInTheDocument()
+  const now = await screen.findByRole('heading', { name: /^Perlu tindakan sekarang/ })
+  expect(within(now.closest('details') as HTMLElement).getByText('Belum bayar')).toBeInTheDocument()
 })
 
 test('HP kosong: Meja depan "Belum ada janji.", pil dokter tanpa janji, Dokter + "Hari berikutnya" ke tanggal terdekat', async () => {

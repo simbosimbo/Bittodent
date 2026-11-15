@@ -124,6 +124,7 @@ export function DaySummary({ list, isToday, canBill }: { list: Appointment[]; is
 
 // ---- Sectioned agenda ----
 const CLOSED = ['done', 'cancelled', 'no_show', 'rejected']
+const DUE_SOON = 30 // minutes: a booking this close (or late) counts as "check in now"
 const isOnlineRequest = (a: Appointment) => a.status === 'pending_confirmation' && a.source === 'online'
 
 function Card({ a, tz, chair, dentist, owe, primary, onOpen }: {
@@ -176,7 +177,7 @@ export type AgendaProps = {
 }
 
 /**
- * Meja depan: Perlu konfirmasi → Belum bayar → Berikutnya (Sekarang divider on today) → Selesai (collapsed).
+ * Meja depan: Perlu tindakan sekarang (Check-in due · Bayar · Konfirmasi) → Berikutnya (Sekarang divider on today) → Selesai (collapsed).
  * Dokter (own appointments only, filtered by the caller): Sedang dirawat → Berikutnya → Selesai.
  */
 export function Agenda({ mode, list, tz, chairs, nowMin, unpaid, primary, onOpen, confirmOnly, empty }: AgendaProps) {
@@ -215,12 +216,15 @@ export function Agenda({ mode, list, tz, chairs, nowMin, unpaid, primary, onOpen
   if (confirmOnly) return <Section title="Perlu konfirmasi" items={confirm} render={card} />
   if (list.length === 0) return <>{empty}</>
   const owe = list.filter((a) => a.status === 'done' && unpaid(a))
-  const next = list.filter((a) => !CLOSED.includes(a.status) && !isOnlineRequest(a))
+  // #70: what the desk must do now comes first, in one section: patients due (booked, starting within 30 min or late) -> Check-in,
+  // then Bayar, then online requests. Later bookings stay in Berikutnya; Selesai stays folded.
+  const due = nowMin === null ? [] : list.filter((a) => a.status === 'booked' && minutesOfDay(a.starts_at, tz) <= nowMin + DUE_SOON)
+  const act = [...due, ...owe, ...confirm]
+  const next = list.filter((a) => !CLOSED.includes(a.status) && !isOnlineRequest(a) && !due.includes(a))
   const done = list.filter((a) => CLOSED.includes(a.status) && !owe.includes(a))
   return (
     <>
-      <Section title="Perlu konfirmasi" items={confirm} render={card} />
-      <Section title="Belum bayar" items={owe} render={card} />
+      <Section title="Perlu tindakan sekarang" items={act} render={card} />
       {next.length > 0 && <Fold title="Berikutnya" count={next.length} open>{nextWithNow(next)}</Fold>}
       <Section title="Selesai" items={done} render={card} collapsed />
     </>
