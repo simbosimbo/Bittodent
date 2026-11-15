@@ -480,6 +480,43 @@ h1.page{font-size:28px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px;colo
 .side{width:360px;flex:none;display:flex;flex-direction:column;gap:10px;position:sticky;top:16px;align-self:flex-start}
 .split{display:grid;grid-template-columns:1fr 360px;gap:16px;flex:1;min-height:0}
 
+
+.ph-col{display:flex;flex-direction:column;gap:8px;flex:none}
+.ph-cap{margin:0;font-size:12px;font-weight:600;color:var(--color-neutral-600);max-width:360px;line-height:1.4}
+.cond-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cond{display:flex;align-items:center;gap:8px;min-height:48px;padding:0 12px;border-radius:16px;
+  border:1px solid var(--color-neutral-200);background:#fff;font-size:12px;font-weight:700;color:var(--color-neutral-800);text-align:left}
+.cond.on{background:var(--color-primary-50);border-color:var(--color-primary-300);color:var(--color-primary-900)}
+.dot{width:10px;height:10px;border-radius:99px;flex:none}
+.dot-sehat{background:#12B76A}
+.dot-karies{background:#B42318}
+.dot-tambal{background:#0B6B62}
+.dot-mahkota{background:#7A5AF8}
+.dot-hilang{background:#344054}
+.dot-akar{background:#B54708}
+.dot-cabut{background:#B54708}
+.dot-implan{background:#026AA2}
+.sheet .tooth-id{display:flex;align-items:center;gap:8px}
+.sheet .tooth-id .sq{width:28px;height:28px;border-radius:8px;border:1.5px solid var(--color-primary-700);background:#FDECEC;flex:none;display:grid;place-items:center;font-size:9px;font-weight:800;color:#B42318}
+.sheet.compact{gap:6px;padding-bottom:12px}
+.btn.busy{opacity:.8;gap:8px}
+.spin{width:16px;height:16px;border-radius:99px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;
+  animation:spin 700ms linear infinite;flex:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast .undo{margin-left:auto;min-height:40px;padding:0 12px;border:0;background:transparent;
+  color:var(--color-primary-800);font-size:13px;font-weight:800}
+.ph .toast{left:16px;right:16px;bottom:96px}
+.appt-row.due{box-shadow:inset 4px 0 0 var(--color-appointment-terjadwal-border)}
+.appt-row.hadir{box-shadow:inset 4px 0 0 var(--color-appointment-checkin-border)}
+.appt-row .hadir-lab{font-size:11px;font-weight:700;color:var(--color-appointment-checkin-fg);white-space:nowrap}
+.favs{display:flex;flex-wrap:wrap;gap:8px}
+.fav{min-height:48px}
+.tx-line{display:flex;flex-direction:column;gap:2px;padding:12px;border-radius:16px;background:#fff;
+  border:1px solid var(--color-neutral-200)}
+.tx-line .nm{font-size:14px;font-weight:800}
+.tx-line .ds{font-size:12px;font-weight:600;color:var(--color-neutral-600)}
+.tx-line .rp{font-size:13px;font-weight:800;color:var(--color-neutral-900)}
+
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none !important;transition:none !important}
   .sk::after{display:none}
@@ -489,13 +526,13 @@ h1.page{font-size:28px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px;colo
 </head>
 <body>
 <div class="wrap">
-  <h1 class="page">Perbaikan staging: review-2 dan A2</h1>
-  <p class="lede">Usulan UI untuk temuan terbuka PR #52 (Jadwal Meja depan, permukaan gigi, checkbox Selesai, filter dokter, CTA setelah Selesai) dan catatan A2 PR #57 (saran tindakan HP dan desktop). Data sintetis. Keluaran AI tetap draf sampai Setujui. Teal #0B6B62 hanya pada tombol primer.</p>
+  <h1 class="page">Perbaikan staging: review-2, A2, Check-in, dan alur dokter</h1>
+  <p class="lede">Usulan UI untuk temuan terbuka PR #52, catatan A2 PR #57, umpan balik Check-in di Jadwal Meja depan, dan alur dokter mengisi tindakan. Data sintetis. Keluaran AI tetap draf sampai Setujui. Teal #0B6B62 hanya pada tombol primer.</p>
   
     <section class="ab" id="ab-01">
       <div class="ab-k"><span class="ab-n">01</span><span class="ab-t">Jadwal Meja depan HP</span></div>
-      <p class="ab-d">Sebelum ~3,5 layar di 360: week strip, KPI 3 kolom, chip dokter terpotong, kartu 163px. Sesudah: baris 60px, chip filter 48px, week dan KPI dilipat. Tiga Belum bayar muat di 360×800 (≤1,8 layar). Chip oranye, bukan teal.</p>
-      
+      <p class="ab-d">Kiri: filter Belum bayar, baris 60px, week dan KPI satu baris, muat 360×800. Kanan: filter Semua, merespons screenshot staging: layanan tidak dipotong, chip Terjadwal dihapus (status cukup lewat tombol atau warna), KPI dan chip dokter (Andi, Bunga, Pemilik) utuh, + di header dihapus agar tidak dobel dengan FAB.</p>
+      <div class="row"><div class="ph-col">
     <div class="ph" style="height:800px">
       <div class="ph-bar"><span class="syn">DATA SINTETIS</span><span class="ph-time">09.40</span></div>
       <header class="hd"><h1 class="h-sm">Jadwal</h1>
@@ -503,15 +540,15 @@ h1.page{font-size:28px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px;colo
       <div class="ph-body">
       <div class="seg" role="tablist"><button class="seg-btn on" type="button">Meja depan</button><button class="seg-btn" type="button">Dokter</button></div>
       <details class="fold"><summary>15 Nov 2026 · 21 janji<span class="mu">Week strip dilipat</span><svg class="ic-sm chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary><div class="fold-body"><div class="mu">Sen 9 sampai Min 15. Pilih hari, lalu lipat.</div></div></details>
-      <p class="mu" style="margin:0">20 janji · 15 hadir · Rp 1,75jt</p>
+      <p class="mu" style="margin:0">21 janji · 16 hadir · Rp 1,75jt</p>
       <div class="filts">
         <button class="filt on" type="button">Belum bayar · 3</button>
         <button class="filt" type="button">Semua · 21</button>
         <button class="filt" type="button">Andi · 9</button>
+        <button class="filt" type="button">Bunga · 0</button>
         <button class="filt" type="button">Pemilik · 12</button>
-      </div>
+    </div>
       <div class="kicker">Belum bayar · 3</div>
-      
     <div class="appt-row unpaid">
       <div class="tm">08.00</div>
       <div class="grow"><div class="nm">Sari Nugroho</div><div class="ds">Kursi 2 · Andi · <span class="pay">Belum bayar</span></div></div>
@@ -526,25 +563,61 @@ h1.page{font-size:28px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px;colo
       <div class="tm">16.00</div>
       <div class="grow"><div class="nm">Sari Nugroho</div><div class="ds">Kursi 1 · Andi · <span class="pay">Belum bayar</span></div></div>
       <button class="btn pri" type="button">Bayar</button>
-    </div>
-      <details class="fold"><summary>Berikutnya dan Selesai<svg class="ic-sm chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary><div class="fold-body"><p class="mu" style="margin:0">Blok lain dilipat. Buka bila perlu.</p></div></details>
+    </div><details class="fold"><summary>Menunggu dan Selesai<svg class="ic-sm chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary><div class="fold-body"><p class="mu" style="margin:0">Blok lain dilipat. Buka bila perlu.</p></div></details>
       <div style="height:64px" aria-hidden="true"></div>
     </div>
       
       <nav class="bnav"><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><span>Beranda</span></button><button class="navi on" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Jadwal</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Pasien</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg><span>Rekam Medis</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg><span>Lainnya</span></button></nav>
       <button class="fab" type="button" aria-label="Buat janji"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+    </div><p class="ph-cap">Filter Belum bayar. Chip oranye lewat warna baris, bukan teal.</p></div><div class="ph-col">
+    <div class="ph" style="height:800px">
+      <div class="ph-bar"><span class="syn">DATA SINTETIS</span><span class="ph-time">09.40</span></div>
+      <header class="hd"><h1 class="h-sm">Jadwal</h1>
+        <button class="icon-btn" type="button" aria-label="Lainnya"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg></button></header>
+      <div class="ph-body">
+      <div class="seg" role="tablist"><button class="seg-btn on" type="button">Meja depan</button><button class="seg-btn" type="button">Dokter</button></div>
+      <details class="fold"><summary>15 Nov 2026 · 21 janji<span class="mu">Week strip dilipat</span><svg class="ic-sm chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary><div class="fold-body"><div class="mu">Sen 9 sampai Min 15. Pilih hari, lalu lipat.</div></div></details>
+      <p class="mu" style="margin:0">21 janji · 16 hadir · Rp 1,75jt</p>
+      <div class="filts">
+        <button class="filt on" type="button">Semua · 21</button>
+        <button class="filt" type="button">Belum bayar · 3</button>
+        <button class="filt" type="button">Andi · 9</button>
+        <button class="filt" type="button">Bunga · 0</button>
+        <button class="filt" type="button">Pemilik · 12</button>
     </div>
+      <div class="kicker">Perlu tindakan sekarang · 3</div>
+    <div class="appt-row due">
+      <div class="tm">12.20</div>
+      <div class="grow"><div class="nm">Hendra Hidayat</div><div class="ds">Kontrol rutin</div></div>
+      <button class="btn pri" type="button">Check-in</button>
+    </div>
+    <div class="appt-row due">
+      <div class="tm">13.10</div>
+      <div class="grow"><div class="nm">Dewi Kusuma</div><div class="ds">Kontrol rutin</div></div>
+      <button class="btn pri" type="button">Check-in</button>
+    </div>
+    <div class="appt-row due">
+      <div class="tm">14.50</div>
+      <div class="grow"><div class="nm">Putri Saputra</div><div class="ds">Scaling</div></div>
+      <button class="btn pri" type="button">Check-in</button>
+    </div><details class="fold"><summary>Menunggu dan Selesai<svg class="ic-sm chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary><div class="fold-body"><p class="mu" style="margin:0">Hadir dan selesai dilipat. Buka bila perlu.</p></div></details>
+      <div style="height:64px" aria-hidden="true"></div>
+    </div>
+      
+      <nav class="bnav"><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><span>Beranda</span></button><button class="navi on" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Jadwal</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Pasien</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg><span>Rekam Medis</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg><span>Lainnya</span></button></nav>
+      <button class="fab" type="button" aria-label="Buat janji"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+    </div><p class="ph-cap">Filter Semua. Jam | nama + layanan satu baris. Status lewat aksi Check-in, tanpa chip Terjadwal. Tanpa + di header, hanya FAB. Chip dokter utuh.</p></div></div>
     </section>
     <section class="ab" id="ab-02">
       <div class="ab-k"><span class="ab-n">02</span><span class="ab-t">Permukaan gigi di sheet</span></div>
-      <p class="ab-d">Di HP, ketuk seluruh gigi (bukan poligon oklusal 23×24) membuka lembar. Pad M/O/D/B/L 56px, kondisi 48px, satu aksi Simpan. Sheet masuk 280 ms.</p>
+      <p class="ab-d">Sheet hanya judul Gigi 26, tanpa ulangi identitas pasien. Odontogram utuh di atas lembar, bukan gigi terpotong. Kondisi grid 2 kolom, warna lewat titik, tanpa label 'Kondisi permukaan:' dan tanpa border kiri berantakan. Tab Tambal/Kode lain dihapus; tindakan menyusul setelah Simpan. Simpan aktif setelah Karies + M/O. Bila belum pilih, tombol mati tanpa teks 'Pilih kondisi terlebih dahulu'.</p>
       
     <div class="ph" style="height:800px">
       <div class="ph-bar"><span class="syn">DATA SINTETIS</span><span class="ph-time">09.40</span></div>
       <header class="hd"><button class="icon-btn" type="button" aria-label="Kembali"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button><h1 class="h-sm">Rekam Medis</h1>
         <button class="icon-btn" type="button" aria-label="Lainnya"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg></button></header>
       <div class="ph-body">
-      <p class="mu" style="margin:0">Ketuk gigi untuk buka lembar. Permukaan dipilih di pad 56px.</p>
+      <p class="mu" style="margin:0">Sari Nugroho · 32 th. Ketuk seluruh gigi, bukan kotak 23px.</p>
       <article class="card">
     <div class="od-grid">
       <div class="od-lab">RAHANG ATAS</div><div class="od-row"><div class="od-t"><span class="sq"></span>18</div><div class="od-t"><span class="sq"></span>17</div><div class="od-t"><span class="sq"></span>16</div><div class="od-t"><span class="sq"></span>15</div><div class="od-t"><span class="sq"></span>14</div><div class="od-t"><span class="sq"></span>13</div><div class="od-t"><span class="sq"></span>12</div><div class="od-t"><span class="sq"></span>11</div><div class="od-t"><span class="sq"></span>21</div><div class="od-t"><span class="sq"></span>22</div><div class="od-t"><span class="sq"></span>23</div><div class="od-t"><span class="sq"></span>24</div><div class="od-t"><span class="sq"></span>25</div><div class="od-t on"><span class="sq"></span>26</div><div class="od-t"><span class="sq"></span>27</div><div class="od-t"><span class="sq"></span>28</div></div>
@@ -554,15 +627,17 @@ h1.page{font-size:28px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px;colo
       
       <nav class="bnav"><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><span>Beranda</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Jadwal</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Pasien</span></button><button class="navi on" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg><span>Rekam Medis</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg><span>Lainnya</span></button></nav>
       
-    <div class="sheet" role="dialog" aria-label="Detail gigi 26">
+    <div class="sheet compact" role="dialog" aria-label="Gigi 26">
       <div class="grab" aria-hidden="true"></div>
-      <div class="sheet-hd"><h3>Gigi 26</h3>
-        <button class="icon-btn" type="button" aria-label="Tutup"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
-      <p class="mu" style="margin:0">Sari Nugroho · ketuk seluruh gigi, bukan kotak 23px.</p>
+      <div class="sheet-hd">
+        <div class="tooth-id"><span class="sq">26</span><h3>Gigi 26</h3></div>
+        <button class="icon-btn" type="button" aria-label="Tutup"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      </div>
       <div class="kicker">Permukaan</div>
       <div class="surf"><b class="on">M</b><b class="on">O</b><b class="">D</b><b class="">B</b><b class="">L</b></div>
-      <div class="kicker">Kondisi</div>
-      <div class="phrases"><span class="phrase on">Karies</span><span class="phrase">Tumpatan</span><span class="phrase">Hilang</span><span class="phrase">Goyah</span></div>
+      <div class="kicker">Pada permukaan</div>
+      <div class="cond-grid"><button class="cond" type="button"><span class="dot dot-sehat" aria-hidden="true"></span>Sehat</button><button class="cond on" type="button"><span class="dot dot-karies" aria-hidden="true"></span>Karies</button><button class="cond" type="button"><span class="dot dot-tambal" aria-hidden="true"></span>Tambalan</button><button class="cond" type="button"><span class="dot dot-mahkota" aria-hidden="true"></span>Mahkota</button></div>
+      <details class="fold"><summary>Seluruh gigi<svg class="ic-sm chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary><div class="fold-body"><div class="cond-grid"><button class="cond" type="button"><span class="dot dot-hilang" aria-hidden="true"></span>Hilang</button><button class="cond" type="button"><span class="dot dot-akar" aria-hidden="true"></span>Sisa akar</button><button class="cond" type="button"><span class="dot dot-cabut" aria-hidden="true"></span>Perlu dicabut</button><button class="cond" type="button"><span class="dot dot-implan" aria-hidden="true"></span>Implan</button></div></div></details>
       <div class="dock"><button class="btn pri" type="button"><svg class="ic-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Simpan 26</button></div>
     </div>
     </div>
@@ -808,6 +883,197 @@ h1.page{font-size:28px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px;colo
         
       </div>
     </div>
+    </section>
+    <section class="ab" id="ab-08">
+      <div class="ab-k"><span class="ab-n">08</span><span class="ab-t">Umpan balik Check-in</span></div>
+      <p class="ab-d">Ketuk Check-in harus terasa. Tombol berubah Memproses, baris bergeser halus (200 ms) dari Perlu tindakan sekarang ke Menunggu, chip Hadir menggantikan tombol, toast 'Hendra Hidayat hadir' dengan Batalkan (undo 5 dtk). Tanpa ini, baris hanya hilang dari seksi atas dan pengguna tidak melihat apa pun.</p>
+      <div class="row"><div class="ph-col">
+    <div class="ph" style="height:800px">
+      <div class="ph-bar"><span class="syn">DATA SINTETIS</span><span class="ph-time">09.40</span></div>
+      <header class="hd"><h1 class="h-sm">Jadwal</h1>
+        <button class="icon-btn" type="button" aria-label="Lainnya"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg></button></header>
+      <div class="ph-body"><div class="seg" role="tablist"><button class="seg-btn on" type="button">Meja depan</button><button class="seg-btn" type="button">Dokter</button></div><p class="mu" style="margin:0">15 Nov 2026 · 21 janji · 16 hadir</p><div class="filts">
+        <button class="filt on" type="button">Semua · 21</button>
+        <button class="filt" type="button">Andi · 9</button>
+        <button class="filt" type="button">Pemilik · 12</button>
+    </div><div class="kicker">Perlu tindakan sekarang · 4</div>
+    <div class="appt-row due">
+      <div class="tm">12.20</div>
+      <div class="grow"><div class="nm">Hendra Hidayat</div><div class="ds">Kontrol rutin</div></div>
+      <button class="btn pri" type="button">Check-in</button>
+    </div>
+    <div class="appt-row due">
+      <div class="tm">13.10</div>
+      <div class="grow"><div class="nm">Dewi Kusuma</div><div class="ds">Kontrol rutin</div></div>
+      <button class="btn pri" type="button">Check-in</button>
+    </div>
+    <div class="appt-row due">
+      <div class="tm">14.50</div>
+      <div class="grow"><div class="nm">Putri Saputra</div><div class="ds">Scaling</div></div>
+      <button class="btn pri" type="button">Check-in</button>
+    </div>
+    <div class="appt-row due">
+      <div class="tm">16.30</div>
+      <div class="grow"><div class="nm">Ayu Nugroho</div><div class="ds">Kontrol rutin</div></div>
+      <button class="btn pri" type="button">Check-in</button>
+    </div><div class="kicker">Menunggu · 1</div>
+    <div class="appt-row hadir">
+      <div class="tm">08.00</div>
+      <div class="grow"><div class="nm">Budi Santoso</div><div class="ds">Scaling</div></div>
+      <span class="hadir-lab">Hadir</span>
+    </div><div style="height:64px" aria-hidden="true"></div></div>
+      
+      <nav class="bnav"><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><span>Beranda</span></button><button class="navi on" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Jadwal</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Pasien</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg><span>Rekam Medis</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg><span>Lainnya</span></button></nav>
+      <button class="fab" type="button" aria-label="Buat janji"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+    </div><p class="ph-cap">Sebelum. Check-in adalah satu-satunya aksi primer pada baris Hendra.</p></div><div class="ph-col">
+    <div class="ph" style="height:800px">
+      <div class="ph-bar"><span class="syn">DATA SINTETIS</span><span class="ph-time">09.40</span></div>
+      <header class="hd"><h1 class="h-sm">Jadwal</h1>
+        <button class="icon-btn" type="button" aria-label="Lainnya"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg></button></header>
+      <div class="ph-body"><div class="seg" role="tablist"><button class="seg-btn on" type="button">Meja depan</button><button class="seg-btn" type="button">Dokter</button></div><p class="mu" style="margin:0">15 Nov 2026 · 21 janji · 16 hadir</p><div class="filts">
+        <button class="filt on" type="button">Semua · 21</button>
+        <button class="filt" type="button">Andi · 9</button>
+        <button class="filt" type="button">Pemilik · 12</button>
+    </div><div class="kicker">Perlu tindakan sekarang · 4</div>
+    <div class="appt-row due">
+      <div class="tm">12.20</div>
+      <div class="grow"><div class="nm">Hendra Hidayat</div><div class="ds">Kontrol rutin</div></div>
+      <button class="btn pri dis busy" type="button" aria-disabled="true" aria-busy="true"><span class="spin" aria-hidden="true"></span>Memproses</button>
+    </div>
+    <div class="appt-row due">
+      <div class="tm">13.10</div>
+      <div class="grow"><div class="nm">Dewi Kusuma</div><div class="ds">Kontrol rutin</div></div>
+      <button class="btn pri" type="button">Check-in</button>
+    </div>
+    <div class="appt-row due">
+      <div class="tm">14.50</div>
+      <div class="grow"><div class="nm">Putri Saputra</div><div class="ds">Scaling</div></div>
+      <button class="btn pri" type="button">Check-in</button>
+    </div>
+    <div class="appt-row due">
+      <div class="tm">16.30</div>
+      <div class="grow"><div class="nm">Ayu Nugroho</div><div class="ds">Kontrol rutin</div></div>
+      <button class="btn pri" type="button">Check-in</button>
+    </div><div class="kicker">Menunggu · 1</div>
+    <div class="appt-row hadir">
+      <div class="tm">08.00</div>
+      <div class="grow"><div class="nm">Budi Santoso</div><div class="ds">Scaling</div></div>
+      <span class="hadir-lab">Hadir</span>
+    </div><div style="height:64px" aria-hidden="true"></div></div>
+      
+      <nav class="bnav"><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><span>Beranda</span></button><button class="navi on" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Jadwal</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Pasien</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg><span>Rekam Medis</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg><span>Lainnya</span></button></nav>
+      <button class="fab" type="button" aria-label="Buat janji"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+    </div><p class="ph-cap">Saat ketuk: tombol Memproses, tidak bisa ketuk ulang.</p></div><div class="ph-col">
+    <div class="ph" style="height:800px">
+      <div class="ph-bar"><span class="syn">DATA SINTETIS</span><span class="ph-time">09.40</span></div>
+      <header class="hd"><h1 class="h-sm">Jadwal</h1>
+        <button class="icon-btn" type="button" aria-label="Lainnya"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg></button></header>
+      <div class="ph-body"><div class="seg" role="tablist"><button class="seg-btn on" type="button">Meja depan</button><button class="seg-btn" type="button">Dokter</button></div><p class="mu" style="margin:0">15 Nov 2026 · 21 janji · 16 hadir</p><div class="filts">
+        <button class="filt on" type="button">Semua · 21</button>
+        <button class="filt" type="button">Andi · 9</button>
+        <button class="filt" type="button">Pemilik · 12</button>
+    </div><div class="kicker">Perlu tindakan sekarang · 3</div>
+    <div class="appt-row due">
+      <div class="tm">13.10</div>
+      <div class="grow"><div class="nm">Dewi Kusuma</div><div class="ds">Kontrol rutin</div></div>
+      <button class="btn pri" type="button">Check-in</button>
+    </div>
+    <div class="appt-row due">
+      <div class="tm">14.50</div>
+      <div class="grow"><div class="nm">Putri Saputra</div><div class="ds">Scaling</div></div>
+      <button class="btn pri" type="button">Check-in</button>
+    </div>
+    <div class="appt-row due">
+      <div class="tm">16.30</div>
+      <div class="grow"><div class="nm">Ayu Nugroho</div><div class="ds">Kontrol rutin</div></div>
+      <button class="btn pri" type="button">Check-in</button>
+    </div><div class="kicker">Menunggu · 2</div>
+    <div class="appt-row hadir">
+      <div class="tm">12.20</div>
+      <div class="grow"><div class="nm">Hendra Hidayat</div><div class="ds">Kontrol rutin</div></div>
+      <span class="hadir-lab">Hadir</span>
+    </div>
+    <div class="appt-row hadir">
+      <div class="tm">08.00</div>
+      <div class="grow"><div class="nm">Budi Santoso</div><div class="ds">Scaling</div></div>
+      <span class="hadir-lab">Hadir</span>
+    </div><div style="height:64px" aria-hidden="true"></div></div>
+      
+      <nav class="bnav"><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><span>Beranda</span></button><button class="navi on" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Jadwal</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Pasien</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg><span>Rekam Medis</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg><span>Lainnya</span></button></nav>
+      <button class="fab" type="button" aria-label="Buat janji"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button><div class="toast" role="status"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg> Hendra Hidayat hadir<button class="undo" type="button">Batalkan</button></div>
+    </div><p class="ph-cap">Sesudah. Baris pindah ke Menunggu, chip Hadir, toast dengan Batalkan 5 dtk.</p></div></div>
+    </section>
+    <section class="ab" id="ab-09">
+      <div class="ab-k"><span class="ab-n">09</span><span class="ab-t">Dokter mengisi tindakan</span></div>
+      <p class="ab-d">Empat layar berdampingan, tanpa nomor stepper. Alur: ketuk gigi, isi permukaan dan kondisi, 1 ketuk favorit (ICD-9-CM dan harga otomatis, saran A2 tetap draf), Selesai, lalu Lanjut ke tagihan. Jumlah ketuk end-to-end: 8 (gigi, permukaan, kondisi, Simpan, favorit, Selesai, baris pernyataan, Lanjut ke tagihan).</p>
+      <div class="row"><div class="ph-col">
+    <div class="ph" style="height:800px">
+      <div class="ph-bar"><span class="syn">DATA SINTETIS</span><span class="ph-time">09.40</span></div>
+      <header class="hd"><button class="icon-btn" type="button" aria-label="Kembali"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button><h1 class="h-sm">Rekam Medis</h1>
+        <button class="icon-btn" type="button" aria-label="Lainnya"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg></button></header>
+      <div class="ph-body"><p class="mu" style="margin:0">Budi Santoso · kunjungan hari ini. Ketuk gigi untuk catat kondisi.</p><article class="card">
+    <div class="od-grid">
+      <div class="od-lab">RAHANG ATAS</div><div class="od-row"><div class="od-t"><span class="sq"></span>18</div><div class="od-t"><span class="sq"></span>17</div><div class="od-t"><span class="sq"></span>16</div><div class="od-t"><span class="sq"></span>15</div><div class="od-t"><span class="sq"></span>14</div><div class="od-t"><span class="sq"></span>13</div><div class="od-t"><span class="sq"></span>12</div><div class="od-t"><span class="sq"></span>11</div><div class="od-t"><span class="sq"></span>21</div><div class="od-t"><span class="sq"></span>22</div><div class="od-t"><span class="sq"></span>23</div><div class="od-t"><span class="sq"></span>24</div><div class="od-t"><span class="sq"></span>25</div><div class="od-t on"><span class="sq"></span>26</div><div class="od-t"><span class="sq"></span>27</div><div class="od-t"><span class="sq"></span>28</div></div>
+      <div class="od-lab">RAHANG BAWAH</div><div class="od-row"><div class="od-t"><span class="sq"></span>48</div><div class="od-t"><span class="sq"></span>47</div><div class="od-t"><span class="sq"></span>46</div><div class="od-t"><span class="sq"></span>45</div><div class="od-t"><span class="sq"></span>44</div><div class="od-t"><span class="sq"></span>43</div><div class="od-t"><span class="sq"></span>42</div><div class="od-t"><span class="sq"></span>41</div><div class="od-t"><span class="sq"></span>31</div><div class="od-t"><span class="sq"></span>32</div><div class="od-t"><span class="sq"></span>33</div><div class="od-t"><span class="sq"></span>34</div><div class="od-t"><span class="sq"></span>35</div><div class="od-t"><span class="sq"></span>36</div><div class="od-t"><span class="sq"></span>37</div><div class="od-t"><span class="sq"></span>38</div></div>
+    </div></article></div>
+      
+      <nav class="bnav"><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><span>Beranda</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Jadwal</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Pasien</span></button><button class="navi on" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg><span>Rekam Medis</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg><span>Lainnya</span></button></nav>
+      
+    </div><p class="ph-cap">RM ringkas. Ketuk gigi 26.</p></div><div class="ph-col">
+    <div class="ph" style="height:800px">
+      <div class="ph-bar"><span class="syn">DATA SINTETIS</span><span class="ph-time">09.40</span></div>
+      <header class="hd"><button class="icon-btn" type="button" aria-label="Kembali"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button><h1 class="h-sm">Rekam Medis</h1>
+        <button class="icon-btn" type="button" aria-label="Lainnya"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg></button></header>
+      <div class="ph-body"><p class="mu" style="margin:0">Budi Santoso · kunjungan hari ini.</p><article class="card">
+    <div class="od-grid">
+      <div class="od-lab">RAHANG ATAS</div><div class="od-row"><div class="od-t"><span class="sq"></span>18</div><div class="od-t"><span class="sq"></span>17</div><div class="od-t"><span class="sq"></span>16</div><div class="od-t"><span class="sq"></span>15</div><div class="od-t"><span class="sq"></span>14</div><div class="od-t"><span class="sq"></span>13</div><div class="od-t"><span class="sq"></span>12</div><div class="od-t"><span class="sq"></span>11</div><div class="od-t"><span class="sq"></span>21</div><div class="od-t"><span class="sq"></span>22</div><div class="od-t"><span class="sq"></span>23</div><div class="od-t"><span class="sq"></span>24</div><div class="od-t"><span class="sq"></span>25</div><div class="od-t on"><span class="sq"></span>26</div><div class="od-t"><span class="sq"></span>27</div><div class="od-t"><span class="sq"></span>28</div></div>
+      <div class="od-lab">RAHANG BAWAH</div><div class="od-row"><div class="od-t"><span class="sq"></span>48</div><div class="od-t"><span class="sq"></span>47</div><div class="od-t"><span class="sq"></span>46</div><div class="od-t"><span class="sq"></span>45</div><div class="od-t"><span class="sq"></span>44</div><div class="od-t"><span class="sq"></span>43</div><div class="od-t"><span class="sq"></span>42</div><div class="od-t"><span class="sq"></span>41</div><div class="od-t"><span class="sq"></span>31</div><div class="od-t"><span class="sq"></span>32</div><div class="od-t"><span class="sq"></span>33</div><div class="od-t"><span class="sq"></span>34</div><div class="od-t"><span class="sq"></span>35</div><div class="od-t"><span class="sq"></span>36</div><div class="od-t"><span class="sq"></span>37</div><div class="od-t"><span class="sq"></span>38</div></div>
+    </div></article></div>
+      
+      <nav class="bnav"><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><span>Beranda</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Jadwal</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Pasien</span></button><button class="navi on" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg><span>Rekam Medis</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg><span>Lainnya</span></button></nav>
+      
+    <div class="sheet compact" role="dialog" aria-label="Gigi 26">
+      <div class="grab" aria-hidden="true"></div>
+      <div class="sheet-hd">
+        <div class="tooth-id"><span class="sq">26</span><h3>Gigi 26</h3></div>
+        <button class="icon-btn" type="button" aria-label="Tutup"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      </div>
+      <div class="kicker">Permukaan</div>
+      <div class="surf"><b class="">M</b><b class="on">O</b><b class="">D</b><b class="">B</b><b class="">L</b></div>
+      <div class="kicker">Pada permukaan</div>
+      <div class="cond-grid"><button class="cond" type="button"><span class="dot dot-sehat" aria-hidden="true"></span>Sehat</button><button class="cond on" type="button"><span class="dot dot-karies" aria-hidden="true"></span>Karies</button><button class="cond" type="button"><span class="dot dot-tambal" aria-hidden="true"></span>Tambalan</button><button class="cond" type="button"><span class="dot dot-mahkota" aria-hidden="true"></span>Mahkota</button></div>
+      <details class="fold"><summary>Seluruh gigi<svg class="ic-sm chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary><div class="fold-body"><div class="cond-grid"><button class="cond" type="button"><span class="dot dot-hilang" aria-hidden="true"></span>Hilang</button><button class="cond" type="button"><span class="dot dot-akar" aria-hidden="true"></span>Sisa akar</button><button class="cond" type="button"><span class="dot dot-cabut" aria-hidden="true"></span>Perlu dicabut</button><button class="cond" type="button"><span class="dot dot-implan" aria-hidden="true"></span>Implan</button></div></div></details>
+      <div class="dock"><button class="btn pri" type="button"><svg class="ic-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Simpan 26</button></div>
+    </div>
+    </div><p class="ph-cap">Permukaan O dan Karies, lalu Simpan. Tanpa tab kode.</p></div><div class="ph-col">
+    <div class="ph" style="height:800px">
+      <div class="ph-bar"><span class="syn">DATA SINTETIS</span><span class="ph-time">09.40</span></div>
+      <header class="hd"><button class="icon-btn" type="button" aria-label="Kembali"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button><h1 class="h-sm">Tindakan</h1>
+        <button class="icon-btn" type="button" aria-label="Lainnya"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg></button></header>
+      <div class="ph-body"><p class="mu" style="margin:0">Budi Santoso · gigi 26 O · Karies</p><div class="kicker">Favorit, 1 ketuk</div><div class="favs"><button class="filt fav on" type="button">Tumpatan</button><button class="filt fav" type="button">Pencabutan</button><button class="filt fav" type="button">Scaling</button></div><div class="tx-line"><div class="nm">Tumpatan 26 O</div><div class="ds">ICD-9-CM 23.2</div><div class="rp">Rp 350.000</div></div>
+    <div class="aitem">
+      <div class="aitem-top">
+        <div class="code grow">Tumpatan</div>
+        <span class="chip st-draf"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Draf</span>
+        <button class="cite" type="button"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10a5 5 0 0 1 5-5M3 10v4a3 3 0 0 0 3 3h1v-5H4a5 5 0 0 1-1-2z"/><path d="M15 10a5 5 0 0 1 5-5M15 10v4a3 3 0 0 0 3 3h1v-5h-3a5 5 0 0 1-1-2z"/></svg>26</button>
+        
+      </div>
+      <div class="nm">Gigi 26 · M · ICD-9-CM 23.2</div>
+      
+    </div><p class="mu" style="margin:0">Saran A2 tetap draf sampai Setujui.</p></div>
+      <div class="dock"><button class="btn pri" type="button">Selesai</button></div>
+      <nav class="bnav"><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><span>Beranda</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Jadwal</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Pasien</span></button><button class="navi on" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg><span>Rekam Medis</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg><span>Lainnya</span></button></nav>
+      
+    </div><p class="ph-cap">Favorit Tumpatan 1 ketuk: kode dan harga terisi, saran A2 sebagai draf.</p></div><div class="ph-col">
+    <div class="ph" style="height:800px">
+      <div class="ph-bar"><span class="syn">DATA SINTETIS</span><span class="ph-time">09.40</span></div>
+      <header class="hd"><button class="icon-btn" type="button" aria-label="Kembali"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button><h1 class="h-sm">Rekam Medis</h1>
+        <button class="icon-btn" type="button" aria-label="Lainnya"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg></button></header>
+      <div class="ph-body"><p class="note" style="margin:0">Selesai. Rekam medis terkunci. Ada sisa tagihan.</p><article class="card"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><div style="font-weight:800">Catatan SOAP</div><span class="chip st-ok"><svg class="ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Selesai</span></div><p class="note" style="margin:0">S · Nyeri gigit 26. O · Karies O. A · Karies dentin. P · Tumpatan 26.</p></article></div>
+      <div class="dock"><button class="btn sec" type="button">Kembali ke Jadwal</button><button class="btn pri" type="button">Lanjut ke tagihan</button></div>
+      <nav class="bnav"><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><span>Beranda</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Jadwal</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Pasien</span></button><button class="navi on" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.5C8 3.1 9.6 2 12 2s4 1.1 4 2.5c0 .7-.2 1.4-.5 2 1.7.3 3 1.6 3.2 3.6.4 3.2-1 7.2-2.8 9.2-.6.7-1.7.3-1.7-.6 0-1.8-.3-3.2-.7-4.1-.3-.6-.9-.8-1.5-.4-.4.2-.8.2-1.2 0-.6-.4-1.2-.2-1.5.4-.4.9-.7 2.3-.7 4.1 0 .9-1.1 1.3-1.7.6-1.8-2-3.2-6-2.8-9.2.2-2 1.5-3.3 3.2-3.6-.3-.6-.5-1.3-.5-2z"/></svg><span>Rekam Medis</span></button><button class="navi" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg><span>Lainnya</span></button></nav>
+      
+    </div><p class="ph-cap">Setelah Selesai, Lanjut ke tagihan jika ada sisa.</p></div></div>
     </section>
 </div>
 </body>

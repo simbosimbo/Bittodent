@@ -156,13 +156,16 @@ def chip(label: str, kind: str, icon: str | None = None) -> str:
     return f'<span class="chip st-{kind}">{ic}{label}</span>'
 
 
-def btn(label: str, kind: str = "pri", icon: str | None = None, disabled: bool = False) -> str:
-    ic = ico(icon, "ic-btn") if icon else ""
+def btn(label: str, kind: str = "pri", icon: str | None = None, disabled: bool = False, busy: bool = False) -> str:
+    ic = '<span class="spin" aria-hidden="true"></span>' if busy else (ico(icon, "ic-btn") if icon else "")
     cls = f"btn {kind}"
-    if disabled:
+    if disabled or busy:
         cls += " dis"
-    aria = ' aria-disabled="true"' if disabled else ""
-    return f'<button class="{cls}" type="button"{aria}>{ic}{label}</button>'
+    if busy:
+        cls += " busy"
+    aria = ' aria-disabled="true"' if disabled or busy else ""
+    live = ' aria-busy="true"' if busy else ""
+    return f'<button class="{cls}" type="button"{aria}{live}>{ic}{label}</button>'
 
 
 def syn() -> str:
@@ -417,6 +420,43 @@ h1.page{font-size:28px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px;colo
 .side{width:360px;flex:none;display:flex;flex-direction:column;gap:10px;position:sticky;top:16px;align-self:flex-start}
 .split{display:grid;grid-template-columns:1fr 360px;gap:16px;flex:1;min-height:0}
 
+
+.ph-col{display:flex;flex-direction:column;gap:8px;flex:none}
+.ph-cap{margin:0;font-size:12px;font-weight:600;color:var(--color-neutral-600);max-width:360px;line-height:1.4}
+.cond-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cond{display:flex;align-items:center;gap:8px;min-height:48px;padding:0 12px;border-radius:16px;
+  border:1px solid var(--color-neutral-200);background:#fff;font-size:12px;font-weight:700;color:var(--color-neutral-800);text-align:left}
+.cond.on{background:var(--color-primary-50);border-color:var(--color-primary-300);color:var(--color-primary-900)}
+.dot{width:10px;height:10px;border-radius:99px;flex:none}
+.dot-sehat{background:#12B76A}
+.dot-karies{background:#B42318}
+.dot-tambal{background:#0B6B62}
+.dot-mahkota{background:#7A5AF8}
+.dot-hilang{background:#344054}
+.dot-akar{background:#B54708}
+.dot-cabut{background:#B54708}
+.dot-implan{background:#026AA2}
+.sheet .tooth-id{display:flex;align-items:center;gap:8px}
+.sheet .tooth-id .sq{width:28px;height:28px;border-radius:8px;border:1.5px solid var(--color-primary-700);background:#FDECEC;flex:none;display:grid;place-items:center;font-size:9px;font-weight:800;color:#B42318}
+.sheet.compact{gap:6px;padding-bottom:12px}
+.btn.busy{opacity:.8;gap:8px}
+.spin{width:16px;height:16px;border-radius:99px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;
+  animation:spin 700ms linear infinite;flex:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast .undo{margin-left:auto;min-height:40px;padding:0 12px;border:0;background:transparent;
+  color:var(--color-primary-800);font-size:13px;font-weight:800}
+.ph .toast{left:16px;right:16px;bottom:96px}
+.appt-row.due{box-shadow:inset 4px 0 0 var(--color-appointment-terjadwal-border)}
+.appt-row.hadir{box-shadow:inset 4px 0 0 var(--color-appointment-checkin-border)}
+.appt-row .hadir-lab{font-size:11px;font-weight:700;color:var(--color-appointment-checkin-fg);white-space:nowrap}
+.favs{display:flex;flex-wrap:wrap;gap:8px}
+.fav{min-height:48px}
+.tx-line{display:flex;flex-direction:column;gap:2px;padding:12px;border-radius:16px;background:#fff;
+  border:1px solid var(--color-neutral-200)}
+.tx-line .nm{font-size:14px;font-weight:800}
+.tx-line .ds{font-size:12px;font-weight:600;color:var(--color-neutral-600)}
+.tx-line .rp{font-size:13px;font-weight:800;color:var(--color-neutral-900)}
+
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none !important;transition:none !important}
   .sk::after{display:none}
@@ -517,15 +557,55 @@ def odonto(active: str = "26") -> str:
     </div>"""
 
 
-def appt_row(time: str, name: str, meta: str, status: str, cta: str) -> str:
-    unpaid = " unpaid" if status == "Belum bayar" else ""
-    st = f' · <span class="pay">{status}</span>' if status else ""
+
+def appt_row(time: str, name: str, meta: str, status: str = "", cta: str = "",
+            kind: str = "", busy: bool = False) -> str:
+    cls = ""
+    if status == "Belum bayar" or kind == "unpaid":
+        cls = " unpaid"
+    elif kind == "due":
+        cls = " due"
+    elif kind == "hadir":
+        cls = " hadir"
+    st = f' · <span class="pay">{status}</span>' if status == "Belum bayar" else ""
+    if cta:
+        right = btn(cta, "pri", busy=busy)
+    elif kind == "hadir":
+        right = '<span class="hadir-lab">Hadir</span>'
+    else:
+        right = ""
     return f"""
-    <div class="appt-row{unpaid}">
+    <div class="appt-row{cls}">
       <div class="tm">{time}</div>
       <div class="grow"><div class="nm">{name}</div><div class="ds">{meta}{st}</div></div>
-      {btn(cta, "pri")}
+      {right}
     </div>"""
+
+
+def ph_col(ph: str, cap: str) -> str:
+    return f'<div class="ph-col">{ph}<p class="ph-cap">{cap}</p></div>'
+
+
+def conds(items: list[tuple[str, str, bool]]) -> str:
+    cells = []
+    for lab, dot, on in items:
+        cls = " on" if on else ""
+        cells.append(
+            f'<button class="cond{cls}" type="button"><span class="dot {dot}" aria-hidden="true"></span>{lab}</button>'
+        )
+    return f'<div class="cond-grid">{"".join(cells)}</div>'
+
+
+COND_ALL = [
+    ("Sehat", "dot-sehat", False),
+    ("Karies", "dot-karies", True),
+    ("Tambalan", "dot-tambal", False),
+    ("Mahkota", "dot-mahkota", False),
+    ("Hilang", "dot-hilang", False),
+    ("Sisa akar", "dot-akar", False),
+    ("Perlu dicabut", "dot-cabut", False),
+    ("Implan", "dot-implan", False),
+]
 
 
 def ai_item(title: str, sub: str, cite: str, compact: bool = False) -> str:
@@ -548,68 +628,106 @@ def ai_item(title: str, sub: str, cite: str, compact: bool = False) -> str:
 
 # ---------- artboards ----------
 
-def ab01() -> str:
-    rows = (
-        appt_row("08.00", "Sari Nugroho", "Kursi 2 · Andi", "Belum bayar", "Bayar")
-        + appt_row("11.00", "Fajar Halim", "Kursi 1 · Pemilik", "Belum bayar", "Bayar")
-        + appt_row("16.00", "Sari Nugroho", "Kursi 1 · Andi", "Belum bayar", "Bayar")
-    )
-    inner = f"""
+def _jadwal_chrome(filt_html: str, body: str) -> str:
+    return f"""
       {seg([("Meja depan", True), ("Dokter", False)])}
       {fold("15 Nov 2026 · 21 janji",
             '<div class="mu">Sen 9 sampai Min 15. Pilih hari, lalu lipat.</div>',
             hint="Week strip dilipat")}
-      <p class="mu" style="margin:0">20 janji · 15 hadir · Rp 1,75jt</p>
-      <div class="filts">
+      <p class="mu" style="margin:0">21 janji · 16 hadir · Rp 1,75jt</p>
+      <div class="filts">{filt_html}</div>
+      {body}
+      <div style="height:64px" aria-hidden="true"></div>
+    """
+
+
+def ab01() -> str:
+    fab = f'<button class="fab" type="button" aria-label="Buat janji">{ico("plus")}</button>'
+    filts_bayar = """
         <button class="filt on" type="button">Belum bayar · 3</button>
         <button class="filt" type="button">Semua · 21</button>
         <button class="filt" type="button">Andi · 9</button>
+        <button class="filt" type="button">Bunga · 0</button>
         <button class="filt" type="button">Pemilik · 12</button>
-      </div>
-      <div class="kicker">Belum bayar · 3</div>
-      {rows}
-      {fold("Berikutnya dan Selesai", '<p class="mu" style="margin:0">Blok lain dilipat. Buka bila perlu.</p>')}
-      <div style="height:64px" aria-hidden="true"></div>
     """
-    fab = f'<button class="fab" type="button" aria-label="Buat janji">{ico("plus")}</button>'
-    ph = phone(inner, "Jadwal", 800, "Jadwal", back=False, overlay=fab)
+    rows_bayar = (
+        appt_row("08.00", "Sari Nugroho", "Kursi 2 · Andi", "Belum bayar", "Bayar", kind="unpaid")
+        + appt_row("11.00", "Fajar Halim", "Kursi 1 · Pemilik", "Belum bayar", "Bayar", kind="unpaid")
+        + appt_row("16.00", "Sari Nugroho", "Kursi 1 · Andi", "Belum bayar", "Bayar", kind="unpaid")
+    )
+    body_bayar = (
+        '<div class="kicker">Belum bayar · 3</div>'
+        + rows_bayar
+        + fold("Menunggu dan Selesai", '<p class="mu" style="margin:0">Blok lain dilipat. Buka bila perlu.</p>')
+    )
+    ph_bayar = phone(_jadwal_chrome(filts_bayar, body_bayar), "Jadwal", 800, "Jadwal", back=False, overlay=fab)
+
+    filts_all = """
+        <button class="filt on" type="button">Semua · 21</button>
+        <button class="filt" type="button">Belum bayar · 3</button>
+        <button class="filt" type="button">Andi · 9</button>
+        <button class="filt" type="button">Bunga · 0</button>
+        <button class="filt" type="button">Pemilik · 12</button>
+    """
+    rows_all = (
+        appt_row("12.20", "Hendra Hidayat", "Kontrol rutin", cta="Check-in", kind="due")
+        + appt_row("13.10", "Dewi Kusuma", "Kontrol rutin", cta="Check-in", kind="due")
+        + appt_row("14.50", "Putri Saputra", "Scaling", cta="Check-in", kind="due")
+    )
+    body_all = (
+        '<div class="kicker">Perlu tindakan sekarang · 3</div>'
+        + rows_all
+        + fold("Menunggu dan Selesai", '<p class="mu" style="margin:0">Hadir dan selesai dilipat. Buka bila perlu.</p>')
+    )
+    ph_all = phone(_jadwal_chrome(filts_all, body_all), "Jadwal", 800, "Jadwal", back=False, overlay=fab)
+    body = (
+        '<div class="row">'
+        + ph_col(ph_bayar, "Filter Belum bayar. Chip oranye lewat warna baris, bukan teal.")
+        + ph_col(ph_all, "Filter Semua. Jam | nama + layanan satu baris. Status lewat aksi Check-in, tanpa chip Terjadwal. Tanpa + di header, hanya FAB. Chip dokter utuh.")
+        + "</div>"
+    )
     return ab(
         "01",
         "Jadwal Meja depan HP",
-        "Sebelum ~3,5 layar di 360: week strip, KPI 3 kolom, chip dokter terpotong, kartu 163px. Sesudah: baris 60px, chip filter 48px, week dan KPI dilipat. Tiga Belum bayar muat di 360×800 (≤1,8 layar). Chip oranye, bukan teal.",
-        ph,
+        "Kiri: filter Belum bayar, baris 60px, week dan KPI satu baris, muat 360×800. Kanan: filter Semua, merespons screenshot staging: layanan tidak dipotong, chip Terjadwal dihapus (status cukup lewat tombol atau warna), KPI dan chip dokter (Andi, Bunga, Pemilik) utuh, + di header dihapus agar tidak dobel dengan FAB.",
+        body,
     )
+
+
+def _gigi_sheet(save: str, surface_on: tuple[str, ...] = ("M", "O")) -> str:
+    pads = "".join(
+        f'<b class="{"on" if n in surface_on else ""}">{n}</b>' for n in ("M", "O", "D", "B", "L")
+    )
+    seluruh = fold("Seluruh gigi", conds(COND_ALL[4:]))
+    return f"""
+    <div class="sheet compact" role="dialog" aria-label="Gigi 26">
+      <div class="grab" aria-hidden="true"></div>
+      <div class="sheet-hd">
+        <div class="tooth-id"><span class="sq">26</span><h3>Gigi 26</h3></div>
+        <button class="icon-btn" type="button" aria-label="Tutup">{ico("x")}</button>
+      </div>
+      <div class="kicker">Permukaan</div>
+      <div class="surf">{pads}</div>
+      <div class="kicker">Pada permukaan</div>
+      {conds(COND_ALL[:4])}
+      {seluruh}
+      {dock(save)}
+    </div>"""
 
 
 def ab02() -> str:
-    pads = "".join(
-        f'<b class="{"on" if n in ("M","O") else ""}">{n}</b>' for n in ("M", "O", "D", "B", "L")
-    )
-    conds = [("Karies", True), ("Tumpatan", False), ("Hilang", False), ("Goyah", False)]
-    phrases = "".join(f'<span class="phrase{" on" if on else ""}">{lab}</span>' for lab, on in conds)
-    sheet = f"""
-    <div class="sheet" role="dialog" aria-label="Detail gigi 26">
-      <div class="grab" aria-hidden="true"></div>
-      <div class="sheet-hd"><h3>Gigi 26</h3>
-        <button class="icon-btn" type="button" aria-label="Tutup">{ico("x")}</button></div>
-      <p class="mu" style="margin:0">Sari Nugroho · ketuk seluruh gigi, bukan kotak 23px.</p>
-      <div class="kicker">Permukaan</div>
-      <div class="surf">{pads}</div>
-      <div class="kicker">Kondisi</div>
-      <div class="phrases">{phrases}</div>
-      {dock(btn("Simpan 26", "pri", "check"))}
-    </div>"""
-    inner = f"""
-      <p class="mu" style="margin:0">Ketuk gigi untuk buka lembar. Permukaan dipilih di pad 56px.</p>
-      <article class="card">{odonto("26")}</article>
-    """
-    ph = phone(inner, "Rekam Medis", 800, "RM", overlay=sheet)
+    inner = """
+      <p class="mu" style="margin:0">Sari Nugroho · 32 th. Ketuk seluruh gigi, bukan kotak 23px.</p>
+      <article class="card">{odonto_html}</article>
+    """.replace("{odonto_html}", odonto("26"))
+    ph_ready = phone(inner, "Rekam Medis", 800, "RM", overlay=_gigi_sheet(btn("Simpan 26", "pri", "check")))
     return ab(
         "02",
         "Permukaan gigi di sheet",
-        "Di HP, ketuk seluruh gigi (bukan poligon oklusal 23×24) membuka lembar. Pad M/O/D/B/L 56px, kondisi 48px, satu aksi Simpan. Sheet masuk 280 ms.",
-        ph,
+        "Sheet hanya judul Gigi 26, tanpa ulangi identitas pasien. Odontogram utuh di atas lembar, bukan gigi terpotong. Kondisi grid 2 kolom, warna lewat titik, tanpa label 'Kondisi permukaan:' dan tanpa border kiri berantakan. Tab Tambal/Kode lain dihapus; tindakan menyusul setelah Simpan. Simpan aktif setelah Karies + M/O. Bila belum pilih, tombol mati tanpa teks 'Pilih kondisi terlebih dahulu'.",
+        ph_ready,
     )
+
 
 
 def ab03() -> str:
@@ -836,8 +954,152 @@ def ab07() -> str:
     )
 
 
+def _due_rows(*which: str, busy_name: str | None = None) -> str:
+    people = [
+        ("12.20", "Hendra Hidayat", "Kontrol rutin"),
+        ("13.10", "Dewi Kusuma", "Kontrol rutin"),
+        ("14.50", "Putri Saputra", "Scaling"),
+        ("16.30", "Ayu Nugroho", "Kontrol rutin"),
+    ]
+    bits = []
+    for tm, name, meta in people:
+        if name in which:
+            bits.append(appt_row(tm, name, meta, cta="Check-in" if name != busy_name else "Memproses",
+                                 kind="due", busy=(name == busy_name)))
+    return "".join(bits)
+
+
+def ab08() -> str:
+    fab = f'<button class="fab" type="button" aria-label="Buat janji">{ico("plus")}</button>'
+    filts = """
+        <button class="filt on" type="button">Semua · 21</button>
+        <button class="filt" type="button">Andi · 9</button>
+        <button class="filt" type="button">Pemilik · 12</button>
+    """
+    chrome_top = (
+        seg([("Meja depan", True), ("Dokter", False)])
+        + '<p class="mu" style="margin:0">15 Nov 2026 · 21 janji · 16 hadir</p>'
+        + f'<div class="filts">{filts}</div>'
+    )
+
+    def frame(due: str, wait: str, overlay: str, kicker_due: str, kicker_wait: str) -> str:
+        inner = (
+            chrome_top
+            + f'<div class="kicker">{kicker_due}</div>'
+            + due
+            + f'<div class="kicker">{kicker_wait}</div>'
+            + wait
+            + '<div style="height:64px" aria-hidden="true"></div>'
+        )
+        return phone(inner, "Jadwal", 800, "Jadwal", back=False, overlay=overlay)
+
+    wait_base = appt_row("08.00", "Budi Santoso", "Scaling", kind="hadir")
+    ph1 = frame(
+        _due_rows("Hendra Hidayat", "Dewi Kusuma", "Putri Saputra", "Ayu Nugroho"),
+        wait_base,
+        fab,
+        "Perlu tindakan sekarang · 4",
+        "Menunggu · 1",
+    )
+    ph2 = frame(
+        _due_rows("Hendra Hidayat", "Dewi Kusuma", "Putri Saputra", "Ayu Nugroho", busy_name="Hendra Hidayat"),
+        wait_base,
+        fab,
+        "Perlu tindakan sekarang · 4",
+        "Menunggu · 1",
+    )
+    toast = (
+        f'<div class="toast" role="status">{ico("check", "ic-sm")} Hendra Hidayat hadir'
+        '<button class="undo" type="button">Batalkan</button></div>'
+    )
+    wait_after = appt_row("12.20", "Hendra Hidayat", "Kontrol rutin", kind="hadir") + wait_base
+    ph3 = frame(
+        _due_rows("Dewi Kusuma", "Putri Saputra", "Ayu Nugroho"),
+        wait_after,
+        fab + toast,
+        "Perlu tindakan sekarang · 3",
+        "Menunggu · 2",
+    )
+    body = (
+        '<div class="row">'
+        + ph_col(ph1, "Sebelum. Check-in adalah satu-satunya aksi primer pada baris Hendra.")
+        + ph_col(ph2, "Saat ketuk: tombol Memproses, tidak bisa ketuk ulang.")
+        + ph_col(ph3, "Sesudah. Baris pindah ke Menunggu, chip Hadir, toast dengan Batalkan 5 dtk.")
+        + "</div>"
+    )
+    return ab(
+        "08",
+        "Umpan balik Check-in",
+        "Ketuk Check-in harus terasa. Tombol berubah Memproses, baris bergeser halus (200 ms) dari Perlu tindakan sekarang ke Menunggu, chip Hadir menggantikan tombol, toast 'Hendra Hidayat hadir' dengan Batalkan (undo 5 dtk). Tanpa ini, baris hanya hilang dari seksi atas dan pengguna tidak melihat apa pun.",
+        body,
+    )
+
+
+def ab09() -> str:
+    sheet = _gigi_sheet(btn("Simpan 26", "pri", "check"), surface_on=("O",))
+    ph_rm = phone(
+        '<p class="mu" style="margin:0">Budi Santoso · kunjungan hari ini. Ketuk gigi untuk catat kondisi.</p>'
+        + f'<article class="card">{odonto("26")}</article>',
+        "Rekam Medis",
+        800,
+        "RM",
+    )
+    ph_sheet = phone(
+        '<p class="mu" style="margin:0">Budi Santoso · kunjungan hari ini.</p>'
+        + f'<article class="card">{odonto("26")}</article>',
+        "Rekam Medis",
+        800,
+        "RM",
+        overlay=sheet,
+    )
+    favs = "".join(
+        f'<button class="filt fav{" on" if lab == "Tumpatan" else ""}" type="button">{lab}</button>'
+        for lab in ("Tumpatan", "Pencabutan", "Scaling")
+    )
+    ph_tx = phone(
+        '<p class="mu" style="margin:0">Budi Santoso · gigi 26 O · Karies</p>'
+        + '<div class="kicker">Favorit, 1 ketuk</div>'
+        + f'<div class="favs">{favs}</div>'
+        + '<div class="tx-line"><div class="nm">Tumpatan 26 O</div>'
+        + '<div class="ds">ICD-9-CM 23.2</div>'
+        + '<div class="rp">Rp 350.000</div></div>'
+        + ai_item("Tumpatan", "Gigi 26 · M · ICD-9-CM 23.2", "26", compact=True)
+        + '<p class="mu" style="margin:0">Saran A2 tetap draf sampai Setujui.</p>',
+        "Tindakan",
+        800,
+        "RM",
+        dock_html=dock(btn("Selesai", "pri")),
+    )
+    ph_done = phone(
+        '<p class="note" style="margin:0">Selesai. Rekam medis terkunci. Ada sisa tagihan.</p>'
+        + '<article class="card"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px">'
+        + '<div style="font-weight:800">Catatan SOAP</div>'
+        + chip("Selesai", "ok", "lock")
+        + '</div><p class="note" style="margin:0">S · Nyeri gigit 26. O · Karies O. A · Karies dentin. P · Tumpatan 26.</p></article>',
+        "Rekam Medis",
+        800,
+        "RM",
+        dock_html=dock(btn("Kembali ke Jadwal", "sec"), btn("Lanjut ke tagihan", "pri")),
+    )
+    body = (
+        '<div class="row">'
+        + ph_col(ph_rm, "RM ringkas. Ketuk gigi 26.")
+        + ph_col(ph_sheet, "Permukaan O dan Karies, lalu Simpan. Tanpa tab kode.")
+        + ph_col(ph_tx, "Favorit Tumpatan 1 ketuk: kode dan harga terisi, saran A2 sebagai draf.")
+        + ph_col(ph_done, "Setelah Selesai, Lanjut ke tagihan jika ada sisa.")
+        + "</div>"
+    )
+    return ab(
+        "09",
+        "Dokter mengisi tindakan",
+        "Empat layar berdampingan, tanpa nomor stepper. Alur: ketuk gigi, isi permukaan dan kondisi, 1 ketuk favorit (ICD-9-CM dan harga otomatis, saran A2 tetap draf), Selesai, lalu Lanjut ke tagihan. Jumlah ketuk end-to-end: 8 (gigi, permukaan, kondisi, Simpan, favorit, Selesai, baris pernyataan, Lanjut ke tagihan).",
+        body,
+    )
+
+
+
 def build() -> str:
-    parts = [ab01(), ab02(), ab03(), ab04(), ab05(), ab06(), ab07()]
+    parts = [ab01(), ab02(), ab03(), ab04(), ab05(), ab06(), ab07(), ab08(), ab09()]
     return f"""<!DOCTYPE html>
 <html lang="id">
 <head>
@@ -854,8 +1116,8 @@ def build() -> str:
 </head>
 <body>
 <div class="wrap">
-  <h1 class="page">Perbaikan staging: review-2 dan A2</h1>
-  <p class="lede">Usulan UI untuk temuan terbuka PR #52 (Jadwal Meja depan, permukaan gigi, checkbox Selesai, filter dokter, CTA setelah Selesai) dan catatan A2 PR #57 (saran tindakan HP dan desktop). Data sintetis. Keluaran AI tetap draf sampai Setujui. Teal #0B6B62 hanya pada tombol primer.</p>
+  <h1 class="page">Perbaikan staging: review-2, A2, Check-in, dan alur dokter</h1>
+  <p class="lede">Usulan UI untuk temuan terbuka PR #52, catatan A2 PR #57, umpan balik Check-in di Jadwal Meja depan, dan alur dokter mengisi tindakan. Data sintetis. Keluaran AI tetap draf sampai Setujui. Teal #0B6B62 hanya pada tombol primer.</p>
   {''.join(parts)}
 </div>
 </body>
