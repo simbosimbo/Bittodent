@@ -3,10 +3,10 @@ import { ApiError, errorText } from '../../shared/api/http'
 import { setActivePatient } from '../../shared/activePatient'
 import type { Me } from '../../shared/session'
 import {
-  approveCorrection, changeStatus, correctNote, discardFinding, discardProcedure, getChart, saveBaseline, saveFinding, saveNote, saveProcedure, signVisit,
+  approveCorrection, changeStatus, confirmExternal, correctNote, discardFinding, discardProcedure, getChart, saveBaseline, saveFinding, saveNote, saveProcedure, signVisit,
   visitFromAppointment, type Baseline, type Chart, type ChartVisit, type Note, type ProcStatus, type Procedure, type Soap, type Surface, type ToothPresence, type Version,
 } from './api'
-import { AI_BADGE, CHOOSABLE, CONDITIONS, findingText, paintCondition, PRESENCE, procedureText, statusOf, surfaceLabel, surfaceName, surfacesOf } from './legend'
+import { AI_BADGE, CHOOSABLE, CONDITIONS, findingText, paintCondition, PRESENCE, procedureText, sameSite, statusOf, surfaceLabel, surfaceName, surfacesOf } from './legend'
 import { Legend, Odontogram, type Mark } from './Odontogram'
 import { SignDialog } from './SignDialog'
 import './clinical.css'
@@ -211,6 +211,8 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const [status, setStatus] = useState<ProcStatus>('selesai')
   const [surfs, setSurfs] = useState<Surface[]>([])
   const [procCode, setProcCode] = useState('')
+  const [extClinic, setExtClinic] = useState('')
+  const [extDate, setExtDate] = useState('')
   const [baselineOpen, setBaselineOpen] = useState(false)
   const can = (p: string) => me.permissions.includes(p)
 
@@ -244,7 +246,8 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
     }
     // treatments paint over conditions: every letter of a combination ("MOD" -> M, O, D); cancelled ones are not painted
     for (const p of [...(chart?.procedures ?? []), ...myProcs]) {
-      if (p.tooth === null || p.status === 'cancelled') continue
+      // an external waiting for confirmation (or rejected) never paints over today's work
+      if (p.tooth === null || p.status === 'cancelled' || p.external_confirmation === 'pending' || p.external_confirmation === 'rejected') continue
       const mark: Mark = { condition: paintCondition(p.paint_type), paint: p.paint_type, state: p.state === 'draft' ? 'draft' : 'signed', source: p.source, status: p.status }
       for (const k of p.surfaces ? [...p.surfaces].map((s) => `t${p.tooth}-${s}`) : [`t${p.tooth}`]) m[k] = mark
     }
@@ -269,8 +272,14 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
     { tooth: pick.tooth, surface: whole ? null : pick.surface, condition }))
   // one procedure for all toggled surfaces (MOD = one row, one price); no surface = whole tooth. The catalog decides the area for known codes.
   const surfaces = pick ? surfacesOf(pick.tooth).filter((s) => surfs.includes(s)).join('') || null : null
+  // today's chair work on this visit (any author); an external on the same site is refused, elsewhere it waits for confirmation
+  const selesaiToday = visit ? [...visit.draft_procedures, ...chart.procedures.filter((x) => x.visit_id === visit.id)].filter((x) => x.status === 'selesai') : []
+  const external = status === 'ada_di_tempat_lain'
+  const extBlocked = external && !!pick && selesaiToday.some((x) => sameSite(pick.tooth, surfaces, x))
   const record = () => pick && visit && run(() => saveProcedure(visit.id, { tooth: pick.tooth, surfaces, status, procedure_code: procCode.trim() || null,
-    ...(procCode.trim() ? {} : { treat_area: surfaces ? 'surface' : 'tooth' }) }), 'Tindakan tersimpan sebagai draf.')
+    ...(procCode.trim() ? {} : { treat_area: surfaces ? 'surface' : 'tooth' }),
+    ...(external ? { external_clinic_name: extClinic.trim(), external_date: extDate.trim() } : {}) }),
+    external && selesaiToday.length ? 'Tersimpan; menunggu konfirmasi resepsionis/asisten.' : 'Tindakan tersimpan sebagai draf.')
   const myDraftAt = (whole: boolean) => pick && mine.find((d) => d.tooth === pick.tooth && d.surface === (whole ? null : pick.surface))
 
   async function sign(code: string) {
@@ -329,7 +338,16 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
                 <button key={s} type="button" className="btn btn-xs" aria-pressed={surfs.includes(s)} title={surfaceName(pick.tooth, s)}
                   onClick={() => setSurfs(surfs.includes(s) ? surfs.filter((x) => x !== s) : [...surfs, s])}>{surfaceLabel(pick.tooth, s)}</button>
               ))}
-              <button className="btn btn-xs btn-primary" onClick={record}>Simpan tindakan{surfaces ? ` (${[...surfaces].map((s) => surfaceLabel(pick.tooth, s as Surface)).join('')})` : ' (seluruh gigi)'}</button>
+              {external && (
+                <>
+                  <label className="small">Nama klinik lain * <input size={18} maxLength={120} value={extClinic} onChange={(e) => setExtClinic(e.target.value)} /></label>
+                  <label className="small">Perkiraan tanggal * <input size={10} value={extDate} placeholder="2025 / 06/2025 / 12/06/2025" onChange={(e) => setExtDate(e.target.value)} /></label>
+                  <span className="muted small">Tidak ditagih.</span>
+                  {extBlocked ? <span className="form-error small" role="alert">Gigi/permukaan ini sudah dikerjakan hari ini; tidak bisa dicatat sebagai klinik lain.</span>
+                    : selesaiToday.length > 0 && <span className="notice notice-warn small">Kunjungan ini sudah ada tindakan selesai hari ini: perlu konfirmasi resepsionis/asisten.</span>}
+                </>
+              )}
+              <button className="btn btn-xs btn-primary" onClick={record} disabled={extBlocked || (external && (!extClinic.trim() || !extDate.trim()))}>Simpan tindakan{surfaces ? ` (${[...surfaces].map((s) => surfaceLabel(pick.tooth, s as Surface)).join('')})` : ' (seluruh gigi)'}</button>
             </div>
             <div className="cond-row">
               <span className="muted small">Kondisi permukaan:</span>
@@ -342,6 +360,24 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
               {myDraftAt(true) && <button className="btn btn-xs btn-ghost" onClick={() => run(() => discardFinding(myDraftAt(true)!.id))}>Hapus draf gigi</button>}
             </div>
             <button className="btn btn-xs btn-link" onClick={() => setPick(null)}>Tutup</button>
+          </div>
+        )}
+        {chart.pending_externals.length > 0 && (
+          <div className="notice notice-warn" role="status">
+            <strong>Tindakan klinik lain menunggu konfirmasi</strong> (dicatat pada hari dengan tindakan selesai; belum masuk riwayat, tidak ditagih)
+            <ul>
+              {chart.pending_externals.map((x) => (
+                <li key={x.id}>
+                  {procedureText(x)} · {x.external_clinic_name} · {x.external_date}{x.external_date_precision !== 'day' ? ` (perkiraan ${x.external_date_precision === 'year' ? 'tahun' : 'bulan'})` : ''}
+                  {can('procedure.confirm_external') && (
+                    <>
+                      {' '}<button className="btn btn-xs" onClick={() => run(() => confirmExternal(x.id, true), 'Tindakan klinik lain dikonfirmasi.')}>Konfirmasi</button>
+                      {' '}<button className="btn btn-xs btn-ghost" onClick={() => run(() => confirmExternal(x.id, false), 'Tindakan klinik lain ditolak.')}>Tolak</button>
+                    </>
+                  )}
+                </li>
+              ))}
+            </ul>
           </div>
         )}
         <Items items={[...chart.procedures, ...myProcs]} canMove={can('note.sign')} onDiscard={(p) => run(() => discardProcedure(p.id))}

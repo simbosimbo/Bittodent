@@ -16,6 +16,11 @@ export type Procedure = {
   procedure_code: string | null; variant: string; diagnosis_code: string | null; provider_id: string
   state: 'draft' | 'final'; source: Source; supersedes_id: string | null; created_by: string; finalized_at: string | null
   paint_type: string; name: string | null; layman: string | null
+  /** status ada_di_tempat_lain only: other clinic + approximate date (first day of month/year when coarser) */
+  external_clinic_name: string | null; external_date: string | null; external_date_precision: 'day' | 'month' | 'year' | null
+  /** pending = entered on a day with `selesai` work; front desk / assistant confirm. pending/rejected are not chart history. */
+  external_confirmation: 'not_required' | 'pending' | 'confirmed' | 'rejected' | null
+  external_confirmed_by: string | null; external_confirmed_at: string | null; external_confirmation_reason: string | null
 }
 export type ToothPresence = 'ada' | 'hilang' | 'belum_tumbuh'
 export type Baseline = { id: string; version: number; dentition: 'tetap' | 'sulung' | 'campuran'; teeth: Record<string, ToothPresence>; created_at: string }
@@ -37,7 +42,7 @@ export type ChartVisit = {
 export type Chart = {
   patient: { id: string; name: string; dob: string | null; sex: string | null; payer_type: string }
   solo_practice: boolean; baseline: Baseline | null; findings: Finding[]; drafts: Finding[]
-  procedures: Procedure[]; procedure_drafts: Procedure[]; visits: ChartVisit[]
+  procedures: Procedure[]; procedure_drafts: Procedure[]; pending_externals: Procedure[]; visits: ChartVisit[]
 }
 
 export const getChart = (patientId: string) => api<Chart>(`/api/patients/${patientId}/chart`)
@@ -45,11 +50,15 @@ export const visitFromAppointment = (appointmentId: string) => api<{ id: string 
 /** Visual condition only (karies, hilang, ...). Treatments go through saveProcedure. */
 export const saveFinding = (visitId: string, body: { tooth: number; surface: Surface | null; condition: string }) =>
   api<Finding>(`/api/visits/${visitId}/findings`, { method: 'POST', body })
-export const saveProcedure = (visitId: string, body: { tooth: number; surfaces: string | null; status: ProcStatus; procedure_code: string | null; treat_area?: TreatArea }) =>
+export const saveProcedure = (visitId: string, body: { tooth: number; surfaces: string | null; status: ProcStatus; procedure_code: string | null; treat_area?: TreatArea
+  external_clinic_name?: string; external_date?: string }) =>
   api<Procedure>(`/api/visits/${visitId}/procedures`, { method: 'POST', body })
 /** Signed procedure: the server appends a new final row superseding it (only along the allowed transitions). */
 export const changeStatus = (procedureId: string, to: ProcStatus, visitId?: string | null) =>
   api<Procedure>(`/api/procedures/${procedureId}/status`, { method: 'POST', body: { to, visit_id: visitId ?? null } })
+/** perm procedure.confirm_external (front desk, assistant): confirm or reject a pending external entry. */
+export const confirmExternal = (procedureId: string, confirm: boolean, reason?: string) =>
+  api<Procedure>(`/api/procedures/${procedureId}/confirm-external`, { method: 'POST', body: { confirm, reason: reason || null } })
 export const discardProcedure = (id: string) => api(`/api/procedures/${id}`, { method: 'DELETE' })
 export const saveBaseline = (patientId: string, body: { base_version: number | null; dentition: Baseline['dentition']; teeth: Record<string, ToothPresence> }) =>
   api<Baseline>(`/api/patients/${patientId}/baseline`, { method: 'PUT', body })
