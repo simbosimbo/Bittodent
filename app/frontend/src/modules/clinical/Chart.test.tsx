@@ -681,6 +681,17 @@ test('#70 tooth panel: one tap "Tambal 23.2" saves procedure + diagnosis (no typ
   expect(JSON.parse(localStorage.getItem('bt.quick-proc.u1')!)[0]).toMatchObject({ code: '23.2', dx: 'K02.1', n: 1 })
 })
 
+test('#70 phone: a quick procedure closes the tooth sheet so the tabs and Selesai bar are reachable again', async () => {
+  const calls = dokterChart(412)
+  await screen.findByRole('region', { name: 'Odontogram' })
+  fireEvent.click(document.getElementById('t26-O')!)
+  const quick = within(screen.getByRole('group', { name: 'Tindakan cepat' }))
+  fireEvent.click(quick.getByRole('button', { name: 'Tambal (23.2, diagnosis K02.1) di gigi 26' }))
+  await waitFor(() => expect(calls.find((c) => c.url.endsWith('/procedures'))).toBeTruthy())
+  await waitFor(() => expect(screen.queryByRole('heading', { name: 'Gigi 26' })).toBeNull())
+  expect(await screen.findByText('Tambal gigi 26 (O) tersimpan.')).toBeInTheDocument()
+})
+
 test('#70 Catatan: template fills only empty fields; "Ulangi kunjungan terakhir" copies the last signed SOAP; Selesai saves the draft first', async () => {
   const calls = dokterChart(1280)
   await screen.findByRole('region', { name: 'Odontogram' })

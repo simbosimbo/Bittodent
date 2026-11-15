@@ -546,6 +546,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const quickRecord = (q: QuickProc) => pick && visit && run(async () => {
     await saveProcedure(visit.id, { tooth: pick.tooth, surfaces, status: 'selesai', procedure_code: q.code, diagnosis_code: q.dx })
     rememberProc(me.user.id, q)
+    if (mobile) setPick(null) // phone: the sheet closes so the tabs and the Selesai bar are free again (one tap, not two)
   }, `${q.label} gigi ${pick.tooth}${surfaces ? ` (${[...surfaces].map((sf) => surfaceLabel(pick.tooth, sf as Surface)).join('')})` : ''} tersimpan.`)
   const myDraftAt = (whole: boolean) => pick && mine.find((d) => d.tooth === pick.tooth && d.surface === (whole ? null : pick.surface))
 
