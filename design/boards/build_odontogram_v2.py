@@ -8,12 +8,30 @@ Gaya setia HeroUI v3, token Bittodent. Teal #0B6B62 hanya tombol primer.
 """
 from __future__ import annotations
 
+import base64
+import io
 from pathlib import Path
+
+from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "design/boards/odontogram-v2.html"
 ART = Path("/workspace/artifacts/bittodent-board-odontogram-v2.html")
 TOKENS = (ROOT / "design/tokens.css").read_text()
+PREVIEW = ROOT / "design/odontogram/preview"
+
+
+def img_data_uri(name: str, max_w: int = 720) -> str:
+    """Resize a preview PNG to width <=720 and return a WebP data URI."""
+    im = Image.open(PREVIEW / name).convert("RGB")
+    w, h = im.size
+    if w > max_w:
+        im = im.resize((max_w, int(round(h * max_w / w))), Image.Resampling.LANCZOS)
+    buf = io.BytesIO()
+    im.save(buf, format="WEBP", quality=75, method=6)
+    b64 = base64.b64encode(buf.getvalue()).decode("ascii")
+    return f"data:image/webp;base64,{b64}"
+
 
 ICONS: dict[str, str] = {
     "check": '<path d="M20 6 9 17l-5-5"/>',
@@ -630,8 +648,14 @@ def ab04() -> str:
 
 
 def ab05() -> str:
-    img3d_hp = '<img class="view-3d hp" src="../odontogram/preview/odontogram-3d-blender-full.png" alt="Pratinjau odontogram 3D, hanya baca">'
-    img3d_desk = '<img class="view-3d" src="../odontogram/preview/odontogram-3d-full.png" alt="Pratinjau odontogram 3D, hanya baca">'
+    img3d_hp = (
+        f'<img class="view-3d hp" src="{img_data_uri("odontogram-3d-blender-full.png")}" '
+        'alt="Pratinjau odontogram 3D, hanya baca">'
+    )
+    img3d_desk = (
+        f'<img class="view-3d" src="{img_data_uri("odontogram-3d-full.png")}" '
+        'alt="Pratinjau odontogram 3D, hanya baca">'
+    )
     ph_2d = phone(
         '<p class="mu" style="margin:0">Budi Santoso · ketuk gigi untuk mencatat.</p>'
         + odonto(active=["26"], is_2d=True)
@@ -701,8 +725,13 @@ def main() -> None:
     OUT.write_text(html)
     ART.parent.mkdir(parents=True, exist_ok=True)
     ART.write_text(html)
-    print(f"wrote {OUT}")
-    print(f"wrote {ART}")
+    # Board HTML must stand alone: no external image references.
+    if '../odontogram/preview/' in html or 'src="http' in html or "src='http" in html:
+        raise SystemExit("external image reference found in board HTML")
+    if html.count('data:image/webp;base64,') < 2:
+        raise SystemExit("expected two embedded WebP data URIs")
+    print(f"wrote {OUT} ({OUT.stat().st_size} bytes)")
+    print(f"wrote {ART} ({ART.stat().st_size} bytes)")
 
 
 if __name__ == "__main__":
