@@ -6,7 +6,6 @@ use App\Modules\Billing\Models\Invoice;
 use App\Modules\Billing\Models\PaymentAccount;
 use App\Modules\Tenancy\Models\Branch;
 use App\Shared\Audit\AuditEvent;
-use App\Shared\Tenancy\Ctx;
 use Carbon\CarbonImmutable;
 use Tests\TestCase;
 

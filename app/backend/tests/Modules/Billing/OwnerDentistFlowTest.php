@@ -2,12 +2,12 @@
 
 namespace Tests\Modules\Billing;
 
+use App\Modules\Billing\Models\PaymentAccount;
 use App\Modules\Clinical\Models\Visit;
 use App\Modules\Patients\Models\Patient;
 use App\Modules\Tenancy\Models\Branch;
 use App\Modules\Tenancy\Models\DentistProfile;
 use App\Modules\Tenancy\Models\Membership;
-use App\Modules\Billing\Models\PaymentAccount;
 use App\Shared\Permissions\Permissions;
 use App\Shared\Tenancy\Ctx;
 use Illuminate\Support\Facades\Cache;

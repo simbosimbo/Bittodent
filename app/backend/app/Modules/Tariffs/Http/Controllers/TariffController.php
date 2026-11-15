@@ -9,6 +9,7 @@ use App\Modules\Tenancy\Contracts\TenancyDirectory;
 use App\Shared\Audit\Audit;
 use App\Shared\Dentist\Specialty;
 use App\Shared\Http\Controller;
+use Carbon\Carbon;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -45,7 +46,7 @@ class TariffController extends Controller
             return ['procedure_code' => $code, 'name' => $first->name, 'category' => $first->category, 'id' => $first->id,
                 'valid_from' => $nowFrom, 'levels' => $nowFrom ? $levels($byFrom[$nowFrom]) : [],
                 'next' => $next ? ['valid_from' => $next, 'levels' => $levels($byFrom[$next])] : null,
-                'editable_from' => max($today, \Carbon\Carbon::parse($latest)->addDay()->toDateString())];
+                'editable_from' => max($today, Carbon::parse($latest)->addDay()->toDateString())];
         })->values();
 
         return response()->json(['items' => $items, 'categories' => Tariff::whereNotNull('category')->distinct()->orderBy('category')->pluck('category')]);

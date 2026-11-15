@@ -25,7 +25,9 @@ class RevenueReportController extends Controller
         $branch = $tenancy->branchOrFail(Ctx::current()->branchId);
         $tz = $branch['timezone'] ?: 'Asia/Jakarta';
         $today = CarbonImmutable::now($tz)->startOfDay();
-        $from = match ($period) { 'today' => $today, '7d' => $today->subDays(6), default => $today->startOfMonth() };
+        $from = match ($period) {
+            'today' => $today, '7d' => $today->subDays(6), default => $today->startOfMonth()
+        };
         $to = $today->addDay();
         $prevFrom = $from->sub($from->diff($to)); // same length, right before (KL07 "+8% vs ...")
 
