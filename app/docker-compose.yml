@@ -1,10 +1,27 @@
-# Prototipe, DATA PALSU SAJA (D-030). Belum diuji: Docker tidak terpasang di box dev.
-# Kata sandi di bawah hanya placeholder dev; ganti lewat variabel lingkungan / file .env di samping file ini.
+# Staging-like, DATA PALSU SAJA (D-030). Belum pernah dijalankan di box dev (Docker tidak terpasang); lihat app/README.md.
+# Rahasia TIDAK ada di file ini: salin backend/.env.staging.example -> backend/.env lalu isi APP_KEY, ENCRYPTION_KEY,
+# BLIND_INDEX_KEY. Kata sandi MySQL di bawah hanya placeholder dev; ganti lewat variabel lingkungan / file app/.env.
+#
+#   docker compose up -d --build                                  # mysql -> migrate -> backend/queue/scheduler/frontend
+#   docker compose run --rm migrate php artisan staging:seed      # seed sintetis pertama (sekali, aman diulang: menolak)
+#   buka http://127.0.0.1:8080
 name: ehr-gigi
 
-x-backend-env: &backend-env
-  env_file: backend/.env           # APP_KEY, ENCRYPTION_KEY, BLIND_INDEX_KEY, dll. (salin dari .env.example)
+x-backend: &backend
+  build: ./backend
+  image: ehr-gigi-backend
+  env_file: backend/.env
   environment:
+    APP_ENV: ${APP_ENV:-staging}
+    APP_DEBUG: "false"
+    APP_URL: http://127.0.0.1:8080
+    # HTTP polos di 127.0.0.1: tanpa redirect HTTPS dan tanpa cookie Secure. Di belakang TLS: hapus dua baris ini.
+    FORCE_HTTPS: "false"
+    SESSION_SECURE_COOKIE: "false"
+    LOG_CHANNEL: stderr
+    QUEUE_CONNECTION: database
+    CACHE_STORE: database
+    DEV_QUICK_LOGIN: "false"
     DB_CONNECTION: mysql
     DB_HOST: mysql
     DB_PORT: "3306"
@@ -14,7 +31,6 @@ x-backend-env: &backend-env
     DB_ADMIN_USERNAME: ehr_admin
     DB_ADMIN_PASSWORD: ${EHR_ADMIN_PASSWORD:-ehr_admin_dev}
     DB_APP_GRANT_HOST: "%"          # di jaringan Docker ehr_app datang dari IP container, bukan 127.0.0.1
-    APP_URL: http://127.0.0.1:8080
     SANCTUM_STATEFUL_DOMAINS: 127.0.0.1:8080,localhost:8080
     FRONTEND_ORIGINS: http://127.0.0.1:8080,http://localhost:8080
 
@@ -40,20 +56,45 @@ services:
       interval: 5s
       timeout: 5s
       retries: 30
+    restart: unless-stopped
 
+  # Skema + hak ehr_app + trigger, sebagai ehr_admin. Sekali per `up`; aman diulang.
   migrate:
-    build: ./backend
-    <<: *backend-env
+    <<: *backend
     command: ["php", "artisan", "migrate", "--database=mysql_admin", "--force"]
     restart: "no"
+    healthcheck:
+      disable: true
     depends_on:
       mysql:
         condition: service_healthy
 
+  # php-fpm (FastCGI :9000), hanya terjangkau di jaringan compose lewat nginx frontend.
   backend:
-    build: ./backend
-    <<: *backend-env
-    command: ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]   # hanya terjangkau di jaringan compose
+    <<: *backend
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  # Antrean Laravel (driver database). Job harus aman dijalankan dua kali.
+  queue:
+    <<: *backend
+    command: ["php", "artisan", "queue:work", "--tries=3", "--backoff=10", "--max-time=3600"]
+    restart: unless-stopped
+    healthcheck:
+      disable: true
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  # Penjadwal (recall:send-reminders tiap 15 menit, routes/console.php).
+  scheduler:
+    <<: *backend
+    command: ["php", "artisan", "schedule:work"]
+    restart: unless-stopped
+    healthcheck:
+      disable: true
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -62,8 +103,15 @@ services:
     build: ./frontend
     ports:
       - "127.0.0.1:8080:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ready || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
 
 volumes:
   mysql-data:
