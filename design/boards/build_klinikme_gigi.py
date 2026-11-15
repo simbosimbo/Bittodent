@@ -235,7 +235,7 @@ h1.page{font-size:28px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px;colo
 .hd{background:var(--color-neutral-0);padding:0 8px 8px;display:flex;align-items:center;justify-content:space-between;
   min-height:44px;gap:8px;border-bottom:1px solid var(--color-neutral-100)}
 .h-sm{margin:0;font-size:16px;font-weight:700;flex:1}
-.ph-body{flex:1;background:var(--color-canvas);padding:8px 16px 100px;display:flex;flex-direction:column;gap:8px}
+.ph-body{flex:1;background:var(--color-canvas);padding:8px 16px 120px;display:flex;flex-direction:column;gap:8px}
 .bnav{position:absolute;left:0;right:0;bottom:0;height:72px;background:var(--color-neutral-0);
   border-top:1px solid var(--color-neutral-200);display:flex;padding:0 4px 8px}
 .navi{flex:1;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -402,7 +402,15 @@ def bnav(active: str = "RM") -> str:
     return f'<nav class="bnav">{"".join(out)}</nav>'
 
 
-def phone(inner: str, title: str, height: int = 800, nav: str = "RM", back: bool = True, mic: bool = False) -> str:
+def phone(
+    inner: str,
+    title: str,
+    height: int = 800,
+    nav: str = "RM",
+    back: bool = True,
+    mic: bool = False,
+    pad_bottom: int | None = None,
+) -> str:
     left = (
         f'<button class="icon-btn" type="button" aria-label="Kembali">{ico("chevron-left")}</button>'
         if back
@@ -413,12 +421,14 @@ def phone(inner: str, title: str, height: int = 800, nav: str = "RM", back: bool
         if mic
         else ""
     )
+    # Nav tinggi 72px. Padding bawah default 120 (>= nav + ruang aman).
+    pb = 120 if pad_bottom is None else pad_bottom
     return f"""
     <div class="ph" style="height:{height}px">
       <div class="ph-bar">{syn()}<span class="ph-time">09.40</span></div>
       <header class="hd">{left}<h1 class="h-sm">{title}</h1>
         {mic_btn}<button class="icon-btn" type="button" aria-label="Lainnya">{ico("more")}</button></header>
-      <div class="ph-body">{inner}</div>
+      <div class="ph-body" style="padding-bottom:{pb}px">{inner}</div>
       {bnav(nav)}
     </div>"""
 
@@ -540,7 +550,7 @@ def ab02() -> str:
       </div>
       <p class="mu">AI hanya merapikan yang diucapkan. Tidak menambah diagnosis atau obat. Audio dihapus setelah Selesai.</p>
     """
-    ph = phone(inner, "Draf SOAP", 840, "RM", mic=True)
+    ph = phone(inner, "Draf SOAP", 920, "RM", mic=True, pad_bottom=120)
     return ab(
         "02",
         "AI draf SOAP dari suara",
@@ -721,7 +731,7 @@ def ab05() -> str:
       </article>
       {btn("Simpan", "pri")}
     """
-    ph = phone(ph_inner, "SOAP", 760, "RM")
+    ph = phone(ph_inner, "SOAP", 800, "RM")
     body = f'<div class="row">{frame_d}{ph}</div>'
     return ab(
         "05",
@@ -799,7 +809,7 @@ def ab07() -> str:
         <p class="mu" style="margin:10px 0 0">Selesai (tanda tangan) setelah Setujui. MVP tetap bisa cetak kertas.</p>
       </article>
     """
-    ph = phone(inner, "Resep", 720, "RM")
+    ph = phone(inner, "Resep", 760, "RM")
     return ab(
         "07",
         "e-resep cepat",
