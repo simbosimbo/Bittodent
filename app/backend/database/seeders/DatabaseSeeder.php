@@ -181,9 +181,9 @@ class DatabaseSeeder extends Seeder
             'ended_at' => $daysAgo ? now()->subDays($daysAgo)->addHour() : null, 'status' => $daysAgo ? 'selesai' : 'berlangsung']);
         $note = fn (Visit $v) => ClinicalNote::create(['visit_id' => $v->id, 'patient_id' => $patient->id, 'author_id' => $dentist->id,
             'first_input_at' => $v->started_at]);
-        $finding = fn (Visit $v, int $tooth, ?string $surface, string $cond, string $state = 'final', string $source = 'manual', string $status = 'kondisi_pantau', ?string $code = null) => ToothFinding::create([
+        $finding = fn (Visit $v, int $tooth, ?string $surface, string $cond, string $state = 'final', string $source = 'manual', string $status = 'kondisi_pantau', ?string $code = null, ?string $dx = null) => ToothFinding::create([
             'patient_id' => $patient->id, 'visit_id' => $v->id, 'tooth' => $tooth, 'surface' => $surface, 'condition' => $cond,
-            'status' => $status, 'procedure_code' => $code,
+            'status' => $status, 'procedure_code' => $code, 'diagnosis_code' => $dx, 'diagnosis_source' => $dx ? 'manual' : null,
             'state' => $state, 'source' => $source, 'created_by' => $dentist->id,
             'finalized_by' => $state === 'final' ? $dentist->id : null, 'finalized_at' => $state === 'final' ? $v->started_at : null]);
         $soap = fn (string $s, string $o, string $a, array $icd10, string $p, array $icd9 = []) => ['S' => $s, 'O' => $o,
@@ -205,7 +205,7 @@ class DatabaseSeeder extends Seeder
         $draft = (new ClinicalNoteVersion(['note_id' => $note($v3)->id, 'version' => 1, 'revision' => 1, 'state' => 'draft',
             'source' => 'manual', 'created_by' => $dentist->id]))->setSoap($soap('Gigi depan atas berlubang.', 'Karies email 11 insisal, 26 oklusal.', 'Karies email', ['K02.0'], 'Tumpatan 11 dan 26.', ['23.2']));
         $draft->save();
-        $finding($v3, 11, 'I', 'tambalan', 'draft', status: 'selesai', code: '23.2');
+        $finding($v3, 11, 'I', 'tambalan', 'draft', status: 'selesai', code: '23.2', dx: 'K02.0');
         $finding($v3, 26, 'O', 'karies', 'draft', 'ai_draft');
     }
 
