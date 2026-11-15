@@ -88,6 +88,15 @@ type Props = {
   onPick?: (tooth: number, surface: Surface) => void
 }
 
+// Desktop 3D zoom: fit the whole chart (both jaws) between its top and the viewport bottom.
+// Floor keeps crowns/FDI numbers readable (below it the page scrolls); ceiling = the old wide-screen zoom.
+export const ZOOM_MIN = 0.45
+export const ZOOM_MAX = 0.78
+export function fitZoom(naturalHeight: number, availHeight: number): number {
+  if (!(naturalHeight > 0)) return ZOOM_MAX
+  return Math.round(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, availHeight / naturalHeight)) * 100) / 100
+}
+
 export function Odontogram3D({ marks, baseline, dentition = 'tetap', selected, onPick }: Props) {
   const host = useRef<HTMLDivElement>(null)
   const pick = useRef(onPick)
@@ -126,6 +135,26 @@ export function Odontogram3D({ marks, baseline, dentition = 'tetap', selected, o
     el.querySelectorAll(`.t3[data-tooth="${selected.tooth}"]`).forEach((c) => c.classList.add('is-sel'))
     if (selected.surface) el.querySelectorAll(`.t3[data-tooth="${selected.tooth}"] .t3-sel[data-surface="${selected.surface}"]`).forEach((n) => n.classList.add('is-sel'))
   }, [selected?.tooth, selected?.surface, built])
+
+  // Header height (alert chips) varies, so fit on build, body resize and window resize. Phone CSS ignores --odo3d-zoom.
+  useEffect(() => {
+    const el = host.current
+    if (!el) return
+    const fit = () => {
+      const chart = el.querySelector<HTMLElement>('.chart')
+      if (!chart) return
+      const z = parseFloat(getComputedStyle(chart).zoom) || 1
+      const r = chart.getBoundingClientRect() // zoomed box; r.height / z = unzoomed height
+      const avail = window.innerHeight - r.top - 32 // r.top is viewport-relative; 32 = pane + card bottom padding
+      el.style.setProperty('--odo3d-zoom', String(fitZoom(r.height / z, avail)))
+    }
+    fit()
+    window.addEventListener('resize', fit)
+    const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(fit) : null
+    ro?.observe(el)
+    ro?.observe(document.body)
+    return () => { window.removeEventListener('resize', fit); ro?.disconnect() }
+  }, [built])
 
   const fire = (target: EventTarget | null) => {
     const t = target as HTMLElement | null

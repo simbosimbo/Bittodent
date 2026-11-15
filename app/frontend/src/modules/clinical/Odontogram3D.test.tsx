@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterAll, beforeAll, expect, test, vi } from 'vitest'
 import type { Mark } from './Odontogram'
-import { dentitionFromDob, Odontogram3D, recordsFromMarks, teethForDentition } from './Odontogram3D'
+import { dentitionFromDob, fitZoom, Odontogram3D, recordsFromMarks, teethForDentition, ZOOM_MAX, ZOOM_MIN } from './Odontogram3D'
 import { manifest, mockTooth3D } from './tooth3dMock'
 import { surfaceLabel, surfaceName } from './legend'
 
@@ -122,4 +122,13 @@ test('asset failure shows an Indonesian message instead of crashing', async () =
   vi.mocked(fetch).mockResolvedValueOnce(new Response('', { status: 404 }))
   render(<Odontogram3D marks={{}} />)
   expect(await screen.findByRole('alert')).toHaveTextContent('gagal dimuat')
+})
+
+test('fitZoom: scales the chart to the height left, clamped to a readable floor and the old desktop ceiling', () => {
+  expect(fitZoom(600, 300)).toBe(0.5)
+  expect(fitZoom(600, 100)).toBe(ZOOM_MIN) // tall header / campuran: floor, page scrolls
+  expect(fitZoom(600, 2000)).toBe(ZOOM_MAX)
+  expect(fitZoom(600, -50)).toBe(ZOOM_MIN)
+  expect(fitZoom(0, 300)).toBe(ZOOM_MAX) // not built yet
+  expect(ZOOM_MIN).toBeGreaterThanOrEqual(0.45)
 })
