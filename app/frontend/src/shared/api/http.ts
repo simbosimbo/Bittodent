@@ -32,3 +32,17 @@ export async function api<T = any>(path: string, opts: { method?: string; body?:
 
 export const errorText = (e: unknown) =>
   e instanceof ApiError && e.status === 403 ? 'Anda tidak punya akses untuk ini.' : 'Gagal memuat data. Coba lagi.'
+
+/** Multipart POST of one file (clinic logo, QRIS photo); same session cookie + XSRF header as api(). */
+export async function upload<T = any>(path: string, field: string, file: Blob): Promise<T> {
+  if (!xsrf()) await csrfCookie()
+  const body = new FormData()
+  body.append(field, file)
+  const res = await fetch(path, { method: 'POST', credentials: 'same-origin', headers: { Accept: 'application/json', 'X-XSRF-TOKEN': xsrf() }, body })
+  const data = await res.json().catch(() => null)
+  if (!res.ok) {
+    if (res.status === 401) window.dispatchEvent(new Event('ehr:unauthorized'))
+    throw new ApiError(res.status, data)
+  }
+  return data as T
+}

@@ -5,6 +5,7 @@ namespace App\Modules\Tenancy\Http\Controllers;
 use App\Modules\Tenancy\Models\Branch;
 use App\Modules\Tenancy\Models\Tenant;
 use App\Shared\Audit\Audit;
+use App\Shared\Files\PrivateImage;
 use App\Shared\Http\Controller;
 use App\Shared\Tenancy\Ctx;
 use Illuminate\Http\Request;
@@ -39,6 +40,8 @@ class ClinicSettingsController extends Controller
             'email' => ['sometimes', 'nullable', 'email', 'max:120'],
             'license_no' => ['sometimes', 'nullable', 'string', 'max:60'],
             'license_valid_until' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
+            'npwp' => ['sometimes', 'nullable', 'string', 'regex:/^[0-9.\-]{15,25}$/'],
+            'receipt_paper_mm' => ['sometimes', 'integer', 'in:58,80'],
         ]);
         if ($d === []) {
             return response()->json(['message' => 'Tidak ada yang diubah.', 'errors' => ['correction_window_hours' => ['Isi minimal satu pengaturan.']]], 422);
@@ -58,6 +61,32 @@ class ClinicSettingsController extends Controller
 
             return response()->json(self::out($t) + ['branches' => self::branches()]);
         });
+    }
+
+    /** POST /api/settings/clinic/logo (multipart logo): one logo for every branch (KL10). */
+    public function uploadLogo(Request $request)
+    {
+        $request->validate(['logo' => PrivateImage::RULES]);
+        $t = Tenant::findOrFail(Ctx::current()->tenant());
+        $t->update(['logo_path' => PrivateImage::store($request->file('logo'), $t->id, 'logo')]);
+        Audit::log('ubah_pengaturan', 'tenant', $t->id, ['field' => 'logo']);
+
+        return response()->json(self::out($t) + ['branches' => self::branches()]);
+    }
+
+    /** GET /api/clinic/letterhead: kop for receipts and reports (every clinic role; no licence dates or settings). */
+    public function letterhead()
+    {
+        $t = Tenant::findOrFail(Ctx::current()->tenant());
+
+        return response()->json([...$t->only(['name', 'phone', 'email', 'npwp', 'license_no']), 'receipt_paper_mm' => (int) $t->receipt_paper_mm,
+            'has_logo' => (bool) $t->logo_path, 'branches' => self::branches()]);
+    }
+
+    /** GET /api/clinic/logo */
+    public function logo()
+    {
+        return PrivateImage::serve(Tenant::findOrFail(Ctx::current()->tenant())->logo_path);
     }
 
     /** PUT /api/settings/branches/{id} {address?, phone?}: only branches this user works in; audited per field. */
@@ -96,6 +125,7 @@ class ClinicSettingsController extends Controller
     {
         return ['correction_window_hours' => (int) $t->correction_window_hours, 'selesai_pin_required' => (bool) $t->selesai_pin_required,
             'name' => $t->name, 'address' => $t->address, 'phone' => $t->phone, 'email' => $t->email, 'license_no' => $t->license_no,
-            'license_valid_until' => $t->license_valid_until ? substr((string) $t->license_valid_until, 0, 10) : null];
+            'license_valid_until' => $t->license_valid_until ? substr((string) $t->license_valid_until, 0, 10) : null,
+            'npwp' => $t->npwp, 'receipt_paper_mm' => (int) ($t->receipt_paper_mm ?? 80), 'has_logo' => (bool) $t->logo_path];
     }
 }

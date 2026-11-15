@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { ApiError, errorText } from '../../shared/api/http'
 import { fmtYmdShort, num, rp, todayWib } from '../../shared/format'
+import { Kop, loadLetterhead, type Letterhead } from '../../shared/letterhead'
 import type { Me } from '../../shared/session'
 import { DateField } from '../../shared/ui/DateField'
-import { addAccount, bulkTariffs, getAccounts, getProfile, getTariffs, saveBranch, saveCategory, saveLevels, saveProfile, updateAccount,
+import { addAccount, bulkTariffs, getAccounts, getProfile, getTariffs, saveBranch, saveCategory, saveLevels, saveProfile, updateAccount, uploadLogo, uploadQris,
   type Account, type AccountKind, type BulkRow, type ClinicProfile, type TariffItem } from './api'
 import './settings.css'
 
@@ -37,14 +38,16 @@ export default function ClinicSettingsPage({ me, tab, onChanged }: { me: Me; tab
 
 const FIELDS: [keyof Omit<ClinicProfile, 'branches'>, string, string][] = [
   ['name', 'Nama klinik', 'text'], ['address', 'Alamat', 'text'], ['phone', 'Telepon', 'tel'], ['email', 'Email', 'email'],
-  ['license_no', 'Nomor izin klinik', 'text'], ['license_valid_until', 'Izin berlaku sampai', 'date'],
+  ['license_no', 'Nomor izin klinik (tampil di kop)', 'text'], ['license_valid_until', 'Izin berlaku sampai', 'date'], ['npwp', 'NPWP', 'text'],
 ]
+const IMG = 'image/png,image/jpeg,image/webp'
 
 function ProfileTab({ onChanged }: { onChanged: () => void }) {
   const [p, setP] = useState<ClinicProfile | null>(null)
   const [msg, setMsg] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [logoV, setLogoV] = useState(0)
   useEffect(() => { getProfile().then(setP, (e) => setError(errorText(e))) }, [])
   if (!p) return error ? <p className="form-error" role="alert">{error}</p> : <p className="muted">Memuat…</p>
   const set = (k: string, v: string) => setP({ ...p, [k]: v })
@@ -54,16 +57,30 @@ function ProfileTab({ onChanged }: { onChanged: () => void }) {
     setBusy(true); setMsg(''); setError('')
     try {
       const { branches, ...body } = p
-      const out = await saveProfile(Object.fromEntries(Object.entries(body).filter(([k]) => FIELDS.some(([f]) => f === k))))
+      const out = await saveProfile({ ...Object.fromEntries(Object.entries(body).filter(([k]) => FIELDS.some(([f]) => f === k))), receipt_paper_mm: p.receipt_paper_mm })
       await Promise.all(branches.map((b) => saveBranch(b.id, { address: b.address || null, phone: b.phone || null })))
       setP({ ...out, branches })
       setMsg('Profil klinik tersimpan.')
+      loadLetterhead(true).catch(() => null)
       onChanged() // header address comes from /api/me
     } catch (err) { setError(msgOf(err)) }
     setBusy(false)
   }
+  async function pickLogo(f: File | undefined) {
+    if (!f) return
+    setError(''); setMsg('')
+    try { setP({ ...(await uploadLogo(f)), branches: p!.branches }); setLogoV((v) => v + 1); loadLetterhead(true).catch(() => null); setMsg('Logo tersimpan.') } catch (err) { setError(msgOf(err)) }
+  }
+  // KL11: kop preview per branch from the form as typed (one logo + name, address of that branch)
+  const kop: Letterhead = { name: p.name, phone: p.phone, email: p.email, npwp: p.npwp, license_no: p.license_no, receipt_paper_mm: p.receipt_paper_mm,
+    has_logo: p.has_logo, branches: p.branches.map((b) => ({ ...b, address: b.address || p.address, phone: b.phone || p.phone })) }
   return (
     <form className="card set-form" onSubmit={save} noValidate>
+      <div className="set-logo">
+        {p.has_logo ? <img src={`/api/clinic/logo?v=${logoV}`} alt="Logo klinik" /> : <span className="muted small">Belum ada logo</span>}
+        <label className="btn">{p.has_logo ? 'Ganti logo' : 'Unggah logo'}<input type="file" accept={IMG} className="sr-only" onChange={(e) => pickLogo(e.target.files?.[0])} /></label>
+        <span className="muted small">Satu logo untuk semua cabang. PNG/JPG/WebP, maks 1 MB, rasio 1:1.</span>
+      </div>
       {FIELDS.map(([k, label, type]) => (
         <label key={k}>{label}{type === 'date' ? <DateField value={(p[k] as string | null) ?? ''} onChange={(e) => set(k, e.target.value)} />
           : <input type={type} value={(p[k] as string | null) ?? ''} required={k === 'name'} inputMode={k === 'phone' ? 'tel' : undefined}
@@ -79,6 +96,16 @@ function ProfileTab({ onChanged }: { onChanged: () => void }) {
             onChange={(e) => setP({ ...p, branches: p.branches.map((x, j) => j === i ? { ...x, phone: e.target.value } : x) })} /></label>
         </fieldset>
       ))}
+      <h2 className="set-sub">Struk dan printer</h2>
+      <div className="set-seg" role="radiogroup" aria-label="Lebar kertas struk">
+        {([58, 80] as const).map((mm) => <button key={mm} type="button" role="radio" aria-checked={p.receipt_paper_mm === mm} className={p.receipt_paper_mm === mm ? 'on' : ''}
+          onClick={() => setP({ ...p, receipt_paper_mm: mm })}>{mm} mm</button>)}
+      </div>
+      <p className="muted small">Struk dicetak lewat dialog cetak perangkat: pilih printer thermal atau printer sistem (A4) di sana.</p>
+      {kop.branches.length > 0 && <h2 className="set-sub">Pratinjau kop</h2>}
+      <div className="set-kops">
+        {kop.branches.map((b) => <div key={b.id} className="card" aria-label={`Pratinjau kop ${b.name}`}><Kop l={kop} branchId={b.id} logoVersion={logoV} /></div>)}
+      </div>
       {error && <p className="form-error" role="alert">{error}</p>}
       {msg && <p className="notice" role="status">{msg}</p>}
       <div className="set-dock"><button className="btn btn-primary" disabled={busy}>{busy ? 'Menyimpan…' : 'Simpan profil'}</button></div>
@@ -254,7 +281,8 @@ function BulkPanel({ codes, items, onDone, onCancel }: { codes: string[]; items:
 
 const KINDS: { key: AccountKind; label: string; hint: string }[] = [
   { key: 'tunai', label: 'Tunai', hint: 'Laci kas' }, { key: 'transfer', label: 'Transfer', hint: 'Rekening bank klinik' },
-  { key: 'qris', label: 'QRIS', hint: 'Kode QR klinik' }, { key: 'edc', label: 'EDC', hint: 'Mesin kartu debit/kredit' },
+  { key: 'qris', label: 'QRIS', hint: 'Kode QR klinik' }, { key: 'edc', label: 'Debit (EDC)', hint: 'Mesin kartu debit/kredit' },
+  { key: 'bpjs', label: 'BPJS', hint: 'Klaim dicatat sebagai metode bayar' }, { key: 'asuransi', label: 'Asuransi', hint: 'Klaim dicatat sebagai metode bayar' },
 ]
 
 function PaymentTab({ me }: { me: Me }) {
@@ -264,6 +292,12 @@ function PaymentTab({ me }: { me: Me }) {
   const [adding, setAdding] = useState(false)
   const load = () => getAccounts().then(setList, (e) => setError(errorText(e)))
   useEffect(() => { load() }, [])
+  const [ver, setVer] = useState(0)
+  async function pickQris(a: Account, f: File | undefined) {
+    if (!f) return
+    setError(''); setMsg('')
+    try { await uploadQris(a.id, f); setVer((v) => v + 1); setMsg(`Foto QRIS ${a.name} tersimpan.`); load() } catch (e) { setError(msgOf(e)) }
+  }
   const branchName = (id: string | null) => id === null ? 'Semua cabang' : me.branches.find((b) => b.id === id)?.name ?? 'Cabang'
   async function toggle(a: Account) {
     setError(''); setMsg('')
@@ -286,6 +320,11 @@ function PaymentTab({ me }: { me: Me }) {
                   <div key={a.id} className={`set-acc${a.is_active ? '' : ' is-off'}`}>
                     <div><strong>{a.name}</strong>
                       <span className="muted small">{[a.bank_name, a.account_last4 && `•••• ${a.account_last4}`, branchName(a.branch_id), !a.is_active && 'Nonaktif'].filter(Boolean).join(' · ')}</span></div>
+                    {a.kind === 'qris' && <>
+                      {a.has_qris_image && <img className="set-qris" src={`/api/payment-accounts/${a.id}/qris-image?v=${ver}`} alt={`Foto QRIS ${a.name}`} />}
+                      <label className="btn btn-ghost">{a.has_qris_image ? 'Ganti foto QRIS' : 'Unggah foto QRIS'}
+                        <input type="file" accept={IMG} className="sr-only" onChange={(e) => pickQris(a, e.target.files?.[0])} /></label>
+                    </>}
                     <button type="button" className="btn btn-ghost" onClick={() => toggle(a)}>{a.is_active ? 'Nonaktifkan' : 'Aktifkan'}</button>
                   </div>
                 ))}
@@ -313,7 +352,7 @@ function AddAccount({ me, onDone, onCancel }: { me: Me; onDone: (a: Account) => 
     e.preventDefault()
     setBusy(true); setError('')
     try {
-      const auto = kind === 'tunai' ? 'Kas tunai' : kind === 'qris' ? 'QRIS klinik' : `${kind === 'edc' ? 'EDC' : 'Transfer'} ${bank.trim()}`.trim()
+      const auto = kind === 'tunai' ? 'Kas tunai' : kind === 'qris' ? 'QRIS klinik' : kind === 'bpjs' ? 'BPJS Kesehatan' : kind === 'asuransi' ? 'Asuransi' : `${kind === 'edc' ? 'EDC' : 'Transfer'} ${bank.trim()}`.trim()
       onDone(await addAccount({ name: name.trim() || auto, kind, branch_id: branch || null,
         ...(needsBank && bank.trim() ? { bank_name: bank.trim() } : {}), ...(kind === 'transfer' && last4 ? { account_last4: last4 } : {}) }))
     } catch (err) { setError(msgOf(err)) }

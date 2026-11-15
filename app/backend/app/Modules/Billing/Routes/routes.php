@@ -22,6 +22,8 @@ Route::middleware(['auth:sanctum', '2fa', 'tenant'])->group(function () {
     Route::get('/payment-accounts', [PaymentAccountController::class, 'index'])->middleware('perm:billing.read');
     Route::post('/payment-accounts', [PaymentAccountController::class, 'store'])->middleware('perm:billing.accounts');
     Route::patch('/payment-accounts/{id}', [PaymentAccountController::class, 'update'])->middleware('perm:billing.accounts');
+    Route::post('/payment-accounts/{id}/qris-image', [PaymentAccountController::class, 'uploadQris'])->middleware('perm:billing.accounts');
+    Route::get('/payment-accounts/{id}/qris-image', [PaymentAccountController::class, 'qrisImage'])->middleware('perm:billing.read');
     // unit B koreksi: credit notes, void, line corrections, Rp0 tariff anomaly (DEVIATIONS #56)
     Route::post('/invoices/{id}/credit-notes', [CreditNoteController::class, 'store'])->middleware('perm:billing.adjust');
     Route::post('/credit-notes/{id}/approve', [CreditNoteController::class, 'decide'])->defaults('decision', 'approved')->middleware('perm:billing.approve_reversal');

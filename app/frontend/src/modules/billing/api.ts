@@ -4,7 +4,7 @@ export type Adjustment = { id: string; kind: string; amount_rp: number; reason: 
   status: 'applied' | 'pending' | 'approved' | 'rejected'; self_approved_sole_owner: boolean }
 /** Clinic-owned payment destination (unit 5): the only payment methods; owner manages them. */
 export type PaymentAccount = { id: string; branch_id: string | null; name: string; kind: 'tunai' | 'qris' | 'edc' | 'transfer' | 'bpjs' | 'asuransi'
-  bank_name: string | null; account_last4: string | null; is_active: boolean }
+  bank_name: string | null; account_last4: string | null; is_active: boolean; has_qris_image?: boolean }
 export type Payment = { id: string; payment_account_id: string; amount_rp: number; paid_at: string; refunded_rp: number
   account: Pick<PaymentAccount, 'name' | 'kind' | 'bank_name' | 'account_last4'> }
 export type DocStatus = 'applied' | 'pending' | 'approved' | 'rejected'

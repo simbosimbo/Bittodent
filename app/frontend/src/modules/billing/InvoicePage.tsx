@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { ApiError, errorText } from '../../shared/api/http'
 import { fmtDateTime, rp } from '../../shared/format'
 import { PageSkeleton } from '../../shared/ui/Skeleton'
+import { Kop, useLetterhead } from '../../shared/letterhead'
 import type { Me } from '../../shared/session'
 import { addAdjustment, addCreditNote, addPayment, addRefund, approveZeroTariff, billFromCorrection, decideAdjustment, decideCreditNote, decideRefund, decideVoid, invoiceForVisit,
   paymentAccounts, reviewCorrection, voidInvoice, type Adjustment, type Invoice, type InvoiceLine, type PaymentAccount } from './api'
@@ -245,7 +246,8 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
                 </div>
               )}
               {sel?.kind === 'transfer' && sel.account_last4 && <p className="muted small">Rekening klinik {sel.bank_name} ··{sel.account_last4}</p>}
-              {sel?.kind === 'qris' && <p className="notice">Minta pasien memindai QRIS cabang, lalu konfirmasi.</p>}
+              {sel?.kind === 'qris' && <div className="pay-qris">{sel.has_qris_image && <img src={`/api/payment-accounts/${sel.id}/qris-image`} alt={`QRIS ${sel.name}`} />}
+                <p className="notice">Minta pasien memindai QRIS{sel.has_qris_image ? '' : ' cabang (foto QRIS belum diunggah di Pengaturan)'}, lalu konfirmasi.</p></div>}
             </> : rows.map((r, n) => (              <div className="toolbar" key={r.key}>
                 <select aria-label={`Metode ${n + 1}`} required value={r.account} onChange={(e) => setRows(rows.map((x) => x === r ? { ...x, account: e.target.value } : x))}>
                   <option value="">Pilih akun klinik…</option>
@@ -404,10 +406,12 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
  */
 export function Kwitansi({ inv, me, onClose, autoPrint = false }: { inv: Invoice; me: Me; onClose: () => void; autoPrint?: boolean }) {
   useEffect(() => { if (autoPrint) window.print() }, [autoPrint]) // KL05 "Cetak": straight to the printer dialog
+  const l = useLetterhead()
   const deductions = inv.adjustments_rp + (inv.credit_notes_rp ?? 0)
   const lastPaid = inv.payments.map((p) => p.paid_at).sort().at(-1)
   return (
-    <section className="card kwitansi" aria-label="Kwitansi">
+    <section className={`card kwitansi paper-${l?.receipt_paper_mm ?? 80}`} aria-label="Kwitansi">
+      {l && <Kop l={l} branchId={inv.branch_id} />}
       <div className="kwitansi-head">
         <div>
           <h2>KWITANSI</h2>

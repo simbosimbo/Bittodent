@@ -1,11 +1,13 @@
-import { api } from '../../shared/api/http'
+import { api, upload } from '../../shared/api/http'
 
 // Pengaturan Klinik (DEVIATIONS #71): profile (settings.manage), price list (tariff.manage), payment accounts (billing.accounts).
 export type Branch = { id: string; name: string; address: string | null; phone: string | null }
 export type ClinicProfile = { name: string; address: string | null; phone: string | null; email: string | null
-  license_no: string | null; license_valid_until: string | null; branches: Branch[] }
+  license_no: string | null; license_valid_until: string | null; npwp: string | null; receipt_paper_mm: 58 | 80; has_logo: boolean; branches: Branch[] }
+/** KL10: one logo for every branch (png/jpg/webp, max 1 MB). */
+export const uploadLogo = (file: Blob) => upload<ClinicProfile>('/api/settings/clinic/logo', 'logo', file)
 export const getProfile = () => api<ClinicProfile>('/api/settings/clinic')
-export const saveProfile = (body: Partial<Omit<ClinicProfile, 'branches'>>) => api<ClinicProfile>('/api/settings/clinic', { method: 'PUT', body })
+export const saveProfile = (body: Partial<Omit<ClinicProfile, 'branches' | 'has_logo'>>) => api<ClinicProfile>('/api/settings/clinic', { method: 'PUT', body })
 export const saveBranch = (id: string, body: { address: string | null; phone: string | null }) =>
   api<Branch>(`/api/settings/branches/${id}`, { method: 'PUT', body })
 
@@ -22,9 +24,11 @@ export type BulkRow = { procedure_code: string; variant: string; old_rp: number;
 export const bulkTariffs = (body: { procedure_codes: string[]; kind: 'percent' | 'amount'; value: number; rounding: string; valid_from: string; dry_run: boolean }) =>
   api<{ count: number; rows: BulkRow[] }>('/api/tariffs/bulk', { method: 'POST', body: { target: 'umum', ...body } })
 
-export type AccountKind = 'tunai' | 'transfer' | 'qris' | 'edc'
+export type AccountKind = 'tunai' | 'transfer' | 'qris' | 'edc' | 'bpjs' | 'asuransi'
 export type Account = { id: string; branch_id: string | null; name: string; kind: AccountKind; bank_name: string | null
-  account_last4: string | null; is_active: boolean }
+  account_last4: string | null; is_active: boolean; has_qris_image?: boolean }
+/** KL12: static QRIS photo of a QRIS account (shown to the patient at the cashier). */
+export const uploadQris = (id: string, file: Blob) => upload<Account>(`/api/payment-accounts/${id}/qris-image`, 'image', file)
 export const getAccounts = () => api<Account[]>('/api/payment-accounts')
 export const addAccount = (body: { name: string; kind: AccountKind; branch_id: string | null; bank_name?: string; account_last4?: string }) =>
   api<Account>('/api/payment-accounts', { method: 'POST', body })

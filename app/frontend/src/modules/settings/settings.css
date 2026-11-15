@@ -51,3 +51,9 @@ label.set-price { flex-direction: row; margin: 0; display: flex; align-items: ce
   .set-dock:not(.set-dock-fixed) .btn { flex: 1; }
   .set-dock-fixed .btn { flex: 1; }
 }
+/* KL10-KL13 */
+.set-logo { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+.set-logo img { width: 72px; height: 72px; object-fit: contain; border: 1px solid var(--shells-a-color-border); border-radius: 12px; }
+.set-logo .btn, .set-acc .btn { min-height: 48px; }
+.set-kops { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--space-3); }
+.set-qris { width: 64px; height: 64px; object-fit: contain; }

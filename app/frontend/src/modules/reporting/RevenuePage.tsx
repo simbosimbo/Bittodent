@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { errorText } from '../../shared/api/http'
 import { fmtDateTime, fmtYmdShort, initials, rp } from '../../shared/format'
+import { Kop, useLetterhead } from '../../shared/letterhead'
 import type { Me } from '../../shared/session'
 import { revenueReport, type Period, type RevenueReport } from './api'
 import './reporting.css'
@@ -32,6 +33,7 @@ export default function RevenuePage({ me }: { me: Me }) {
   const [view, setView] = useState<View>('ringkasan')
   const [sheet, setSheet] = useState(false)
   const [a4, setA4] = useState(false)
+  const l = useLetterhead()
   useEffect(() => { setR(null); setError(''); revenueReport(period).then(setR, (e) => setError(errorText(e))) }, [period])
   useEffect(() => { if (a4) { window.print(); setA4(false) } }, [a4])
 
@@ -130,7 +132,7 @@ export default function RevenuePage({ me }: { me: Me }) {
       )}
       {r && t && (
         <section className="a4" aria-hidden="true">
-          <header><strong>{me.active.tenant_name}</strong><span>Cabang {r.branch.name}</span></header>
+          <header>{l ? <Kop l={l} branchId={r.branch.id} /> : <strong>{me.active.tenant_name}</strong>}<span>Cabang {r.branch.name}</span></header>
           <h2>{t.title}</h2>
           <p>{range} · Cabang {r.branch.name} · DATA SINTETIS</p>
           <p>Pendapatan {rp(r.revenue_rp)} · Transaksi {r.transactions} · Piutang {rp(r.receivable_rp)}</p>
