@@ -150,68 +150,106 @@ a.tl-block:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px
   .shell-main:has(.sched-top) { padding-bottom: calc(152px + env(safe-area-inset-bottom)); }
 }
 
-/* Phone Jadwal (MobileJadwal.tsx): title + mode switch, owner summary, sections of cards with at most one primary button. */
+/* Phone Jadwal (MobileJadwal.tsx), per design/boards/jadwal-mobile.html: white header block (title, view switch, mode switch,
+   date row, week strip), grey page, white 16px-radius cards with at most one 44px primary button. */
 @media (max-width: 720px) {
-  .sched-title { display: flex; align-items: center; gap: var(--space-2); min-width: 0; margin-bottom: var(--space-2); }
-  .sched-title h1 { flex: 1 1 auto; min-width: 0; margin: 0; font-size: var(--font-size-xl); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .sched-grid-btn { flex: none; width: 44px; padding: 0; }
-  .sched-grid-btn[aria-pressed='true'] { background: var(--color-primary-700); border-color: var(--color-primary-700); color: #fff; }
-  .mode-toggle { flex: none; display: inline-flex; padding: 2px; gap: 2px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--surface); }
+  .shell-main:has(.sched-top) { padding-left: var(--space-4); padding-right: var(--space-4); }
+  .sched-mhead { display: flow-root; margin: calc(-1 * var(--space-3)) calc(-1 * var(--space-4)) 0; padding: var(--space-3) var(--space-4) 0; background: var(--surface); }
+  .sched-title { display: flex; align-items: center; gap: var(--space-2); min-width: 0; margin-bottom: var(--space-3); }
+  .sched-title h1 { flex: 1 1 auto; min-width: 0; margin: 0; font-size: 28px; line-height: 1.2; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .view-seg { flex: none; display: inline-flex; gap: 2px; padding: 3px; border-radius: 14px; background: var(--color-neutral-50); border: 1px solid var(--color-neutral-100); }
+  .view-seg button { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 11px; background: transparent; color: var(--color-neutral-700); cursor: pointer; }
+  .view-seg button[aria-pressed='true'] { background: var(--color-primary-700); color: #fff; }
+  .view-seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .mode-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; margin-bottom: var(--space-3); padding: 3px; border-radius: 14px;
+    background: var(--color-neutral-50); border: 1px solid var(--color-neutral-100); }
   .mode-toggle label {
-    display: inline-flex; flex-direction: row; align-items: center; min-height: 40px; margin: 0; padding: 0 var(--space-3); border-radius: var(--radius-pill);
-    font-weight: 600; font-size: var(--font-size-base); color: var(--color-neutral-700); cursor: pointer; white-space: nowrap;
+    display: flex; flex-direction: row; align-items: center; justify-content: center; min-height: 44px; margin: 0; padding: 0 var(--space-3);
+    border-radius: 11px; font-weight: 600; font-size: var(--font-size-md); color: var(--color-neutral-700); cursor: pointer; white-space: nowrap;
   }
   .mode-toggle input { position: absolute; opacity: 0; width: 1px; height: 1px; }
   .mode-toggle label.on { background: var(--color-primary-700); color: #fff; }
   .mode-toggle label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .day-sum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); margin: 0 0 var(--space-3); max-height: 56px; }
-  .day-sum div { display: flex; flex-direction: column; justify-content: center; min-width: 0; padding: 4px var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
-  .day-sum dt { font-size: 11px; color: var(--muted); }
-  .day-sum dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sched-top { margin: 0 calc(-1 * var(--space-4)) var(--space-3); padding: 0 var(--space-4) var(--space-2); background: var(--surface); border-bottom: 1px solid var(--color-neutral-100); }
+  .week-strip button { min-height: 64px; border-radius: 16px; }
+  .week-wd { font-size: 12px; }
+  .week-day { font-size: 18px; }
+  .week-strip button[aria-pressed='true'] { background: var(--color-primary-700); color: #fff; }
+  .week-dots i { background: var(--color-neutral-500); }
   .chair-pills { margin-bottom: var(--space-3); }
+  .chair-pills button { border-color: var(--color-neutral-200); }
+  .chair-pills button[aria-pressed='true'] { background: var(--color-primary-700); border-color: var(--color-primary-700); color: #fff; }
+  .chair-pills button[aria-pressed='true'] .muted { color: inherit; }
+  .day-sum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0 0 var(--space-3); max-height: 56px; overflow: hidden;
+    border: 1px solid var(--color-neutral-100); border-radius: 12px; background: var(--surface); }
+  .day-sum div { display: flex; flex-direction: column-reverse; justify-content: center; min-width: 0; padding: 6px var(--space-3); }
+  .day-sum div + div { border-left: 1px solid var(--color-neutral-100); }
+  .day-sum dt { font-size: 12px; color: var(--muted); }
+  .day-sum dd { margin: 0; font-weight: 700; font-size: var(--font-size-md); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .agenda-sec { margin-bottom: var(--space-3); }
-  .agenda-sec h2 { margin: 0 0 var(--space-2); font-size: var(--font-size-base); }
-  .agenda-sec summary { display: flex; align-items: center; min-height: 44px; cursor: pointer; }
-  .agenda-sec summary h2 { margin: 0; }
-  .agenda-sec summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .agenda-sec summary { display: flex; align-items: center; justify-content: space-between; min-height: 44px; list-style: none; cursor: pointer; color: var(--color-neutral-700); }
+  .agenda-sec summary::-webkit-details-marker { display: none; }
+  .agenda-sec summary h2 { margin: 0; font-size: var(--font-size-md); font-weight: 600; color: var(--color-neutral-700); }
+  .agenda-sec:not([open]) summary svg { transform: rotate(180deg); }
+  .agenda-sec summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px; }
   .agenda { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
   .agenda-item {
     display: flex; align-items: center; gap: var(--space-2); min-height: 72px; min-width: 0; padding-right: var(--space-3);
-    background: var(--surface); border: 1px solid var(--border); border-left: 4px solid; border-radius: var(--radius-sm);
+    background: var(--surface); border: 1px solid var(--color-neutral-100); border-radius: 16px;
   }
-  /* status colour of the bar (the chip carries the status text, so colour is never the only cue) */
-  :where(.agenda-item) { border-left-color: var(--color-appointment-terjadwal-border); }
   .agenda-item.appt-checked_in, .agenda-item.appt-in_treatment, .agenda-item.appt-done, .agenda-item.appt-cancelled, .agenda-item.appt-no_show,
-  .agenda-item.appt-rejected { background: var(--surface); }
-  .agenda-item.appt-pending_confirmation { border-style: solid; border-left-color: var(--warn); }
+  .agenda-item.appt-rejected, .agenda-item.appt-pending_confirmation { background: var(--surface); border: 1px solid var(--color-neutral-100); opacity: 1; }
   .agenda-open {
-    flex: 1 1 auto; min-width: 0; align-self: stretch; display: flex; gap: var(--space-3); padding: var(--space-3) 0 var(--space-3) var(--space-3);
+    flex: 1 1 auto; min-width: 0; align-self: stretch; display: flex; align-items: flex-start; gap: var(--space-3); padding: var(--space-4) 0 var(--space-4) var(--space-4);
     border: 0; background: transparent; font: inherit; color: var(--text); text-align: left; cursor: pointer;
   }
-  .agenda-open:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: var(--radius-sm); }
-  .agenda-time { flex: none; display: flex; flex-direction: column; font-variant-numeric: tabular-nums; min-width: 3.2em; }
-  .agenda-time span { font-size: var(--font-size-xs); color: var(--muted); }
-  .agenda-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-  .agenda-name { font-weight: 650; font-size: var(--font-size-base); overflow-wrap: anywhere; }
-  .agenda-meta { font-size: var(--font-size-xs); color: var(--muted); overflow-wrap: anywhere; }
-  .agenda-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-  .agenda-cta { flex: none; min-height: 44px; white-space: nowrap; }
+  .agenda-open:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 16px; }
+  .agenda-time { flex: none; min-width: 3em; font-weight: 600; font-size: var(--font-size-md); font-variant-numeric: tabular-nums; line-height: 1.5; }
+  .agenda-av { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--color-primary-50); color: var(--color-primary-700); font-size: 13px; font-weight: 700; }
+  .agenda-main { flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .agenda-name { font-weight: 650; font-size: var(--font-size-md); overflow-wrap: anywhere; }
+  .agenda-meta { font-size: var(--font-size-base); color: var(--muted); overflow-wrap: anywhere; }
+  .agenda-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+  .agenda-chips .chip { font-size: 13px; padding: 3px 10px; }
+  .chip-unpaid { background: var(--warn-50); color: var(--warn); }
+  .agenda-more { flex: none; align-self: center; color: var(--muted); }
+  .agenda-cta { flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 var(--space-4); border-radius: 12px; white-space: nowrap; font-weight: 600; }
+  .agenda-cta-outline { background: var(--surface); border-color: var(--color-primary-200); color: var(--color-primary-700); }
   .agenda-now-row { list-style: none; }
-  .agenda-now { display: flex; align-items: center; gap: var(--space-2); font-size: var(--font-size-xs); font-weight: 700; color: var(--danger); }
-  .agenda-now::before, .agenda-now::after { content: ''; flex: 1; height: 2px; background: var(--danger); }
-  .agenda-now::before { flex: 0 0 12px; }
-  .appt-sheet .btn-danger { color: var(--danger); border-color: var(--danger); background: var(--surface); }
+  .agenda-now { display: flex; align-items: center; gap: var(--space-3); font-size: var(--font-size-base); font-weight: 600; color: var(--danger); }
+  .agenda-now::after { content: ''; flex: 1; height: 2px; background: var(--danger); }
+  .sheet-rows { gap: 0; }
+  .sheet-row {
+    display: flex; align-items: center; gap: var(--space-3); min-height: 52px; padding: 0 var(--space-1); border: 0; background: transparent;
+    font: inherit; font-size: var(--font-size-md); color: var(--text); text-align: left; cursor: pointer;
+  }
+  .sheet-row:hover { text-decoration: none; background: var(--color-neutral-25); }
+  .sheet-row svg { color: var(--color-neutral-500); }
+  .sheet-row-primary { color: var(--color-primary-700); font-weight: 600; }
+  .sheet-row-primary svg { color: inherit; }
+  .sheet-row-danger, .sheet-row-danger svg { color: var(--danger); }
+  .sheet-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 8px; }
+  .appt-sheet .btn-danger { color: #fff; border-color: var(--danger); background: var(--danger); }
+  .pay-prompt { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); margin-top: var(--space-2); }
+  .pay-prompt .btn { min-height: 48px; border-radius: 12px; font-weight: 600; }
+  .pay-prompt .btn:not(.btn-primary) { background: var(--color-neutral-25); }
   .resched { display: grid; gap: var(--space-2); }
   .resched .date-field { display: grid; }
   .toast {
-    position: fixed; left: var(--space-3); right: calc(56px + 2 * var(--space-4)); bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 25;
-    display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); min-height: 48px; padding: 0 var(--space-2) 0 var(--space-4);
-    border-radius: var(--radius-sm); background: var(--color-neutral-900); color: #fff; box-shadow: var(--shadow-lg); font-weight: 600;
+    position: fixed; left: var(--space-4); right: var(--space-4); bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 25;
+    display: flex; align-items: center; gap: var(--space-1); min-height: 52px; padding: 0 var(--space-2) 0 var(--space-4);
+    border-radius: 12px; background: var(--color-neutral-900); color: #fff; box-shadow: var(--shadow-lg); font-weight: 500;
   }
-  .toast .btn-ghost { color: #fff; text-decoration: underline; }
-  .week-dots i { background: var(--color-neutral-500); }
-  .sched-empty { display: grid; justify-items: center; gap: var(--space-1); }
-  .sched-empty p { margin: 0; }
+  .toast .btn-ghost { min-height: 44px; padding: 0 var(--space-2); color: var(--color-primary-200); font-weight: 600; }
+  .sched-empty { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); padding: 64px var(--space-4); text-align: center; color: var(--color-neutral-500); }
+  .sched-empty p { margin: 0; color: var(--text); font-weight: 600; font-size: var(--font-size-md); }
+  .sched-empty .muted { font-weight: 400; color: var(--muted); }
+  .sched-empty-sm { padding: var(--space-3); }
+  .sched-empty .btn-outline { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; border-radius: 12px; background: var(--surface);
+    border: 1px solid var(--color-primary-200); color: var(--color-primary-700); font-weight: 600; }
+  .agenda-time { min-width: 0; }
+  .agenda-open { gap: 10px; }
+  .bottom-nav svg, .sched-mhead svg, .sched-swipe svg, .appt-sheet svg, .fab svg { stroke-width: 1.75; }
 }
 
 /* Phone grid: the chair pills name the column (no sticky header row under the pinned week strip); empty half hours show "+". */
@@ -220,7 +258,8 @@ a.tl-block:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px
   button.sched-slot { display: block; position: relative; width: 100%; padding: 0; border: 0; border-top: 1px dashed #f0f2f4; background: transparent; cursor: pointer; }
   button.sched-slot.hour { border-top: 1px solid var(--border); }
   button.sched-slot::after {
-    content: '+'; position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 18px; line-height: 1; color: var(--color-neutral-300);
+    content: '+'; position: absolute; inset: 4px; display: grid; place-items: center; border: 1px dashed var(--color-neutral-200); border-radius: 10px;
+    background: var(--color-neutral-25); font-size: 20px; line-height: 1; color: var(--color-neutral-300);
   }
   button.sched-slot:active, button.sched-slot:hover { background: var(--color-primary-50); }
   button.sched-slot:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
@@ -238,4 +277,8 @@ a.tl-block:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px
 /* Phone: the day's content takes horizontal swipes (Schedule.tsx `swipe`); vertical scrolling stays native. */
 @media (max-width: 720px) {
   .sched-swipe { touch-action: pan-y; min-height: 40vh; }
+}
+/* 360px: no avatar, so the name keeps a readable width next to the 44px primary button. */
+@media (max-width: 380px) {
+  .agenda-av { display: none; }
 }

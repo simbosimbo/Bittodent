@@ -2,4 +2,4 @@
 export { default as InvoicePage } from './InvoicePage'
 export { ReversalApprovals } from './ReversalApprovals'
 export { RevenueCard } from './RevenueCard' // Beranda revenue KPI
-export { fmtRp, getDailyRevenue, invoiceForVisit } from './api' // Jadwal (phone): "Belum bayar" and the owner's day summary
+export { getDailyRevenue, invoiceForVisit } from './api' // Jadwal (phone): "Belum bayar" and the owner's day summary

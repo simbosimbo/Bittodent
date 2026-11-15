@@ -137,7 +137,7 @@ test('HP Grid: hari kosong menampilkan pesan, grid tetap bisa diklik', async () 
   }))
   const { container } = render(<Schedule me={ME} />)
   fireEvent.click(await screen.findByRole('button', { name: 'Tampilan grid' }))
-  expect(await screen.findByText('Belum ada janji.')).toHaveAttribute('role', 'status')
+  expect((await screen.findByText('Belum ada janji.')).closest('[role=status]')).not.toBeNull()
   fireEvent.click(container.querySelector('.sched-slot.clickable') as HTMLElement)
   expect(await screen.findByRole('dialog', { name: 'Buat Janji' })).toBeInTheDocument()
 })
@@ -198,7 +198,7 @@ test('HP: ketuk kartu membuka sheet aksi; aksi memanggil transisi yang sama; Esc
   expect(screen.queryByRole('dialog')).toBeNull()
 
   // Online request: Konfirmasi / Tolak in the sheet, same transition as the "Perlu konfirmasi" list
-  fireEvent.click(screen.getByRole('button', { name: /Sinta Contoh.*Menunggu konfirmasi/ }))
+  fireEvent.click(screen.getByRole('button', { name: /Sinta Contoh.*Perlu konfirmasi/ }))
   const d2 = screen.getByRole('dialog', { name: 'Sinta Contoh' })
   expect(within(d2).queryByRole('link', { name: 'Buka RM' })).toBeNull()
   fireEvent.click(within(d2).getByRole('button', { name: 'Konfirmasi' }))
@@ -433,7 +433,7 @@ test.each([
   render(<Schedule me={who([...roles])} />)
   expect(await screen.findByRole('heading', { level: 1, name: title })).toBeInTheDocument()
   expect(!!screen.queryByRole('radiogroup', { name: 'Mode' })).toBe(toggle)
-  if (summary) await vi.waitFor(() => expect(screen.getByLabelText('Ringkasan hari')).toHaveTextContent(/^Janji1Hadir0TerbayarRp\s?350\.000$/))
+  if (summary) await vi.waitFor(() => expect(screen.getByLabelText('Ringkasan hari')).toHaveTextContent(/^Janji1Hadir0TerbayarRp\s?350\s?rb$/))
   else expect(screen.queryByLabelText('Ringkasan hari')).toBeNull()
 })
 
@@ -476,7 +476,7 @@ test('HP Dokter: hanya janji sendiri; Sedang dirawat -> Berikutnya -> Selesai; p
   expect(screen.queryByRole('button', { name: /^(Konfirmasi|Check-in|Bayar)/ })).toBeNull()
   expect(screen.queryByRole('link', { name: /^Bayar/ })).toBeNull()
   expect(screen.queryByRole('heading', { name: /Perlu konfirmasi|Belum bayar/ })).toBeNull()
-  expect(screen.getByText('Sekarang 10.00')).toBeInTheDocument()
+  expect(screen.getByText('Sekarang')).toBeInTheDocument()
 })
 
 test('HP Meja depan: Perlu konfirmasi -> Belum bayar -> Berikutnya -> Selesai (terlipat); satu tombol primer per kartu', async () => {
@@ -489,7 +489,8 @@ test('HP Meja depan: Perlu konfirmasi -> Belum bayar -> Berikutnya -> Selesai (t
   await screen.findByRole('heading', { name: 'Belum bayar · 1' })
   expect([...container.querySelectorAll('.agenda-sec h2')].map((h) => h.textContent))
     .toEqual(['Perlu konfirmasi · 1', 'Belum bayar · 1', 'Berikutnya · 2', 'Selesai · 2'])
-  expect(container.querySelector('details.agenda-sec')).not.toHaveAttribute('open')
+  const folds = [...container.querySelectorAll('details.agenda-sec')]
+  expect(folds.map((d) => d.hasAttribute('open'))).toEqual([true, true, true, false]) // Selesai collapsed
   expect(screen.getByRole('button', { name: 'Konfirmasi Pasien p' })).toBeInTheDocument()
   expect(screen.getByRole('link', { name: 'Bayar Pasien u' })).toHaveAttribute('href', '#/tagihan/vu')
   expect(screen.getByRole('button', { name: 'Check-in Pasien b' })).toBeInTheDocument()
@@ -530,7 +531,7 @@ test('HP: Konfirmasi satu ketuk -> toast "Dikonfirmasi" + Urungkan mengembalikan
   const posts = mockApi(() => [ap('p', 'pending_confirmation', '13:00', { source: 'online' })])
   render(<Schedule me={who(['front_desk'])} />)
   fireEvent.click(await screen.findByRole('button', { name: 'Konfirmasi Pasien p' }))
-  const toast = await screen.findByText('Dikonfirmasi')
+  const toast = await screen.findByText(/^Dikonfirmasi/)
   fireEvent.click(within(toast.closest('.toast') as HTMLElement).getByRole('button', { name: 'Urungkan' }))
   await vi.waitFor(() => expect(posts.map((p) => p.body.to)).toEqual(['booked', 'pending_confirmation']))
 })
@@ -541,7 +542,7 @@ test('HP: sheet Meja depan – Ubah jadwal kirim reschedule; Batalkan perlu konf
   render(<Schedule me={who(['front_desk'])} />)
   const open = async () => { fireEvent.click(await screen.findByRole('button', { name: /^11\.00.*Pasien b/ })); return screen.getByRole('dialog', { name: 'Pasien b' }) }
   let sheet = await open()
-  expect(within(sheet).getAllByRole('button').map((b) => b.textContent)).toEqual(['Tutup', 'Check-in', 'Ubah jadwal', 'Tidak datang', 'Batalkan'])
+  expect(within(sheet).getAllByRole('button').map((b) => b.textContent)).toEqual(['Tutup', 'Check-in', 'Ubah jadwal', 'No-show', 'Batalkan'])
   fireEvent.click(within(sheet).getByRole('button', { name: 'Batalkan' }))
   expect(posts).toEqual([])
   fireEvent.click(within(sheet).getByRole('button', { name: 'Ya, batalkan' }))
@@ -555,7 +556,7 @@ test('HP: sheet Meja depan – Ubah jadwal kirim reschedule; Batalkan perlu konf
   await vi.waitFor(() => expect(posts.at(-1)).toEqual({ url: '/api/appointments/b/reschedule',
     body: { starts_at: `${DAY}T14:00:00+07:00`, ends_at: `${DAY}T14:30:00+07:00`, chair_id: 'c2' } }))
   sheet = await open()
-  fireEvent.click(within(sheet).getByRole('button', { name: 'Tidak datang' }))
+  fireEvent.click(within(sheet).getByRole('button', { name: 'No-show' }))
   await vi.waitFor(() => expect(posts.at(-1)!.body).toEqual({ to: 'no_show' }))
 })
 
@@ -615,7 +616,7 @@ test('HP galat: "Gagal memuat." + Coba lagi', async () => {
   let fail = true
   mockApi(() => [ap('b', 'booked', '11:00')], { failSchedule: () => fail })
   render(<Schedule me={who(['front_desk'])} />)
-  const alert = await screen.findByText(/Gagal memuat\./)
+  const alert = (await screen.findByText('Gagal memuat.')).closest('[role=alert]') as HTMLElement
   fail = false
   fireEvent.click(within(alert).getByRole('button', { name: 'Coba lagi' }))
   expect(await screen.findByText('Pasien b')).toBeInTheDocument()

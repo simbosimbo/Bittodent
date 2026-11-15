@@ -215,7 +215,7 @@ export default function Schedule({ me }: { me: Me }) {
     may.finish(a) && A.finish(a),
     may.chart(a) && A.chart(a),
     mode === 'depan' && a.status === 'booked' && canCreate && { key: 'reschedule', label: 'Ubah jadwal' },
-    mode === 'depan' && a.status === 'booked' && canMove && date <= todayWib() && { key: 'noshow', label: 'Tidak datang', run: () => move(a, 'no_show') },
+    mode === 'depan' && a.status === 'booked' && canMove && date <= todayWib() && { key: 'noshow', label: 'No-show', run: () => move(a, 'no_show') },
     mode === 'depan' && ((a.status === 'booked' && canMove) || (a.status === 'pending_confirmation' && canMove && canConfirm)) &&
       { key: 'cancel', label: 'Batalkan', run: () => move(a, 'cancelled'), tone: 'danger' },
   ] as (Act | false)[]).filter((x): x is Act => !!x)
@@ -309,18 +309,121 @@ export default function Schedule({ me }: { me: Me }) {
   const dateInput = <DateField aria-label="Tanggal" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} />
   const create = canCreate && <button className="btn btn-primary" onClick={() => setDialog({})}>+ Buat Janji</button>
 
+  const dayBody = (
+      error ? (mobile
+          ? <div className="sched-empty" role="alert"><Icon d={ICONS.cloudOff} size={40} /><p>Gagal memuat.</p>
+              <button className="btn btn-outline" onClick={reload}><Icon d={ICONS.refresh} size={18} />Coba lagi</button></div>
+          : <div className="card state-card error">{error} <button className="btn" onClick={reload}>Coba lagi</button></div>)
+        : !data || (mobile && loading && data.date !== date) ? <div className="card state-card muted" role="status">Memuat jadwal…</div>
+        : data.chairs.length === 0 ? <div className="card state-card muted">Cabang ini belum punya kursi aktif.</div> : (
+          <>
+          {mobile && !dokter && data.chairs.length > 1 && (
+            // Agenda: "Semua" + one pill per chair. Grid shows one chair column, so it has no "Semua" (see chairPick).
+            <div className="chair-pills" role="group" aria-label="Pilih kursi">
+              {!gridOn && <button type="button" aria-pressed={!chairPick} onClick={() => setChairPick(null)}>Semua <span className="muted small">· {count}</span></button>}
+              {data.chairs.map((c) => (
+                <button key={c.id} type="button" aria-pressed={gridOn ? c === shownChair : c.id === chairPick} onClick={() => setChairPick(c.id)}>
+                  {c.label} <span className="muted small">· {c.appointments.length}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          {mobile && inv.error && <p className="week-error small" role="alert">Status bayar gagal dimuat. <button type="button" className="btn btn-ghost" onClick={inv.retry}>Coba lagi</button></p>}
+          {mobile && (
+            <Agenda mode={mode} list={agendaList} tz={tz} chairs={data.chairs} nowMin={isToday ? minutesOfDay(new Date(now).toISOString(), tz) : null}
+              unpaid={inv.unpaid} primary={primary} onOpen={(a) => setSheetId(a.id)} confirmOnly={gridOn}
+              empty={dokter ? (
+                <div className="sched-empty" role="status">
+                  <Icon d={ICONS.people} size={40} />
+                  <p>{isToday ? 'Tidak ada pasien hari ini.' : 'Tidak ada pasien.'}</p>
+                  {seek === 'none' ? <p className="muted">Tidak ada janji 30 hari ke depan.</p>
+                    : <button type="button" className="btn btn-outline" disabled={seek === 'busy'} onClick={nextOwnDay}><Icon d={ICONS.arrowRight} size={18} />{seek === 'busy' ? 'Mencari…' : 'Hari berikutnya'}</button>}
+                </div>
+              ) : (
+                <div className="sched-empty" role="status">
+                  <Icon d={chairPick ? ICONS.armchair : ICONS.inbox} size={40} />
+                  <p>{chairPick ? `${data.chairs.find((c) => c.id === chairPick)?.label ?? 'Kursi'} kosong${isToday ? ' hari ini' : ''}.` : 'Belum ada janji.'}</p>
+                </div>
+              )} />
+          )}
+          {gridOn && count === 0 && <div className="sched-empty sched-empty-sm" role="status"><p>Belum ada janji.</p></div>}
+          {mobile && !gridOn ? null : (
+          <div className={'card schedule' + (loading ? ' is-loading' : '')}>
+            <div className="sched-grid" style={{ gridTemplateColumns: `64px repeat(${chairs.length}, minmax(${mobile ? 0 : 180}px, 1fr))` }}>
+              <div className="sched-head" />
+              {chairs.map((c) => <div key={c.id} className="sched-head">{c.label} <span className="muted small">· {c.appointments.length}</span></div>)}
+              <div className="sched-times">
+                {SLOTS.map((m) => <div key={m} className="sched-time" style={{ height: ROW }}>{m % 60 === 0 ? hhmm(m) : ''}</div>)}
+                {nowTop !== null && <span className="sched-now-label" style={{ top: nowTop }}>{hhmm(nowMin + START)}</span>}
+              </div>
+              {chairs.map((c) => (
+                <div key={c.id} className="sched-col" style={{ height: SLOTS.length * ROW }}>
+                  {nowTop !== null && <div ref={nowRef} className="sched-now" style={{ top: nowTop }} aria-label={`Sekarang ${hhmm(nowMin + START)}`} role="img" />}
+                  {SLOTS.map((m) => mobile && canCreate ? (
+                    // Phone: each empty half hour is a real button (44px+, labelled, visible "+") that opens Buat Janji there.
+                    <button key={m} type="button" className={'sched-slot clickable' + (m % 60 === 0 ? ' hour' : '')} style={{ height: ROW }}
+                      aria-label={`Buat janji ${dotTime(m)}, ${c.label}`} onClick={() => setDialog({ chairId: c.id, minute: m })} />
+                  ) : (
+                    <div key={m} className={'sched-slot' + (m % 60 === 0 ? ' hour' : '') + (canCreate ? ' clickable' : '')} style={{ height: ROW }}
+                      onClick={canCreate ? () => setDialog({ chairId: c.id, minute: m }) : undefined} />
+                  ))}
+                  {c.appointments.map((a) => {
+                    const top = Math.max(0, minutesOfDay(a.starts_at, tz) - START)
+                    const height = Math.max(STEP, (new Date(a.ends_at).getTime() - new Date(a.starts_at).getTime()) / 60000)
+                    const box = { top: (top / STEP) * ROW + 2, height: (height / STEP) * ROW - 4 }
+                    if (mobile) return (
+                      // Phone: time + name + status only; tapping opens the action sheet.
+                      <button key={a.id} type="button" className={`appt appt-${a.status}`} style={box} aria-haspopup="dialog" onClick={() => setSheetId(a.id)}>
+                        <span className="appt-top">
+                          <span className="appt-time">{fmtTime(a.starts_at, tz)}–{fmtTime(a.ends_at, tz)}</span>
+                          {a.source === 'online' && <span className="chip chip-online">Online</span>}
+                          <StatusChip status={a.status} />
+                        </span>
+                        <span className="appt-name">{a.patient?.name}</span>
+                      </button>
+                    )
+                    return (
+                      <div key={a.id} className={`appt appt-${a.status}`} style={box}>
+                        <div className="appt-top">
+                          <span className="appt-time">{fmtTime(a.starts_at, tz)}–{fmtTime(a.ends_at, tz)}</span>
+                          {a.source === 'online' && <span className="chip chip-online">Online</span>}
+                          {a.status === 'pending_confirmation' ? <span className="sr-only">{STATUS.pending_confirmation}</span> : <StatusChip status={a.status} />}
+                        </div>
+                        <div className="appt-name">{a.patient?.name}</div>
+                        <div className="appt-bottom">
+                          <span className="appt-meta">{a.reason ?? a.dentist?.name}</span>
+                          {actions(a).filter((x) => !x.sheetOnly).map((x) => x.href
+                            ? <a key={x.label} className="btn btn-xs" href={x.href}>{x.label}</a>
+                            : <button key={x.label} className="btn btn-xs" onClick={x.run}>{x.label}</button>)}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ))}
+            </div>
+          </div>
+          )}
+          </>
+        )
+  )
+
   return (
     <>
       {mobile ? (
         // Phone: one compact row (date picker · count · Hari ini when elsewhere · week arrows) + the week strip, pinned under the top bar.
         <>
-        <div className="sched-title">
-          <h1>{dokter ? 'Pasien saya' : 'Jadwal'}</h1>
+        <div className="sched-mhead">
+          <div className="sched-title">
+            <h1>{dokter ? 'Pasien saya' : 'Jadwal'}</h1>
+            {!dokter && (
+              <div className="view-seg" role="group" aria-label="Tampilan">
+                <button type="button" aria-pressed={view === 'agenda'} aria-label="Tampilan agenda" onClick={() => setView('agenda')}><Icon d={ICONS.agenda} /></button>
+                <button type="button" aria-pressed={view === 'grid'} aria-label="Tampilan grid" onClick={() => setView('grid')}><Icon d={ICONS.grid2} /></button>
+              </div>
+            )}
+          </div>
           {multi && <ModeToggle mode={mode} onChange={setMode} />}
-          {!dokter && (
-            <button type="button" className="btn sched-grid-btn" aria-pressed={view === 'grid'} aria-label="Tampilan grid"
-              onClick={() => setView(view === 'grid' ? 'agenda' : 'grid')}><Icon d={ICONS.grid} /></button>
-          )}
         </div>
         <div className="sched-top">
           <div className="sched-bar">
@@ -363,191 +466,7 @@ export default function Schedule({ me }: { me: Me }) {
           </ul>
         </div>
       )}
-      {mobile ? <div className="sched-swipe" {...swipe}>{error ? (mobile
-          ? <div className="card state-card error" role="alert">Gagal memuat. <button className="btn" onClick={reload}>Coba lagi</button></div>
-          : <div className="card state-card error">{error} <button className="btn" onClick={reload}>Coba lagi</button></div>)
-        : !data || (mobile && loading && data.date !== date) ? <div className="card state-card muted" role="status">Memuat jadwal…</div>
-        : data.chairs.length === 0 ? <div className="card state-card muted">Cabang ini belum punya kursi aktif.</div> : (
-          <>
-          {mobile && !dokter && data.chairs.length > 1 && (
-            // Agenda: "Semua" + one pill per chair. Grid shows one chair column, so it has no "Semua" (see chairPick).
-            <div className="chair-pills" role="group" aria-label="Pilih kursi">
-              {!gridOn && <button type="button" aria-pressed={!chairPick} onClick={() => setChairPick(null)}>Semua <span className="muted small">· {count}</span></button>}
-              {data.chairs.map((c) => (
-                <button key={c.id} type="button" aria-pressed={gridOn ? c === shownChair : c.id === chairPick} onClick={() => setChairPick(c.id)}>
-                  {c.label} <span className="muted small">· {c.appointments.length}</span>
-                </button>
-              ))}
-            </div>
-          )}
-          {mobile && inv.error && <p className="week-error small" role="alert">Status bayar gagal dimuat. <button type="button" className="btn btn-ghost" onClick={inv.retry}>Coba lagi</button></p>}
-          {mobile && (
-            <Agenda mode={mode} list={agendaList} tz={tz} chairs={data.chairs} nowMin={isToday ? minutesOfDay(new Date(now).toISOString(), tz) : null}
-              unpaid={inv.unpaid} primary={primary} onOpen={(a) => setSheetId(a.id)} confirmOnly={gridOn}
-              empty={dokter ? (
-                <div className="sched-empty" role="status">
-                  <p>{isToday ? 'Tidak ada pasien hari ini.' : 'Tidak ada pasien.'}</p>
-                  {seek === 'none' ? <p className="muted">Tidak ada janji 30 hari ke depan.</p>
-                    : <button type="button" className="btn btn-ghost" disabled={seek === 'busy'} onClick={nextOwnDay}>{seek === 'busy' ? 'Mencari…' : 'Hari berikutnya'}</button>}
-                </div>
-              ) : (
-                <p className="sched-empty" role="status">
-                  {chairPick ? `${data.chairs.find((c) => c.id === chairPick)?.label ?? 'Kursi'} kosong${isToday ? ' hari ini' : ''}.` : 'Belum ada janji.'}
-                </p>
-              )} />
-          )}
-          {gridOn && count === 0 && <p className="sched-empty" role="status">Belum ada janji.</p>}
-          {mobile && !gridOn ? null : (
-          <div className={'card schedule' + (loading ? ' is-loading' : '')}>
-            <div className="sched-grid" style={{ gridTemplateColumns: `64px repeat(${chairs.length}, minmax(${mobile ? 0 : 180}px, 1fr))` }}>
-              <div className="sched-head" />
-              {chairs.map((c) => <div key={c.id} className="sched-head">{c.label} <span className="muted small">· {c.appointments.length}</span></div>)}
-              <div className="sched-times">
-                {SLOTS.map((m) => <div key={m} className="sched-time" style={{ height: ROW }}>{m % 60 === 0 ? hhmm(m) : ''}</div>)}
-                {nowTop !== null && <span className="sched-now-label" style={{ top: nowTop }}>{hhmm(nowMin + START)}</span>}
-              </div>
-              {chairs.map((c) => (
-                <div key={c.id} className="sched-col" style={{ height: SLOTS.length * ROW }}>
-                  {nowTop !== null && <div ref={nowRef} className="sched-now" style={{ top: nowTop }} aria-label={`Sekarang ${hhmm(nowMin + START)}`} role="img" />}
-                  {SLOTS.map((m) => mobile && canCreate ? (
-                    // Phone: each empty half hour is a real button (44px+, labelled, visible "+") that opens Buat Janji there.
-                    <button key={m} type="button" className={'sched-slot clickable' + (m % 60 === 0 ? ' hour' : '')} style={{ height: ROW }}
-                      aria-label={`Buat janji ${dotTime(m)}, ${c.label}`} onClick={() => setDialog({ chairId: c.id, minute: m })} />
-                  ) : (
-                    <div key={m} className={'sched-slot' + (m % 60 === 0 ? ' hour' : '') + (canCreate ? ' clickable' : '')} style={{ height: ROW }}
-                      onClick={canCreate ? () => setDialog({ chairId: c.id, minute: m }) : undefined} />
-                  ))}
-                  {c.appointments.map((a) => {
-                    const top = Math.max(0, minutesOfDay(a.starts_at, tz) - START)
-                    const height = Math.max(STEP, (new Date(a.ends_at).getTime() - new Date(a.starts_at).getTime()) / 60000)
-                    const box = { top: (top / STEP) * ROW + 2, height: (height / STEP) * ROW - 4 }
-                    if (mobile) return (
-                      // Phone: time + name + status only; tapping opens the action sheet.
-                      <button key={a.id} type="button" className={`appt appt-${a.status}`} style={box} aria-haspopup="dialog" onClick={() => setSheetId(a.id)}>
-                        <span className="appt-top">
-                          <span className="appt-time">{fmtTime(a.starts_at, tz)}–{fmtTime(a.ends_at, tz)}</span>
-                          {a.source === 'online' && <span className="chip chip-online">Online</span>}
-                          <StatusChip status={a.status} />
-                        </span>
-                        <span className="appt-name">{a.patient?.name}</span>
-                      </button>
-                    )
-                    return (
-                      <div key={a.id} className={`appt appt-${a.status}`} style={box}>
-                        <div className="appt-top">
-                          <span className="appt-time">{fmtTime(a.starts_at, tz)}–{fmtTime(a.ends_at, tz)}</span>
-                          {a.source === 'online' && <span className="chip chip-online">Online</span>}
-                          {a.status === 'pending_confirmation' ? <span className="sr-only">{STATUS.pending_confirmation}</span> : <StatusChip status={a.status} />}
-                        </div>
-                        <div className="appt-name">{a.patient?.name}</div>
-                        <div className="appt-bottom">
-                          <span className="appt-meta">{a.reason ?? a.dentist?.name}</span>
-                          {actions(a).filter((x) => !x.sheetOnly).map((x) => x.href
-                            ? <a key={x.label} className="btn btn-xs" href={x.href}>{x.label}</a>
-                            : <button key={x.label} className="btn btn-xs" onClick={x.run}>{x.label}</button>)}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              ))}
-            </div>
-          </div>
-          )}
-          </>
-        )}</div> : (error ? (mobile
-          ? <div className="card state-card error" role="alert">Gagal memuat. <button className="btn" onClick={reload}>Coba lagi</button></div>
-          : <div className="card state-card error">{error} <button className="btn" onClick={reload}>Coba lagi</button></div>)
-        : !data || (mobile && loading && data.date !== date) ? <div className="card state-card muted" role="status">Memuat jadwal…</div>
-        : data.chairs.length === 0 ? <div className="card state-card muted">Cabang ini belum punya kursi aktif.</div> : (
-          <>
-          {mobile && !dokter && data.chairs.length > 1 && (
-            // Agenda: "Semua" + one pill per chair. Grid shows one chair column, so it has no "Semua" (see chairPick).
-            <div className="chair-pills" role="group" aria-label="Pilih kursi">
-              {!gridOn && <button type="button" aria-pressed={!chairPick} onClick={() => setChairPick(null)}>Semua <span className="muted small">· {count}</span></button>}
-              {data.chairs.map((c) => (
-                <button key={c.id} type="button" aria-pressed={gridOn ? c === shownChair : c.id === chairPick} onClick={() => setChairPick(c.id)}>
-                  {c.label} <span className="muted small">· {c.appointments.length}</span>
-                </button>
-              ))}
-            </div>
-          )}
-          {mobile && inv.error && <p className="week-error small" role="alert">Status bayar gagal dimuat. <button type="button" className="btn btn-ghost" onClick={inv.retry}>Coba lagi</button></p>}
-          {mobile && (
-            <Agenda mode={mode} list={agendaList} tz={tz} chairs={data.chairs} nowMin={isToday ? minutesOfDay(new Date(now).toISOString(), tz) : null}
-              unpaid={inv.unpaid} primary={primary} onOpen={(a) => setSheetId(a.id)} confirmOnly={gridOn}
-              empty={dokter ? (
-                <div className="sched-empty" role="status">
-                  <p>{isToday ? 'Tidak ada pasien hari ini.' : 'Tidak ada pasien.'}</p>
-                  {seek === 'none' ? <p className="muted">Tidak ada janji 30 hari ke depan.</p>
-                    : <button type="button" className="btn btn-ghost" disabled={seek === 'busy'} onClick={nextOwnDay}>{seek === 'busy' ? 'Mencari…' : 'Hari berikutnya'}</button>}
-                </div>
-              ) : (
-                <p className="sched-empty" role="status">
-                  {chairPick ? `${data.chairs.find((c) => c.id === chairPick)?.label ?? 'Kursi'} kosong${isToday ? ' hari ini' : ''}.` : 'Belum ada janji.'}
-                </p>
-              )} />
-          )}
-          {gridOn && count === 0 && <p className="sched-empty" role="status">Belum ada janji.</p>}
-          {mobile && !gridOn ? null : (
-          <div className={'card schedule' + (loading ? ' is-loading' : '')}>
-            <div className="sched-grid" style={{ gridTemplateColumns: `64px repeat(${chairs.length}, minmax(${mobile ? 0 : 180}px, 1fr))` }}>
-              <div className="sched-head" />
-              {chairs.map((c) => <div key={c.id} className="sched-head">{c.label} <span className="muted small">· {c.appointments.length}</span></div>)}
-              <div className="sched-times">
-                {SLOTS.map((m) => <div key={m} className="sched-time" style={{ height: ROW }}>{m % 60 === 0 ? hhmm(m) : ''}</div>)}
-                {nowTop !== null && <span className="sched-now-label" style={{ top: nowTop }}>{hhmm(nowMin + START)}</span>}
-              </div>
-              {chairs.map((c) => (
-                <div key={c.id} className="sched-col" style={{ height: SLOTS.length * ROW }}>
-                  {nowTop !== null && <div ref={nowRef} className="sched-now" style={{ top: nowTop }} aria-label={`Sekarang ${hhmm(nowMin + START)}`} role="img" />}
-                  {SLOTS.map((m) => mobile && canCreate ? (
-                    // Phone: each empty half hour is a real button (44px+, labelled, visible "+") that opens Buat Janji there.
-                    <button key={m} type="button" className={'sched-slot clickable' + (m % 60 === 0 ? ' hour' : '')} style={{ height: ROW }}
-                      aria-label={`Buat janji ${dotTime(m)}, ${c.label}`} onClick={() => setDialog({ chairId: c.id, minute: m })} />
-                  ) : (
-                    <div key={m} className={'sched-slot' + (m % 60 === 0 ? ' hour' : '') + (canCreate ? ' clickable' : '')} style={{ height: ROW }}
-                      onClick={canCreate ? () => setDialog({ chairId: c.id, minute: m }) : undefined} />
-                  ))}
-                  {c.appointments.map((a) => {
-                    const top = Math.max(0, minutesOfDay(a.starts_at, tz) - START)
-                    const height = Math.max(STEP, (new Date(a.ends_at).getTime() - new Date(a.starts_at).getTime()) / 60000)
-                    const box = { top: (top / STEP) * ROW + 2, height: (height / STEP) * ROW - 4 }
-                    if (mobile) return (
-                      // Phone: time + name + status only; tapping opens the action sheet.
-                      <button key={a.id} type="button" className={`appt appt-${a.status}`} style={box} aria-haspopup="dialog" onClick={() => setSheetId(a.id)}>
-                        <span className="appt-top">
-                          <span className="appt-time">{fmtTime(a.starts_at, tz)}–{fmtTime(a.ends_at, tz)}</span>
-                          {a.source === 'online' && <span className="chip chip-online">Online</span>}
-                          <StatusChip status={a.status} />
-                        </span>
-                        <span className="appt-name">{a.patient?.name}</span>
-                      </button>
-                    )
-                    return (
-                      <div key={a.id} className={`appt appt-${a.status}`} style={box}>
-                        <div className="appt-top">
-                          <span className="appt-time">{fmtTime(a.starts_at, tz)}–{fmtTime(a.ends_at, tz)}</span>
-                          {a.source === 'online' && <span className="chip chip-online">Online</span>}
-                          {a.status === 'pending_confirmation' ? <span className="sr-only">{STATUS.pending_confirmation}</span> : <StatusChip status={a.status} />}
-                        </div>
-                        <div className="appt-name">{a.patient?.name}</div>
-                        <div className="appt-bottom">
-                          <span className="appt-meta">{a.reason ?? a.dentist?.name}</span>
-                          {actions(a).filter((x) => !x.sheetOnly).map((x) => x.href
-                            ? <a key={x.label} className="btn btn-xs" href={x.href}>{x.label}</a>
-                            : <button key={x.label} className="btn btn-xs" onClick={x.run}>{x.label}</button>)}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              ))}
-            </div>
-          </div>
-          )}
-          </>
-        ))}
+      {mobile ? <div className="sched-swipe" {...swipe}>{dayBody}</div> : dayBody}
       {mobile && sheetAppt && data && (
         <ApptSheet a={sheetAppt} tz={tz} chair={data.chairs.find((c) => c.id === sheetAppt.chair_id)?.label} acts={sheetActs(sheetAppt)}
           onClose={() => setSheetId(null)} onReschedule={() => { setSheetId(null); setReschedId(sheetAppt.id) }} />

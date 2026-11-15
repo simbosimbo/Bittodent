@@ -2,14 +2,15 @@
 // reschedule form and the owner's day summary. Schedule.tsx owns the data and the actions; this file only renders.
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { ApiError, errorText } from '../../shared/api/http'
-import { fmtTime } from '../../shared/format'
+import { fmtTime, initials } from '../../shared/format'
 import type { Me } from '../../shared/session'
 import { storage } from '../../shared/storage'
 import { DateField } from '../../shared/ui/DateField'
+import { Icon, ICONS } from '../../shared/ui/Icon'
 import { Sheet } from '../../shared/ui/Sheet'
-import { fmtRp, getDailyRevenue, invoiceForVisit } from '../billing'
+import { getDailyRevenue, invoiceForVisit } from '../billing'
 import { reschedule, type Appointment, type Schedule as Sched } from './api'
-import { dotTime, END, hhmm, minutesOfDay, SLOTS, StatusChip } from './parts'
+import { END, hhmm, minutesOfDay, SLOTS } from './parts'
 
 // ---- Role mode ----
 export type Mode = 'depan' | 'dokter'
@@ -53,6 +54,18 @@ export function ModeToggle({ mode, onChange }: { mode: Mode; onChange: (m: Mode)
 
 // ---- Actions (built by Schedule.tsx from permissions + status) ----
 export type Act = { key: string; label: string; run?: () => void; href?: string; tone?: 'primary' | 'danger' }
+const ACT_ICON: Record<string, string> = {
+  confirm: ICONS.check, reject: ICONS.circleX, checkin: ICONS.check, pay: ICONS.banknote, start: ICONS.playCircle, finish: ICONS.check,
+  chart: ICONS.fileText, reschedule: ICONS.calClock, noshow: ICONS.userX, cancel: ICONS.circleX,
+}
+
+/** Phone chip wording (board): short and front-desk oriented; desktop keeps STATUS. A finished, unpaid visit reads "Belum bayar". */
+const CHIP: Record<string, string> = {
+  pending_confirmation: 'Perlu konfirmasi', booked: 'Terjadwal', checked_in: 'Check-in', in_treatment: 'Merawat', done: 'Selesai',
+  cancelled: 'Batal', no_show: 'No-show', rejected: 'Ditolak',
+}
+const Chip = ({ a, owe }: { a: Appointment; owe?: boolean }) =>
+  <span className={`chip ${owe ? 'chip-unpaid' : `chip-${a.status}`}`}>{owe ? 'Belum bayar' : CHIP[a.status] ?? a.status}</span>
 
 // ---- Payment status of finished visits ("Belum bayar") ----
 /**
@@ -78,6 +91,8 @@ export function useInvoiceStatus(appts: Appointment[], on: boolean) {
   return { unpaid: (a: Appointment) => !!a.visit_id && map[a.visit_id] === 'terbuka', error, retry: () => setTick((t) => t + 1) }
 }
 
+const rpShort = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', notation: 'compact', maximumFractionDigits: 2 }) // "Rp 1,25 jt"
+
 // ---- Owner: one-row day summary (Janji · Hadir · Terbayar) ----
 export function DaySummary({ list, isToday, canBill }: { list: Appointment[]; isToday: boolean; canBill: boolean }) {
   const [paid, setPaid] = useState<number | null | 'error'>(null)
@@ -90,7 +105,7 @@ export function DaySummary({ list, isToday, canBill }: { list: Appointment[]; is
   const booked = list.filter((a) => !['cancelled', 'rejected', 'no_show'].includes(a.status)).length
   const came = list.filter((a) => ['checked_in', 'in_treatment', 'done'].includes(a.status)).length
   // Payments are only known for today (daily-revenue); another day shows a dash rather than a wrong total.
-  const money = !isToday || !canBill || paid === 'error' ? '–' : paid === null ? '…' : fmtRp(paid)
+  const money = !isToday || !canBill || paid === 'error' ? '–' : paid === null ? '…' : rpShort.format(paid)
   return (
     <dl className="day-sum" aria-label="Ringkasan hari">
       <div><dt>Janji</dt><dd>{booked}</dd></div>
@@ -104,40 +119,45 @@ export function DaySummary({ list, isToday, canBill }: { list: Appointment[]; is
 const CLOSED = ['done', 'cancelled', 'no_show', 'rejected']
 const isOnlineRequest = (a: Appointment) => a.status === 'pending_confirmation' && a.source === 'online'
 
-function Card({ a, tz, chair, primary, onOpen }: { a: Appointment; tz: string; chair?: string; primary: Act | null; onOpen: () => void }) {
-  const mins = Math.round((new Date(a.ends_at).getTime() - new Date(a.starts_at).getTime()) / 60000)
+function Card({ a, tz, chair, dentist, owe, primary, onOpen }: {
+  a: Appointment; tz: string; chair?: string; dentist: boolean; owe: boolean; primary: Act | null; onOpen: () => void
+}) {
   const who = a.patient?.name ?? 'Pasien'
+  // Buka RM is the one outlined primary (board): opening a chart is not a state change.
+  const cls = primary?.key === 'chart' ? 'btn agenda-cta agenda-cta-outline' : 'btn btn-primary agenda-cta'
+  const label = primary && <>{ACT_ICON[primary.key] && primary.key !== 'checkin' && primary.key !== 'confirm' && <Icon d={ACT_ICON[primary.key]} size={18} />}{primary.label}</>
   return (
     <li className={`agenda-item appt-${a.status}`}>
       <button type="button" className="agenda-open" aria-haspopup="dialog" onClick={onOpen}>
-        <span className="agenda-time"><strong>{fmtTime(a.starts_at, tz)}</strong><span>{mins} mnt</span></span>
+        <span className="agenda-time">{fmtTime(a.starts_at, tz)}</span>
+        <span className="agenda-av" aria-hidden="true">{initials(who)}</span>
         <span className="agenda-main">
           <span className="agenda-name">{who}</span>
-          <span className="agenda-meta">{[a.reason, a.dentist?.name, chair].filter(Boolean).join(' · ')}</span>
-          <span className="agenda-chips">{a.source === 'online' && <span className="chip chip-online">Online</span>}<StatusChip status={a.status} /></span>
+          <span className="agenda-meta">{[a.reason ?? (dentist ? a.dentist?.name : null), chair].filter(Boolean).join(' · ')}</span>
+          <span className="agenda-chips">{a.source === 'online' && a.status !== 'pending_confirmation' && <span className="chip chip-online">Online</span>}<Chip a={a} owe={owe} /></span>
         </span>
+        {!primary && <span className="agenda-more" aria-hidden="true"><Icon d={ICONS.more} /></span>}
       </button>
       {primary && (primary.href
-        ? <a className="btn btn-primary agenda-cta" href={primary.href} aria-label={`${primary.label} ${who}`}>{primary.label}</a>
-        : <button type="button" className="btn btn-primary agenda-cta" aria-label={`${primary.label} ${who}`} onClick={primary.run}>{primary.label}</button>)}
+        ? <a className={cls} href={primary.href} aria-label={`${primary.label} ${who}`}>{label}</a>
+        : <button type="button" className={cls} aria-label={`${primary.label} ${who}`} onClick={primary.run}>{label}</button>)}
     </li>
   )
 }
 
 function Section({ title, items, render, collapsed }: { title: string; items: Appointment[]; render: (a: Appointment) => ReactNode; collapsed?: boolean }) {
   if (items.length === 0) return null
+  return <Fold title={title} count={items.length} open={!collapsed}>{items.map(render)}</Fold>
+}
+
+/** Collapsible section (native details/summary: keyboard + screen reader state for free); chevron up = open. */
+function Fold({ title, count, open, children }: { title: string; count: number; open: boolean; children: ReactNode }) {
   const id = 'sec-' + title.toLowerCase().replace(/\s+/g, '-')
-  if (collapsed) return (
-    <details className="agenda-sec">
-      <summary><h2 id={id}>{title} <span className="muted">· {items.length}</span></h2></summary>
-      <ul className="agenda" aria-labelledby={id}>{items.map(render)}</ul>
-    </details>
-  )
   return (
-    <section className="agenda-sec" aria-labelledby={id}>
-      <h2 id={id}>{title} <span className="muted">· {items.length}</span></h2>
-      <ul className="agenda" aria-labelledby={id}>{items.map(render)}</ul>
-    </section>
+    <details className="agenda-sec" open={open}>
+      <summary><h2 id={id}>{title} <span>· {count}</span></h2><Icon d={ICONS.up} size={18} /></summary>
+      <ul className="agenda" aria-labelledby={id}>{children}</ul>
+    </details>
   )
 }
 
@@ -154,17 +174,19 @@ export type AgendaProps = {
  */
 export function Agenda({ mode, list, tz, chairs, nowMin, unpaid, primary, onOpen, confirmOnly, empty }: AgendaProps) {
   const label = Object.fromEntries(chairs.map((c) => [c.id, c.label]))
-  const card = (a: Appointment) => <Card key={a.id} a={a} tz={tz} chair={label[a.chair_id]} primary={primary(a)} onOpen={() => onOpen(a)} />
+  const card = (a: Appointment) => <Card key={a.id} a={a} tz={tz} chair={label[a.chair_id]} dentist={mode === 'depan'} owe={a.status === 'done' && unpaid(a)}
+    primary={primary(a)} onOpen={() => onOpen(a)} />
+  const nowRow = () => <li key="now" className="agenda-now-row"><span className="agenda-now">Sekarang</span></li>
   const withNow = (a: Appointment, i: number, all: Appointment[]) => {
     const at = minutesOfDay(a.starts_at, tz)
     const first = nowMin !== null && at >= nowMin && (i === 0 || minutesOfDay(all[i - 1].starts_at, tz) < nowMin)
-    return first ? [<li key="now" className="agenda-now-row"><span className="agenda-now">Sekarang {dotTime(nowMin)}</span></li>, card(a)] : card(a)
+    return first ? [nowRow(), card(a)] : card(a)
   }
   const nextWithNow = (items: Appointment[]) => {
     const rows = items.flatMap(withNow)
     // Everything still to come started before now: the divider closes the list.
     if (nowMin !== null && items.length > 0 && items.every((a) => minutesOfDay(a.starts_at, tz) < nowMin))
-      rows.push(<li key="now" className="agenda-now-row"><span className="agenda-now">Sekarang {dotTime(nowMin)}</span></li>)
+      rows.push(nowRow())
     return rows
   }
 
@@ -176,12 +198,7 @@ export function Agenda({ mode, list, tz, chairs, nowMin, unpaid, primary, onOpen
     return (
       <>
         <Section title="Sedang dirawat" items={treating} render={card} />
-        {next.length > 0 && (
-          <section className="agenda-sec" aria-labelledby="sec-berikutnya">
-            <h2 id="sec-berikutnya">Berikutnya <span className="muted">· {next.length}</span></h2>
-            <ul className="agenda" aria-labelledby="sec-berikutnya">{nextWithNow(next)}</ul>
-          </section>
-        )}
+        {next.length > 0 && <Fold title="Berikutnya" count={next.length} open>{nextWithNow(next)}</Fold>}
         <Section title="Selesai" items={done} render={card} collapsed />
       </>
     )
@@ -197,12 +214,7 @@ export function Agenda({ mode, list, tz, chairs, nowMin, unpaid, primary, onOpen
     <>
       <Section title="Perlu konfirmasi" items={confirm} render={card} />
       <Section title="Belum bayar" items={owe} render={card} />
-      {next.length > 0 && (
-        <section className="agenda-sec" aria-labelledby="sec-berikutnya">
-          <h2 id="sec-berikutnya">Berikutnya <span className="muted">· {next.length}</span></h2>
-          <ul className="agenda" aria-labelledby="sec-berikutnya">{nextWithNow(next)}</ul>
-        </section>
-      )}
+      {next.length > 0 && <Fold title="Berikutnya" count={next.length} open>{nextWithNow(next)}</Fold>}
       <Section title="Selesai" items={done} render={card} collapsed />
     </>
   )
@@ -224,8 +236,8 @@ export function ApptSheet({ a, tz, chair, acts, onClose, onReschedule }: {
     <Sheet title={a.patient?.name ?? 'Janji'} onClose={onClose} className="appt-sheet">
       <p className="appt-sheet-meta">
         <span>{fmtTime(a.starts_at, tz)}–{fmtTime(a.ends_at, tz)}</span>
-        {a.source === 'online' && <span className="chip chip-online">Online</span>}
-        <StatusChip status={a.status} />
+        {a.source === 'online' && a.status !== 'pending_confirmation' && <span className="chip chip-online">Online</span>}
+        <Chip a={a} />
       </p>
       {(a.reason || a.dentist || chair) && <p className="muted">{[a.reason, a.dentist?.name, chair].filter(Boolean).join(' · ')}</p>}
       {confirmCancel ? (
@@ -235,10 +247,14 @@ export function ApptSheet({ a, tz, chair, acts, onClose, onReschedule }: {
           <button type="button" className="btn" onClick={() => setConfirmCancel(null)}>Tidak</button>
         </div>
       ) : (
-        <div className="appt-sheet-actions">
-          {acts.map((x) => x.href
-            ? <a key={x.key} className={x.tone === 'primary' ? 'btn btn-primary' : 'btn'} href={x.href} onClick={onClose}>{x.label}</a>
-            : <button key={x.key} type="button" className={x.tone === 'primary' ? 'btn btn-primary' : x.tone === 'danger' ? 'btn btn-danger' : 'btn'} onClick={() => run(x)}>{x.label}</button>)}
+        <div className="appt-sheet-actions sheet-rows">
+          {acts.map((x) => {
+            const body = <>{ACT_ICON[x.key] && <Icon d={ACT_ICON[x.key]} />}{x.label}</>
+            const cls = 'sheet-row' + (x.tone ? ` sheet-row-${x.tone}` : '')
+            return x.href
+              ? <a key={x.key} className={cls} href={x.href} onClick={onClose}>{body}</a>
+              : <button key={x.key} type="button" className={cls} onClick={() => run(x)}>{body}</button>
+          })}
           {acts.length === 0 && <p className="muted">Tidak ada aksi untuk janji ini.</p>}
         </div>
       )}
@@ -292,7 +308,7 @@ export function RescheduleSheet({ a, tz, date, chairs, onClose, onSaved }: {
 export function PayPrompt({ onPay, onLater }: { onPay: () => void; onLater: () => void }) {
   return (
     <Sheet title="Lanjut ke Bayar?" onClose={onLater} className="appt-sheet">
-      <div className="appt-sheet-actions">
+      <div className="pay-prompt">
         <button type="button" className="btn btn-primary" onClick={onPay}>Bayar</button>
         <button type="button" className="btn" onClick={onLater}>Nanti</button>
       </div>
@@ -310,7 +326,7 @@ export function Toast({ text, undo, onDone }: { text: string; undo?: () => void;
   }, []) // the parent keys each toast, so a new one restarts the 5 s
   return (
     <div className="toast" role="status">
-      <span>{text}</span>
+      <span>{text}{undo && ' ·'}</span>
       {undo && <button type="button" className="btn btn-ghost" onClick={() => { onDone(); undo() }}>Urungkan</button>}
     </div>
   )
