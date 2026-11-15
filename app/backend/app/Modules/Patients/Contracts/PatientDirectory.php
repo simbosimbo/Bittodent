@@ -15,6 +15,14 @@ interface PatientDirectory
 
     public function guardianBelongsTo(string $guardianId, string $patientId): bool;
 
+    /**
+     * Identifying strings of the patient and their guardians (name, NIK, phone in local + 62 form, address), decrypted, for
+     * scrubbing free text before it reaches a model. Keep in memory only; never log or return to a client. 404 when not in this tenant.
+     *
+     * @return list<string>
+     */
+    public function redactionTerms(string $patientId): array;
+
     /** @param list<string> $ids  @return list<array{tenant_id: string, id: string, name: string}> */
     public function namesByIds(array $ids): array;
 }

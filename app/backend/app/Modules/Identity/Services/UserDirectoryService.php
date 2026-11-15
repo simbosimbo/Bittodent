@@ -13,6 +13,11 @@ final class UserDirectoryService implements UserDirectory
         return User::whereIn('id', $ids)->orderBy('name')->get(['id', 'name'])->toArray();
     }
 
+    public function licenseType(string $userId): ?string
+    {
+        return User::whereKey($userId)->value('license_type');
+    }
+
     public function verifyTotp(string $userId, string $code): bool
     {
         $secret = User::find($userId)?->two_factor_secret;

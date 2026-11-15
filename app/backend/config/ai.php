@@ -5,6 +5,9 @@ return [
     'driver' => env('AI_DRIVER', 'fake'), // fake | bedrock
 
     // agent_run.region must be one of these (also a MySQL CHECK). id-lokal = in-process fake or self-hosted in Indonesia.
+    // Kill switch for the AI part of the medical summary (deterministic summary stays available).
+    'summary_enabled' => (bool) env('AI_SUMMARY_ENABLED', true),
+
     'allowed_regions' => ['ap-southeast-3', 'id-lokal'],
 
     // A0.1: exact Bedrock model IDs allowed in ap-southeast-3 (in-region IDs; docs/ai/arsitektur-ai.md, PR #56).

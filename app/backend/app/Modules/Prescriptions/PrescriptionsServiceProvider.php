@@ -2,7 +2,12 @@
 
 namespace App\Modules\Prescriptions;
 
+use App\Modules\Prescriptions\Contracts\PrescriptionHistory;
+use App\Modules\Prescriptions\Services\PrescriptionHistoryService;
 use App\Shared\ModuleServiceProvider;
 
-// Stub: no features yet (see README.md).
-class PrescriptionsServiceProvider extends ModuleServiceProvider {}
+// No endpoints yet (see README.md). Read contract PrescriptionHistory for ClinicalSummary.
+class PrescriptionsServiceProvider extends ModuleServiceProvider
+{
+    public array $bindings = [PrescriptionHistory::class => PrescriptionHistoryService::class];
+}

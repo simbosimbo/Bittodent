@@ -22,5 +22,7 @@ return [
     'Integrations' => [],
     // A0 AI foundation: agent_run/agent_draft + run recorder; reaches models only via Integrations\Contracts\ModelClient.
     'Agents' => ['Integrations'],
+    // AI medical summary (PR #1 design): reads signed history via read contracts only; writes only agent_run/agent_draft via Agents.
+    'ClinicalSummary' => ['Clinical', 'Patients', 'Prescriptions', 'Identity', 'Agents', 'Integrations'],
     'Reporting' => [],
 ];

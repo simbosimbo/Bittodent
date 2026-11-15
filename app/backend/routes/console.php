@@ -1,5 +1,7 @@
 <?php
 
+use App\Modules\Agents\Contracts\AgentDrafts;
+use App\Modules\Agents\Contracts\DraftKind;
 use App\Modules\Identity\Models\User;
 use App\Modules\Recall\Services\ReminderService;
 use App\Modules\Tenancy\Models\Tenant;
@@ -7,6 +9,7 @@ use App\Shared\Tenancy\Ctx;
 use Carbon\CarbonImmutable;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 use PragmaRX\Google2FA\Google2FA;
 
 // Dev helper: print the current TOTP code of a seeded synthetic account. Never in production.
@@ -51,3 +54,12 @@ Artisan::command('recall:send-reminders', function () {
         $this->line("$tenantId: $n");
     }
 })->purpose('Kirim pengingat janji yang jatuh tempo (kanal no-op; tercatat di reminder_log)');
+
+// AI summaries are reading aids, not medical records: empty their content 7 days after creation (design 5.5). Per tenant; safe twice.
+Artisan::command('ai:purge-summaries', function () {
+    foreach (Tenant::pluck('id') as $tenantId) {
+        $n = Ctx::runAs($tenantId, fn () => app(AgentDrafts::class)->purgeExpired(DraftKind::Ringkasan, now()));
+        $this->line("$tenantId: $n");
+    }
+})->purpose('Kosongkan isi ringkasan AI yang sudah kedaluwarsa');
+Schedule::command('ai:purge-summaries')->hourly();

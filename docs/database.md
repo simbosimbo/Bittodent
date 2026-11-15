@@ -299,7 +299,7 @@ Penjaga di database: trigger menolak `UPDATE` dan `DELETE` pada versi yang **sud
 | `state` | enum (bagian 4.4) | |
 | `reviewer_id`, `reviewed_at`, `reject_reason` | | |
 
-Dibangun di unit A0 (MySQL, `app/Modules/Agents`): `agent_run` juga punya `branch_id`, `requested_by`, `patient_id`, `cross_branch`, `input_hash`/`output_hash` (SHA-256), `latency_ms`, `claims_total`/`claims_dropped`, `error_code` (kode pendek); `outcome` mulai `berjalan` lalu diisi sekali (trigger), `agent` + `ringkasan`, CHECK `region IN ('ap-southeast-3','id-lokal')`. `agent_draft` = satu baris per item; state `menunggu_review` → `disetujui`/`ditolak`/`digantikan` (+ `kedaluwarsa` khusus ringkasan), `kind` + `ringkasan` (tidak pernah bisa disetujui), `reject_reason_enc`, `expires_at`, `purged_at`. Keduanya tanpa DELETE.
+Dibangun di unit A0 (MySQL, `app/Modules/Agents`): `agent_run` juga punya `branch_id`, `requested_by`, `patient_id`, `cross_branch`, `input_hash`/`output_hash` (SHA-256), `latency_ms`, `claims_total`/`claims_dropped`, `generator` (`llm`/`deterministik`), `redactions` (jumlah penggantian PII), `error_code` (kode pendek); `outcome` mulai `berjalan` lalu diisi sekali (trigger), `agent` + `ringkasan`, CHECK `region IN ('ap-southeast-3','id-lokal')`. `agent_draft` = satu baris per item; state `menunggu_review` → `disetujui`/`ditolak`/`digantikan` (+ `kedaluwarsa` khusus ringkasan), `kind` + `ringkasan` (tidak pernah bisa disetujui), `reject_reason_enc`, `expires_at`, `purged_at`. Keduanya tanpa DELETE.
 
 Agen **tidak punya** hak menulis ke `clinical_note_version`, `tooth_finding` berstatus final, atau `outbox`. Itu hanya bisa terjadi lewat fungsi "dokter menyetujui draf".
 
