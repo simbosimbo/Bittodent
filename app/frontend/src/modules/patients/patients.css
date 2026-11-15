@@ -49,3 +49,10 @@
   .pl-filters { flex-wrap: nowrap; overflow-x: auto; }
   .pl-filters button { flex: none; min-height: 44px; white-space: nowrap; }
 }
+/* Phone: the top bar already says "Pasien"; the page h1 stays for screen readers only. */
+@media (max-width: 720px) {
+  .pl-head .shell-dup-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .pl-head { justify-content: flex-end; }
+  /* last card clears FAB (56px) + its 16px gap above the bottom nav; .shell-main already pads for the nav + safe area */
+  .card:has(.fab) { margin-bottom: 88px; }
+}

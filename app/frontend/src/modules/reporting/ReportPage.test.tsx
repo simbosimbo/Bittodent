@@ -38,3 +38,11 @@ test('owner page shows per-dentist counts, alerts with batal as an exception, an
   expect(screen.getByText(/Tidak dapat dihapus atau diubah/)).toBeInTheDocument()
   expect(screen.queryByRole('button', { name: /hapus|ubah/i })).toBeNull()
 })
+
+test('every wide table sits in a .table-scroll wrapper (sideways scroll on a phone)', async () => {
+  const { container } = render(<ReportPage />)
+  await screen.findByText('konfirmasi_tindakan_luar')
+  const tables = container.querySelectorAll('table.table')
+  expect(tables.length).toBe(3)
+  tables.forEach((t) => expect(t.parentElement).toHaveClass('table-scroll'))
+})

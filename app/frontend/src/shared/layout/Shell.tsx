@@ -4,6 +4,7 @@ import { initials } from '../format'
 import { ROLE_LABELS, type Me } from '../session'
 import { Icon, ICONS } from '../ui/Icon'
 import { Menu } from '../ui/Menu'
+import { useScrollHints } from '../ui/scrollHint'
 import { useIsMobile } from '../useIsMobile'
 
 // Mobile bottom tabs, in order; every other nav item goes in the "Lainnya" sheet (with branch + Keluar).
@@ -52,6 +53,7 @@ export function Shell({ me, nav, active, title = '', ribbon, onSwitchBranch, onL
 }) {
   const patient = useActivePatient()
   const mobile = useIsMobile()
+  useScrollHints(mobile)
   const [q, setQ] = useState('')
   const [more, setMore] = useState(false)
   // Pinned top bar height -> --shell-sticky-h, so the chart's sticky patient header (allergies) sits right below it.

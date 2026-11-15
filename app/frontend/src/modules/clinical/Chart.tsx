@@ -387,6 +387,13 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const phone = useMedia(PHONE_QUERY)
   const [legendOpen, setLegendOpen] = useState(!mobile) // phone: chart first, legend on demand
   const [tab, setTab] = useState<(typeof INNER)[number][0]>('odo')
+  // Phone: the tab row scrolls sideways; keep the active tab in view.
+  useEffect(() => {
+    const t = document.getElementById(`ct-${tab}`), row = t?.parentElement
+    if (!mobile || !t || !row) return
+    const a = t.getBoundingClientRect(), r = row.getBoundingClientRect() // horizontal only: never scrolls the page
+    if (a.left < r.left || a.right > r.right) row.scrollLeft += a.left - r.left - (r.width - a.width) / 2
+  }, [mobile, tab])
   // 3D needs the vertical space: legends collapse on 3D, reopen on 2D; manual toggle still works in both.
   const changeView = (v: '2d' | '3d') => { setView(v); setLegendOpen(v === '2d') }
   // View-only dentition override, dropped when the default (baseline or DOB) changes; the baseline editor is what persists.

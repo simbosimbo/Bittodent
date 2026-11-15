@@ -451,3 +451,17 @@ label.check input { min-height: 0; }
 .sheet-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-2); }
 .sheet-head h2 { margin: 0; min-width: 0; overflow-wrap: anywhere; }
 .sheet-close { flex: none; min-height: 44px; }
+
+/* Phone: horizontal scrollers (shared/ui/scrollHint.ts SCROLL_HINT) fade at an edge while more content is there; thin scrollbar. */
+@media (max-width: 720px) {
+  .pl-filters, .tabs, .chair-pills, .odo2d-wrap, .table-scroll, .tl-scroll { scrollbar-width: thin; }
+  [data-more='end'] { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); }
+  [data-more='start'] { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 32px), transparent); }
+  [data-more='both'] {
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent);
+    mask-image: linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent);
+  }
+  /* Laporan: wide tables scroll inside their card (the wrapper is a plain block on desktop). */
+  .table-scroll { overflow-x: auto; overscroll-behavior-x: contain; }
+  .table-scroll > .table { min-width: 640px; }
+}

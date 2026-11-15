@@ -51,8 +51,8 @@ export default function ReportPage() {
           <label>Dari <input type="date" value={range.from} onChange={(e) => setRange({ ...range, from: e.target.value })} /></label>
           <label>Sampai <input type="date" value={range.to} onChange={(e) => setRange({ ...range, to: e.target.value })} /></label>
         </div>
-        {!report ? <p className="muted">Memuat…</p> : (
-          <table className="table">
+        {!report ? !error && <p className="muted">Memuat…</p> : (
+          <div className="table-scroll"><table className="table">
             <thead><tr><th>Dokter</th>{COLS.map(([k, l]) => <th key={k}>{l}</th>)}<th>Total diskon</th></tr></thead>
             <tbody>
               {report.dentists.map((d) => (
@@ -60,15 +60,15 @@ export default function ReportPage() {
               ))}
               <tr className="muted"><td>Rata-rata klinik</td>{COLS.map(([k]) => <td key={k}>{report.average[k].toLocaleString('id-ID')}</td>)}<td>{rp(Math.round(report.average.discount_total_rp))}</td></tr>
             </tbody>
-          </table>
+          </table></div>
         )}
         <p className="muted small">Luar &amp; tanpa tagihan = dokter pelaksana tindakan; diskon = dokter kunjungan; anomali tarif Rp0 = dokter baris tagihan (bukan koreksi, bukan diskon); batal = janji dibatalkan/tidak datang atau kehadiran dibatalkan.</p>
       </div>
 
       <div className="card">
         <h2>Koreksi &amp; pembalikan</h2>
-        {report && (
-          <table className="table">
+        {!report ? !error && <p className="muted">Memuat…</p> : (
+          <div className="table-scroll"><table className="table">
             <thead>
               <tr><th rowSpan={2}>Dokter</th>{CORR.map(([g, cols]) => <th key={g} colSpan={cols.length}>{g}</th>)}</tr>
               <tr>{CORR.flatMap(([, cols]) => cols.map(([k, l]) => <th key={k}>{l}</th>))}</tr>
@@ -79,7 +79,7 @@ export default function ReportPage() {
               ))}
               <tr className="muted"><td>Rata-rata klinik</td>{CORR.flatMap(([, cols]) => cols.map(([k]) => <td key={k}>{cell(k, report.average[k])}</td>))}</tr>
             </tbody>
-          </table>
+          </table></div>
         )}
         <p className="muted small">Koreksi klinis = dokter pelaksana tindakan asli (jumlah = yang berlaku; nilai = harga baris tertagih tindakan itu). Nota kredit &amp; refund = dokter baris tagihan; void = dokter kunjungan. Nota kredit dan void tidak pernah dihitung sebagai Rp0.</p>
       </div>
@@ -105,7 +105,7 @@ export default function ReportPage() {
       <div className="card">
         <h2>Audit log</h2>
         <p className="muted small">Tidak dapat dihapus atau diubah. Koreksi tercatat sebagai baris baru.</p>
-        <table className="table">
+        <div className="table-scroll"><table className="table">
           <thead><tr><th>Waktu, WIB</th><th>Pengguna</th><th>Aksi</th><th>Objek</th></tr></thead>
           <tbody>
             {audit?.data.map((r) => (
@@ -113,7 +113,8 @@ export default function ReportPage() {
                 <td>{r.entity_type}{r.entity_id ? ' ' + r.entity_id.slice(0, 8) : ''}</td></tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
+        {!audit ? !error && <p className="muted">Memuat…</p> : audit.data.length === 0 && <p className="muted">Belum ada catatan audit.</p>}
         {audit && (
           <div className="toolbar">
             <button className="btn btn-xs" disabled={page <= 1} onClick={() => setPage(page - 1)}>Sebelumnya</button>
