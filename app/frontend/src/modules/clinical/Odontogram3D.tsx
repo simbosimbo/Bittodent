@@ -18,7 +18,8 @@ type T3 = {
 }
 declare global { interface Window { Tooth3D?: T3 } }
 
-const BASE = '/odontogram-3d/'
+// Respect Vite's base (staging serves the SPA from /client/), so assets resolve under it.
+const BASE = `${import.meta.env.BASE_URL}odontogram-3d/`
 const K = 1.15
 const FRAMES = ['M', 'D', 'O', 'B', 'L'] // sprite order in masks/<model>-<view>.webp; frame O = I on anterior teeth
 const WHOLE = ['hilang', 'implan', 'sisa_akar', 'mahkota', 'perlu_dicabut']
