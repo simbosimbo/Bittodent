@@ -241,7 +241,7 @@ a.tl-block:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px
     border-radius: 12px; background: var(--color-neutral-900); color: #fff; box-shadow: var(--shadow-lg); font-weight: 500;
   }
   .toast .btn-ghost { min-height: 44px; padding: 0 var(--space-2); color: var(--color-primary-200); font-weight: 600; }
-  .sched-empty { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); padding: 64px var(--space-4); text-align: center; color: var(--color-neutral-500); }
+  .sched-empty { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); margin: 0; padding: 64px var(--space-4); text-align: center; color: var(--color-neutral-500); background: transparent; border: 0; }
   .sched-empty p { margin: 0; color: var(--text); font-weight: 600; font-size: var(--font-size-md); }
   .sched-empty .muted { font-weight: 400; color: var(--muted); }
   .sched-empty-sm { padding: var(--space-3); }
