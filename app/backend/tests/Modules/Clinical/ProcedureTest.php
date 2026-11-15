@@ -83,7 +83,8 @@ class ProcedureTest extends TestCase
     {
         $visit = $this->draftVisit();
         foreach (['ada_di_klinik_ini', 'external', 'dirujuk', 'direncanakan', 'cancelled', 'kondisi_pantau'] as $i => $status) {
-            $this->proc($visit, ['tooth' => [14, 15, 24, 25, 34, 35][$i], 'surfaces' => 'O', 'procedure_code' => '23.2', 'status' => $status])->assertCreated();
+            $this->proc($visit, ['tooth' => [14, 15, 24, 25, 34, 35][$i], 'surfaces' => 'O', 'procedure_code' => '23.2', 'status' => $status]
+                + ($status === 'external' ? ['external_clinic_name' => 'Klinik Contoh Lain', 'external_date' => '06/2025'] : []))->assertCreated();
         }
         $this->proc($visit, ['tooth' => 36, 'treat_area' => 'tooth', 'status' => 'selesai'])->assertCreated(); // no code: nothing to bill
         $this->sign($visit)->assertOk()->assertJsonPath('procedures_locked', 7);

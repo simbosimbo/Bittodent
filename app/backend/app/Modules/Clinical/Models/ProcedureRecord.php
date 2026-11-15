@@ -14,5 +14,5 @@ class ProcedureRecord extends Model
 
     protected $guarded = ['tenant_id'];
 
-    protected $casts = ['finalized_at' => 'datetime', 'tooth' => 'integer', 'quadrant' => 'integer'];
+    protected $casts = ['finalized_at' => 'datetime', 'external_confirmed_at' => 'datetime', 'tooth' => 'integer', 'quadrant' => 'integer'];
 }

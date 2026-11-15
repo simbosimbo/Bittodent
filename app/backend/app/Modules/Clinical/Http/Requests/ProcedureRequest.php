@@ -43,6 +43,9 @@ class ProcedureRequest extends FormRequest
             'diagnosis_source' => ['sometimes', 'string', 'in:aturan,riwayat,manual,agen'],
             'provider_id' => ['sometimes', 'nullable', 'uuid'],
             'source' => ['sometimes', 'string', 'in:manual,ai_draft'],
+            // status external only (checked in the controller): other clinic's name + approximate date ("2025", "06/2025", "12/06/2025")
+            'external_clinic_name' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'external_date' => ['sometimes', 'nullable', 'string', 'max:10'],
         ];
     }
 }

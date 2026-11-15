@@ -60,7 +60,10 @@ class ChartController extends Controller
             'findings' => $current->map(self::finding(...)),
             'drafts' => $findings->where('state', 'draft')->where('created_by', $me)->values()->map(self::finding(...)),
             // treatments: every current (final, not superseded) procedure, several per tooth allowed; findings stay the visual layer
-            'procedures' => $procedures->where('state', 'final')->reject(fn ($p) => $procedures->contains('supersedes_id', $p->id))->values()->map($proc),
+            // an external waiting for confirmation (or rejected) is not chart history: it never hides or replaces today's work (unit 2)
+            'procedures' => $procedures->where('state', 'final')->reject(fn ($p) => $procedures->contains('supersedes_id', $p->id)
+                || in_array($p->external_confirmation, ['pending', 'rejected'], true))->values()->map($proc),
+            'pending_externals' => $procedures->where('external_confirmation', 'pending')->values()->map($proc),
             'procedure_drafts' => $procedures->where('state', 'draft')->where('created_by', $me)->values()->map($proc),
             'visits' => $out,
         ]);

@@ -24,6 +24,9 @@ Route::middleware(['auth:sanctum', '2fa', 'tenant'])->group(function () {
     Route::patch('/procedures/{id}', [ProcedureController::class, 'update'])->middleware('perm:note.write');
     Route::post('/procedures/{id}/status', [ProcedureController::class, 'changeStatus'])->middleware('perm:note.sign');
     Route::delete('/procedures/{id}', [ProcedureController::class, 'destroy'])->middleware('perm:note.write');
+    // unit 2: external entries made on a visit with `selesai` work that day wait for front desk / assistant
+    Route::get('/procedures/pending-external', [ProcedureController::class, 'pendingExternal'])->middleware('perm:procedure.confirm_external');
+    Route::post('/procedures/{id}/confirm-external', [ProcedureController::class, 'confirmExternal'])->middleware('perm:procedure.confirm_external');
     Route::put('/visits/{id}/note', [NoteController::class, 'save'])->middleware('perm:note.write');
     // throttle: limits TOTP guessing on the sign confirmation
     Route::post('/visits/{id}/sign', [NoteController::class, 'sign'])->middleware(['perm:note.sign', 'throttle:10,1']);
