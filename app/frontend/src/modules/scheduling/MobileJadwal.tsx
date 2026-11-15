@@ -56,7 +56,7 @@ export function ModeToggle({ mode, onChange }: { mode: Mode; onChange: (m: Mode)
 export type Act = { key: string; label: string; run?: () => void; href?: string; tone?: 'primary' | 'danger' }
 const ACT_ICON: Record<string, string> = {
   confirm: ICONS.check, reject: ICONS.circleX, checkin: ICONS.check, pay: ICONS.banknote, start: ICONS.playCircle, finish: ICONS.check,
-  chart: ICONS.fileText, reschedule: ICONS.calClock, noshow: ICONS.userX, cancel: ICONS.circleX,
+  chart: ICONS.fileText, reschedule: ICONS.calClock, noshow: ICONS.userX, cancel: ICONS.circleX, chair: ICONS.armchair, refer: ICONS.arrowRight,
 }
 
 /** Phone chip wording (board): short and front-desk oriented; desktop keeps STATUS. A finished, unpaid visit reads "Belum bayar". */
@@ -133,7 +133,7 @@ function Card({ a, tz, chair, dentist, owe, primary, onOpen }: {
         <span className="agenda-av" aria-hidden="true">{initials(who)}</span>
         <span className="agenda-main">
           <span className="agenda-name">{who}</span>
-          <span className="agenda-meta">{[a.reason ?? (dentist ? a.dentist?.name : null), chair].filter(Boolean).join(' · ')}</span>
+          <span className="agenda-meta">{[a.reason, dentist ? a.dentist?.name : null, chair].filter(Boolean).join(' · ')}</span>
           <span className="agenda-chips">{a.source === 'online' && a.status !== 'pending_confirmation' && <span className="chip chip-online">Online</span>}<Chip a={a} owe={owe} /></span>
         </span>
         {!primary && <span className="agenda-more" aria-hidden="true"><Icon d={ICONS.more} /></span>}
@@ -222,13 +222,14 @@ export function Agenda({ mode, list, tz, chairs, nowMin, unpaid, primary, onOpen
 
 // ---- Action sheet ----
 /** Tap a card: status action first, the rest below, Batalkan last behind a confirm step. */
-export function ApptSheet({ a, tz, chair, acts, onClose, onReschedule }: {
-  a: Appointment; tz: string; chair?: string; acts: Act[]; onClose: () => void; onReschedule?: () => void
+export function ApptSheet({ a, tz, chair, acts, onClose, onReschedule, onForm }: {
+  a: Appointment; tz: string; chair?: string; acts: Act[]; onClose: () => void; onReschedule?: () => void; onForm?: (kind: 'chair' | 'refer') => void
 }) {
   const [confirmCancel, setConfirmCancel] = useState<Act | null>(null)
   const run = (x: Act) => {
     if (x.key === 'cancel') return setConfirmCancel(x)
     if (x.key === 'reschedule') return onReschedule?.()
+    if (x.key === 'chair' || x.key === 'refer') return onForm?.(x.key)
     onClose()
     x.run?.()
   }
@@ -298,6 +299,86 @@ export function RescheduleSheet({ a, tz, date, chairs, onClose, onSaved }: {
         {error && <p className="form-error" role="alert">{error}</p>}
         <div className="appt-sheet-actions">
           <button className="btn btn-primary" disabled={busy}>{busy ? 'Menyimpan…' : 'Simpan'}</button>
+        </div>
+      </form>
+    </Sheet>
+  )
+}
+
+const saveError = (err: unknown, fallback: string) =>
+  err instanceof ApiError && [403, 409, 422].includes(err.status) ? err.data?.message ?? fallback : errorText(err)
+
+/** Ganti kursi: same time and dentist, another chair of the branch (POST /appointments/{id}/chair; chair clash checked by the API). */
+export function ChairSheet({ a, chairs, save, onClose, onSaved }: {
+  a: Appointment; chairs: Sched['chairs']; save: (id: string, chairId: string) => Promise<unknown>; onClose: () => void; onSaved: () => void
+}) {
+  const [chair, setChair] = useState(chairs.find((c) => c.id !== a.chair_id)?.id ?? a.chair_id)
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  async function submit(e: FormEvent) {
+    e.preventDefault()
+    setBusy(true)
+    setError('')
+    try {
+      await save(a.id, chair)
+      onSaved()
+    } catch (err) {
+      setError(saveError(err, 'Kursi tidak bisa diganti.'))
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <Sheet title="Ganti kursi" onClose={onClose} className="appt-sheet">
+      <form className="resched" onSubmit={submit} noValidate>
+        <p className="muted">{a.patient?.name} · {a.dentist?.name} · dokter tetap</p>
+        <label>Kursi<select value={chair} onChange={(e) => setChair(e.target.value)}>
+          {chairs.map((c) => <option key={c.id} value={c.id}>{c.label}{c.id === a.chair_id ? ' (sekarang)' : ''}</option>)}
+        </select></label>
+        {error && <p className="form-error" role="alert">{error}</p>}
+        <div className="appt-sheet-actions">
+          <button className="btn btn-primary" disabled={busy || chair === a.chair_id}>{busy ? 'Menyimpan…' : 'Simpan'}</button>
+        </div>
+      </form>
+    </Sheet>
+  )
+}
+
+/** Rujuk: the only way to give an appointment to another dentist; reason required, audited (POST /appointments/{id}/refer). */
+export function ReferSheet({ a, dentists, save, onClose, onSaved }: {
+  a: Appointment; dentists: Sched['dentists']; save: (id: string, body: { dentist_id: string; reason: string }) => Promise<unknown>
+  onClose: () => void; onSaved: () => void
+}) {
+  const others = dentists.filter((d) => d.id !== a.dentist?.id)
+  const [dentist, setDentist] = useState(others[0]?.id ?? '')
+  const [reason, setReason] = useState('')
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  async function submit(e: FormEvent) {
+    e.preventDefault()
+    if (reason.trim().length < 5) return setError('Tulis alasan rujukan (minimal 5 huruf).')
+    setBusy(true)
+    setError('')
+    try {
+      await save(a.id, { dentist_id: dentist, reason: reason.trim() })
+      onSaved()
+    } catch (err) {
+      setError(saveError(err, 'Janji tidak bisa dirujuk.'))
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <Sheet title="Rujuk ke dokter lain" onClose={onClose} className="appt-sheet">
+      <form className="resched" onSubmit={submit} noValidate>
+        <p className="muted">{a.patient?.name} · dari {a.dentist?.name ?? 'dokter'} · jam dan kursi tetap</p>
+        <label>Dokter gigi tujuan<select value={dentist} onChange={(e) => setDentist(e.target.value)}>
+          {others.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+        </select></label>
+        <label>Alasan rujukan<textarea value={reason} maxLength={500} rows={3} required onChange={(e) => setReason(e.target.value)} placeholder="mis. Perlu penanganan bedah mulut" /></label>
+        {error && <p className="form-error" role="alert">{error}</p>}
+        <div className="appt-sheet-actions">
+          <button className="btn btn-primary" disabled={busy || !dentist}>{busy ? 'Menyimpan…' : 'Rujuk'}</button>
         </div>
       </form>
     </Sheet>

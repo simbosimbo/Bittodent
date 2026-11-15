@@ -13,9 +13,11 @@ final class Permissions
             'billing.approve_reversal', // unit B: approve a full credit note / void of a billed invoice; owner ONLY
             'billing.accounts', // unit 5: manage clinic payment accounts; owner ONLY
             'settings.manage', // unit A koreksi: clinic settings (procedure correction window); owner ONLY
-            'reporting.read'], // unit 6: clinic-wide integrity report per dentist + alerts; owner ONLY (D-039 dentist = own pay only)
+            'reporting.read', // unit 6: clinic-wide integrity report per dentist + alerts; owner ONLY (D-039 dentist = own pay only)
+            'appointment.refer'], // DEVIATIONS #68: Rujuk = the only way to change an appointment's dentist (owner: any appointment)
         'dentist' => ['patient.read', 'patient.read_nik', 'patient.create', 'appointment.read', 'appointment.create',
-            'appointment.transition', 'appointment.confirm', 'note.read', 'note.write', 'note.sign', 'patient.update', 'appointment.plan'],
+            'appointment.transition', 'appointment.confirm', 'note.read', 'note.write', 'note.sign', 'patient.update', 'appointment.plan',
+            'appointment.refer'], // DEVIATIONS #68: only their own appointments (checked in AppointmentController::refer)
         // procedure.confirm_external: second pair of eyes on an external entry made on a visit with `selesai` work that day (unit 2).
         // Not the dentist (who records it), not kasir; owner is an open decision (DEVIATIONS #48).
         'assistant' => ['patient.read', 'appointment.read', 'appointment.transition', 'note.read', 'note.write', 'appointment.plan',

@@ -8,8 +8,8 @@ import { useDialog } from '../../shared/ui/Sheet'
 import { useIsMobile } from '../../shared/useIsMobile'
 import { PatientPicker } from '../patients'
 import './scheduling.css'
-import { createAppointment, getPlanned, getSchedule, schedulePlanned, STATUS, transition, type Appointment, type Planned, type Schedule as Sched } from './api'
-import { Agenda, ApptSheet, DaySummary, ModeToggle, PayPrompt, RescheduleSheet, Toast, useInvoiceStatus, useJadwalMode, type Act } from './MobileJadwal'
+import { changeChair, createAppointment, getPlanned, refer, getSchedule, schedulePlanned, STATUS, transition, type Appointment, type Planned, type Schedule as Sched } from './api'
+import { Agenda, ApptSheet, ChairSheet, DaySummary, ModeToggle, PayPrompt, ReferSheet, RescheduleSheet, Toast, useInvoiceStatus, useJadwalMode, type Act } from './MobileJadwal'
 import { addDays, dotTime, END, hhmm, minutesOfDay, ROW, SLOTS, START, StatusChip, STEP } from './parts'
 
 export { minutesOfDay, StatusChip } from './parts'
@@ -31,6 +31,22 @@ const weekStart = (ymd: string) => addDays(ymd, -((new Date(ymd + 'T00:00:00Z').
 const dayFmt = (opts: Intl.DateTimeFormatOptions) => (ymd: string) => new Intl.DateTimeFormat('id-ID', { timeZone: 'UTC', ...opts }).format(new Date(ymd + 'T00:00:00Z'))
 const wdShort = dayFmt({ weekday: 'short' }), dayNum = dayFmt({ day: 'numeric' })
 const apptCount = (s: Sched) => s.chairs.reduce((n, c) => n + c.appointments.length, 0)
+
+/**
+ * Jadwal is organised by dentist (DEVIATIONS #68): one column / filter chip per dentist of the branch (by name), plus any
+ * other dentist who has an appointment that day; the chair is a label on the card. Appointments by start time.
+ */
+export type DentistCol = { id: string; label: string; appointments: Appointment[] }
+export function dentistColumns(s: Sched): DentistCol[] {
+  const all = s.chairs.flatMap((c) => c.appointments).sort((x, y) => x.starts_at.localeCompare(y.starts_at))
+  const cols = new Map<string, DentistCol>(s.dentists.map((d) => [d.id, { id: d.id, label: d.name, appointments: [] }]))
+  for (const a of all) {
+    const id = a.dentist?.id ?? ''
+    if (!cols.has(id)) cols.set(id, { id, label: a.dentist?.name ?? 'Tanpa dokter', appointments: [] })
+    cols.get(id)!.appointments.push(a)
+  }
+  return [...cols.values()]
+}
 
 /** Appointments per day for the 7 days from `from` (mobile week strip dots). */
 function useWeekCounts(branchId: string | null, from: string, on: boolean) {
@@ -118,7 +134,7 @@ export function useSchedule(branchId: string | null, date: string) {
 export default function Schedule({ me }: { me: Me }) {
   const [date, setDate] = useState(todayWib)
   const { data, error, loading, reload } = useSchedule(me.active.branch_id, date)
-  const [dialog, setDialog] = useState<{ chairId?: string; minute?: number } | null>(null)
+  const [dialog, setDialog] = useState<{ dentistId?: string; minute?: number } | null>(null)
   const [actionError, setActionError] = useState('')
   // Same checks the API enforces; actions an impersonation session blocks are hidden too (never shown disabled).
   const blocked = me.impersonation?.blocked_actions ?? []
@@ -131,7 +147,7 @@ export default function Schedule({ me }: { me: Me }) {
   const canBill = can('billing.read')
   const tz = data?.branch.timezone ?? 'Asia/Jakarta'
   const mobile = useIsMobile()
-  const [chairPick, setChairPick] = useState<string | null>(null) // null = Semua (agenda) / auto chair (grid)
+  const [docPick, setDocPick] = useState<string | null>(null) // dentist filter; null = Semua (agenda) / auto dentist (grid)
   const [view, setView] = useState<'agenda' | 'grid'>('agenda') // mobile only; in memory, resets on reload
   const [sheetId, setSheetId] = useState<string | null>(null) // mobile: tapped card -> action sheet
   const isToday = date === todayWib()
@@ -143,6 +159,9 @@ export default function Schedule({ me }: { me: Me }) {
   const say = (text: string, undo?: () => void) => setToast({ id: Date.now(), text, undo })
   const [payFor, setPayFor] = useState<string | null>(null) // appointment just finished -> "Lanjut ke Bayar?"
   const [reschedId, setReschedId] = useState<string | null>(null)
+  const [form, setForm] = useState<{ kind: 'chair' | 'refer'; id: string } | null>(null) // Ganti kursi / Rujuk sheet
+  const canRefer = can('appointment.refer')
+  const ownerRole = me.roles.includes('owner')
 
   async function move(a: Appointment, to: string) {
     setActionError('')
@@ -215,6 +234,10 @@ export default function Schedule({ me }: { me: Me }) {
     may.finish(a) && A.finish(a),
     may.chart(a) && A.chart(a),
     mode === 'depan' && a.status === 'booked' && canCreate && { key: 'reschedule', label: 'Ubah jadwal' },
+    canMove && ['pending_confirmation', 'booked', 'checked_in', 'in_treatment'].includes(a.status) && (data?.chairs.length ?? 0) > 1 &&
+      { key: 'chair', label: 'Ganti kursi' },
+    canRefer && (ownerRole || a.dentist?.id === me.user.id) && ['pending_confirmation', 'booked', 'checked_in'].includes(a.status) &&
+      (data?.dentists.some((d) => d.id !== a.dentist?.id) ?? false) && { key: 'refer', label: 'Rujuk ke dokter lain' },
     mode === 'depan' && a.status === 'booked' && canMove && date <= todayWib() && { key: 'noshow', label: 'No-show', run: () => move(a, 'no_show') },
     mode === 'depan' && ((a.status === 'booked' && canMove) || (a.status === 'pending_confirmation' && canMove && canConfirm)) &&
       { key: 'cancel', label: 'Batalkan', run: () => move(a, 'cancelled'), tone: 'danger' },
@@ -245,17 +268,18 @@ export default function Schedule({ me }: { me: Me }) {
     .filter((a) => a.status === 'pending_confirmation' && a.source === 'online')
     .sort((x, y) => x.starts_at.localeCompare(y.starts_at))
 
-  // Mobile: one chair column at a time. Default = chair of the next unfinished appointment, else the first chair.
-  const nextChair = () => {
-    const next = (data?.chairs.flatMap((c) => c.appointments) ?? [])
-      .filter((a) => new Date(a.ends_at).getTime() > now && !['cancelled', 'no_show', 'rejected', 'done'].includes(a.status))
-      .sort((x, y) => x.starts_at.localeCompare(y.starts_at))[0]
-    return next?.chair_id ?? data?.chairs[0]?.id
+  // Columns = dentists (DEVIATIONS #68). Mobile grid: one dentist column at a time; default = dentist of the next unfinished
+  // appointment, else the first dentist.
+  const cols = data ? dentistColumns(data) : []
+  const nextDoc = () => {
+    const next = all.filter((a) => new Date(a.ends_at).getTime() > now && !['cancelled', 'no_show', 'rejected', 'done'].includes(a.status))[0]
+    return next?.dentist?.id ?? cols[0]?.id
   }
-  const shownChair = mobile ? (data?.chairs.find((c) => c.id === chairPick) ?? data?.chairs.find((c) => c.id === nextChair())) : undefined
-  const chairs = data ? (shownChair ? [shownChair] : data.chairs) : []
+  const shownCol = mobile ? (cols.find((c) => c.id === docPick) ?? cols.find((c) => c.id === nextDoc())) : undefined
+  const chairs = shownCol ? [shownCol] : cols
+  const chairLabel = (a: Appointment) => data?.chairs.find((c) => c.id === a.chair_id)?.label
   const dokter = mode === 'dokter'
-  const agendaList = dokter ? all.filter((a) => a.dentist?.id === me.user.id) : all.filter((a) => !chairPick || a.chair_id === chairPick)
+  const agendaList = dokter ? all.filter((a) => a.dentist?.id === me.user.id) : all.filter((a) => !docPick || a.dentist?.id === docPick)
   const gridOn = mobile && !dokter && view === 'grid'
   const nowMin = mobile && isToday ? minutesOfDay(new Date(now).toISOString(), tz) - START : -1
   const nowTop = nowMin >= 0 && nowMin <= END - START ? (nowMin / STEP) * ROW : null
@@ -278,7 +302,7 @@ export default function Schedule({ me }: { me: Me }) {
     const io = new IntersectionObserver(([e]) => setNowSeen(e.isIntersecting))
     io.observe(el)
     return () => { io.disconnect(); setNowSeen(true) }
-  }, [gridNow, shownChair?.id])
+  }, [gridNow, shownCol?.id])
 
   // Phone: a horizontal swipe on the day's content = next/previous day (arrows, week strip and Hari ini do the same).
   // touch-action: pan-y (CSS) leaves vertical scrolling to the browser; it cancels the pointer (pointercancel) when it scrolls.
@@ -317,12 +341,12 @@ export default function Schedule({ me }: { me: Me }) {
         : !data || (mobile && loading && data.date !== date) ? <div className="card state-card muted" role="status">Memuat jadwal…</div>
         : data.chairs.length === 0 ? <div className="card state-card muted">Cabang ini belum punya kursi aktif.</div> : (
           <>
-          {mobile && !dokter && data.chairs.length > 1 && (
-            // Agenda: "Semua" + one pill per chair. Grid shows one chair column, so it has no "Semua" (see chairPick).
-            <div className="chair-pills" role="group" aria-label="Pilih kursi">
-              {!gridOn && <button type="button" aria-pressed={!chairPick} onClick={() => setChairPick(null)}>Semua <span className="muted small">· {count}</span></button>}
-              {data.chairs.map((c) => (
-                <button key={c.id} type="button" aria-pressed={gridOn ? c === shownChair : c.id === chairPick} onClick={() => setChairPick(c.id)}>
+          {mobile && !dokter && cols.length > 1 && (
+            // Agenda: "Semua" + one pill per dentist. Grid shows one dentist column, so it has no "Semua" (see docPick).
+            <div className="chair-pills" role="group" aria-label="Pilih dokter">
+              {!gridOn && <button type="button" aria-pressed={!docPick} onClick={() => setDocPick(null)}>Semua <span className="muted small">· {count}</span></button>}
+              {cols.map((c) => (
+                <button key={c.id} type="button" aria-pressed={gridOn ? c === shownCol : c.id === docPick} onClick={() => setDocPick(c.id)}>
                   {c.label} <span className="muted small">· {c.appointments.length}</span>
                 </button>
               ))}
@@ -341,8 +365,8 @@ export default function Schedule({ me }: { me: Me }) {
                 </div>
               ) : (
                 <div className="sched-empty" role="status">
-                  <Icon d={chairPick ? ICONS.armchair : ICONS.inbox} size={40} />
-                  <p>{chairPick ? `${data.chairs.find((c) => c.id === chairPick)?.label ?? 'Kursi'} kosong${isToday ? ' hari ini' : ''}.` : 'Belum ada janji.'}</p>
+                  <Icon d={docPick ? ICONS.people : ICONS.inbox} size={40} />
+                  <p>{docPick ? `${cols.find((c) => c.id === docPick)?.label ?? 'Dokter'}: belum ada janji${isToday ? ' hari ini' : ''}.` : 'Belum ada janji.'}</p>
                 </div>
               )} />
           )}
@@ -362,10 +386,10 @@ export default function Schedule({ me }: { me: Me }) {
                   {SLOTS.map((m) => mobile && canCreate ? (
                     // Phone: each empty half hour is a real button (44px+, labelled, visible "+") that opens Buat Janji there.
                     <button key={m} type="button" className={'sched-slot clickable' + (m % 60 === 0 ? ' hour' : '')} style={{ height: ROW }}
-                      aria-label={`Buat janji ${dotTime(m)}, ${c.label}`} onClick={() => setDialog({ chairId: c.id, minute: m })} />
+                      aria-label={`Buat janji ${dotTime(m)}, ${c.label}`} onClick={() => setDialog({ dentistId: c.id, minute: m })} />
                   ) : (
                     <div key={m} className={'sched-slot' + (m % 60 === 0 ? ' hour' : '') + (canCreate ? ' clickable' : '')} style={{ height: ROW }}
-                      onClick={canCreate ? () => setDialog({ chairId: c.id, minute: m }) : undefined} />
+                      onClick={canCreate ? () => setDialog({ dentistId: c.id, minute: m }) : undefined} />
                   ))}
                   {c.appointments.map((a) => {
                     const top = Math.max(0, minutesOfDay(a.starts_at, tz) - START)
@@ -379,7 +403,7 @@ export default function Schedule({ me }: { me: Me }) {
                           {a.source === 'online' && <span className="chip chip-online">Online</span>}
                           <StatusChip status={a.status} />
                         </span>
-                        <span className="appt-name">{a.patient?.name}</span>
+                        <span className="appt-name">{a.patient?.name}{chairLabel(a) && <span className="appt-chair">{chairLabel(a)}</span>}</span>
                       </button>
                     )
                     return (
@@ -389,7 +413,7 @@ export default function Schedule({ me }: { me: Me }) {
                           {a.source === 'online' && <span className="chip chip-online">Online</span>}
                           {a.status === 'pending_confirmation' ? <span className="sr-only">{STATUS.pending_confirmation}</span> : <StatusChip status={a.status} />}
                         </div>
-                        <div className="appt-name">{a.patient?.name}</div>
+                        <div className="appt-name">{a.patient?.name}{chairLabel(a) && <span className="appt-chair">{chairLabel(a)}</span>}</div>
                         <div className="appt-bottom">
                           <span className="appt-meta">{a.reason ?? a.dentist?.name}</span>
                           {actions(a).filter((x) => !x.sheetOnly).map((x) => x.href
@@ -469,12 +493,18 @@ export default function Schedule({ me }: { me: Me }) {
       {mobile ? <div className="sched-swipe" {...swipe}>{dayBody}</div> : dayBody}
       {mobile && sheetAppt && data && (
         <ApptSheet a={sheetAppt} tz={tz} chair={data.chairs.find((c) => c.id === sheetAppt.chair_id)?.label} acts={sheetActs(sheetAppt)}
-          onClose={() => setSheetId(null)} onReschedule={() => { setSheetId(null); setReschedId(sheetAppt.id) }} />
+          onClose={() => setSheetId(null)} onReschedule={() => { setSheetId(null); setReschedId(sheetAppt.id) }}
+          onForm={(kind) => { setSheetId(null); setForm({ kind, id: sheetAppt.id }) }} />
       )}
       {mobile && reschedId && data && all.find((a) => a.id === reschedId) && (
         <RescheduleSheet a={all.find((a) => a.id === reschedId)!} tz={tz} date={date} chairs={data.chairs}
           onClose={() => setReschedId(null)} onSaved={() => { setReschedId(null); reload(); changed(); say('Jadwal diubah') }} />
       )}
+      {mobile && form && data && all.find((a) => a.id === form.id) && (form.kind === 'chair'
+        ? <ChairSheet a={all.find((a) => a.id === form.id)!} chairs={data.chairs} save={changeChair}
+            onClose={() => setForm(null)} onSaved={() => { setForm(null); reload(); changed(); say('Kursi diganti') }} />
+        : <ReferSheet a={all.find((a) => a.id === form.id)!} dentists={data.dentists} save={refer}
+            onClose={() => setForm(null)} onSaved={() => { setForm(null); reload(); changed(); say('Janji dirujuk') }} />)}
       {mobile && payFor && all.find((a) => a.id === payFor)?.visit_id && (
         <PayPrompt onLater={() => setPayFor(null)} onPay={() => {
           const vid = all.find((a) => a.id === payFor)!.visit_id
@@ -494,13 +524,21 @@ export default function Schedule({ me }: { me: Me }) {
   )
 }
 
+const ENDED = ['cancelled', 'no_show', 'rejected', 'done']
+/** First chair with no running appointment over [minute, minute+30) that day (branch timezone), else undefined. */
+function freeChair(s: Sched, minute: number) {
+  return s.chairs.find((c) => !c.appointments.some((a) => !ENDED.includes(a.status)
+    && minutesOfDay(a.starts_at, s.branch.timezone) < minute + 30 && minutesOfDay(a.ends_at, s.branch.timezone) > minute))?.id
+}
+
 function BookDialog({ sched, date, me, initial, onClose, onSaved }: {
-  sched: Sched; date: string; me: Me; initial: { chairId?: string; minute?: number }; onClose: () => void; onSaved: () => void
+  sched: Sched; date: string; me: Me; initial: { dentistId?: string; minute?: number }; onClose: () => void; onSaved: () => void
 }) {
   const [patient, setPatient] = useState<{ id: string; name: string } | null>(null)
-  const [chairId, setChairId] = useState(initial.chairId ?? sched.chairs[0]?.id ?? '')
-  const [dentistId, setDentistId] = useState(sched.dentists.find((d) => d.id === me.user.id)?.id ?? sched.dentists[0]?.id ?? '')
   const [minute, setMinute] = useState(initial.minute ?? 9 * 60)
+  // Columns are dentists: a tapped slot presets the dentist; the chair defaults to the first one free at that start (server re-checks).
+  const [chairId, setChairId] = useState(() => freeChair(sched, initial.minute ?? 9 * 60) ?? sched.chairs[0]?.id ?? '')
+  const [dentistId, setDentistId] = useState(initial.dentistId ?? sched.dentists.find((d) => d.id === me.user.id)?.id ?? sched.dentists[0]?.id ?? '')
   const [duration, setDuration] = useState(30)
   const [reason, setReason] = useState('')
   const [error, setError] = useState('')

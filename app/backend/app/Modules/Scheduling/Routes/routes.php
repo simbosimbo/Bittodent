@@ -13,6 +13,8 @@ Route::middleware(['auth:sanctum', '2fa', 'tenant'])->group(function () {
     Route::post('/patients/{id}/planned-appointments', [PlannedAppointmentController::class, 'store'])->middleware('perm:appointment.plan');
     Route::get('/planned-appointments', [PlannedAppointmentController::class, 'index'])->middleware('perm:appointment.read');
     Route::post('/planned-appointments/{id}/schedule', [PlannedAppointmentController::class, 'schedule'])->middleware('perm:appointment.create');
+    Route::post('/appointments/{id}/chair', [AppointmentController::class, 'changeChair'])->middleware('perm:appointment.transition');
+    Route::post('/appointments/{id}/refer', [AppointmentController::class, 'refer'])->middleware('perm:appointment.refer');
     Route::post('/appointments/{id}/transition', [AppointmentController::class, 'transition'])->middleware('perm:appointment.transition');
 });
 

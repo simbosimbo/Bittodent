@@ -114,15 +114,22 @@ class AppointmentController extends Controller
             'starts_at' => $starts, 'ends_at' => $ends]);
     }
 
-    /** POST /api/appointments/{id}/reschedule {starts_at, ends_at, chair_id?}: only `booked`; same locks + checks as create. */
+    /**
+     * POST /api/appointments/{id}/reschedule {starts_at, ends_at, chair_id?}: only `booked`; same locks + checks as create.
+     * The dentist never changes here: a different dentist_id is rejected (422 dentist_locked); the only path is POST .../refer (DEVIATIONS #68).
+     */
     public function reschedule(Request $request, string $id)
     {
-        $d = $request->validate(['starts_at' => ['required', 'date'], 'ends_at' => ['required', 'date', 'after:starts_at'], 'chair_id' => ['nullable', 'uuid']]);
+        $d = $request->validate(['starts_at' => ['required', 'date'], 'ends_at' => ['required', 'date', 'after:starts_at'], 'chair_id' => ['nullable', 'uuid'],
+            'dentist_id' => ['nullable', 'uuid']]);
 
         return DB::transaction(function () use ($d, $id) {
             $a = Appointment::lockForUpdate()->findOrFail($id);
             if (! Ctx::current()->coversBranch($a->branch_id)) {
                 return Audit::denied('branch:'.$a->branch_id);
+            }
+            if (isset($d['dentist_id']) && $d['dentist_id'] !== $a->dentist_id) {
+                return self::dentistLocked();
             }
             if ($a->status !== 'booked') {
                 return response()->json(['error' => 'not_booked', 'message' => 'Hanya janji berstatus terjadwal yang bisa dipindah.'], 409);
@@ -137,6 +144,89 @@ class AppointmentController extends Controller
             $this->care->push($a->patient_id);
 
             return response()->json(['id' => $a->id, 'status' => $a->status, 'starts_at' => $a->starts_at, 'ends_at' => $a->ends_at]);
+        });
+    }
+
+    private static function dentistLocked(): JsonResponse
+    {
+        return response()->json(['error' => 'dentist_locked', 'message' => 'Dokter gigi janji tidak bisa diubah di sini. Gunakan Rujuk.'], 422);
+    }
+
+    /**
+     * POST /api/appointments/{id}/chair {chair_id}: "Ganti kursi" for an active appointment (same time, same dentist, same branch).
+     * The chair is operational, not clinical: anyone who moves appointments may change it; the chair double-booking check still applies.
+     */
+    public function changeChair(Request $request, string $id)
+    {
+        $d = $request->validate(['chair_id' => ['required', 'uuid'], 'dentist_id' => ['nullable', 'uuid']]);
+
+        return DB::transaction(function () use ($d, $id) {
+            $a = Appointment::lockForUpdate()->findOrFail($id);
+            if (! Ctx::current()->coversBranch($a->branch_id)) {
+                return Audit::denied('branch:'.$a->branch_id);
+            }
+            if (isset($d['dentist_id']) && $d['dentist_id'] !== $a->dentist_id) {
+                return self::dentistLocked();
+            }
+            if (! in_array($a->status, AppointmentStatus::ACTIVE, true)) {
+                return response()->json(['error' => 'not_active', 'message' => 'Kursi hanya bisa diganti untuk janji yang masih berjalan.'], 409);
+            }
+            $chair = Chair::find($d['chair_id']);
+            if (! $chair || $chair->branch_id !== $a->branch_id || ! $chair->active) {
+                return response()->json(['error' => 'validation', 'message' => 'Kursi tidak ada di cabang ini.'], 422);
+            }
+            if ($chair->id === $a->chair_id) {
+                return response()->json(['id' => $a->id, 'chair_id' => $a->chair_id]);
+            }
+            $from = $a->chair_id;
+            $r = $this->book($chair->id, $a->dentist_id, CarbonImmutable::parse($a->starts_at), CarbonImmutable::parse($a->ends_at), $a);
+            if (! $r instanceof Appointment) {
+                return $r;
+            }
+            $r->save();
+            Audit::log('ganti_kursi', 'appointment', $a->id, ['from' => $from, 'to' => $a->chair_id]);
+
+            return response()->json(['id' => $a->id, 'chair_id' => $a->chair_id]);
+        });
+    }
+
+    /**
+     * POST /api/appointments/{id}/refer {dentist_id, reason}: "Rujuk" = the only way to move an appointment to another dentist
+     * (DEVIATIONS #68). Reason required; owner any appointment, a dentist only their own; before treatment starts only
+     * (pending_confirmation, booked, checked_in). Same chair/time; the new dentist's double-booking check applies. Audited with the reason.
+     */
+    public function refer(Request $request, string $id)
+    {
+        $d = $request->validate(['dentist_id' => ['required', 'uuid'], 'reason' => ['required', 'string', 'min:5', 'max:500']]);
+
+        return DB::transaction(function () use ($d, $id) {
+            $a = Appointment::lockForUpdate()->findOrFail($id);
+            $ctx = Ctx::current();
+            if (! $ctx->coversBranch($a->branch_id)) {
+                return Audit::denied('branch:'.$a->branch_id);
+            }
+            if (! in_array('owner', $ctx->roles, true) && $a->dentist_id !== $ctx->userId) {
+                return Audit::denied('appointment.refer'); // a dentist refers only their own patients
+            }
+            if (! in_array($a->status, ['pending_confirmation', 'booked', 'checked_in'], true)) {
+                return response()->json(['error' => 'not_referable', 'message' => 'Hanya janji yang belum mulai perawatan yang bisa dirujuk.'], 409);
+            }
+            if ($d['dentist_id'] === $a->dentist_id) {
+                return response()->json(['error' => 'validation', 'message' => 'Pilih dokter gigi lain.', 'errors' => ['dentist_id' => ['Pilih dokter gigi lain.']]], 422);
+            }
+            if (! in_array($d['dentist_id'], $this->tenancy->dentistIdsForBranch($a->branch_id), true)) {
+                return response()->json(['error' => 'validation', 'message' => 'Dokter gigi tidak praktik di cabang ini.', 'errors' => ['dentist_id' => ['Dokter gigi tidak praktik di cabang ini.']]], 422);
+            }
+            $from = $a->dentist_id;
+            $r = $this->book($a->chair_id, $d['dentist_id'], CarbonImmutable::parse($a->starts_at), CarbonImmutable::parse($a->ends_at), $a);
+            if (! $r instanceof Appointment) {
+                return $r;
+            }
+            $r->save();
+            Audit::log('rujuk', 'appointment', $a->id, ['from_dentist' => $from, 'to_dentist' => $a->dentist_id, 'reason' => trim($d['reason'])]);
+            $this->care->push($a->patient_id);
+
+            return response()->json(['id' => $a->id, 'dentist_id' => $a->dentist_id, 'status' => $a->status]);
         });
     }
 

@@ -47,3 +47,7 @@ export type Planned = { id: string; patient_id: string; patient_name: string | n
 export const getPlanned = (branchId: string) => api<{ data: Planned[] }>(`/api/planned-appointments?branch_id=${branchId}`)
 export const schedulePlanned = (id: string, body: { chair_id: string; starts_at: string }) =>
   api<{ appointment_id: string }>(`/api/planned-appointments/${id}/schedule`, { method: 'POST', body })
+// Ganti kursi: same time and dentist; chair double-booking checked (needs appointment.transition).
+export const changeChair = (id: string, chair_id: string) => api(`/api/appointments/${id}/chair`, { method: 'POST', body: { chair_id } })
+// Rujuk: the only way to change an appointment's dentist; reason required (appointment.refer; a dentist only their own).
+export const refer = (id: string, body: { dentist_id: string; reason: string }) => api(`/api/appointments/${id}/refer`, { method: 'POST', body })
