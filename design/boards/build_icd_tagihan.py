@@ -89,6 +89,18 @@ EXTRA_CSS = f'''
 .lockrow{{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 12px;border-radius:10px;background:var(--lbg);border:1px solid var(--lbd);color:var(--lfg);font-weight:600}}
 .pop{{position:absolute;left:16px;right:16px;top:56px;background:#fff;border:1px solid var(--bd);border-radius:12px;box-shadow:0 16px 40px rgba(36,48,68,.08);padding:8px;z-index:2}}
 .side.cp .clinic,.side.cp .nlab{{display:none}}
+.tbl td:first-child,.tbl th:first-child{{white-space:nowrap;width:1%}}
+.trw{{display:flex;align-items:center;gap:12px;min-height:44px;padding:8px 14px;border:1px solid var(--bd);border-radius:10px;background:#fff}}
+.trw.on{{background:var(--sm);border-color:var(--n200)}}
+.trw .amt{{margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums}}
+.eq{{color:var(--mu);font-weight:600}}
+.seg.cat{{width:100%;max-width:280px}}
+.seg.cat div{{height:44px}}
+.seg.cat .on{{color:var(--tx)}}
+.dlist{{display:flex;flex-direction:column;gap:4px}}
+.dlist .row{{display:flex;align-items:center;gap:12px;min-height:44px;padding:0 12px;border-radius:10px}}
+.dlist .row.on{{background:var(--b0)}}
+
 '''
 
 # ---------- chrome ----------
@@ -106,6 +118,7 @@ NAV = [
     ('Laporan', 'chart'),
     ('PENGATURAN', None),
     ('Tindakan', 'file'),
+    ('Dokter', 'user'),
     ('Tarif', 'cog'),
 ]
 
@@ -199,6 +212,17 @@ def section(title, sub, *rows):
 
 
 # ---------- pieces ----------
+
+def doc_badge(cat):
+    if cat == 'Spesialis':
+        return '<span class="bdg in">Spesialis</span>'
+    return '<span class="bdg sg">Umum</span>'
+
+
+def doc_cell(name, cat):
+    return f'<div class="f ac g8">{name}{doc_badge(cat)}</div>'
+
+
 def chips(selected='K08.3', locked=False, extra=None):
     items = extra or [
         ('K08.3', 'Sisa akar gigi'),
@@ -322,6 +346,19 @@ flow3 = flow_frame(
     + '<span class="bdg wt" style="align-self:flex-start">Draft</span>'
     + '</div>'
 )
+flow_tarif = flow_frame(
+    '<div class="card fc g16" style="height:100%">'
+    '<div class="fc g4"><h2 class="t20">Pilih tarif</h2>'
+    '<span class="mu">Pengambilan sisa akar, gigi 36.</span></div>'
+    '<div class="f ac g8">drg. Nadia Putri ' + doc_badge('Umum') + '</div>'
+    '<div class="fc g8">'
+    '<div class="trw"><span>Tarif khusus dokter</span><span class="amt mu">Tidak ada</span></div>'
+    '<div class="trw on"><span>Tarif kategori, Umum</span><span class="bdg sg">Dipakai</span><span class="amt">150.000</span></div>'
+    '<div class="trw"><span>Tarif Umum</span><span class="amt">150.000</span></div>'
+    '</div>'
+    '<span class="mu t12">Disimpan saat tanda tangan.</span>'
+    '</div>'
+)
 sign_card = (
     '<div class="card fc g16" style="height:100%">'
     '<h2 class="t20">Tanda tangan</h2>'
@@ -329,17 +366,23 @@ sign_card = (
     '<div class="f wr g8"><span class="bdg in">K08.3 Sisa akar gigi</span></div></div>'
     '<div class="fc g8"><span class="lab">P, tindakan</span>'
     '<div class="f wr g8"><span class="bdg sg">23.11 Pengambilan sisa akar</span></div></div>'
-    '<span class="mu t12">Kode terkunci setelah ditandatangani.</span>'
+    '<div class="lockrow">' + ico('lock', 16) + 'Rp 150.000, tarif Umum</div>'
+    '<span class="mu t12">Harga disimpan saat tanda tangan.</span>'
     '<button class="btn pri wf ma" style="margin-top:auto">Tanda tangan</button>'
     '</div>'
 )
-flow4 = flow_frame(sign_card)
+flow4 = flow_tarif
+flow4b = flow_frame(sign_card)
 flow5 = flow_frame(
     '<div class="card fc g16" style="height:100%">'
     '<div class="fc g4"><h2 class="t20">Tagihan</h2><span class="mu">Budi Santoso. Kasir Sari Front Desk.</span></div>'
-    '<table class="tbl"><thead><tr><th>Uraian</th><th class="r">Jumlah</th></tr></thead>'
-    '<tbody><tr><td>Cabut gigi, geraham bawah kiri</td><td class="r">150.000</td></tr></tbody>'
-    '<tfoot><tr><td>Total</td><td class="r">150.000</td></tr></tfoot></table>'
+    '<div class="fc g12">'
+    '<div class="f jb ae g12"><div class="fc g4"><b>Cabut gigi, geraham bawah kiri</b>'
+    + doc_cell('drg. Nadia Putri', 'Umum') +
+    '</div><b class="t16">150.000</b></div>'
+    '<div class="hr"></div>'
+    '<div class="kv"><span class="b6">Total</span><b>150.000</b></div>'
+    '</div>'
     '<span class="bdg ok" style="align-self:flex-start">Siap dibayar</span>'
     '</div>'
 )
@@ -374,12 +417,14 @@ sec_flow = section(
         ab('2', 'Saran ICD-10', '420×640', flow2),
         arw('Tindakan'),
         ab('3', 'Tindakan', '420×640', flow3),
+        arw('Tarif'),
+        ab('4', 'Pilih tarif', '420×640', flow4),
         arw('Tanda tangan'),
-        ab('4', 'Tanda tangan', '420×640', flow4),
+        ab('5', 'Tanda tangan', '420×640', flow4b),
         arw('Tagihan'),
-        ab('5', 'Tagihan', '420×640', flow5),
+        ab('6', 'Tagihan', '420×640', flow5),
         arw('Struk'),
-        ab('6', 'Struk', '420×640', flow6),
+        ab('7', 'Struk', '420×640', flow6),
     ],
 )
 
@@ -388,8 +433,8 @@ sec_rm = section(
     'Rekam medis, saran ICD',
     'Desktop 1280×900. Tanpa tab luar Profil atau Keluarga.',
     [
-        ab('7', 'Rekam medis, saran ICD', '1280×900', rm_shell(rm_body(panel()))),
-        ab('8', 'Ganti kode', '1280×900', rm_shell(rm_body(panel(
+        ab('8', 'Rekam medis, saran ICD', '1280×900', rm_shell(rm_body(panel()))),
+        ab('9', 'Ganti kode', '1280×900', rm_shell(rm_body(panel(
             selected=None,
             search=('sisa', [
                 ('K08.3', 'Sisa akar gigi'),
@@ -445,12 +490,12 @@ sec_val = section(
     'Validasi tanda tangan',
     'Blok menghentikan. Peringatan minta alasan.',
     [
-        ab('9', 'Blok, gigi hilang', '1280×900', with_overlay(rm_shell(rm_body(panel())), blok_hilang)),
-        ab('10', 'Blok, kode sulung', '1280×900', with_overlay(rm_shell(rm_body(
+        ab('10', 'Blok, gigi hilang', '1280×900', with_overlay(rm_shell(rm_body(panel())), blok_hilang)),
+        ab('11', 'Blok, kode sulung', '1280×900', with_overlay(rm_shell(rm_body(
             panel(cta='Tanda tangan', cond='Perlu dicabut', tindakan=('Ekstraksi gigi sulung', '23.01')),
             today='<div class="card p16 fc g8"><div class="f jb ac"><span class="t16 b6">Tindakan hari ini</span><span class="bdg wt">Draft</span></div><div class="f jb ac"><span>Ekstraksi gigi sulung, gigi 36</span><span class="bdg in">K08.3</span><span class="bdg sg">23.01</span></div></div>',
         )), blok_sulung)),
-        ab('11', 'Peringatan, diagnosis', '1280×900', with_overlay(rm_shell(rm_body(
+        ab('12', 'Peringatan, diagnosis', '1280×900', with_overlay(rm_shell(rm_body(
             panel(selected='K02.0', extra=[('K02.0', 'Karies email')], cond='Karies',
                   tindakan=('Perawatan saluran akar', '23.71')),
             today='<div class="card p16 fc g8"><div class="f jb ac"><span class="t16 b6">Tindakan hari ini</span><span class="bdg wt">Draft</span></div><div class="f jb ac"><span>Perawatan saluran akar, gigi 36</span><span class="bdg in">K02.0</span><span class="bdg sg">23.71</span></div></div>',
@@ -469,7 +514,7 @@ def kasir_body(banner, rows, cta=None, total='150.000'):
         f'<div class="f g8">{foot_cta}</div></div>'
         f'{banner}'
         '<div class="card p16" style="flex:1;min-height:0">'
-        '<table class="tbl"><thead><tr><th>Uraian</th><th>Pasien</th><th class="r">Jumlah</th></tr></thead>'
+        '<table class="tbl"><thead><tr><th>Uraian</th><th>Dokter</th><th class="r">Jumlah</th></tr></thead>'
         f'<tbody>{tr}</tbody>'
         f'<tfoot><tr><td colspan="2">Total</td><td class="r">{total}</td></tr></tfoot>'
         '</table></div></main>'
@@ -492,8 +537,8 @@ kasir12 = shell(
     kasir_body(
         ban_wait,
         [
-            '<td>Cabut gigi, geraham bawah kiri</td><td>Budi Santoso</td><td class="r"><span class="bdg wt">Menunggu</span></td>',
-            '<td>Tambal gigi, geraham bawah kanan</td><td>Budi Santoso</td><td class="r"><span class="bdg wt">Menunggu</span></td>',
+            '<td>Cabut gigi, geraham bawah kiri</td><td>' + doc_cell('drg. Nadia Putri', 'Umum') + '</td><td class="r"><span class="bdg wt">Menunggu</span></td>',
+            '<td>Tambal gigi, geraham bawah kanan</td><td>' + doc_cell('drg. Nadia Putri', 'Umum') + '</td><td class="r"><span class="bdg wt">Menunggu</span></td>',
         ],
         cta='<button class="btn pri is-d">Terima pembayaran</button>',
         total='Belum ada',
@@ -505,7 +550,7 @@ kasir13 = shell(
     kasir_body(
         ban_tarif,
         [
-            '<td>Cabut gigi, geraham bawah kiri</td><td>Budi Santoso</td><td class="r">Belum ada</td>',
+            '<td>Cabut gigi, geraham bawah kiri</td><td>' + doc_cell('drg. Nadia Putri', 'Umum') + '</td><td class="r">Belum ada</td>',
         ],
         cta='<button class="btn pri is-d">Terima pembayaran</button>',
         total='Belum ada',
@@ -513,12 +558,39 @@ kasir13 = shell(
     who='Sari Front Desk', role='Kasir', ini='SF', search='Cari pasien atau tagihan',
 )
 
+kasir15 = shell(
+    'Kasir', 'Kasir', 'wallet',
+    kasir_body(
+        '',
+        [
+            '<td>Cabut gigi, geraham bawah kiri</td><td>' + doc_cell('drg. Nadia Putri', 'Umum') + '</td><td class="r">150.000</td>',
+        ],
+        cta='<button class="btn pri">Terima pembayaran</button>',
+        total='150.000',
+    ),
+    who='Sari Front Desk', role='Kasir', ini='SF', search='Cari pasien atau tagihan',
+)
+kasir16 = shell(
+    'Kasir', 'Kasir', 'wallet',
+    kasir_body(
+        '',
+        [
+            '<td>Cabut gigi, geraham bawah kiri</td><td>' + doc_cell('drg. Rina Wijaya', 'Spesialis') + '</td><td class="r">180.000</td>',
+        ],
+        cta='<button class="btn pri">Terima pembayaran</button>',
+        total='180.000',
+    ),
+    who='Sari Front Desk', role='Kasir', ini='SF', search='Cari pasien atau tagihan',
+)
+
 sec_kasir = section(
     'Kasir',
-    'Tanpa ICD, FDI, atau catatan klinis. Nama awam saja.',
+    'Harga akhir, nama dokter, dan kategori. Tanpa ICD atau FDI.',
     [
-        ab('12', 'Menunggu tanda tangan', '1280×900', kasir12),
-        ab('13', 'Tarif belum diatur', '1280×900', kasir13),
+        ab('13', 'Menunggu tanda tangan', '1280×900', kasir12),
+        ab('14', 'Tarif belum diatur', '1280×900', kasir13),
+        ab('15', 'Tagihan, Umum', '1280×900', kasir15),
+        ab('16', 'Tagihan, spesialis', '1280×900', kasir16),
     ],
 )
 
@@ -560,27 +632,29 @@ sec_dev = section(
     'Saran ICD di tablet dan HP',
     'Chip 44 px. Sumber SATUSEHAT.',
     [
-        ab('14', 'Saran ICD, tablet', '1024×768', tab_screen),
-        ab('15', 'Saran ICD, HP', '390×844', phone),
+        ab('17', 'Saran ICD, tablet', '1024×768', tab_screen),
+        ab('18', 'Saran ICD, HP', '390×844', phone),
     ],
 )
 
 # 16 master
+# (kode, klinis, awam, icd, umum, spesialis or None, selected)
 CAT_ROWS = [
-    ('EXT-P', 'Ekstraksi gigi permanen', 'Cabut gigi', 'cabut, exo, eks', '23.09', '150.000'),
-    ('EXT-D', 'Ekstraksi gigi sulung', 'Cabut gigi susu', 'cabut susu, exo sulung', '23.01', '100.000'),
-    ('EXT-RR', 'Pengambilan sisa akar', 'Cabut sisa akar gigi', 'radix, sisa akar', '23.11', '150.000', True),
-    ('ODT', 'Odontektomi', 'Operasi gigi bungsu', 'odonto, impaksi', '23.19', '1.500.000'),
-    ('RST-KOMP', 'Tumpatan resin komposit', 'Tambal gigi', 'tumpat, tambal, komposit', '23.2', '450.000'),
-    ('PSA', 'Perawatan saluran akar', 'Perawatan saraf gigi', 'psa, rct, endo', '23.71', '800.000'),
-    ('SCL', 'Skeling dan pemolesan', 'Pembersihan karang gigi', 'scaling, skeling', '96.54', '400.000'),
-    ('CRN', 'Mahkota tiruan', 'Mahkota gigi', 'crown, mahkota', '23.41', '2.000.000'),
+    ('EXT-P', 'Ekstraksi gigi permanen', 'Cabut gigi', '23.09', '150.000', '200.000'),
+    ('EXT-D', 'Ekstraksi gigi sulung', 'Cabut gigi susu', '23.01', '100.000', None),
+    ('EXT-RR', 'Pengambilan sisa akar', 'Cabut sisa akar gigi', '23.11', '150.000', '200.000', True),
+    ('ODT', 'Odontektomi', 'Operasi gigi bungsu', '23.19', '1.500.000', '2.000.000'),
+    ('RST-KOMP', 'Tumpatan resin komposit', 'Tambal gigi', '23.2', '450.000', '550.000'),
+    ('PSA', 'Perawatan saluran akar', 'Perawatan saraf gigi', '23.71', '800.000', '1.200.000'),
+    ('SCL', 'Skeling dan pemolesan', 'Pembersihan karang gigi', '96.54', '400.000', None),
+    ('CRN', 'Mahkota tiruan', 'Mahkota gigi', '23.41', '2.000.000', '2.500.000'),
 ]
 
 def cat_tr(row):
-    on = ' style="background:var(--b0)"' if len(row) > 6 else ''
-    c, klin, awam, alias, icd, tarif = row[:6]
-    return f'<tr{on}><td class="b6">{c}</td><td>{klin}</td><td>{awam}</td><td class="mu">{alias}</td><td>{icd}</td><td class="r">{tarif}</td></tr>'
+    on = ' style="background:var(--b0)"' if (len(row) > 6 and row[6]) else ''
+    c, klin, awam, icd, umum, sp = row[:6]
+    sp_cell = f'<span class="eq">= Umum</span>' if sp is None else sp
+    return f'<tr{on}><td class="b6">{c}</td><td>{klin}</td><td>{awam}</td><td>{icd}</td><td class="r">{umum}</td><td class="r">{sp_cell}</td></tr>'
 
 edit = (
     '<div class="card fc g16" style="width:340px;flex:none">'
@@ -591,7 +665,8 @@ edit = (
     '<span class="chip">radix</span><span class="chip">sisa akar</span><span class="chip">gangren radix</span>'
     '</div></div>'
     '<div class="fld"><span class="lab">ICD-9-CM</span><div class="inp">23.11</div></div>'
-    '<div class="fld"><span class="lab">Tarif</span><div class="inp">Rp 150.000</div></div>'
+    '<div class="fld"><span class="lab">Tarif Umum</span><div class="inp">Rp 150.000</div></div>'
+    '<div class="fld"><span class="lab">Tarif Spesialis</span><div class="inp">Rp 200.000</div></div>'
     '<button class="btn pri wf">Simpan</button>'
     '</div>'
 )
@@ -602,16 +677,76 @@ master_inner = (
     '<button class="btn pri">' + ico('plus', 16) + ' Baru</button></div>'
     '<div class="f g20" style="flex:1;min-height:0">'
     '<div class="card p16 w1" style="overflow:hidden"><table class="tbl"><thead><tr>'
-    '<th>Kode</th><th>Nama klinis</th><th>Nama awam</th><th>Alias</th><th>ICD-9-CM</th><th class="r">Tarif</th>'
+    '<th>Kode</th><th>Nama klinis</th><th>Nama awam</th><th>ICD-9-CM</th><th class="r">Umum</th><th class="r">Spesialis</th>'
     '</tr></thead><tbody>' + ''.join(cat_tr(r) for r in CAT_ROWS) + '</tbody></table></div>'
     + edit + '</div></main>'
 )
 master = shell('Tindakan', 'Tindakan', 'file', master_inner, who='drg. Nadia Putri', role='Pemilik', ini='NP', search='Cari kode atau nama')
 
+def dokter_inner(active_name, ini, cat, overrides):
+    people = [
+        ('NP', 'drg. Nadia Putri', 'Umum'),
+        ('RW', 'drg. Rina Wijaya', 'Spesialis'),
+        ('AP', 'drg. Andi Pratama', 'Umum'),
+    ]
+    rows = ''
+    for i, name, c in people:
+        on = ' on' if name == active_name else ''
+        rows += f'<div class="row{on}"><span class="av">{i}</span><div class="fc w1"><b class="t14">{name}</b><span class="t12 mu">{c}</span></div>{doc_badge(c)}</div>'
+    um_on = 'on' if cat == 'Umum' else ''
+    sp_on = 'on' if cat == 'Spesialis' else ''
+    if overrides:
+        otr = ''.join(f'<tr><td>{n}</td><td class="r">{kh}</td><td class="r">{kat}</td></tr>' for n, kh, kat in overrides)
+        ov = (
+            '<div class="fc g8"><div class="f jb ac"><span class="lab">Tarif khusus</span>'
+            '<button class="btn sec s">' + ico('plus', 16) + ' Tambah</button></div>'
+            '<table class="tbl"><thead><tr><th>Tindakan</th><th class="r">Khusus</th><th class="r">Kategori</th></tr></thead>'
+            f'<tbody>{otr}</tbody></table></div>'
+        )
+    else:
+        ov = (
+            '<div class="fc g8"><span class="lab">Tarif khusus</span>'
+            '<span class="mu">Belum ada.</span>'
+            '<button class="btn sec s" style="align-self:flex-start">' + ico('plus', 16) + ' Tambah</button></div>'
+        )
+    return (
+        '<main class="cnt">'
+        '<div class="f jb ae g16"><div class="fc g4"><h1 class="t28">Dokter</h1>'
+        '<span class="mu">Klinik Gigi Senyum Sehat.</span></div></div>'
+        '<div class="f g20" style="flex:1;min-height:0">'
+        f'<div class="card p16 fc" style="width:320px;flex:none"><div class="dlist">{rows}</div></div>'
+        '<div class="card fc g16" style="flex:1;min-height:0">'
+        f'<div class="f ac g12"><span class="av l">{ini}</span>'
+        f'<div class="fc"><h2 class="t20">{active_name}</h2><span class="mu">Dokter gigi</span></div></div>'
+        '<div class="fld"><span class="lab">Kategori</span>'
+        f'<div class="seg cat"><div class="{um_on}">Umum</div><div class="{sp_on}">Spesialis</div></div></div>'
+        f'{ov}'
+        '<button class="btn pri" style="align-self:flex-start">Simpan</button>'
+        '</div></div></main>'
+    )
+
+dokter_umum = shell(
+    'Dokter', 'Dokter', 'user',
+    dokter_inner('drg. Nadia Putri', 'NP', 'Umum', None),
+    who='drg. Nadia Putri', role='Pemilik', ini='NP', search='Cari dokter',
+)
+dokter_sp = shell(
+    'Dokter', 'Dokter', 'user',
+    dokter_inner('drg. Rina Wijaya', 'RW', 'Spesialis', [
+        ('Pengambilan sisa akar', '180.000', '200.000'),
+        ('Odontektomi', '1.800.000', '2.000.000'),
+    ]),
+    who='drg. Nadia Putri', role='Pemilik', ini='NP', search='Cari dokter',
+)
+
 sec_master = section(
-    'Master tindakan',
-    'Pengaturan. Satu kode internal, tiga nama, satu tarif.',
-    [ab('16', 'Master tindakan', '1280×900', master)],
+    'Master tindakan dan dokter',
+    'Dua tarif kategori. Override per dokter bersifat opsional.',
+    [
+        ab('19', 'Master tindakan', '1280×900', master),
+        ab('20', 'Profil dokter, Umum', '1280×900', dokter_umum),
+        ab('21', 'Profil dokter, spesialis', '1280×900', dokter_sp),
+    ],
 )
 
 # ---------- document ----------
