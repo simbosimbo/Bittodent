@@ -3,7 +3,7 @@
 // Owning module: Clinical (procedure_correction, procedure_correction_decision). MySQL only. Append-only like invoice_adjustment_decision.
 // PostgreSQL: GRANT SELECT, INSERT + tenant RLS policy + reject_change() trigger.
 
-use App\Shared\Database\MysqlGrants;
+use Database\Support\MysqlGrants;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 

@@ -2,7 +2,7 @@
 
 // Owning module: Clinical (correction_request). MySQL only.
 
-use App\Shared\Database\MysqlGrants;
+use Database\Support\MysqlGrants;
 use Illuminate\Database\Migrations\Migration;
 
 // ehr_app: SELECT/INSERT/UPDATE (no DELETE) on correction_request, same as the other clinical tables.

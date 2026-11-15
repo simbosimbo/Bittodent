@@ -2,7 +2,7 @@
 
 // Owning module: Clinical (procedure_record, procedure_definition). MySQL only.
 
-use App\Shared\Database\MysqlGrants;
+use Database\Support\MysqlGrants;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 

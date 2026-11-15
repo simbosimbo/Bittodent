@@ -2,7 +2,7 @@
 
 // Owning module: Tariffs (tariff_rule). MySQL only.
 
-use App\Shared\Database\MysqlGrants;
+use Database\Support\MysqlGrants;
 use Illuminate\Database\Migrations\Migration;
 
 // ehr_app: SELECT/INSERT/UPDATE, no DELETE (a rule is switched off with enabled = false). PostgreSQL: same GRANT + tenant RLS policy.

@@ -3,7 +3,7 @@
 // Owning module: Billing (unit C koreksi). MySQL only. invoice_refund is append-only (grant SELECT, INSERT + triggers).
 // PostgreSQL: GRANT SELECT, INSERT + tenant RLS policy + reject_change() trigger.
 
-use App\Shared\Database\MysqlGrants;
+use Database\Support\MysqlGrants;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 

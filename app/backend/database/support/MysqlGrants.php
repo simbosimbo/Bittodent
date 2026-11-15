@@ -1,9 +1,10 @@
 <?php
 
-namespace App\Shared\Database;
+namespace Database\Support;
 
 use Illuminate\Support\Facades\DB;
 
+// Migration-only (lives outside app/, where raw DB:: calls are banned by ArchitectureTest).
 // Per-table GRANTs for the runtime account (DB_USERNAME, normally ehr_app), used by every migration in database/migrations/mysql.
 // DB_APP_GRANTS=false (single-account hosting whose only DB user cannot GRANT): grants are skipped, while triggers and
 // indexes in the same migrations still run. Privilege separation is then lost (app/DEVIATIONS.md #59, staging only).

@@ -4,7 +4,7 @@
 // credit_note_seq is the only mutable row (number counter, SELECT ... FOR UPDATE).
 // PostgreSQL: GRANT SELECT, INSERT (seq: + UPDATE) + tenant RLS policy + reject_change() trigger.
 
-use App\Shared\Database\MysqlGrants;
+use Database\Support\MysqlGrants;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 

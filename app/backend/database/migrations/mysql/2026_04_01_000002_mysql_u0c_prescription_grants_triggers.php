@@ -2,7 +2,7 @@
 
 // Owning module: Prescriptions (prescription, prescription_item, prescription_void). MySQL only.
 
-use App\Shared\Database\MysqlGrants;
+use Database\Support\MysqlGrants;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 

@@ -3,7 +3,7 @@
 // Owning module: Billing (payment_account, invoice_payment). MySQL only.
 // PostgreSQL: GRANT SELECT, INSERT, UPDATE on payment_account; GRANT SELECT, INSERT + reject_change() trigger on invoice_payment; tenant RLS.
 
-use App\Shared\Database\MysqlGrants;
+use Database\Support\MysqlGrants;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 

@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Shared\Database\MysqlGrants;
+use Database\Support\MysqlGrants;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 

@@ -3,7 +3,7 @@
 // Owning modules: Clinical (tooth_baseline, consent_record), Patients (household, guardian, medical_history_version),
 // Scheduling (planned_appointment), Recall (reminder_log), Tariffs (tariff), Billing (invoice*). MySQL only.
 
-use App\Shared\Database\MysqlGrants;
+use Database\Support\MysqlGrants;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 

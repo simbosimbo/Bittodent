@@ -10,7 +10,7 @@ return [
     'force_https' => (bool) env('FORCE_HTTPS', in_array(env('APP_ENV'), ['staging', 'production'], true)),
     // Load balancer / reverse proxy in front of the app: "*" (only when the app is unreachable except through it) or a CSV of IPs/CIDRs.
     'trusted_proxies' => env('TRUSTED_PROXIES'),
-    // MySQL migrations GRANT per-table privileges to the runtime account (App\Shared\Database\MysqlGrants). false = single-account
+    // MySQL migrations GRANT per-table privileges to the runtime account (Database\Support\MysqlGrants). false = single-account
     // hosting (one DB user that cannot GRANT, e.g. Hostinger staging): grants skipped, triggers still created. Never false with real data.
     'db_app_grants' => (bool) env('DB_APP_GRANTS', true),
     // Host part of the runtime account in those GRANTs ('%' when the app connects from another IP, e.g. Docker/Cloud).

@@ -2,7 +2,7 @@
 
 // Owning module: Clinical (coding_rule, coding_preference). MySQL only.
 
-use App\Shared\Database\MysqlGrants;
+use Database\Support\MysqlGrants;
 use Illuminate\Database\Migrations\Migration;
 
 // ehr_app: SELECT/INSERT/UPDATE; no DELETE (a rule is switched off with active = 0, preferences only grow).

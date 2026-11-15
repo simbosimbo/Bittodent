@@ -2,7 +2,7 @@
 
 // Owning module: Shared (platform; grants for every module table).
 
-use App\Shared\Database\MysqlGrants;
+use Database\Support\MysqlGrants;
 use Illuminate\Database\Migrations\Migration;
 
 // MySQL only. Runtime account ehr_app gets per-table SELECT/INSERT/UPDATE; DELETE only on framework tables.

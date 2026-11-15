@@ -3,7 +3,7 @@
 // Owning module: Billing (invoice_adjustment_decision). MySQL only. Append-only like invoice_adjustment.
 // PostgreSQL: GRANT SELECT, INSERT + tenant RLS policy + reject_change() trigger.
 
-use App\Shared\Database\MysqlGrants;
+use Database\Support\MysqlGrants;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 

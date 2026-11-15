@@ -2,7 +2,7 @@
 
 // Owning modules: Tariffs (tariff_rate), Tenancy (dentist_profile). MySQL only.
 
-use App\Shared\Database\MysqlGrants;
+use Database\Support\MysqlGrants;
 use Illuminate\Database\Migrations\Migration;
 
 // ehr_app: SELECT/INSERT/UPDATE, no DELETE (a price cell is cleared by closing it: valid_to). invoice_line keeps its existing grant + triggers.
