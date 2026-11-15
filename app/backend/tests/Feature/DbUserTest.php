@@ -30,6 +30,7 @@ class DbUserTest extends TestCase
             'update audit_event' => ["UPDATE audit_event SET action = 'x'"],
             'insert icd10_codes' => ["INSERT INTO icd10_codes (code, display, version) VALUES ('TEST', 'test', 'TEST')"],
             'update icd9cm_codes' => ['UPDATE icd9cm_codes SET valid = 0'],
+            'delete coding_preference' => ['DELETE FROM coding_preference'],
             'create trigger' => ['CREATE TRIGGER t BEFORE INSERT ON patient FOR EACH ROW SET NEW.name = NEW.name'],
         ];
     }
