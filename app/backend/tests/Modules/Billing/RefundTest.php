@@ -41,7 +41,7 @@ class RefundTest extends TestCase
 
     public function test_paid_work_corrected_to_not_done_goes_credit_note_then_refund_and_the_payment_stays(): void
     {
-        [$visit, $proc, $inv] = $this->billed();
+        [$visit, $proc, $inv, $unbilled] = $this->billed(open: true); // signed, still open (unbilled second row)
         $price = $this->invoice($inv)['lines'][0]['price_rp'];
         $pay = $this->pay($inv, $price);
         $before = $this->paymentRow($pay);
@@ -56,6 +56,7 @@ class RefundTest extends TestCase
         // approving the credit note on a paid invoice is allowed: the balance goes negative = kelebihan bayar
         $this->as(self::OWNER)->postJson("/api/credit-notes/{$nk['id']}/approve")->assertOk()
             ->assertJsonPath('balance_rp', -$price)->assertJsonPath('overpaid_rp', $price)->assertJsonPath('status', 'terbuka');
+        $this->correct($unbilled, ['reason_type' => 'tidak_dikerjakan'])->assertCreated(); // the fixture's unbilled row
         $this->as(self::DESK)->postJson("/api/visits/$visit/close")->assertOk(); // approved credit note = handled; refund is cash, not a close gate
 
         $refund = $this->refund($inv, $pay, $nk['id'], $price)->assertStatus(202)->assertJsonPath('refunds.0.status', 'pending')

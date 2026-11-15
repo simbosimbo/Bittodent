@@ -13,12 +13,9 @@ use App\Modules\Tenancy\Models\Membership;
 use App\Modules\Tenancy\Models\Tenant;
 use App\Shared\Audit\AuditEvent;
 use App\Shared\Tenancy\Ctx;
-use Database\Seeders\DatabaseSeeder;
 use Illuminate\Database\QueryException;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
-use PragmaRX\Google2FA\Google2FA;
 use Tests\TestCase;
 
 // Unit A koreksi (DEVIATIONS #53): procedure corrections with a per-clinic window anchored on finalized_at, `tidak_dikerjakan`,
@@ -47,9 +44,7 @@ class ProcedureCorrectionTest extends TestCase
         $this->as($doc)->putJson("/api/visits/$visit/note", ['soap' => ['S' => 'Kontrol.', 'O' => 'Periksa.']])->assertOk();
         $id = $this->as($doc)->postJson("/api/visits/$visit/procedures", ['tooth' => 26, 'surfaces' => 'MOD', 'procedure_code' => '23.2',
             'status' => 'selesai', 'diagnosis_code' => 'K02.1'])->assertCreated()->json('id');
-        Cache::flush();
-        $this->as($doc)->postJson("/api/visits/$visit/sign", ['revision' => 1, 'confirm' => true,
-            'code' => app(Google2FA::class)->getCurrentOtp(DatabaseSeeder::TOTP_SECRET)])->assertOk();
+        $this->as($doc)->postJson("/api/visits/$visit/selesai", ['revision' => 1, 'confirm' => true])->assertOk();
 
         return [$visit, $id, $appt->patient_id];
     }

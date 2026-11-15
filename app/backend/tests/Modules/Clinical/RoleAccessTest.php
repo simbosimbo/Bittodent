@@ -67,7 +67,7 @@ class RoleAccessTest extends TestCase
         $before = $this->denials($owner);
         $r = $this->as($owner);
         $r->putJson("/api/visits/$visit/note", ['soap' => ['S' => 'x']])->assertForbidden();
-        $r->postJson("/api/visits/$visit/sign", ['revision' => 1, 'confirm' => true, 'code' => '000000'])->assertForbidden();
+        $r->postJson("/api/visits/$visit/selesai", ['revision' => 1, 'confirm' => true])->assertForbidden();
         $r->postJson("/api/notes/$note/corrections", ['reason' => 'uji'])->assertForbidden();
         $r->postJson("/api/visits/$visit/findings", [])->assertForbidden();
         $r->putJson("/api/patients/$pid/baseline", [])->assertForbidden();

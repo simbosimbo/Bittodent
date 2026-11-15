@@ -10,11 +10,8 @@ use App\Modules\Scheduling\Models\Appointment;
 use App\Modules\Tenancy\Models\Membership;
 use App\Shared\Audit\AuditEvent;
 use App\Shared\Tenancy\Ctx;
-use Database\Seeders\DatabaseSeeder;
 use Illuminate\Database\QueryException;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use PragmaRX\Google2FA\Google2FA;
 use Tests\TestCase;
 
 // Unit 3 (DEVIATIONS #49): append-only procedure history. Replace = `superseded` marker + new work (replaces_id);
@@ -39,9 +36,7 @@ class ProcedureHistoryTest extends TestCase
         $this->as(self::DOC)->putJson("/api/visits/$visit/note", ['soap' => ['S' => 'Kontrol.', 'O' => 'Periksa.']])->assertOk();
         $id = $this->as(self::DOC)->postJson("/api/visits/$visit/procedures", ['tooth' => 26, 'surfaces' => 'MOD', 'procedure_code' => '23.2',
             'status' => 'selesai', 'diagnosis_code' => 'K02.1'])->assertCreated()->json('id');
-        Cache::flush();
-        $this->as(self::DOC)->postJson("/api/visits/$visit/sign", ['revision' => 1, 'confirm' => true,
-            'code' => app(Google2FA::class)->getCurrentOtp(DatabaseSeeder::TOTP_SECRET)])->assertOk();
+        $this->as(self::DOC)->postJson("/api/visits/$visit/selesai", ['revision' => 1, 'confirm' => true])->assertOk();
 
         return [$visit, $id, $appt->patient_id];
     }

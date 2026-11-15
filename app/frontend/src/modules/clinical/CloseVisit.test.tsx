@@ -32,3 +32,10 @@ test('walk-in: cancel attendance needs a 10+ letter reason', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Batalkan kehadiran' }))
   await waitFor(() => expect(cancelAttendance).toHaveBeenCalledWith('v2', 'Pasien pulang sebelum dilayani'))
 })
+
+test('a visit with unsigned clinical work hides Tutup (DPJP uses Selesai) but keeps Batalkan kehadiran for walk-ins', () => {
+  render(<CloseVisit visit={{ id: 'v3', appointment_id: null }} needsSelesai canBilling={false} onDone={() => {}} />)
+  expect(screen.queryByRole('button', { name: 'Tutup kunjungan' })).toBeNull()
+  expect(screen.getByRole('button', { name: 'Batalkan kehadiran' })).toBeInTheDocument()
+  expect(screen.getByText(/menekan Selesai/)).toBeInTheDocument()
+})

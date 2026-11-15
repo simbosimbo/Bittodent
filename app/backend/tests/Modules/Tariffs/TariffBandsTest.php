@@ -12,9 +12,6 @@ use App\Modules\Tenancy\Models\DentistProfile;
 use App\Shared\Audit\AuditEvent;
 use App\Shared\Tenancy\Ctx;
 use Carbon\CarbonImmutable;
-use Database\Seeders\DatabaseSeeder;
-use Illuminate\Support\Facades\Cache;
-use PragmaRX\Google2FA\Google2FA;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -133,9 +130,8 @@ class TariffBandsTest extends TestCase
         $this->rate('field', 420000, ['field' => 'sp_kg'])->assertOk();
 
         $v = $this->inA(fn () => Visit::whereNotNull('appointment_id')->where('patient_id', $this->patientOf($this->tenantA())->id)->firstOrFail());
-        Cache::flush();
-        $this->as(self::DOC)->postJson("/api/visits/{$v->id}/sign", ['revision' => 1, 'confirm' => true,
-            'code' => app(Google2FA::class)->getCurrentOtp(DatabaseSeeder::TOTP_SECRET)])->assertOk();
+        $this->as(self::DOC)->postJson("/api/visits/{$v->id}/approve-drafts")->assertOk(); // seeded agent finding needs Setujui
+        $this->as(self::DOC)->postJson("/api/visits/{$v->id}/selesai", ['revision' => 1, 'confirm' => true])->assertOk();
         $line = $this->inA(fn () => InvoiceLine::where('procedure_code', '23.2')->where('tooth', 11)->firstOrFail());
         $this->assertSame([420000, $doc, 'specialist', 'sp_kg', 'I'], [$line->price_rp, $line->doctor_id, $line->dentist_category, $line->dentist_field, $line->surface]);
         $this->assertNotNull($line->procedure_name);

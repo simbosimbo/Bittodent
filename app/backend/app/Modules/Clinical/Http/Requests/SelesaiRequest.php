@@ -4,8 +4,8 @@ namespace App\Modules\Clinical\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-// `confirm` + `code` are checked in the controller on purpose: missing/wrong confirmation = 403, not 422.
-class SignRequest extends FormRequest
+// `confirm` + `pin` are checked in the controller on purpose: missing confirmation / wrong PIN = 403, not 422.
+class SelesaiRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -20,6 +20,11 @@ class SignRequest extends FormRequest
 
     public function confirmed(): bool
     {
-        return $this->input('confirm') === true && is_string($this->input('code'));
+        return $this->input('confirm') === true;
+    }
+
+    public function pin(): ?string
+    {
+        return is_string($p = $this->input('pin')) ? $p : null;
     }
 }

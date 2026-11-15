@@ -8,7 +8,7 @@ import { ICONS } from './shared/ui/Icon'
 import { getMe, Login, logout as apiLogout, switchBranch as apiSwitchBranch } from './modules/auth'
 import { AlertRibbon, FamilyPage, MedicalHistoryPage, PatientDetail, PatientForm, PatientList } from './modules/patients'
 import { Home, Schedule } from './modules/scheduling'
-import { ChartPage } from './modules/clinical'
+import { ChartPage, SettingsRmPage } from './modules/clinical'
 import { InvoicePage } from './modules/billing'
 import { ReportPage } from './modules/reporting'
 
@@ -30,6 +30,7 @@ const NAV: (NavItem & { perm: string | null })[] = [
   { path: '/keluarga', label: 'Keluarga', perm: 'patient.read', icon: ICONS.users, group: 'pasien' },
   { path: '/riwayat-medis', label: 'Riwayat Medis', perm: 'note.read', icon: ICONS.heart, group: 'pasien' },
   { path: '/laporan', label: 'Laporan', perm: 'reporting.read', icon: ICONS.chart }, // unit 6: owner only
+  { path: '/pengaturan-rm', label: 'Pengaturan RM', perm: 'note.sign|settings.manage', icon: ICONS.user }, // #55: PIN Selesai
 ]
 
 export default function App() {
@@ -81,7 +82,7 @@ export default function App() {
       </div>
     )
 
-  const can = (p: string | null) => p === null || me.permissions.includes(p)
+  const can = (p: string | null) => p === null || p.split('|').some((x) => me.permissions.includes(x)) // a|b = either
   const nav = NAV.filter((n) => can(n.perm)).map((n) => n.group === 'pasien' ? { ...n, href: patient ? `${n.path}/${patient.id}` : '/pasien' } : n)
   const active = nav.find((n) => n.path === '/' ? hash === '/' : hash === n.path || hash.startsWith(n.path + '/'))
   const sub = hash.match(/^\/(keluarga|riwayat-medis)\/([\w-]+)$/)
@@ -97,6 +98,7 @@ export default function App() {
   else if (hash === '/pasien' && can('patient.read')) page = <PatientList key={query} canCreate={can('patient.create')} initialQ={new URLSearchParams(query).get('q') ?? ''} />
   else if (hash === '/jadwal' && can('appointment.read')) page = <Schedule me={me} />
   else if (hash === '/laporan' && can('reporting.read')) page = <ReportPage />
+  else if (hash === '/pengaturan-rm' && can('note.sign|settings.manage')) page = <SettingsRmPage me={me} onChanged={load} />
   else page = <Home me={me} />
 
   return <Shell me={me} nav={nav} active={active} ribbon={patient && can('patient.read') && <AlertRibbon patientId={patient.id} />} onSwitchBranch={switchBranch} onLogout={logout}>{page}</Shell>

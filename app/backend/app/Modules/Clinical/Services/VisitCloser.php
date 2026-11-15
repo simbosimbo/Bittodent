@@ -4,14 +4,18 @@ namespace App\Modules\Clinical\Services;
 
 use App\Modules\Clinical\Domain\ProcedureStatus;
 use App\Modules\Clinical\Events\VisitClosing;
+use App\Modules\Clinical\Models\ClinicalNote;
+use App\Modules\Clinical\Models\ClinicalNoteVersion;
 use App\Modules\Clinical\Models\ProcedureRecord;
+use App\Modules\Clinical\Models\ToothFinding;
 use App\Modules\Clinical\Models\Visit;
 use App\Modules\Scheduling\Contracts\AppointmentDirectory;
 use App\Shared\Audit\Audit;
 use App\Shared\Tenancy\Ctx;
 use Illuminate\Http\JsonResponse;
 
-// Unit 4 (DEVIATIONS #50): the one way a visit becomes `selesai` (POST /visits/{id}/close and appointment -> done).
+// Unit 4 (DEVIATIONS #50): the one way a visit becomes `selesai` (Selesai, POST /visits/{id}/close and appointment -> done).
+// #55: unsigned clinical work is refused (409 use_selesai) unless attendance was cancelled; Selesai signs first, then calls close().
 // Completed work needs an invoice line (Billing answers via VisitClosing). Only exception (Yohanes, 15 Nov 2026): attendance
 // cancelled (appointment cancelled/no_show, or walk-in "batalkan kehadiran") => may close without invoice, reason required.
 final class VisitCloser
@@ -26,19 +30,33 @@ final class VisitCloser
             return response()->json(['message' => 'Kehadiran dibatalkan: alasan menutup kunjungan wajib diisi (min. 10 karakter).',
                 'errors' => ['reason' => ['Alasan wajib diisi (min. 10 karakter).']]], 422);
         }
+        if (! $cancelled && self::needsSelesai($v)) {
+            Audit::log('tutup_ditolak', 'visit', $v->id, ['reason' => 'use_selesai', 'via' => $via]);
+
+            return response()->json(['error' => 'use_selesai',
+                'message' => 'Kunjungan ini punya catatan atau tindakan yang belum Selesai. Dokter penanggung jawab harus menekan Selesai.'], 409);
+        }
         $event = new VisitClosing(Ctx::current()->tenant(), $v->id, $this->completedProcedureIds($v));
         event($event);
         if ($event->blocked() && ! $cancelled) {
             Audit::log('tutup_ditolak', 'visit', $v->id, ['reason' => 'invoice_required', 'procedures' => $event->unbilledProcedureIds, 'via' => $via]);
 
             return response()->json(['error' => 'invoice_required', 'procedure_ids' => $event->unbilledProcedureIds,
-                'message' => 'Kunjungan dengan tindakan selesai tidak bisa ditutup tanpa tagihan. Tandatangani catatan dan pastikan setiap tindakan selesai punya baris tagihan (cek tarif).'], 409);
+                'message' => 'Kunjungan dengan tindakan selesai tidak bisa ditutup tanpa tagihan. Pastikan setiap tindakan selesai punya baris tagihan (cek tarif), lalu tekan Selesai lagi.'], 409);
         }
         $v->update(['status' => 'selesai', 'ended_at' => now(), 'closed_by' => Ctx::current()->userId,
             'close_reason' => $cancelled ? trim($reason) : null, 'closed_without_invoice' => $event->blocked()]);
         Audit::log('tutup', 'visit', $v->id, ['via' => $via, 'attendance_cancelled' => $cancelled, 'without_invoice' => $event->blocked()]);
 
         return null;
+    }
+
+    /** Unsigned clinical work (draft note version, draft finding or draft procedure): only the DPJP's Selesai may close (#55). */
+    public static function needsSelesai(Visit $v): bool
+    {
+        return ClinicalNoteVersion::whereIn('note_id', ClinicalNote::where('visit_id', $v->id)->select('id'))->where('state', 'draft')->exists()
+            || ToothFinding::where('visit_id', $v->id)->where('state', 'draft')->exists()
+            || ProcedureRecord::where('visit_id', $v->id)->where('state', 'draft')->exists();
     }
 
     public function attendanceCancelled(Visit $v): bool

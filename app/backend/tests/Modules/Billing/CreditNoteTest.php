@@ -19,7 +19,7 @@ class CreditNoteTest extends TestCase
 
     public function test_not_done_correction_creates_a_pending_full_credit_note_never_a_rp0_line_or_discount(): void
     {
-        [$visit, $proc, $inv] = $this->billed();
+        [$visit, $proc, $inv, $unbilled] = $this->billed(open: true); // signed, still open (unbilled second row)
         $before = $this->invoice($inv);
         $line = $before['lines'][0];
 
@@ -35,8 +35,11 @@ class CreditNoteTest extends TestCase
         $this->assertSame(1, $this->in($this->tenantA(), fn () => InvoiceLine::where('invoice_id', $inv)->count()));
         $this->assertFalse($this->in($this->tenantA(), fn () => InvoiceLine::where('price_rp', 0)->exists()));
 
-        // pending reversal is not "handled": the visit cannot close yet
-        $this->as(self::DESK)->postJson("/api/visits/$visit/close")->assertConflict()->assertJsonPath('error', 'invoice_required');
+        // pending reversal is not "handled": the visit cannot close yet, neither by desk /close nor by the DPJP's Selesai
+        $this->assertEqualsCanonicalizing([$unbilled, $proc], $this->as(self::DESK)->postJson("/api/visits/$visit/close")->assertConflict()
+            ->assertJsonPath('error', 'invoice_required')->json('procedure_ids'));
+        $this->selesai($visit)->assertConflict()->assertJsonPath('error', 'invoice_required');
+        $this->assertSignedOpen($visit);
 
         $this->as(self::KASIR)->postJson("/api/credit-notes/{$nk['id']}/approve")->assertForbidden();
         $this->as(self::DOC)->postJson("/api/credit-notes/{$nk['id']}/approve")->assertForbidden();
@@ -53,7 +56,11 @@ class CreditNoteTest extends TestCase
             $this->assertSame($line[$f], $done['lines'][0][$f], $f);
         }
         $this->as(self::OWNER)->postJson("/api/credit-notes/{$nk['id']}/approve")->assertConflict()->assertJsonPath('error', 'not_pending');
-        $this->as(self::DESK)->postJson("/api/visits/$visit/close")->assertOk();
+        // approved = handled; only the unbilled row still blocks, until it is corrected to tidak_dikerjakan (no credit note needed)
+        $this->selesai($visit)->assertConflict()->assertJsonPath('procedure_ids', [$unbilled]);
+        $this->correct($unbilled, ['reason_type' => 'tidak_dikerjakan'])->assertCreated();
+        $this->selesai($visit)->assertOk()->assertJsonPath('visit.status', 'selesai'); // close only: same signature
+        $this->as(self::DESK)->postJson("/api/visits/$visit/close")->assertConflict()->assertJsonPath('error', 'visit_closed');
         foreach (['nota_kredit.menunggu', 'nota_kredit.disetujui'] as $a) {
             $this->assertTrue($this->audited($a, $this->tenantA()), $a);
         }
@@ -61,8 +68,9 @@ class CreditNoteTest extends TestCase
 
     public function test_not_done_on_unbilled_work_needs_nothing_to_close(): void
     {
-        [$visit, $proc] = $this->billed(proc: ['tooth' => 21, 'procedure_code' => '23.41']); // no tariff => no line
-        $this->as(self::DESK)->postJson("/api/visits/$visit/close")->assertConflict();
+        [$visit, $proc] = $this->billed(proc: ['tooth' => 21, 'procedure_code' => '23.41']); // no tariff => no line: signed, open (#55)
+        $this->assertSignedOpen($visit);
+        $this->as(self::DESK)->postJson("/api/visits/$visit/close")->assertConflict()->assertJsonPath('error', 'invoice_required');
         $this->correct($proc, ['reason_type' => 'tidak_dikerjakan'])->assertCreated();
         $this->assertSame(0, $this->in($this->tenantA(), fn () => CreditNote::count()));
         $this->as(self::DESK)->postJson("/api/visits/$visit/close")->assertOk();
@@ -164,13 +172,19 @@ class CreditNoteTest extends TestCase
 
     public function test_void_only_without_payments_billed_lines_need_owner(): void
     {
-        [, , $inv] = $this->billed();
+        [$visit, $proc, $inv, $unbilled] = $this->billed(open: true); // signed, still open (unbilled second row)
         $this->as(self::KASIR)->postJson("/api/invoices/$inv/void", ['reason' => 'x'])->assertUnprocessable(); // reason >= 10
         $v = $this->as(self::KASIR)->postJson("/api/invoices/$inv/void", ['reason' => 'Tagihan dobel dibuat'])->assertStatus(202)
             ->assertJsonPath('status', 'terbuka')->json('invoice_void_id');
+        // only the pending void is left blocking: Selesai and /close both refuse, the note stays signed
+        $this->correct($unbilled, ['reason_type' => 'tidak_dikerjakan'])->assertCreated();
+        $this->selesai($visit)->assertConflict()->assertJsonPath('error', 'invoice_required')->assertJsonPath('procedure_ids', [$proc]);
+        $this->as(self::DESK)->postJson("/api/visits/$visit/close")->assertConflict()->assertJsonPath('error', 'invoice_required');
+        $this->assertSignedOpen($visit);
         $this->as(self::KASIR)->postJson("/api/invoice-voids/$v/approve")->assertForbidden();
         $out = $this->as(self::OWNER)->postJson("/api/invoice-voids/$v/approve")->assertOk()->json();
         $this->assertSame(['void', 0, 1], [$out['status'], $out['balance_rp'], count($out['lines'])]); // lines stay
+        $this->selesai($visit)->assertOk()->assertJsonPath('visit.status', 'selesai'); // approved void = handled
         $acc = $this->as(self::KASIR)->getJson('/api/payment-accounts')->json('0.id');
         $this->as(self::KASIR)->postJson("/api/invoices/$inv/payments", ['payment_account_id' => $acc, 'amount_rp' => 1000])
             ->assertConflict()->assertJsonPath('error', 'invoice_void');

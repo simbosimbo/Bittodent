@@ -6,18 +6,17 @@ use App\Modules\Billing\Models\Invoice;
 use App\Modules\Billing\Models\InvoiceAdjustment;
 use App\Modules\Billing\Models\InvoiceAdjustmentDecision;
 use App\Modules\Billing\Models\InvoiceLine;
+use App\Modules\Clinical\Models\ClinicalNote;
+use App\Modules\Clinical\Models\ProcedureRecord;
 use App\Modules\Clinical\Models\Visit;
 use App\Modules\Scheduling\Models\Appointment;
 use App\Modules\Tenancy\Models\Membership;
 use App\Shared\Audit\AuditEvent;
 use App\Shared\Tenancy\Ctx;
-use Database\Seeders\DatabaseSeeder;
 use Illuminate\Database\QueryException;
-use Illuminate\Support\Facades\Cache;
-use PragmaRX\Google2FA\Google2FA;
 use Tests\TestCase;
 
-// Unit 4 (DEVIATIONS #50): a visit with completed work closes only with an invoice line per procedure; the one exception is
+// Unit 4 (DEVIATIONS #50): a visit with completed work closes only with an invoice line per procedure (#55: via the DPJP's Selesai); the one exception is
 // cancelled attendance (appointment cancelled/no_show, walk-in cancel-attendance) with a reason. Rp0 adjustments wait for an owner.
 class EncounterInvoiceGuardTest extends TestCase
 {
@@ -37,7 +36,7 @@ class EncounterInvoiceGuardTest extends TestCase
     }
 
     /** Fresh appointment visit in the front desk's branch. @return array{0: string, 1: string} [visit id, appointment id] */
-    private function visit(): array
+    private function visit(bool $note = true): array
     {
         $appt = $this->inA(function () {
             $branch = Membership::where('user_id', $this->user(self::DESK)->id)->value('branch_id');
@@ -46,7 +45,9 @@ class EncounterInvoiceGuardTest extends TestCase
                 ->orderBy('starts_at')->firstOrFail();
         });
         $visit = $this->as(self::DOC)->postJson("/api/appointments/{$appt->id}/visit")->assertCreated()->json('id');
-        $this->as(self::DOC)->putJson("/api/visits/$visit/note", ['soap' => ['S' => 'Kontrol.', 'O' => 'Periksa.']])->assertOk();
+        if ($note) {
+            $this->as(self::DOC)->putJson("/api/visits/$visit/note", ['soap' => ['S' => 'Kontrol.', 'O' => 'Periksa.']])->assertOk();
+        }
 
         return [$visit, $appt->id];
     }
@@ -65,12 +66,15 @@ class EncounterInvoiceGuardTest extends TestCase
         return $v->id;
     }
 
-    private function doneWork(string $visit, array $proc): void
+    /** Draft `selesai` work (unsigned). */
+    private function work(string $visit, array $proc): void
     {
         $this->as(self::DOC)->postJson("/api/visits/$visit/procedures", $proc + ['status' => 'selesai', 'diagnosis_code' => 'K02.1'])->assertCreated();
-        Cache::flush();
-        $this->as(self::DOC)->postJson("/api/visits/$visit/sign", ['revision' => 1, 'confirm' => true,
-            'code' => app(Google2FA::class)->getCurrentOtp(DatabaseSeeder::TOTP_SECRET)])->assertOk();
+    }
+
+    private function selesai(string $visit)
+    {
+        return $this->as(self::DOC)->postJson("/api/visits/$visit/selesai", ['revision' => 1, 'confirm' => true]);
     }
 
     private function move(string $appt, string $to)
@@ -83,11 +87,17 @@ class EncounterInvoiceGuardTest extends TestCase
         return $this->inA(fn () => Visit::findOrFail($visit));
     }
 
-    public function test_billed_work_closes_via_appointment_done_and_via_close(): void
+    private function lines(string $visit)
+    {
+        return $this->inA(fn () => InvoiceLine::whereIn('invoice_id', Invoice::where('visit_id', $visit)->select('id'))->get());
+    }
+
+    public function test_billed_work_closes_via_selesai_and_appointment_done_is_then_a_no_op(): void
     {
         [$visit, $appt] = $this->visit();
-        $this->doneWork($visit, self::BILLED);
-        $this->assertCount(1, $this->inA(fn () => InvoiceLine::whereIn('invoice_id', Invoice::where('visit_id', $visit)->select('id'))->get()));
+        $this->work($visit, self::BILLED);
+        $this->selesai($visit)->assertOk()->assertJsonPath('visit.status', 'selesai')->assertJsonPath('visit.closed_without_invoice', false);
+        $this->assertCount(1, $this->lines($visit));
         foreach (['checked_in', 'in_treatment', 'done'] as $to) {
             $this->move($appt, $to)->assertOk();
         }
@@ -96,36 +106,51 @@ class EncounterInvoiceGuardTest extends TestCase
         $this->assertNotNull($v->ended_at);
         $this->as(self::DESK)->postJson("/api/visits/$visit/close")->assertConflict()->assertJsonPath('error', 'visit_closed');
 
-        [$visit2] = $this->visit();
-        $this->doneWork($visit2, self::BILLED);
-        $this->as(self::DESK)->postJson("/api/visits/$visit2/close")->assertOk()->assertJsonPath('status', 'selesai');
+        // unsigned clinical work: neither /close nor appointment done may close it; only the DPJP's Selesai
+        [$visit2, $appt2] = $this->visit();
+        $this->work($visit2, self::BILLED);
+        $this->as(self::DESK)->postJson("/api/visits/$visit2/close")->assertConflict()->assertJsonPath('error', 'use_selesai');
+        $this->as(self::DOC)->postJson("/api/visits/$visit2/close")->assertConflict()->assertJsonPath('error', 'use_selesai');
+        $this->move($appt2, 'checked_in')->assertOk();
+        $this->move($appt2, 'in_treatment')->assertOk();
+        $this->move($appt2, 'done')->assertConflict()->assertJsonPath('error', 'use_selesai');
+        $this->assertSame('in_treatment', $this->inA(fn () => Appointment::findOrFail($appt2)->status));
+        $this->assertSame('berlangsung', $this->row($visit2)->status);
+        $this->selesai($visit2)->assertOk();
+        $this->move($appt2, 'done')->assertOk();
     }
 
-    public function test_unbilled_work_blocks_close_and_appointment_done_even_with_a_reason(): void
+    public function test_unbilled_work_signs_but_selesai_cannot_close(): void
     {
         [$visit, $appt] = $this->visit();
-        $this->doneWork($visit, self::NO_TARIFF);
-        $this->as(self::DESK)->postJson("/api/visits/$visit/close")->assertConflict()->assertJsonPath('error', 'invoice_required');
+        $this->work($visit, self::NO_TARIFF);
+        $this->selesai($visit)->assertConflict()->assertJsonPath('error', 'invoice_required')->assertJsonPath('signed', true);
+        // #55: the signature commits (note signed, work final), only the close is refused: visit open, no line, no `tutup`
+        $this->assertSame('signed', $this->inA(fn () => ClinicalNote::where('visit_id', $visit)->firstOrFail()->versions->first()->state));
+        $this->assertSame(['final'], $this->inA(fn () => ProcedureRecord::where('visit_id', $visit)->pluck('state')->all()));
+        $this->assertCount(0, $this->lines($visit));
+        $this->assertSame('berlangsung', $this->row($visit)->status);
+        $this->assertFalse($this->inA(fn () => AuditEvent::where('action', 'tutup')->where('entity_id', $visit)->exists()));
+        $this->assertTrue($this->inA(fn () => AuditEvent::where('action', 'tanda_tangan')->exists()));
+        $this->assertFalse($this->inA(fn () => AuditEvent::where('action', 'tanda_tangan_ditolak')->where('detail->why', 'tutup')->exists()));
+
+        // signed + open: nothing left to sign, so /close and appointment done reach the invoice guard (not use_selesai)
+        $this->selesai($visit)->assertConflict()->assertJsonPath('error', 'invoice_required'); // close-only path, same guard
         $this->as(self::DESK)->postJson("/api/visits/$visit/close", ['reason' => 'Pasien minta tutup saja'])->assertConflict()
             ->assertJsonPath('error', 'invoice_required');
         $this->move($appt, 'checked_in')->assertOk();
         $this->move($appt, 'in_treatment')->assertOk();
         $this->move($appt, 'done')->assertConflict()->assertJsonPath('error', 'invoice_required');
         $this->assertSame('in_treatment', $this->inA(fn () => Appointment::findOrFail($appt)->status)); // not dismissed
-        $this->assertSame('berlangsung', $this->row($visit)->status);
         $this->assertTrue($this->inA(fn () => AuditEvent::where('action', 'tutup_ditolak')->where('entity_id', $visit)->exists()));
-
-        // an unsigned `selesai` draft has no line yet: blocks too
-        [$visit2] = $this->visit();
-        $this->as(self::DOC)->postJson("/api/visits/$visit2/procedures", self::BILLED + ['status' => 'selesai', 'diagnosis_code' => 'K02.1'])->assertCreated();
-        $this->as(self::DESK)->postJson("/api/visits/$visit2/close")->assertConflict()->assertJsonPath('error', 'invoice_required');
+        $this->assertSame('berlangsung', $this->row($visit)->status);
     }
 
     public function test_cancelled_or_no_show_attendance_closes_without_invoice_only_with_a_reason(): void
     {
         foreach (['cancelled', 'no_show'] as $to) {
             [$visit, $appt] = $this->visit();
-            $this->doneWork($visit, self::NO_TARIFF);
+            $this->work($visit, self::NO_TARIFF);
             $this->move($appt, $to)->assertOk();
             $this->as(self::DESK)->postJson("/api/visits/$visit/close")->assertUnprocessable()->assertJsonValidationErrors('reason');
             $this->as(self::DESK)->postJson("/api/visits/$visit/close", ['reason' => 'pendek'])->assertUnprocessable();
@@ -139,18 +164,21 @@ class EncounterInvoiceGuardTest extends TestCase
 
     public function test_exam_only_visit_closes_without_invoice(): void
     {
-        [$visit] = $this->visit();
-        $this->as(self::DOC)->postJson("/api/visits/$visit/close")->assertOk()->assertJsonPath('status', 'selesai')
-            ->assertJsonPath('closed_without_invoice', false);
+        [$visit] = $this->visit(); // a draft note = clinical work: Selesai, not /close
+        $this->as(self::DESK)->postJson("/api/visits/$visit/close")->assertConflict()->assertJsonPath('error', 'use_selesai');
+        $this->selesai($visit)->assertOk()->assertJsonPath('visit.status', 'selesai')->assertJsonPath('visit.closed_without_invoice', false);
         $this->assertNotNull($this->row($visit)->ended_at);
+
+        [$empty] = $this->visit(note: false); // nothing to sign: /close still works
+        $this->as(self::DESK)->postJson("/api/visits/$empty/close")->assertOk()->assertJsonPath('status', 'selesai');
     }
 
     public function test_walk_in_cancel_attendance_then_close_with_reason(): void
     {
         $visit = $this->walkIn();
-        $this->doneWork($visit, self::NO_TARIFF);
+        $this->work($visit, self::NO_TARIFF);
         $this->as(self::DESK)->postJson("/api/visits/$visit/close", ['reason' => 'Mau tutup tanpa tagihan'])->assertConflict()
-            ->assertJsonPath('error', 'invoice_required');
+            ->assertJsonPath('error', 'use_selesai');
         $this->as('kasir@senyum.test')->postJson("/api/visits/$visit/cancel-attendance", ['reason' => 'Pasien pulang sebelum dilayani'])->assertForbidden();
         $this->as(self::DESK)->postJson("/api/visits/$visit/cancel-attendance")->assertUnprocessable()->assertJsonValidationErrors('reason');
         $this->as(self::DESK)->postJson("/api/visits/$visit/cancel-attendance", ['reason' => 'Pasien pulang sebelum dilayani'])->assertOk();

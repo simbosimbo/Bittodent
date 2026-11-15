@@ -16,6 +16,8 @@ use Illuminate\Support\Facades\DB;
 // are frozen by DB trigger). Treatments (code / treatment status) are ProcedureController's; FindingRequest rejects them with 422.
 class FindingController extends Controller
 {
+    private const UNAPPROVED = ['approved_by' => null, 'approved_at' => null]; // an edited agent draft needs a new Setujui (#55)
+
     /** POST /api/visits/{id}/findings: one draft per author+tooth+surface in a visit (re-picking a condition updates it). */
     public function store(FindingRequest $request, string $id)
     {
@@ -35,7 +37,7 @@ class FindingController extends Controller
             $f ??= new ToothFinding(['patient_id' => $visit->patient_id, 'visit_id' => $id, 'tooth' => $d['tooth'],
                 'surface' => $d['surface'], 'created_by' => $me, 'state' => 'draft']);
             $created = ! $f->exists;
-            $f->fill(['condition' => $d['condition'], 'source' => $d['source'] ?? 'manual', ...self::diagnosis($d, $f)])->save();
+            $f->fill(['condition' => $d['condition'], 'source' => $d['source'] ?? 'manual', ...self::diagnosis($d, $f), ...self::UNAPPROVED])->save();
             Audit::log($created ? 'buat' : 'ubah', 'tooth_finding', $f->id, ['tooth' => $f->tooth, 'surface' => $f->surface]);
 
             return response()->json(self::coded($f, $d, $visit->dentist_id), $created ? 201 : 200);
@@ -50,7 +52,7 @@ class FindingController extends Controller
             if ($e = Odontogram::error($f->tooth, $f->surface, $d['condition'])) {
                 return response()->json(['message' => $e, 'errors' => ['condition' => [$e]]], 422);
             }
-            $f->update(['condition' => $d['condition'], 'source' => $d['source'] ?? $f->source, ...self::diagnosis($d, $f)]);
+            $f->update(['condition' => $d['condition'], 'source' => $d['source'] ?? $f->source, ...self::diagnosis($d, $f), ...self::UNAPPROVED]);
             Audit::log('ubah', 'tooth_finding', $f->id);
 
             return response()->json(self::coded($f, $d, Visit::findOrFail($f->visit_id)->dentist_id));

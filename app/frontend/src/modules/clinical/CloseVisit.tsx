@@ -4,8 +4,9 @@ import { cancelAttendance, closeVisit } from './api'
 
 // Unit 4: close the active visit. Completed work needs an invoice line (server says invoice_required). Only when attendance was
 // cancelled (appointment batal/tidak datang, or walk-in "Batalkan kehadiran") may it close without one, with a reason.
-export function CloseVisit({ visit, canBilling, onDone }: {
-  visit: { id: string; appointment_id: string | null; attendance_cancelled_at?: string | null }; canBilling: boolean; onDone: () => void
+// #55: unsigned clinical work closes only through the DPJP's Selesai, so "Tutup kunjungan" is hidden then (server: 409 use_selesai).
+export function CloseVisit({ visit, needsSelesai = false, canBilling, onDone }: {
+  visit: { id: string; appointment_id: string | null; attendance_cancelled_at?: string | null }; needsSelesai?: boolean; canBilling: boolean; onDone: () => void
 }) {
   const [reason, setReason] = useState('')
   const [error, setError] = useState('')
@@ -31,6 +32,7 @@ export function CloseVisit({ visit, canBilling, onDone }: {
       <label>Alasan (wajib bila kehadiran dibatalkan)
         <textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} aria-invalid={!!error} />
       </label>
+      {needsSelesai && <p className="muted small">Catatan/tindakan belum Selesai: dokter penanggung jawab menekan Selesai (menutup kunjungan sekaligus).</p>}
       {error && <p className="form-error" role="alert">{error}</p>}
       <div className="toolbar">
         {walkIn && !visit.attendance_cancelled_at && (
@@ -38,7 +40,7 @@ export function CloseVisit({ visit, canBilling, onDone }: {
             Batalkan kehadiran
           </button>
         )}
-        <button className="btn btn-primary" disabled={busy} onClick={() => run(() => closeVisit(visit.id, reason.trim()))}>Tutup kunjungan</button>
+        {!needsSelesai && <button className="btn btn-primary" disabled={busy} onClick={() => run(() => closeVisit(visit.id, reason.trim()))}>Tutup kunjungan</button>}
       </div>
     </div>
   )

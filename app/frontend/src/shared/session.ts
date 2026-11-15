@@ -5,6 +5,8 @@ export type Me = {
   permissions: string[]
   active: { tenant_id: string; tenant_name: string; branch_id: string | null; branch_name: string | null; timezone: string | null }
   branches: { id: string; name: string; timezone: string }[]
+  /** clinic asks for a PIN at Selesai; whether I already have one (never the PIN itself) */
+  selesai?: { pin_required: boolean; has_pin: boolean }
 }
 
 export const ROLE_LABELS: Record<string, string> = {
