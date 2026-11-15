@@ -51,6 +51,23 @@ user DB, matriks izin) di `tests/Feature`. Migrasi tetap di `database/migrations
 Aturan harga (tes `test_pricing_and_reporting_edges`): Clinical tidak punya jalur (langsung/transitif) ke Billing atau Tariffs, Compensation membaca Billing hanya lewat `Contracts\`, tidak ada yang bergantung pada Reporting.
 Kontrak stub tanpa implementasi/binding: `Billing\FinalizedRevenue`, `Patients\MedicalAlerts`, `Compensation\FeeCalculator`. (C3 mengimplementasikan `Tariffs\PriceLookup`, `Clinical\VisitDirectory` dan mengirim `ProcedureRecorded`.)
 
+## Referensi ICD (data resmi, bukan sintetis)
+
+Tabel global `icd10_codes` dan `icd9cm_codes` (tanpa `tenant_id`; `ehr_app` hanya SELECT). Isi = daftar resmi SATUSEHAT:
+ICD-10 versi `ICD10_2010` (18542 kode) dan ICD-9-CM versi `ICD9CM_2010` (4626 kode). `display` = teks resmi **bahasa Inggris**;
+dokumen resmi tidak punya judul bahasa Indonesia, jadi tidak ada terjemahan. **K02.5 tidak ada** di versi ini (kode WHO 2019).
+Sumber, URL unduhan, dan SHA-256: `database/data/icd/SOURCE.md` (CSV di folder itu = ekspor apa adanya dari xlsx resmi).
+
+```sh
+php artisan icd:import                                       # dari CSV lokal database/data/icd (default; juga dipanggil DatabaseSeeder)
+php artisan icd:import --source=file --path=tests/fixtures/icd   # berkas/folder CSV lain (kolom code,display,version)
+php artisan icd:import --source=satusehat                    # unduh spreadsheet publik resmi (Google Sheets export, tanpa kredensial)
+```
+
+Ditulis sebagai `ehr_admin` (`mysql_admin`), idempoten: upsert per `code`; kode yang hilang dari sumber jadi `valid=false`
+(tidak dihapus, catatan lama mungkin memakainya), kode yang muncul lagi jadi valid. Production butuh `--force`.
+Pencarian: `App\Shared\Terminology\IcdCatalog` (hanya `valid=true`). API FHIR SATUSEHAT (OAuth2) tidak dipakai untuk impor ini.
+
 ## Masuk cepat (DEV SAJA)
 
 `POST /dev/quick-login {user_email}` masuk **tanpa TOTP**, plus `GET /api/dev/status` (daftar akun seed untuk pemilih di layar login).

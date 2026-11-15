@@ -4,6 +4,9 @@ use App\Modules\Identity\Models\User;
 use App\Modules\Recall\Services\ReminderService;
 use App\Modules\Tenancy\Models\Tenant;
 use App\Shared\Tenancy\Ctx;
+use App\Shared\Terminology\CsvIcdSource;
+use App\Shared\Terminology\IcdImporter;
+use App\Shared\Terminology\SatusehatSpreadsheetSource;
 use Carbon\CarbonImmutable;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Support\Facades\Artisan;
@@ -51,3 +54,33 @@ Artisan::command('recall:send-reminders', function () {
         $this->line("$tenantId: $n");
     }
 })->purpose('Kirim pengingat janji yang jatuh tempo (kanal no-op; tercatat di reminder_log)');
+
+// Official ICD-10 2010 / ICD-9-CM 2010 reference lists (global tables, written as ehr_admin). Safe to run twice.
+Artisan::command('icd:import {--source=file : file (CSV lokal) | satusehat (unduh spreadsheet publik)} {--path= : berkas/folder CSV (default database/data/icd)} {--force : izinkan di production}', function (IcdImporter $importer) {
+    if (app()->isProduction() && ! $this->option('force')) {
+        $this->error('icd:import di production butuh --force.');
+
+        return 1;
+    }
+    $source = match ($this->option('source')) {
+        'file' => new CsvIcdSource($this->option('path') ?: database_path('data/icd')),
+        'satusehat' => new SatusehatSpreadsheetSource,
+        default => null,
+    };
+    if ($source === null) {
+        $this->error('--source harus file atau satusehat.');
+
+        return 1;
+    }
+    try {
+        $counts = $importer->import($source);
+    } catch (RuntimeException $e) {
+        $this->error($e->getMessage());
+
+        return 1;
+    }
+    $this->table(['Tabel', 'Baru', 'Diubah', 'Jadi tidak valid', 'Tetap'],
+        array_map(fn ($t, $c) => [$t, ...array_values($c)], array_keys($counts), $counts));
+
+    return 0;
+})->purpose('Impor daftar ICD-10/ICD-9-CM resmi SATUSEHAT (idempoten)');

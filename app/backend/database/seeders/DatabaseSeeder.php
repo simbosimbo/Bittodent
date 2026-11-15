@@ -30,6 +30,8 @@ use App\Modules\Tenancy\Models\Membership;
 use App\Modules\Tenancy\Models\Tenant;
 use App\Shared\Crypto\Crypto;
 use App\Shared\Tenancy\Ctx;
+use App\Shared\Terminology\CsvIcdSource;
+use App\Shared\Terminology\IcdImporter;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
 
@@ -47,6 +49,9 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
+        // Official (not synthetic) ICD reference lists, same importer as `php artisan icd:import`.
+        app(IcdImporter::class)->import(new CsvIcdSource(database_path('data/icd')));
+
         $users = [];
         foreach ([
             'pemilik@senyum.test' => ['Pemilik Senyum (dummy)', 'lainnya'],
