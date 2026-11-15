@@ -4,6 +4,8 @@
 
 *Revisi 1 (15 Nov 2026 malam, WIB), sesuai jawaban Yohanes: infrastruktur yang ada hanya **Hostinger Cloud Startup** dan **tidak ada anggaran GPU**. Akibatnya: tidak ada self-host model di GPU; semua inferensi lewat **Bedrock Jakarta in-region, bayar per pakai**; aplikasi tetap di Hostinger. Belum ada dokter gigi peninjau: golden set disusun tim AI dari referensi standar, Yohanes menguji sebagai pengguna. Lihat bagian 2.0 dan 10.1.*
 
+*Revisi 2 (15 Nov 2026 malam, WIB), sesuai pertanyaan Yohanes tentang biaya: pilih yang termurah, gratis jika bisa. Akibatnya: **mode gratis** jadi default (A2 aturan, ICD full-text + sinonim, ringkasan deterministik, OCR KTP lokal); fitur LLM (ringkasan pintar, scribe nanti) bayar per pakai di Bedrock Jakarta, di belakang saklar per klinik yang **mati** secara default, plus batas token bulanan per klinik. Jalur utama KTP diganti ke Tesseract + aturan; Nova Lite hanya upgrade opsional di belakang saklar berbayar; Nova Pro bukan cadangan. Tingkat gratis LLM luar negeri (mis. Gemini free tier) ditolak (D-009, UU PDP). Lihat bagian 2.5 dan 11.*
+
 **Dasar yang mengikat dokumen ini:** D-001 (keluaran AI = draf), D-002 dan D-009 (data dan pemrosesan AI hanya di Indonesia; Bedrock `ap-southeast-3` **in-region** saja, tanpa Geo/Global), D-017 (catatan klinis hanya ditambah), D-018 (audit), D-020 (enkripsi per kolom), D-026 (tidak ada AI offline), D-027 (lihat lintas cabang tercatat), D-030 (data palsu saja sampai gerbang PostgreSQL + RLS), D-036 (AI tidak meresepkan), D-037 (dikte tidak menambah isi), D-038 (audio dihapus), D-040, D-041, D-044. Aturan agen: `docs/agents.md`. Rancangan fitur pertama: `docs/ai/ringkasan-rekam-medis.md` (PR #1). Kode fondasi: A0 (PR #54).
 
 **Cara membaca:** setiap bagian berisi **Keputusan**, **Alasan**, dan **Tinjau ulang bila**. Ini bukan daftar opsi. Opsi yang ditolak disebut singkat beserta alasannya.
@@ -15,12 +17,13 @@
 | Bidang | Keputusan |
 |---|---|
 | Prinsip | Keselamatan pasien di atas kecepatan. Dokter memutuskan. Semua keluaran klinis = draf per item. Tanpa sitasi valid = dibuang. Deterministik dulu, AI kedua. Data minimum, disamarkan, diproses di Indonesia. |
-| Infrastruktur | Aplikasi di **Hostinger Cloud Startup** (data palsu, D-010/D-030). Semua model lewat **Bedrock Jakarta in-region, bayar per pakai**. **Tidak ada GPU, tidak ada self-host.** |
+| Infrastruktur | Aplikasi di **Hostinger Cloud Startup** (data palsu, D-010/D-030). **Mode default: gratis** (fitur tanpa model berbayar jalan di server sendiri). Model bahasa hanya lewat **Bedrock Jakarta in-region, bayar per pakai**, di belakang saklar per klinik yang **mati** secara default, plus batas token bulanan. **Tidak ada GPU, tidak ada langganan bulanan model.** |
+| Mode biaya | **Mode gratis default.** Gratis: A2 aturan, ICD full-text + sinonim, ringkasan deterministik, OCR KTP lokal (atau ketik manual selama Tesseract belum jalan). Berbayar (saklar per klinik mati default + batas token bulanan): ringkasan pintar, pemilihan ICD oleh model, upgrade OCR Nova Lite, scribe nanti. Tingkat gratis LLM luar negeri (mis. Gemini free tier) **ditolak** (D-009, UU PDP). Harga per token: tidak dikutip; halaman resmi Bedrock tidak mencantumkan tarif Jakarta untuk model yang kita pakai (2.5). |
 | LLM teks utama | Bedrock Jakarta in-region **`qwen.qwen3-235b-a22b-2507-v1:0`** (Qwen3 235B A22B 2507). |
 | LLM teks ringan | Bedrock Jakarta in-region **`qwen.qwen3-32b-v1:0`** (Qwen3 32B). |
 | LLM penantang (hanya di evaluasi) | `deepseek.v3.2`, `openai.gpt-oss-120b-1:0`. Dipakai di produksi hanya bila menang di golden set. |
 | Suara → teks (A3, ditahan) | Satu-satunya model audio yang tercantum in-region untuk Jakarta di kartu model Bedrock: **Voxtral Small 24B / Mini 3B**. Calon: **`mistral.voxtral-small-24b-2507`**, dengan risiko besar: status Legacy (EOL 30 Mar 2027), Bahasa Indonesia tidak di daftar bahasa resmi, dan halaman "per region" tidak mencantumkan Jakarta (**perlu dicek** di konsol). Scribe **tetap ditahan**. Whisper self-host = opsi nanti bila ada anggaran. |
-| OCR KTP (A4) | **Jalur utama: Bedrock `amazon.nova-lite-v1:0` in-region Jakarta** (model ID langsung, tanpa Geo) membaca foto → JSON field, lalu **pengurai aturan** (NIK 16 digit, tanggal, jenis kelamin) memvalidasi. Foto tidak disimpan di penyedia. Resepsionis memverifikasi sebelum disimpan. PaddleOCR self-host = opsi nanti. |
+| OCR KTP (A4) | **Jalur utama yang dituju: Tesseract** (data bahasa Indonesia) + pengurai aturan NIK, di server sendiri. **Kendala:** Hostinger Cloud Startup tanpa root dan tidak mengizinkan `apt`/program terkompilasi, jadi Tesseract sistem belum bisa dipasang di hosting sekarang (2.5). Sementara itu: ketik manual + aturan + lampiran foto. **Nova Lite** in-region = upgrade opsional di belakang saklar berbayar. **Nova Pro bukan cadangan.** Resepsionis memverifikasi. NIK terenkripsi dan di-mask. |
 | Embedding | **Ditunda.** Bedrock Jakarta tidak punya model embedding in-region dan tidak ada anggaran self-host. ICD tetap full-text + sinonim Indonesia. |
 | Reranker | **Ditunda**, alasan sama. |
 | Vector DB | **Tidak ada.** Baru dipertimbangkan bila ada model embedding in-region di Jakarta atau anggaran self-host, dan setelah pindah ke PostgreSQL 18 (D-030): **pgvector** di database yang sama, hanya untuk kamus/template. **Tidak pernah** berisi data pasien. |
@@ -56,11 +59,12 @@
 ### 2.0 Batas infrastruktur (jawaban Yohanes, 15 Nov 2026)
 **Keputusan:**
 - Aplikasi tetap di **Hostinger Cloud Startup** (hanya data palsu, D-010 dan D-030). Hosting produksi untuk data asli diputuskan nanti.
-- **Tidak ada anggaran GPU, jadi tidak ada model self-host** (tidak ada EC2 GPU, tidak ada server OCR/ASR/embedding sendiri). Semua inferensi AI lewat **Amazon Bedrock `ap-southeast-3` dengan model ID in-region**, bayar per token/per panggilan.
-- Fitur yang tidak punya model in-region yang layak di Jakarta **tidak dibangun dengan AI**; jalur deterministik (pencarian kamus, aturan, ketik manual) tetap jalan.
+- **Tidak ada anggaran GPU:** tidak ada self-host LLM, ASR, atau embedding di GPU (tidak ada EC2 GPU). Inferensi model bahasa hanya lewat **Amazon Bedrock `ap-southeast-3` dengan model ID in-region**, bayar per token/per panggilan, dan hanya jika saklar berbayar klinik menyala (2.5).
+- **OCR KTP lokal (CPU, bukan GPU) diinginkan** karena gratis dan foto tidak ke penyedia. Kendala paket Cloud Startup dan alternatifnya ada di 2.5.
+- Fitur yang tidak punya model in-region yang layak di Jakarta **tidak dibangun dengan AI**; jalur deterministik (pencarian kamus, aturan, ringkasan terstruktur, ketik manual) tetap jalan dan menjadi **default**.
 - Hostinger Cloud Startup tidak bisa memakai VPC endpoint AWS. Panggilan dari Hostinger ke Bedrock lewat HTTPS publik ke `bedrock-runtime.ap-southeast-3.amazonaws.com` dengan pengguna IAM khusus berhak minimum (bagian 11). Kunci IAM disimpan sebagai rahasia lingkungan, bukan di repo. Ini cukup untuk data palsu; untuk data asli dinilai ulang bersama keputusan hosting produksi.
 
-**Tinjau ulang bila:** ada anggaran GPU, hosting produksi dipindah ke AWS Jakarta, atau Bedrock Jakarta menambah model in-region baru (audio, embedding, reranker).
+**Tinjau ulang bila:** ada anggaran GPU, hosting pindah ke VPS atau AWS Jakarta, uji Tesseract/WASM di Cloud Startup selesai, atau Bedrock Jakarta menambah model in-region baru (audio, embedding, reranker) atau mencantumkan harga Jakarta untuk model yang kita pakai.
 
 ### 2.1 Fakta ketersediaan di Bedrock Jakarta (dicek 15 Nov 2026)
 
@@ -92,10 +96,10 @@ Layanan AWS terkelola lain di Jakarta: **Amazon Transcribe dan Amazon Textract t
 
 | Tugas | Utama | Cadangan AI | Fallback tanpa AI | Alasan |
 |---|---|---|---|---|
-| **Ringkasan rekam medis** (narasi keluhan/diagnosis/tindakan) | Qwen3 235B A22B 2507 (Bedrock Jakarta) | Qwen3 32B (lebih murah, konteks 32K cukup untuk 20 kunjungan yang dipangkas) | Ringkasan terstruktur `DeterministicSummarizer` (PR #1 2.6) | Konteks panjang, multibahasa (Qwen3 menyatakan dukungan 119 bahasa termasuk Bahasa Indonesia, [blog Qwen3](https://qwenlm.github.io/blog/qwen3/)), in-region tanpa Geo. |
-| **A2 saran tindakan dari odontogram** | **Tabel aturan** temuan→template tindakan (bukan LLM) | Qwen3 32B hanya untuk menulis alasan singkat yang mengutip temuan (opsional, bisa dimatikan) | Tabel aturan itu sendiri | Harus satu ketuk dan cepat (< 300 ms). Aturan bisa diaudit dan tidak berhalusinasi. |
-| **A4 OCR KTP** | Bedrock `amazon.nova-lite-v1:0` in-region Jakarta (model ID langsung; prefiks Geo ditolak) → JSON field, lalu pengurai aturan memvalidasi (NIK 16 digit + kode wilayah/tanggal lahir di dalam NIK cocok dengan field, tanggal valid) | Nova Pro in-region (`amazon.nova-pro-v1:0`) bila Lite gagal ambang | Ketik manual | Satu-satunya model gambar di `bedrock-runtime` Jakarta yang Active dan in-region. Foto dikirim sekali, tidak disimpan di Bedrock; resepsionis memverifikasi. Akurasi untuk KTP Indonesia: **perlu diuji** dengan KTP sintetis. PaddleOCR self-host = opsi nanti bila ada anggaran (data tidak keluar ke penyedia sama sekali). |
-| **A1 saran ICD-10/ICD-9-CM** | Pencarian kamus (full-text + sinonim Indonesia) → Qwen3 235B memilih **hanya dari kandidat** + sitasi kalimat | Qwen3 32B | Pencarian kamus manual (sudah dirancang di `feat/icd-reference`) | LLM tidak boleh mengarang kode: ruang jawab dibatasi kandidat dari kamus resmi SATUSEHAT. |
+| **Ringkasan rekam medis** (narasi keluhan/diagnosis/tindakan) | **`DeterministicSummarizer`** (PR #1 2.6) — jalur default, gratis | Qwen3 235B A22B 2507 (Bedrock Jakarta) hanya jika saklar berbayar klinik menyala; Qwen3 32B cadangan (konteks 32K cukup untuk 20 kunjungan yang dipangkas) | Ringkasan terstruktur itu sendiri (juga dipakai jika model gagal atau > 30% klaim dibuang) | Default harus tanpa biaya model. Jalur LLM tetap in-region, multibahasa (Qwen3 menyatakan dukungan 119 bahasa termasuk Bahasa Indonesia, [blog Qwen3](https://qwenlm.github.io/blog/qwen3/)), tanpa Geo. |
+| **A2 saran tindakan dari odontogram** | **Tabel aturan** temuan→template tindakan (bukan LLM) — jalur default, gratis | Qwen3 32B hanya untuk menulis alasan singkat yang mengutip temuan, dan hanya jika saklar berbayar menyala (opsional, mati default) | Tabel aturan itu sendiri | Harus satu ketuk, cepat (< 300 ms), dan tanpa biaya model. Aturan bisa diaudit dan tidak berhalusinasi. |
+| **A4 OCR KTP** | **Tesseract** (data bahasa Indonesia) di server sendiri → teks/field, lalu pengurai aturan memvalidasi (NIK 16 digit + kode wilayah/tanggal lahir di dalam NIK cocok dengan field, tanggal valid). Lihat kendala Hostinger di 2.5. | **Nova Lite** in-region (`amazon.nova-lite-v1:0`, model ID langsung, prefiks Geo ditolak) hanya sebagai upgrade opsional di belakang saklar berbayar. **Nova Pro bukan cadangan** (lebih mahal, tidak diperlukan jika jalur lokal atau Lite sudah diuji). | Ketik manual + lampiran foto terenkripsi (jalur yang jalan di Cloud Startup hari ini) | Gratis dan foto tidak ke penyedia. Tesseract sistem belum bisa dipasang di Cloud Startup (2.5). Akurasi Tesseract maupun Nova Lite untuk KTP Indonesia: **perlu diuji** dengan KTP sintetis. Resepsionis memverifikasi sebelum disimpan. PaddleOCR = opsi nanti di VPS (butuh Python, tidak ada di paket Cloud). |
+| **A1 saran ICD-10/ICD-9-CM** | Pencarian kamus (full-text + sinonim Indonesia); dokter memilih — jalur default, gratis | Qwen3 235B memilih **hanya dari kandidat** + sitasi kalimat, hanya jika saklar berbayar menyala; Qwen3 32B cadangan | Pencarian kamus itu sendiri (sudah dirancang di `feat/icd-reference`) | Default tanpa biaya model. Bila LLM dipakai, ia tidak boleh mengarang kode: ruang jawab dibatasi kandidat dari kamus resmi SATUSEHAT. |
 | **A3 scribe suara→teks** (DITAHAN) | Bedrock in-region `mistral.voxtral-small-24b-2507` (perlu dicek di konsol Jakarta) | `mistral.voxtral-mini-3b-2507` (lebih murah, lebih lemah); Prosa.ai sebagai layanan dalam negeri bayar per pakai (lokasi server, kontrak, harga: **perlu dicek**) | Ketik + frasa cepat | Satu-satunya model audio in-region di Jakarta. Risiko: Legacy (EOL 30 Mar 2027) dan Bahasa Indonesia tidak resmi didukung → wajib lulus uji dikte sintetis istilah gigi sebelum dipakai, dan harus ada pengganti sebelum Mar 2027. Whisper large-v3 self-host (Apache-2.0, Bahasa Indonesia didukung) = opsi nanti bila ada anggaran GPU. |
 | **A3 transkrip → draf SOAP** (DITAHAN) | Qwen3 235B, setiap kalimat mengutip potongan transkrip | Qwen3 32B | Transkrip mentah ditampilkan untuk diedit dokter | Sama dengan ringkasan. |
 | **Asisten jadwal** (nanti) | Aturan + pencarian slot deterministik; Qwen3 32B hanya mengurai permintaan bebas ("Selasa sore minggu depan") ke struktur | — | Formulir biasa | Tidak menyentuh data klinis. |
@@ -104,9 +108,9 @@ Layanan AWS terkelola lain di Jakarta: **Amazon Transcribe dan Amazon Textract t
 | **Radiografi / foto intraoral** | **Tidak dibangun** | — | — | Regulasi alat kesehatan perangkat lunak belum dicek (bagian 8). |
 
 ### 2.3 Self-host di GPU Jakarta: opsi nanti, tidak sekarang
-**Keputusan:** **tidak dijalankan** (tidak ada anggaran GPU, 2.0). Seam-nya tetap ada: `ModelClient` bisa punya `SelfHostedModelClient` (region `id-lokal` sudah diizinkan di `config/ai.php`). Bila kelak ada anggaran, urutan prioritas: (1) OCR KTP lokal (PaddleOCR, CPU cukup), (2) Whisper large-v3 untuk scribe, (3) embedding + reranker untuk ICD, (4) LLM open-weight (Qwen3 32B) sebagai cadangan Bedrock.
+**Keputusan:** self-host **LLM / ASR / embedding di GPU tidak dijalankan** (tidak ada anggaran GPU, 2.0). Seam-nya tetap ada: `ModelClient` bisa punya `SelfHostedModelClient` (region `id-lokal` sudah diizinkan di `config/ai.php`). **OCR KTP lokal di CPU (Tesseract) adalah jalur yang dituju sekarang**, bukan opsi nanti, tetapi terhalang paket Cloud Startup (2.5). Bila kelak ada VPS atau anggaran GPU, urutan prioritas: (1) Tesseract (atau PaddleOCR) untuk KTP di VPS, (2) Whisper large-v3 untuk scribe, (3) embedding + reranker untuk ICD, (4) LLM open-weight (Qwen3 32B) sebagai cadangan Bedrock.
 
-**Alasan:** Bedrock in-region bayar per pakai, tanpa biaya tetap dan tanpa kerja operasional. Self-host dipertimbangkan lagi bila: (a) model in-region yang kita pakai dihapus dari Jakarta, (b) biaya per token melebihi biaya server tetap, (c) kontrak/DPIA menuntut tanpa pihak ketiga model, atau (d) scribe butuh model suara Bahasa Indonesia yang tidak ada di Bedrock Jakarta.
+**Alasan:** mode gratis harus jalan tanpa GPU. Bedrock in-region tetap bayar per pakai, tanpa biaya tetap, untuk fitur LLM yang saklarnya menyala. Self-host GPU dipertimbangkan lagi bila: (a) model in-region yang kita pakai dihapus dari Jakarta, (b) biaya per token melebihi biaya server tetap, (c) kontrak/DPIA menuntut tanpa pihak ketiga model, atau (d) scribe butuh model suara Bahasa Indonesia yang tidak ada di Bedrock Jakarta.
 
 **Tinjau ulang bila:** salah satu dari (a)–(c) terjadi, atau model terbuka baru jelas lebih baik di golden set.
 
@@ -114,6 +118,45 @@ Layanan AWS terkelola lain di Jakarta: **Amazon Transcribe dan Amazon Textract t
 Model di tabel 2.2 adalah **pilihan awal**. Pilihan final per fitur ditentukan oleh golden set (bagian 10): model termurah yang lulus semua ambang menang. Setiap ganti model = ganti `model_id` di konfigurasi + jalankan suite regresi + catat di `docs/ai/model-log.md` *(baru)*.
 
 **Tinjau ulang bila:** halaman AWS "model support by Region" berubah (dicek bulanan oleh job CI yang membandingkan daftar model in-region Jakarta dengan `allowed_model_ids`), atau model terpilih masuk status Legacy.
+
+---
+
+### 2.5 Mode biaya: gratis default, LLM berbayar opsional
+
+**Keputusan** (pertanyaan Yohanes, 15 Nov 2026: apakah ini berbayar, cari yang berbiaya murah, gratis jika bisa):
+
+1. **Mode default = mode gratis.** Fitur yang tidak butuh model berbayar jalan di server sendiri, tanpa panggilan Bedrock:
+   - A2 saran tindakan: tabel aturan temuan→template.
+   - A1 ICD: pencarian full-text + sinonim Indonesia; dokter yang memilih.
+   - Ringkasan rekam medis: `DeterministicSummarizer` (sudah ada sebagai fallback, kini juga jalur default).
+   - A4 KTP: OCR lokal (Tesseract + data bahasa Indonesia) + pengurai aturan NIK, dengan kendala Hostinger di bawah.
+2. **Fitur yang butuh LLM berbayar per pakai**, tanpa biaya langganan bulanan ke Bedrock: ringkasan pintar (narasi), alasan singkat A2 (opsional), pemilihan kode ICD oleh model dari kandidat, upgrade OCR KTP Nova Lite, dan scribe (A3, tetap ditahan). Semua lewat Bedrock Jakarta in-region.
+3. **Saklar AI berbayar per klinik, mati secara default.** Saklar per klinik sudah direncanakan sebagai tindak lanjut; dokumen ini mengunci kebijakannya: mati = hanya mode gratis; nyala = fitur LLM boleh dipanggil, tetap draf per item. Di atas rate limit harian yang sudah ada (bagian 11) ditambah **batas anggaran token bulanan per klinik**. Habis anggaran atau saklar mati → fallback deterministik, bukan galat.
+4. **Tingkat gratis LLM pihak ketiga ditolak**, termasuk Gemini free tier dan yang sejenis. Pemrosesan terjadi di luar Indonesia, dan data (termasuk prompt) dapat dipakai penyedia untuk pelatihan. Itu melanggar D-009 (pemrosesan AI hanya di Indonesia, Bedrock `ap-southeast-3` in-region) dan prinsip UU PDP (data kesehatan = data spesifik; tidak memindahkan pemrosesan ke luar negeri tanpa dasar). Bedrock in-region tetap satu-satunya jalur model berbayar.
+
+**Tesseract di Hostinger Cloud Startup** (dicek 15 Nov 2026):
+- Cloud Startup adalah paket **Cloud Hosting terkelola**, bukan VPS: tanpa root, tanpa Docker ([managed hosting Hostinger](https://www.hostinger.com/support/8311982-what-is-managed-hosting-in-hostinger/), [cloud hosting](https://www.hostinger.com/cloud-hosting)).
+- Hostinger tidak mendukung pemasangan compiler atau **menjalankan program terkompilasi** di paket Web dan Cloud; Python hanya di VPS ([kemampuan server](https://www.hostinger.com/support/which-server-capabilities-are-supported-at-hostinger/), [bahasa pemrograman](https://www.hostinger.com/support/which-programming-languages-and-frameworks-are-supported-at-hostinger/)).
+- Akibatnya: `apt install tesseract-ocr tesseract-ocr-ind` **tidak bisa** di Cloud Startup. Tesseract sebagai paket sistem baru dijalankan bila ada **VPS** (root + apt).
+- Alternatif yang boleh diuji, **tanpa janji berhasil** dan tanpa angka kinerja: biner Tesseract statis di ruang pengguna, atau build PHP/WASM, *jika* `exec`/`proc_open` atau runtime WASM diizinkan di paket itu. Hasil uji baru dicatat setelah dicoba di hosting nyata.
+- Sampai salah satu jalur lokal itu benar-benar jalan, A4 di Cloud Startup memakai **ketik manual + validasi aturan NIK + lampiran foto terenkripsi**, dengan resepsionis memverifikasi.
+
+**Harga Bedrock** (sumber resmi [Amazon Bedrock Pricing](https://aws.amazon.com/bedrock/pricing/), dicek 15 Nov 2026):
+- Tidak ada biaya langganan bulanan untuk pemakaian on-demand; tagihan mengikuti token/pemakaian.
+- Halaman resmi **tidak mencantumkan** harga on-demand Qwen3 32B dan Qwen3 235B A22B 2507 untuk Asia Pacific (Jakarta). Angka Standard/Flex yang tercantum untuk kedua model itu hanya di **Asia Pacific (Sydney)**; angka itu **tidak dikutip** sebagai patokan biaya kita (wajib in-region Jakarta). Untuk Jakarta, tabel Qwen di halaman yang sama hanya mencantumkan Qwen3 Coder Next (bukan model produksi kita).
+- Harga Amazon Nova Lite in-region Jakarta tidak berhasil dibaca dari tabel interaktif halaman resmi, jadi **tidak dikutip**.
+- Tidak ada angka USD di dokumen ini. Setelah saklar dinyalakan, biaya nyata dihitung dari token di `agent_run` dan tagihan AWS.
+
+| Fitur | Mode gratis (default) | Berbayar (saklar klinik nyala) |
+|---|---|---|
+| A2 saran tindakan | Tabel aturan temuan→template | Opsional: Qwen3 32B menulis alasan singkat yang mengutip temuan |
+| A1 saran ICD | Full-text + sinonim; dokter memilih | Qwen3 memilih hanya dari kandidat kamus |
+| Ringkasan rekam medis | `DeterministicSummarizer` | Narasi pintar Qwen3 235B (32B cadangan), tetap ada fallback deterministik |
+| A4 KTP | OCR Tesseract + aturan NIK, atau ketik manual selama Tesseract belum jalan di hosting | Upgrade opsional: Nova Lite in-region + aturan yang sama |
+| A3 scribe | Tidak dibangun (ditahan) | Bila D-048 diterima: Voxtral + LLM, bayar per pakai |
+| Embedding / reranker / vector DB | Tidak ada (full-text) | Tetap ditunda |
+
+**Tinjau ulang bila:** uji Tesseract/WASM di Cloud Startup selesai, hosting pindah ke VPS, atau halaman harga Bedrock mencantumkan tarif Jakarta untuk model yang kita pakai.
 
 ---
 
@@ -138,7 +181,7 @@ Model di tabel 2.2 adalah **pilihan awal**. Pilihan final per fitur ditentukan o
 | A2 saran tindakan | (aturan, bukan LLM) temuan final per gigi/permukaan + template tindakan cabang | — |
 | A1 ICD | teks A dan P satu catatan (setelah penyaring PII) + daftar kandidat kode (kode, nama, versi kamus) | riwayat lain, identitas |
 | A3 scribe | transkrip satu sesi (dipotong per kalimat, ber-ID `T1..Tn`) + odontogram terkini (kode saja) | audio ke LLM, identitas |
-| A4 KTP | tidak ada konteks pasien; hanya satu foto KTP ke Nova Lite in-region + skema field | riwayat pasien, data lain |
+| A4 KTP | tidak ada konteks pasien; foto diproses di server (Tesseract) atau, jika saklar berbayar menyala, satu foto ke Nova Lite in-region + skema field | riwayat pasien, data lain; NIK tidak ikut prompt teks |
 
 ### 3.3 Pseudonimisasi
 - Ganti ID dengan ref pendek (`N1`, `F2`, `T7`), tanggal absolut dengan `day_offset` ("hari -14"), tanggal lahir dengan usia tahun.
@@ -146,6 +189,8 @@ Model di tabel 2.2 adalah **pilihan awal**. Pilihan final per fitur ditentukan o
 - Data tersamar **tetap data pribadi** (bisa dikaitkan kembali oleh kita). Samaran adalah lapisan tambahan, bukan alasan mengirim ke luar Indonesia.
 
 ### 3.4 Anggaran token awal (diukur ulang di evaluasi)
+
+Berlaku bila saklar berbayar klinik menyala. Mode gratis tidak memanggil model, jadi tidak memakai anggaran ini.
 
 | Fitur | Input maks | Keluaran maks | `temperature` |
 |---|---|---|---|
@@ -250,10 +295,10 @@ Filter dipasang oleh kode, bukan oleh model. Model tidak bisa meminta korpus lai
 
 | Agen (`AgentKind`) | Tugas | Alat baca | Alat tulis | Batas | Siapa menyetujui |
 |---|---|---|---|---|---|
-| Ringkasan (`ringkasan`) | ringkas riwayat dengan sitasi | `ClinicalHistory`, `MedicalHistoryReader`, `Odontogram` (final saja) | `propose_draft(kind=ringkasan)` (tidak pernah bisa disetujui jadi catatan) | 1 panggilan, 12K token | dokter membaca |
+| Ringkasan (`ringkasan`) | ringkas riwayat dengan sitasi | `ClinicalHistory`, `MedicalHistoryReader`, `Odontogram` (final saja) | `propose_draft(kind=ringkasan)` (tidak pernah bisa disetujui jadi catatan) | 0 panggilan di mode gratis (`DeterministicSummarizer`); 1 panggilan, 12K token, jika saklar berbayar menyala | dokter membaca |
 | Saran Tindakan (A2, `koding` sementara; usul `tindakan` *(baru)*) | temuan → template tindakan | `Odontogram`, `TreatmentTemplates` | `propose_draft(kind=rencana_tindakan` *(baru)*`)` | 0 panggilan model (aturan) atau 1 untuk alasan | dokter, satu ketuk per item |
-| Koding ICD (A1, `koding`) | usul ICD-10/ICD-9-CM dari catatan | `ClinicalNote` (satu catatan), `IcdDictionary` | `propose_draft(kind=kode_icd)` per kode | 1 panggilan, ≤ 40 kandidat | dokter |
-| Pendaftaran/KTP (A4, `pendaftaran`) | foto KTP → draf identitas | gambar unggahan saja | `propose_draft(kind=pendaftaran)` | 1 panggilan Nova Lite in-region | resepsionis memverifikasi |
+| Koding ICD (A1, `koding`) | usul ICD-10/ICD-9-CM dari catatan | `ClinicalNote` (satu catatan), `IcdDictionary` | `propose_draft(kind=kode_icd)` per kode | 0 panggilan di mode gratis (kamus); 1 panggilan, ≤ 40 kandidat, jika saklar berbayar menyala | dokter |
+| Pendaftaran/KTP (A4, `pendaftaran`) | foto KTP → draf identitas | gambar unggahan saja | `propose_draft(kind=pendaftaran)` | 0 panggilan model (Tesseract/ketik + aturan); 1 panggilan Nova Lite in-region hanya jika saklar berbayar menyala | resepsionis memverifikasi |
 | Scribe (A3, `scribe`, DITAHAN) | transkrip → draf SOAP + odontogram | transkrip sesi, `Odontogram` | `propose_draft(kind=soap/odontogram)` per kalimat/temuan | 1 panggilan Voxtral + 1 panggilan LLM | dokter merawat menandatangani |
 | Jadwal (nanti, `penjadwalan`) | urai permintaan → slot usulan | `Availability` | `propose_draft(kind=janji` *(baru)*`)` | 1 panggilan ringan | resepsionis |
 
@@ -280,7 +325,7 @@ Semua agen: **tanpa aksi tulis langsung** ke tabel klinis, jadwal, tagihan, atau
 | Modalitas | Fitur | Keputusan |
 |---|---|---|
 | Suara | A3 scribe (DITAHAN) | Audio dari HP → server aplikasi → Bedrock Jakarta in-region (Voxtral, calon) → transkrip. Audio tidak ke luar Indonesia, tidak disimpan di penyedia, dihapus dari server setelah catatan ditandatangani (D-038). Transkrip → LLM hanya sebagai teks. Aturan izin pasien menunggu keputusan langsung Yohanes atas D-048 (PR #53); sampai itu D-009 butir 4 berlaku dan A3 tidak dibangun. |
-| Foto KTP | A4 | Foto → Bedrock Nova Lite in-region Jakarta (model ID langsung, tanpa Geo; Bedrock tidak menyimpan prompt/gambar) → JSON field → pengurai aturan → draf → **resepsionis memverifikasi** sebelum disimpan. Foto disimpan hanya di sistem kita, terenkripsi (D-020, D-022) sebagai lampiran profil; hanya peran berizin; NIK di-mask di UI dan tidak pernah di-log. NIK tidak ikut prompt teks; model hanya membaca gambar. |
+| Foto KTP | A4 | Jalur yang dituju: foto → **Tesseract** (data bahasa Indonesia) di server sendiri → field + pengurai aturan NIK → draf → **resepsionis memverifikasi** sebelum disimpan. Di Cloud Startup hari ini Tesseract sistem belum bisa dipasang (2.5), jadi ketik manual + aturan + lampiran foto. Upgrade opsional di belakang saklar berbayar: Nova Lite in-region (model ID langsung, tanpa Geo; Bedrock tidak menyimpan prompt/gambar). **Nova Pro bukan cadangan.** Foto disimpan hanya di sistem kita, terenkripsi (D-020, D-022) sebagai lampiran profil; hanya peran berizin (`patient.ktp.view`); NIK di-mask di UI dan tidak pernah di-log. NIK tidak ikut prompt teks bila Nova Lite dipakai. |
 | Foto intraoral, radiografi | — | **Di luar MVP.** Fitur yang **menafsirkan** gambar medis (mendeteksi karies, lesi periapikal) kemungkinan termasuk perangkat lunak alat kesehatan (SaMD) yang butuh izin edar Kemenkes. Aturan persisnya (klasifikasi risiko, izin edar perangkat lunak) **perlu dicek** dengan konsultan regulasi sebelum desain dimulai. Menyimpan dan menampilkan foto (before-after per gigi, tanpa penafsiran) bukan fitur AI dan boleh jalan terpisah. |
 
 **Tinjau ulang bila:** status regulasi SaMD sudah jelas, Bedrock Jakarta menambah model suara in-region yang mendukung Bahasa Indonesia secara resmi, atau Voxtral mendekati EOL (30 Mar 2027).
@@ -352,8 +397,8 @@ Ganti `model_id`, `prompt_version`, `CONTEXT_VERSION`, versi kamus, tabel sinoni
 
 - **Audit:** setiap panggilan = satu `agent_run` + satu `audit_event` `ai_panggil` (sudah di A0), berhasil maupun gagal. Isi: agen, provider, `model_id`, region, `prompt_version`, `CONTEXT_VERSION`, hash input, `input_refs` (ID, bukan isi), token, latensi, hasil, jumlah klaim dibuang per alasan. Setiap setuju/tolak/edit = `audit_event`.
 - **Tanpa isi di log:** prompt, keluaran mentah, transkrip, dan NIK tidak masuk log aplikasi, CloudTrail data events, atau APM. Payload draf disimpan terenkripsi (`payload_enc`, D-020).
-- **Biaya:** token (dan detik audio untuk scribe) per `agent_run` dijumlah per tenant/fitur per hari; batas harian per tenant (rate limit) dan per dokter; peringatan di 80% anggaran. Bila anggaran habis: fallback deterministik, bukan galat.
-- **Keamanan:** dari Hostinger ke Bedrock Jakarta lewat HTTPS (TLS) ke endpoint regional `bedrock-runtime.ap-southeast-3.amazonaws.com`; VPC endpoint tidak tersedia dari Hostinger (2.0) dan dinilai ulang saat hosting produksi. Pengguna IAM khusus aplikasi: hanya `bedrock:InvokeModel`/`Converse` pada ARN `foundation-model` daftar-izin di `ap-southeast-3`; tolak `inference-profile`; tolak region lain (sintaks kebijakan persisnya **perlu dicek**, PR #1 4.1); kunci dirotasi berkala dan disimpan sebagai rahasia lingkungan. Tidak ada model self-host.
+- **Biaya:** lihat tabel mode gratis vs berbayar di 2.5. Saklar AI berbayar per klinik **mati secara default**. Token (dan detik audio untuk scribe) per `agent_run` dijumlah per tenant/fitur; **batas harian** per tenant (rate limit) dan per dokter **plus batas anggaran token bulanan per klinik**; peringatan di 80% anggaran. Bila anggaran habis atau saklar mati: fallback deterministik, bukan galat. Angka harga per token tidak dikutip (2.5).
+- **Keamanan:** dari Hostinger ke Bedrock Jakarta lewat HTTPS (TLS) ke endpoint regional `bedrock-runtime.ap-southeast-3.amazonaws.com`; VPC endpoint tidak tersedia dari Hostinger (2.0) dan dinilai ulang saat hosting produksi. Pengguna IAM khusus aplikasi: hanya `bedrock:InvokeModel`/`Converse` pada ARN `foundation-model` daftar-izin di `ap-southeast-3`; tolak `inference-profile`; tolak region lain (sintaks kebijakan persisnya **perlu dicek**, PR #1 4.1); kunci dirotasi berkala dan disimpan sebagai rahasia lingkungan. Tidak ada LLM self-host; OCR lokal hanya Tesseract bila host mengizinkan (2.5).
 - **Retensi:** `agent_run` dan audit ikut retensi rekam medis (≥ 25 tahun, D-005) karena menjelaskan bagaimana catatan terbentuk. Isi draf ringkasan dikosongkan setelah kedaluwarsa (usul 7 hari, PR #1 Q3). Audio dihapus setelah tanda tangan (D-038). Foto KTP mengikuti retensi identitas pasien.
 - **UU PDP:** AI masuk DPIA (Pasal 34) sebelum data asli; penilaian Pasal 56 tidak diperlukan selama semua pemrosesan di Indonesia, tetapi tetap didokumentasikan; data minimum (Pasal 16 prinsip, nomor pasal **perlu dicek**).
 - **Permenkes 24/2022:** draf AI bukan rekam medis sampai ditandatangani (Pasal 16); catatan hanya ditambah (D-017); kode ICD final dari dokter (Pasal 18).
@@ -368,10 +413,10 @@ Ganti `model_id`, `prompt_version`, `CONTEXT_VERSION`, versi kamus, tabel sinoni
 |---|---|---|---|
 | **A0** (selesai, PR #54) | `AgentRuns`, `AgentDrafts`, `ModelClient` (Fake + kerangka Bedrock Jakarta), `CitationValidator`, migrasi `agent_run`/`agent_draft`, audit | 183 tes backend + 13 frontend lulus | sudah |
 | **A0.1** | daftar-izin `allowed_model_ids` menggantikan daftar-larangan prefiks; folder `resources/prompts`; `CONTEXT_VERSION` di `agent_run`; kerangka golden set + runner evaluasi; job cek bulanan daftar model in-region Jakarta | tes: model ID di luar daftar ditolak, termasuk `ca.`/`us-gov.` | CI hijau, PR draft |
-| **Ringkasan** (S1–S7 PR #1) | `DeterministicSummarizer` dulu, lalu jalur LLM di belakang Fake, layar dengan sitasi | golden set 30 kasus; klaim tanpa sumber 0; alergi terlewat 0 | metrik 10.2 lulus dengan Fake + tes RBAC/tenant/audit |
+| **Ringkasan** (S1–S7 PR #1) | `DeterministicSummarizer` sebagai default (mode gratis); jalur LLM di belakang Fake **dan** saklar berbayar per klinik (mati default), layar dengan sitasi | golden set 30 kasus; klaim tanpa sumber 0; alergi terlewat 0 | metrik 10.2 lulus dengan Fake + tes RBAC/tenant/audit |
 | **A2** saran tindakan | tabel aturan temuan→template, `propose_draft` per item, tombol satu ketuk di mode Dokter (PR #52) | golden set 40 odontogram sintetis; presisi/recall ≥ 90% | p95 ≤ 300 ms; Yohanes menguji alur satu ketuk; aturan ditandai "belum divalidasi klinis" sampai ditinjau dokter gigi berizin |
-| **A4** KTP | Nova Lite in-region (daftar-izin model ID), prompt + skema field berversi, pengurai + validasi NIK, draf pendaftaran, verifikasi resepsionis, lampiran terenkripsi, NIK mask | 50 gambar KTP **sintetis** (dibuat, bukan foto KTP asli) | ambang 10.2; NIK tidak muncul di log maupun teks prompt (tes) |
-| **A1** ICD | tabel sinonim, pencarian kandidat, prompt pilih-dari-kandidat, validator kamus | golden set 50 catatan; recall kandidat@40 ≥ 0,95 | ambang 10.2; bila recall kandidat gagal → perbaiki sinonim/aturan (4.2), embedding tetap ditunda |
+| **A4** KTP | pengurai + validasi NIK, draf pendaftaran, verifikasi resepsionis, lampiran terenkripsi, NIK mask, izin `patient.ktp.view`; OCR Tesseract bila host mengizinkan (2.5), atau ketik manual di Cloud Startup; Nova Lite in-region opsional di belakang saklar berbayar (daftar-izin model ID, prompt + skema field berversi) | 50 gambar KTP **sintetis** (dibuat, bukan foto KTP asli) | ambang 10.2; NIK tidak muncul di log maupun teks prompt (tes); Tesseract sistem tidak diandaikan ada di Cloud Startup |
+| **A1** ICD | tabel sinonim, pencarian kandidat (default, dokter memilih); prompt pilih-dari-kandidat hanya jika saklar berbayar menyala; validator kamus | golden set 50 catatan; recall kandidat@40 ≥ 0,95 | ambang 10.2; bila recall kandidat gagal → perbaiki sinonim/aturan (4.2), embedding tetap ditunda |
 | **A3** scribe (DITAHAN) | cek Voxtral Small di konsol Jakarta, uji dikte sintetis istilah gigi (Voxtral Small vs Mini, plus Prosa bila ada penawaran), draf SOAP per kalimat bersitasi transkrip, hapus audio | 30 rekaman dikte **sintetis** (dibacakan dari naskah) | menunggu keputusan langsung Yohanes atas D-048; lalu ambang 10.2; rencana pengganti sebelum EOL Voxtral 30 Mar 2027 |
 | **Lainnya** | asisten jadwal; radiografi hanya setelah status SaMD jelas | — | — |
 
@@ -382,9 +427,10 @@ Setiap unit = satu branch kecil + PR draft, tidak di-merge tanpa persetujuan Yoh
 ## 13. Pertanyaan terbuka untuk Yohanes
 
 **Sudah dijawab (15 Nov 2026):**
-- *Anggaran GPU:* tidak ada; hanya Hostinger Cloud Startup → tidak ada self-host, semua lewat Bedrock Jakarta in-region (2.0).
+- *Anggaran GPU:* tidak ada; hanya Hostinger Cloud Startup → tidak ada self-host LLM/ASR/embedding di GPU; LLM hanya lewat Bedrock Jakarta in-region bila saklar berbayar menyala (2.0, 2.5).
+- *Apakah AI berbayar, cari yang murah/gratis:* mode gratis default; saklar berbayar per klinik mati default + batas token bulanan; tingkat gratis LLM luar negeri ditolak; harga per token tidak dikutip dari halaman resmi karena tarif Jakarta untuk model kita tidak tercantum (2.5).
 - *Dokter gigi peninjau:* belum ada → golden set disusun tim AI dari referensi standar, Yohanes menguji sebagai pengguna; validasi klinis dokter gigi berizin wajib sebelum data asli (10.1).
-- *Cadangan KTP ke Nova Lite:* Nova Lite in-region justru jadi jalur utama, foto tidak disimpan di penyedia, resepsionis memverifikasi (8).
+- *Cadangan KTP ke Nova Lite / biaya (15 Nov 2026 malam):* jalur utama yang dituju adalah Tesseract + aturan; Nova Lite hanya upgrade opsional di belakang saklar berbayar; Nova Pro bukan cadangan. Tesseract sistem belum bisa dipasang di Cloud Startup (2.5, 8).
 - *Model peringkat per tenant* (diserahkan ke tim AI): diputuskan **satu model global** dari umpan balik agregat tanpa identitas; per tenant tidak dibuat sampai ada klinik nyata yang meminta dan menyetujui tertulis (9).
 - *Panduan klinis untuk RAG* (diserahkan ke tim AI): **tidak ada korpus panduan di MVP**; korpus hanya kamus ICD dan template tindakan. Panduan baru ditambahkan bila ada dokumen berlisensi atau milik klinik sendiri (4).
 - *Calon scribe:* tetap Voxtral in-region (sesuai D-037 butir 4, kini Small 24B sebagai calon utama), dengan risiko Legacy/EOL dan Bahasa Indonesia yang wajib diuji; Whisper self-host jadi opsi nanti. D-037 butir 4 cukup diberi catatan bahwa calon diperluas ke Voxtral Small 24B dan EOL 30 Mar 2027 (dilakukan saat D-049 diterima).
@@ -407,7 +453,7 @@ flowchart LR
     API["API Laravel<br/>RBAC + tenant scope"]
     CA["Perakit konteks<br/>query bertipe + filter<br/>tenant/cabang/pasien/izin/waktu"]
     PS["Pseudonimisasi<br/>+ anggaran token"]
-    DET["Jalur deterministik<br/>(aturan, kamus, ringkasan terstruktur)"]
+    DET["Jalur deterministik (default, gratis)<br/>(aturan, kamus, ringkasan, OCR/ketik KTP)"]
     AR["AgentRuns<br/>audit agent_run"]
     VAL["Validasi<br/>JSON Schema + CitationValidator<br/>+ validator domain"]
     AD["AgentDrafts<br/>agent_draft terenkripsi"]
@@ -415,8 +461,8 @@ flowchart LR
     KB[("Korpus pengetahuan<br/>kamus ICD, sinonim, template<br/>(tanpa data pasien)")]
     DB[("DB klinis<br/>hanya ditambah")]
   end
-  subgraph Jakarta["AWS Bedrock ap-southeast-3 (in-region, bayar per pakai)"]
-    BR["Qwen3 235B / 32B (teks)<br/>Nova Lite (foto KTP)<br/>Voxtral (suara, ditahan)"]
+  subgraph Jakarta["AWS Bedrock ap-southeast-3 (in-region, bayar per pakai, hanya jika saklar klinik nyala)"]
+    BR["Qwen3 235B / 32B (teks)<br/>Nova Lite (upgrade KTP opsional)<br/>Voxtral (suara, ditahan)"]
   end
   UI --> API --> CA
   CA -->|baca final saja| DB
@@ -433,6 +479,8 @@ flowchart LR
 ```
 
 ## Lampiran B. Alur A1 saran ICD (contoh sintetis)
+
+Alur di bawah ini adalah **jalur berbayar** (saklar klinik nyala): model hanya memilih dari kandidat kamus. **Default mode gratis** berhenti setelah pencarian full-text + sinonim; dokter yang memilih, tanpa memanggil Bedrock.
 
 ```mermaid
 sequenceDiagram
