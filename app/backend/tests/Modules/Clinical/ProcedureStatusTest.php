@@ -96,4 +96,14 @@ class ProcedureStatusTest extends TestCase
         $this->assertFalse($this->inA(fn () => InvoiceLine::where('finding_id', $new)->exists()));
         $this->assertTrue($this->inA(fn () => AuditEvent::where('action', 'tarif_tidak_ada')->exists()));
     }
+
+    public function test_status_change_copies_diagnosis_to_new_final_row(): void
+    {
+        $v = $this->todayVisit();
+        $f = $this->inA(fn () => ToothFinding::create(['patient_id' => $v->patient_id, 'visit_id' => $v->id, 'tooth' => 46, 'surface' => 'O',
+            'condition' => 'karies', 'status' => 'direncanakan', 'procedure_code' => '23.2', 'diagnosis_code' => 'K02.1', 'diagnosis_source' => 'aturan',
+            'state' => 'final', 'created_by' => $this->user(self::DOC)->id]));
+        $this->as(self::DOC)->postJson("/api/findings/{$f->id}/status", ['to' => 'selesai'])->assertCreated()
+            ->assertJsonPath('supersedes_id', $f->id)->assertJsonPath('diagnosis_code', 'K02.1')->assertJsonPath('diagnosis_source', 'aturan');
+    }
 }

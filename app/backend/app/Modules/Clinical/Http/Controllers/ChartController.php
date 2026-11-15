@@ -88,7 +88,7 @@ class ChartController extends Controller
 
     public static function finding(ToothFinding $f): array
     {
-        return $f->only(['id', 'visit_id', 'tooth', 'surface', 'condition', 'status', 'procedure_code', 'variant', 'state', 'source', 'supersedes_id', 'created_by', 'finalized_by', 'finalized_at']);
+        return $f->only(['id', 'visit_id', 'tooth', 'surface', 'condition', 'status', 'procedure_code', 'variant', 'diagnosis_code', 'diagnosis_source', 'state', 'source', 'supersedes_id', 'created_by', 'finalized_by', 'finalized_at']);
     }
 
     private static function note(ClinicalNote $n, $names, ?CorrectionRequest $pending): array

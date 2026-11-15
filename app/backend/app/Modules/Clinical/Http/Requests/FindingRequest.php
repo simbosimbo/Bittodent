@@ -28,6 +28,8 @@ class FindingRequest extends FormRequest
             'source' => ['sometimes', 'string', 'in:manual,ai_draft'],
             'status' => ['sometimes', 'string', 'in:'.implode(',', ProcedureStatus::ALL)],
             'procedure_code' => ['bail', 'sometimes', 'nullable', 'string', 'regex:'.Soap::ICD9CM, OfficialIcdCode::icd9cm()],
+            'diagnosis_code' => ['bail', 'sometimes', 'nullable', 'string', 'regex:'.Soap::ICD10, OfficialIcdCode::icd10()],
+            'diagnosis_source' => ['sometimes', 'string', 'in:aturan,riwayat,manual,agen'],
             'variant' => ['sometimes', 'string', 'regex:/^[a-z0-9_]{1,10}$/'], // tariff level code; Clinical cannot see Tariffs (D-035)
         ];
     }

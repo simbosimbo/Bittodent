@@ -37,7 +37,7 @@ class FindingController extends Controller
             $f ??= new ToothFinding(['patient_id' => $visit->patient_id, 'visit_id' => $id, 'tooth' => $d['tooth'],
                 'surface' => $d['surface'], 'created_by' => $me, 'state' => 'draft']);
             $created = ! $f->exists;
-            $f->fill(['condition' => $d['condition'], 'source' => $d['source'] ?? 'manual', ...self::procedure($d, $f)])->save();
+            $f->fill(['condition' => $d['condition'], 'source' => $d['source'] ?? 'manual', ...self::procedure($d, $f), ...self::diagnosis($d, $f)])->save();
             Audit::log($created ? 'buat' : 'ubah', 'tooth_finding', $f->id, ['tooth' => $f->tooth, 'surface' => $f->surface]);
 
             return response()->json(ChartController::finding($f), $created ? 201 : 200);
@@ -52,7 +52,7 @@ class FindingController extends Controller
             if ($e = Odontogram::error($f->tooth, $f->surface, $d['condition'])) {
                 return response()->json(['message' => $e, 'errors' => ['condition' => [$e]]], 422);
             }
-            $f->update(['condition' => $d['condition'], 'source' => $d['source'] ?? $f->source, ...self::procedure($d, $f)]);
+            $f->update(['condition' => $d['condition'], 'source' => $d['source'] ?? $f->source, ...self::procedure($d, $f), ...self::diagnosis($d, $f)]);
             Audit::log('ubah', 'tooth_finding', $f->id);
 
             return response()->json(ChartController::finding($f));
@@ -80,7 +80,7 @@ class FindingController extends Controller
             if (! $ctx->coversBranch($visit->branch_id)) {
                 return Audit::denied('branch:'.$visit->branch_id);
             }
-            $new = ToothFinding::create([...$f->only(['patient_id', 'tooth', 'surface', 'condition', 'procedure_code', 'variant']),
+            $new = ToothFinding::create([...$f->only(['patient_id', 'tooth', 'surface', 'condition', 'procedure_code', 'variant', 'diagnosis_code', 'diagnosis_source']),
                 'visit_id' => $visit->id, 'status' => $d['to'], 'state' => 'final', 'source' => 'manual', 'supersedes_id' => $f->id,
                 'created_by' => $ctx->userId, 'finalized_by' => $ctx->userId, 'finalized_at' => now()]);
             Audit::log('ubah_status', 'tooth_finding', $new->id, ['supersedes' => $f->id, 'from' => $f->status, 'to' => $d['to']]);
@@ -104,6 +104,15 @@ class FindingController extends Controller
     {
         return ['status' => $d['status'] ?? $f->status ?? 'kondisi_pantau', 'procedure_code' => array_key_exists('procedure_code', $d) ? $d['procedure_code'] : $f->procedure_code,
             'variant' => $d['variant'] ?? $f->variant ?? 'standar'];
+    }
+
+    /** ICD-10 per finding: a code set through the API without a source is `manual`; no code = no source. */
+    private static function diagnosis(array $d, ToothFinding $f): array
+    {
+        $sent = array_key_exists('diagnosis_code', $d);
+        $code = $sent ? $d['diagnosis_code'] : $f->diagnosis_code;
+
+        return ['diagnosis_code' => $code, 'diagnosis_source' => $code === null ? null : ($d['diagnosis_source'] ?? ($sent ? 'manual' : $f->diagnosis_source))];
     }
 
     /** DELETE /api/findings/{id}: no SQL DELETE on clinical tables; the draft is marked `discarded`. */
