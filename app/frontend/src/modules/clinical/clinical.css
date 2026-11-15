@@ -2,7 +2,7 @@
 .card-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
 .card-head h2 { margin: 0 8px 0 0; }
 .badge { display: inline-block; font-size: 11px; font-weight: 650; border-radius: 999px; padding: 2px 9px; border: 1px solid transparent; white-space: nowrap; }
-.badge-draft { color: #6D28D9; background: #F3EEFF; border: 1px dashed #6D28D9; }
+.badge-draft { color: var(--color-draft-fg); background: var(--color-draft-bg); border: 1px solid var(--color-draft-border); }
 .badge-ai { color: #6D28D9; background: #F3EEFF; border: 1px dashed #6D28D9; }
 .badge-ai::before { content: '◆ '; color: #A15C00; }
 .badge-signed { color: #fff; background: #111827; }
@@ -46,11 +46,11 @@
 .cond-sehat { color: #0B7A45; } .cond-karies { color: #BE123C; } .cond-tambalan { color: #1E40AF; } .cond-mahkota { color: #6D28D9; }
 .cond-hilang { color: #3F3F46; } .cond-sisa_akar { color: #9A3412; } .cond-perlu_dicabut { color: #A15C00; } .cond-implan { color: #0F5F63; }
 
-.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 10px; flex-wrap: wrap; }
-.tabs button { background: none; border: none; border-bottom: 2px solid transparent; padding: 8px 10px; font: inherit; cursor: pointer; color: var(--muted); }
-.tabs button.is-active { color: inherit; border-bottom-color: var(--accent-600, #0E8579); font-weight: 650; }
+.soap .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 10px; flex-wrap: wrap; }
+.soap .tabs button { background: none; border: none; border-bottom: 2px solid transparent; padding: 8px 10px; font: inherit; cursor: pointer; color: var(--muted); }
+.soap .tabs button.is-active { color: inherit; border-bottom-color: var(--accent-600, #0E8579); font-weight: 650; }
 .soap-panel { display: grid; gap: 8px; }
-.soap-panel textarea, .dialog textarea { width: 100%; font: inherit; }
+.soap-panel textarea, .dialog textarea { width: 100%; font: inherit; font-size: var(--font-size-note); line-height: var(--font-line-height-normal); }
 
 .timeline { list-style: none; padding: 0; margin: 0; }
 .timeline > li { border-left: 2px solid var(--border); padding: 0 0 14px 14px; position: relative; }
@@ -84,3 +84,132 @@ label.check { flex-direction: row; gap: 8px; align-items: flex-start; font-weigh
 .st-superseded { color: #6B7280; background: #F3F4F6; }
 .st-tidak_dikerjakan { color: #6B7280; background: #fff; text-decoration: line-through; }
 .baseline-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+
+/* Chart inside PatientPage */
+.chart-meta { text-align: right; }
+.chart-cta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); margin: var(--space-3) 0 0; color: var(--text); }
+.chart-cta p { margin: 0; }
+.walk-in { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-2); margin: var(--space-2) 0; }
+.walk-in .btn { min-height: 44px; }
+
+/* 3D odontogram chrome (read-only render; per-tooth/surface CSS + legend colours come from public/odontogram-3d/*.css). */
+.odo3d { --halo: #fff; overflow-x: auto; max-width: 100%; padding: var(--space-2) 0; background: var(--shells-a-color-sidebar); border-radius: var(--radius-md); }
+.odo3d .chart { display: flex; flex-direction: column; align-items: center; min-width: max-content; margin: 0 auto; }
+.odo3d .jaw-block { display: flex; flex-direction: column; align-items: center; }
+.odo3d .jaw-block + .jaw-block { margin-top: var(--space-4); padding-top: var(--space-2); border-top: 1px solid var(--border); }
+.odo3d .dentlabel { align-self: flex-start; font-size: var(--font-size-base); font-weight: 600; margin: 4px 0 8px; }
+.odo3d .arch-grid { display: grid; justify-content: center; column-gap: 0; row-gap: 0; }
+.odo3d .arch-grid .mid { border-left: 1.5px dashed var(--border); justify-self: center; width: 0; }
+.odo3d .side-label { font-size: var(--font-size-xs); font-weight: 600; color: var(--muted); padding-bottom: 4px; }
+.odo3d .num { display: block; width: 100%; text-align: center; color: var(--text); font: 600 var(--font-size-xs)/1.2 var(--font-family-mono); padding: 4px 0; }
+.odo3d .t3 { z-index: 1; cursor: pointer; border-radius: 8px; }
+/* Ring sits outside the tooth so it does not cover the render. */
+.odo3d .t3:focus-visible, .odo3d .t3.is-sel { outline: 2px solid var(--color-primary-700); outline-offset: 4px; }
+.odo3d .t3-hit { position: absolute; pointer-events: auto; border-radius: 50%; }
+.odo3d .t3-hit:hover { box-shadow: inset 0 0 0 1.5px var(--color-primary-700); }
+.odo3d .t3-sel { position: absolute; inset: 0; display: none; background: var(--color-primary-700); opacity: .35; mix-blend-mode: multiply;
+  -webkit-mask: var(--mask) calc(var(--i) * 100% / 6) 0 / 700% 100% no-repeat; mask: var(--mask) calc(var(--i) * 100% / 6) 0 / 700% 100% no-repeat; }
+.odo3d .t3-sel.is-sel { display: block; }
+/* Draft wash stays a light cue; lock sits in the corner (positioned in JS) and must not hide the crown. */
+.odo3d .t3[data-state="draft"] .state-frame { fill-opacity: .06; stroke-width: 1; stroke-opacity: .6; }
+.odo3d .t3[data-state="signed"] .state-frame { stroke-width: 1; stroke-opacity: .5; }
+.odo3d-note { margin: var(--space-1) 0 0; line-height: 1.3; }
+.odo-legend-toggle { margin: 0 0 var(--space-1); }
+.odo-legends { display: flex; flex-wrap: wrap; gap: 2px var(--space-4); margin: 0 0 var(--space-2); }
+.odo-legends .odo-legend { margin: 0; }
+
+/* Rekam Medis: Tampilan 2D/3D + Dentisi segmented controls (own CSS; Zendenta-style track, white selected segment). */
+.card-head-tools { margin-left: auto; display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); align-items: center; }
+.seg-field { display: flex; align-items: center; gap: var(--space-2); }
+.seg-label { font-size: var(--font-size-xs); font-weight: 600; color: var(--muted); }
+.seg { display: inline-flex; gap: 2px; padding: 3px; background: var(--color-neutral-50); border: 1px solid var(--color-neutral-200); border-radius: var(--radius-md); }
+.seg button { font: inherit; border: 0; background: transparent; min-height: var(--shells-a-size-touch); min-width: var(--shells-a-size-touch); padding: 0 var(--space-3);
+  border-radius: var(--radius-sm); cursor: pointer; color: var(--color-neutral-700); font-weight: var(--font-weight-medium); }
+.seg button.is-on { background: var(--surface); color: var(--color-primary-800); box-shadow: var(--shadow-sm); }
+.seg button:focus-visible { outline: 2px solid var(--accent-600); outline-offset: 1px; }
+.odo2d-wrap { overflow-x: auto; max-width: 100%; }
+.odontogram.is-compact { max-width: 760px; max-height: 300px; min-width: 640px; }
+.findings-wrap { overflow-x: auto; margin: var(--space-3) 0; }
+.findings-wrap > p { margin: var(--space-1) 0 0; }
+.table.findings tbody tr { cursor: auto; }
+.table.findings td { padding: var(--space-2) 12px; vertical-align: middle; }
+.table.findings td .btn + .btn { margin-left: 4px; }
+
+/* Rekam Medis layout: inner tabs, odontogram (8) + tooth panel (4), findings full width. */
+.chart-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); }
+.chart-tabs button { display: inline-flex; align-items: center; min-height: var(--shells-a-size-touch); padding: 0 16px; margin-bottom: -1px; border: 0; border-bottom: 2px solid transparent;
+  background: none; font: inherit; font-weight: 600; color: var(--muted); cursor: pointer; }
+.chart-tabs button:hover { color: var(--text); }
+.chart-tabs button.on { color: var(--color-primary-700); border-bottom-color: var(--color-primary-700); }
+.chart-tabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.chart-grid { align-items: start; }
+/* 8 + 4 berdampingan sampai 1101px (≤1280 sidebar sudah rel ikon); di bawahnya .grid-12 menumpuk (styles.css). */
+@media (min-width: 1281px) and (max-width: 1365px) { .chart-grid > .span-8, .chart-grid > .span-4 { grid-column: span 12; } }
+/* 3D scaled with CSS zoom (layout + hit-testing scale together, so picks still land on the tooth).
+   --odo3d-zoom = fit-to-viewport-height from Odontogram3D (0.45–0.78); 0.62 until measured. Phone overrides below. */
+.odo-card .odo3d { padding: var(--space-1) 0; }
+.odo-card .odo3d .chart { zoom: var(--odo3d-zoom, 0.62); }
+/* FDI numbers stay ~9px on screen however small the fit zoom gets. */
+@media (min-width: 721px) { .odo-card .odo3d .num { font-size: max(var(--font-size-xs), calc(9px / var(--odo3d-zoom, 0.62))); } }
+.odo-card .odo3d .jaw-block + .jaw-block { margin-top: var(--space-2); }
+
+.tooth-panel { display: grid; gap: var(--space-3); align-content: start; }
+.tooth-panel h2 { margin: 0; }
+.tooth-panel p { margin: 0; }
+.tooth-panel .picker-pop { margin: 0; }
+.tooth-empty { padding: var(--space-6) 0; text-align: center; }
+.tooth-panel-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.tooth-name { font-weight: 700; color: var(--text); }
+.tooth-close { min-width: var(--shells-a-size-touch); min-height: var(--shells-a-size-touch); font-size: 20px; line-height: 1; }
+.surf-pad { display: grid; grid-template-columns: repeat(3, 44px); grid-template-areas: '. top .' 'left center right' '. bottom .'; gap: 6px; justify-content: start; }
+.surf { min-width: 44px; min-height: 44px; border: 1px solid var(--color-neutral-200); border-radius: var(--radius-sm); background: var(--surface);
+  font: 700 var(--font-size-base) var(--font-family-mono); color: var(--text); cursor: pointer; }
+.surf:hover { border-color: var(--color-primary-700); }
+.surf[aria-pressed='true'] { background: var(--color-primary-700); border-color: var(--color-primary-700); color: #fff; }
+.surf:focus-visible { outline: 2px solid var(--accent-600); outline-offset: 2px; }
+.surf-top { grid-area: top; } .surf-left { grid-area: left; } .surf-center { grid-area: center; } .surf-right { grid-area: right; } .surf-bottom { grid-area: bottom; }
+.tooth-findings { margin: 0; }
+.tooth-panel .btn.cond { min-height: 40px; }
+
+/* Mobile (≤720px): sticky compact header (allergies stay on screen), odontogram scrolls sideways, tooth detail = bottom sheet. */
+@media (max-width: 720px) {
+  .patient-head:has(.patient-alerts) {
+    position: sticky; top: var(--shell-sticky-h, 0px); z-index: 4; margin: calc(-1 * var(--space-3)) calc(-1 * var(--space-3)) var(--space-3);
+    padding: var(--space-2) var(--space-3); background: var(--bg); border-bottom: 1px solid var(--border);
+  }
+  .patient-head:has(.patient-alerts) h1 { font-size: var(--font-size-lg); }
+  .patient-head:has(.patient-alerts) { flex-wrap: nowrap; }
+  .patient-head:has(.patient-alerts) .patient-head-main { flex: 1 1 0; } /* ⋯ menu stays beside the name */
+  .patient-head:has(.patient-alerts) .avatar-lg, .patient-head .chart-actions { display: none; } /* Buat janji: Jadwal tab */
+  .card-head-tools { margin-left: 0; }
+  /* 2D keeps ~1:1 scale (44px teeth); one sideways scroller for both arches (renderer draws one SVG). */
+  .odo2d-wrap { overscroll-behavior-x: contain; }
+  .odo2d-wrap .odontogram { min-width: 820px; }
+  .odo2d-wrap .odontogram.is-compact { min-width: 640px; }
+  /* ≤480px (sketch 06): one scroller per jaw, stacked; the jaws scroll independently. */
+  .odo-jaw-hint { margin: 0 0 var(--space-2); }
+  .odo-jaw + .odo-jaw { margin-top: var(--space-3); }
+  .odo-jaw-head { display: flex; justify-content: space-between; gap: var(--space-2); margin: 0 0 var(--space-1);
+    font-size: var(--font-size-xs); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+  .odo-jaw-head .muted { font-weight: 500; letter-spacing: 0; text-transform: none; }
+  /* 3D: one sideways scroller per jaw. */
+  .odo-card .odo3d { overflow-x: visible; }
+  .odo-card .odo3d .chart { min-width: 0; align-items: stretch; zoom: 0.78; }
+  .odo3d .jaw-block { overflow-x: auto; align-items: flex-start; }
+  .odo3d .arch-grid { margin: 0 auto; }
+  /* Tall enough to record a finding; the patient strip (name, No. RM, allergies) stays pinned at its top while it scrolls. */
+  .tooth-sheet { display: grid; gap: var(--space-3); max-height: 80vh; padding-top: 0; border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+  .sheet-strip { position: sticky; top: 0; z-index: 1; display: grid; gap: 4px; margin: 0 calc(-1 * var(--space-4)); padding: var(--space-3) var(--space-4) var(--space-2);
+    background: var(--surface); border-bottom: 1px solid var(--border); }
+  .sheet-strip p { margin: 0; }
+  .sheet-strip .alert-ribbon.is-compact { padding: 0; background: none; border: 0; flex-wrap: wrap; overflow: visible; }
+  .sheet-strip .alert-ribbon.is-compact .alert-chip { white-space: normal; } /* allergies wrap, never scroll out of sight */
+  .tooth-sheet .btn.cond, .tooth-sheet .tooth-save, .tooth-sheet .btn-xs, .tooth-sheet select, .tooth-sheet input { min-height: 44px; }
+}
+
+/* Rekam Medis findings: summary line, chosen condition, filter + save button. */
+.odo-summary { margin: 0 0 var(--space-2); font-size: var(--font-size-sm); color: var(--text); }
+.cond[aria-pressed='true'] { background: var(--color-primary-50); outline: 2px solid currentColor; outline-offset: -2px; }
+.temuan-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.temuan-head h2 { margin: 0; }
+.tooth-save { width: 100%; min-height: var(--shells-a-size-touch); }

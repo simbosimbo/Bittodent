@@ -16,7 +16,8 @@ class Patient extends Model
 
     protected $hidden = ['nik_enc', 'nik_bidx', 'phone_enc', 'phone_bidx', 'address_enc'];
 
-    protected $casts = ['dob' => 'date:Y-m-d'];
+    protected $casts = ['dob' => 'date:Y-m-d', 'last_visit_at' => 'datetime', 'next_appointment_at' => 'datetime',
+        'care_open_visit' => 'boolean', 'care_unfinished_procedure' => 'boolean', 'care_unscheduled_plan' => 'boolean'];
 
     public static function normalizeName(string $name): string
     {

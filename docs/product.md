@@ -1,4 +1,4 @@
-# Produk: EHR Gigi Berbasis Agen AI (draf 1)
+# Produk: Bittodent Berbasis Agen AI (draf 1)
 
 *Status: draf 2, 14 Nov 2026 (cakupan MVP diperbarui setelah jawaban Jerome). Belum ada kode. Semua fakta pesaing ditautkan ke halaman resminya; yang belum dicek ditandai "perlu dicek".*
 

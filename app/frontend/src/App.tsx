@@ -1,9 +1,10 @@
 // Composition root: routes + shell. Imports modules only through their index.ts.
 import { useCallback, useEffect, useState } from 'react'
-import { ApiError } from './shared/api/http'
-import { setActivePatient, useActivePatient } from './shared/activePatient'
-import { Shell, type NavItem } from './shared/layout/Shell'
+import { ApiError, hasCsrfCookie } from './shared/api/http'
+import { clearActivePatients, useActivePatient } from './shared/activePatient'
+import { pageTitle, Shell, withActivePatientHref, type NavItem } from './shared/layout/Shell'
 import type { Me } from './shared/session'
+import { ComingSoon } from './shared/ui/ComingSoon'
 import { ICONS } from './shared/ui/Icon'
 import { getMe, Login, logout as apiLogout, switchBranch as apiSwitchBranch } from './modules/auth'
 import { AlertRibbon, FamilyPage, MedicalHistoryPage, PatientDetail, PatientForm, PatientList } from './modules/patients'
@@ -22,15 +23,19 @@ const useHash = () => {
   return hash
 }
 
-const NAV: (NavItem & { perm: string | null })[] = [
-  { path: '/', label: 'Beranda', perm: null, icon: ICONS.home },
-  { path: '/pasien', label: 'Pasien', perm: 'patient.read', icon: ICONS.users },
-  { path: '/jadwal', label: 'Jadwal', perm: 'appointment.read', icon: ICONS.calendar },
-  { path: '/rekam-medis', label: 'Rekam Medis', perm: 'note.read', icon: ICONS.tooth, group: 'pasien' },
-  { path: '/keluarga', label: 'Keluarga', perm: 'patient.read', icon: ICONS.users, group: 'pasien' },
-  { path: '/riwayat-medis', label: 'Riwayat Medis', perm: 'note.read', icon: ICONS.heart, group: 'pasien' },
-  { path: '/laporan', label: 'Laporan', perm: 'reporting.read', icon: ICONS.chart }, // unit 6: owner only
-  { path: '/pengaturan-rm', label: 'Pengaturan RM', perm: 'note.sign|settings.manage', icon: ICONS.user }, // #55: PIN Selesai
+// Permissions: existing names only; 'a|b' = either. Resep reuses note.read (no prescription permission yet); Kasir uses billing.read
+// (owner/front_desk/kasir); Laporan = owner report (reporting.read, unit 6); Pengaturan RM = Selesai PIN / clinic settings (#55).
+// Keluarga and Riwayat Medis are not in the nav: they live in the patient header menu (PatientPage).
+export const NAV: (NavItem & { perm: string | null })[] = [
+  { path: '/', label: 'Beranda', perm: null, icon: ICONS.home, section: 'KLINIK' },
+  { path: '/jadwal', label: 'Jadwal', perm: 'appointment.read', icon: ICONS.calendar, section: 'KLINIK' },
+  { path: '/antrean', label: 'Antrean', perm: 'appointment.read', icon: ICONS.queue, section: 'KLINIK' },
+  { path: '/pasien', label: 'Pasien', perm: 'patient.read', icon: ICONS.users, section: 'KLINIK' },
+  { path: '/rekam-medis', label: 'Rekam Medis', perm: 'note.read', icon: ICONS.tooth, section: 'KLINIS', group: 'pasien' },
+  { path: '/resep', label: 'Resep', perm: 'note.read', icon: ICONS.receipt, section: 'KLINIS' },
+  { path: '/pengaturan-rm', label: 'Pengaturan RM', perm: 'note.sign|settings.manage', icon: ICONS.user, section: 'KLINIS' },
+  { path: '/kasir', label: 'Kasir', perm: 'billing.read', icon: ICONS.card, section: 'KEUANGAN' },
+  { path: '/laporan', label: 'Laporan', perm: 'reporting.read', icon: ICONS.chart, section: 'KEUANGAN' },
 ]
 
 export default function App() {
@@ -40,6 +45,8 @@ export default function App() {
   const patient = useActivePatient()
 
   const load = useCallback(async () => {
+    // No XSRF-TOKEN → never had a session here; skip /api/me so a fresh guest visit logs no 401.
+    if (!hasCsrfCookie()) { setMe(null); setState('guest'); return }
     try {
       setMe(await getMe())
       setState('ready')
@@ -52,7 +59,7 @@ export default function App() {
 
   useEffect(() => {
     load()
-    const out = () => { setMe(null); setActivePatient(null); setState('guest') }
+    const out = () => { setMe(null); clearActivePatients(); setState('guest') }
     addEventListener('ehr:unauthorized', out)
     return () => removeEventListener('ehr:unauthorized', out)
   }, [load])
@@ -60,7 +67,7 @@ export default function App() {
   async function logout() {
     await apiLogout().catch(() => null)
     setMe(null)
-    setActivePatient(null)
+    clearActivePatients()
     setState('guest')
     location.hash = '/'
   }
@@ -83,8 +90,11 @@ export default function App() {
     )
 
   const can = (p: string | null) => p === null || p.split('|').some((x) => me.permissions.includes(x)) // a|b = either
-  const nav = NAV.filter((n) => can(n.perm)).map((n) => n.group === 'pasien' ? { ...n, href: patient ? `${n.path}/${patient.id}` : '/pasien' } : n)
-  const active = nav.find((n) => n.path === '/' ? hash === '/' : hash === n.path || hash.startsWith(n.path + '/'))
+  const nav = withActivePatientHref(NAV.filter((n) => can(n.perm)), patient)
+  // Keluarga / Riwayat Medis are patient screens without a nav item: they count as Pasien.
+  const navHash = hash.replace(/^\/(keluarga|riwayat-medis)\//, '/pasien/')
+  const active = nav.find((n) => n.path === '/' ? hash === '/' : navHash === n.path || navHash.startsWith(n.path + '/'))
+  const soon = nav.find((n) => ['/antrean', '/resep', '/kasir'].includes(n.path) && hash === n.path)
   const sub = hash.match(/^\/(keluarga|riwayat-medis)\/([\w-]+)$/)
 
   let page
@@ -95,11 +105,13 @@ export default function App() {
   else if (sub?.[1] === 'riwayat-medis' && can('note.read')) page = <MedicalHistoryPage key={hash} id={sub[2]} canChart={can('note.read')} canEdit={can('note.write')} />
   else if (hash === '/pasien/baru' && can('patient.create')) page = <PatientForm />
   else if (hash.startsWith('/pasien/') && can('patient.read')) page = <PatientDetail key={hash} id={hash.slice(8)} canChart={can('note.read')} />
-  else if (hash === '/pasien' && can('patient.read')) page = <PatientList key={query} canCreate={can('patient.create')} initialQ={new URLSearchParams(query).get('q') ?? ''} />
+  else if (hash === '/pasien' && can('patient.read')) page = <PatientList key={query} canCreate={can('patient.create')} canChart={can('note.read')} initialQ={new URLSearchParams(query).get('q') ?? ''} />
   else if (hash === '/jadwal' && can('appointment.read')) page = <Schedule me={me} />
   else if (hash === '/laporan' && can('reporting.read')) page = <ReportPage />
   else if (hash === '/pengaturan-rm' && can('note.sign|settings.manage')) page = <SettingsRmPage me={me} onChanged={load} />
+  else if (soon) page = <ComingSoon title={soon.label} />
   else page = <Home me={me} />
 
-  return <Shell me={me} nav={nav} active={active} ribbon={patient && can('patient.read') && <AlertRibbon patientId={patient.id} />} onSwitchBranch={switchBranch} onLogout={logout}>{page}</Shell>
+  return <Shell me={me} nav={nav} active={active} title={pageTitle(hash, active)} ribbon={patient && can('patient.read') && !/^\/rekam-medis\//.test(hash) && <AlertRibbon patientId={patient.id} />}
+    onSwitchBranch={switchBranch} onLogout={logout}>{page}</Shell>
 }

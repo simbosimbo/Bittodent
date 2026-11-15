@@ -40,6 +40,9 @@ final class ProcedureStatus
     /** Existing work a new restoration may replace (unit 3). */
     public const REPLACEABLE = ['selesai', 'ada_di_klinik_ini', 'ada_di_tempat_lain'];
 
+    /** Still in course of treatment (patient list: "Dalam perawatan"). dirujuk = treated elsewhere, not counted. */
+    public const IN_COURSE = ['direncanakan'];
+
     public static function canMove(string $from, string $to): bool
     {
         return in_array($to, self::TRANSITIONS[$from] ?? [], true);

@@ -127,4 +127,4 @@ Lalu login `pemilik@senyum.test` dengan kredensial demo + kode TOTP.
 - Tidak ada SSH yang dipakai; tidak ada `composer`/`node` di server, jadi `vendor/` dan SPA ikut dalam arsip. Migrasi + `staging:seed` dijalankan lewat cron sementara lalu dihapus. Perintah cron hPanel dibatasi **255 karakter**; output dibaca lewat "cron output" hanya bila perintah dibungkus `/bin/bash -c '...'`.
 - Cron tetap: satu baris `schedule:run` tiap menit (antrean lewat scheduler).
 - Rahasia server (`.env`) tidak ada di repo; disimpan di luar repo pada mesin build dan wajib dikirim lagi lewat `ENV_FILE` setiap deploy (deploy menimpa `public_html`).
-- Tampilan masih bermerek "EHR Gigi" karena PR rename Bittodent belum ada di tumpukan ini.
+- Merek tampilan = Bittodent (merge tumpukan UI). `APP_NAME="Bittodent"` mengganti nama cookie sesi (`bittodent-session`) dan prefiks cache: deploy pertama setelah merge membuat semua pengguna masuk ulang sekali.

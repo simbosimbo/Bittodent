@@ -16,6 +16,7 @@ use App\Modules\Clinical\Models\ProcedureCorrectionDecision;
 use App\Modules\Clinical\Models\ProcedureDefinition;
 use App\Modules\Clinical\Models\ProcedureRecord;
 use App\Modules\Clinical\Models\Visit;
+use App\Modules\Clinical\Services\PatientCareSync;
 use App\Modules\Identity\Contracts\UserDirectory;
 use App\Modules\Tenancy\Contracts\DentistProfileDirectory;
 use App\Modules\Tenancy\Contracts\TenancyDirectory;
@@ -114,6 +115,7 @@ class ProcedureController extends Controller
                 'supersedes_id' => $p->id, 'created_by' => $ctx->userId, 'finalized_by' => $ctx->userId, 'finalized_at' => now()]);
             Audit::log('ubah_status', 'procedure_record', $new->id, ['supersedes' => $p->id, 'from' => $p->status, 'to' => $d['to']]);
             self::recorded($new);
+            app(PatientCareSync::class)->push($new->patient_id);
 
             return response()->json(self::out($new), 201);
         });
@@ -157,6 +159,7 @@ class ProcedureController extends Controller
             $new = ProcedureRecord::create([...$attrs, ...$final, 'patient_id' => $old->patient_id, 'visit_id' => $visit->id, 'replaces_id' => $old->id]);
             Audit::log('ganti_tindakan', 'procedure_record', $new->id, ['replaces' => $old->id, 'marker' => $marker->id, 'from' => $old->status, 'to' => $new->status]);
             self::recorded($new);
+            app(PatientCareSync::class)->push($new->patient_id);
 
             return response()->json(['replaced' => self::out($marker), 'procedure' => self::out($new)], 201);
         });
@@ -309,6 +312,7 @@ class ProcedureController extends Controller
         $billable = $new->status === ProcedureStatus::BILLABLE && $new->procedure_code !== null ? self::billingEvent($new) : null;
         event(new ProcedureCorrected($ctx->tenant(), $c->id, $p->id, $new->id, $c->reason_type,
             array_map(fn ($r) => $r->id, $p->correctionChain()), $billable));
+        app(PatientCareSync::class)->push($new->patient_id);
 
         return $new;
     }

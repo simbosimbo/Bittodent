@@ -12,6 +12,7 @@ use App\Modules\Billing\Services\Ledger;
 use App\Shared\Audit\Audit;
 use App\Shared\Http\Controller;
 use App\Shared\Tenancy\Ctx;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,10 +21,30 @@ use Illuminate\Support\Facades\DB;
 // No endpoint takes a price. invoice.status: terbuka | lunas | void (Domain\InvoiceStatus). Shape + arithmetic: Services\Ledger.
 class InvoiceController extends Controller
 {
+    private const TIMEZONE = 'Asia/Jakarta';
+
     /** GET /api/visits/{id}/invoice */
     public function forVisit(string $id)
     {
         return $this->show(Invoice::where('visit_id', $id)->firstOrFail()->id);
+    }
+
+    /**
+     * GET /api/billing/daily-revenue: payments collected today (Asia/Jakarta) in the ACTIVE branch only, even for
+     * memberships that cover every branch (Beranda is per cabang aktif). Write-offs/discounts are not payments, so never counted.
+     */
+    public function dailyRevenue()
+    {
+        $ctx = Ctx::current();
+        $day = CarbonImmutable::now(self::TIMEZONE)->startOfDay();
+        // One query; plucking a day's payments of one branch is small (no raw SUM: ArchitectureTest bans raw SQL fragments).
+        // invoice_payment has no branch_id: the branch is the invoice's (gross money received; refunds are separate documents).
+        $amounts = InvoicePayment::whereIn('invoice_id', Invoice::where('branch_id', $ctx->branchId)->select('id'))
+            ->where('paid_at', '>=', $day->utc())->where('paid_at', '<', $day->addDay()->utc())->pluck('amount_rp');
+        Audit::log('baca', 'daily_revenue', null, ['branch_id' => $ctx->branchId, 'date' => $day->toDateString()]);
+
+        return response()->json(['date' => $day->toDateString(), 'branch_id' => $ctx->branchId,
+            'amount_rp' => (int) $amounts->sum(), 'payment_count' => $amounts->count()]);
     }
 
     /** GET /api/invoices/{id} */

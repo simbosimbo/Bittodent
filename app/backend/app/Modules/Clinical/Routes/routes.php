@@ -17,6 +17,7 @@ Route::middleware(['auth:sanctum', '2fa', 'tenant'])->group(function () {
     Route::post('/patients/{id}/consents', [ConsentController::class, 'store'])->middleware('perm:note.write');
     Route::post('/appointments/{id}/visit', [ChartController::class, 'visitFromAppointment'])->middleware('perm:note.write');
     Route::get('/coding-suggestions', [CodingSuggestionController::class, 'index'])->middleware('perm:note.write'); // used while charting
+    Route::post('/patients/{id}/visits/walk-in', [ChartController::class, 'walkIn'])->middleware('perm:note.write');
     Route::post('/visits/{id}/findings', [FindingController::class, 'store'])->middleware('perm:note.write');
     Route::patch('/findings/{id}', [FindingController::class, 'update'])->middleware('perm:note.write');
     Route::delete('/findings/{id}', [FindingController::class, 'destroy'])->middleware('perm:note.write');

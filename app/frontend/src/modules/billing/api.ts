@@ -61,3 +61,9 @@ export const addRefund = (invoiceId: string, body: { payment_id: string; credit_
   api<Invoice>(`/api/invoices/${invoiceId}/refunds`, { method: 'POST', body })
 /** Owner (billing.approve_reversal); same conflict-of-interest rule as credit notes. */
 export const decideRefund = (id: string, decision: 'approve' | 'reject') => api<Invoice>(`/api/refunds/${id}/${decision}`, { method: 'POST', body: {} })
+export type DailyRevenue = { date: string; branch_id: string; amount_rp: number; payment_count: number }
+
+// Payments collected today (Asia/Jakarta) in the active branch (server-side session); integer rupiah.
+export const getDailyRevenue = () => api<DailyRevenue>('/api/billing/daily-revenue')
+
+export const fmtRp = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)

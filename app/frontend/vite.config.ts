@@ -11,5 +11,6 @@ const proxy = Object.fromEntries(
 export default defineConfig({
   plugins: [react()],
   server: { host: '127.0.0.1', port: 5173, strictPort: true, proxy },
-  test: { environment: 'jsdom', setupFiles: ['./src/test-setup.ts'] },
+  // css.include: lets the Shell / PatientList / Chart tests load styles.css / patients.css ?raw (vitest blanks CSS by default) to assert computed styles (pill name never ellipsized, 44px surface buttons).
+  test: { environment: 'jsdom', setupFiles: ['./src/test-setup.ts'], css: { include: [/styles\.css/, /patients\.css/, /clinical\.css/] } },
 })

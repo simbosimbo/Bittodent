@@ -14,6 +14,7 @@ use App\Modules\Clinical\Models\CorrectionRequest;
 use App\Modules\Clinical\Models\ProcedureRecord;
 use App\Modules\Clinical\Models\ToothFinding;
 use App\Modules\Clinical\Models\Visit;
+use App\Modules\Clinical\Services\PatientCareSync;
 use App\Modules\Clinical\Services\VisitCloser;
 use App\Modules\Identity\Contracts\UserDirectory;
 use App\Modules\Integrations\Contracts\OutboxPublisher;
@@ -173,6 +174,7 @@ class NoteController extends Controller
         $this->outbox->enqueue('satusehat', 'satusehat:note_version:'.$draft->id, ['note_version_id' => $draft->id, 'visit_id' => $visit->id]);
         Audit::log('tanda_tangan', 'clinical_note_version', $draft->id, ['visit_id' => $visit->id, 'findings' => $findings,
             'procedures' => $procedures->count(), 'attestation_version' => $v, 'signature_hash' => $draft->signature_hash, ...$warningAudit]);
+        app(PatientCareSync::class)->push($visit->patient_id); // procedures just became final: unfinished work may have changed
         if ($error = $closer->close($visit, null, 'selesai')) {
             if (($error->getData(true)['error'] ?? null) !== 'invoice_required') {
                 throw new HttpResponseException($error); // rolls the signature back

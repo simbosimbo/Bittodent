@@ -3,6 +3,7 @@
 namespace App\Modules\Clinical\Http\Controllers;
 
 use App\Modules\Clinical\Domain\ProcedureStatus;
+use App\Modules\Clinical\Http\Requests\WalkInRequest;
 use App\Modules\Clinical\Models\ClinicalNote;
 use App\Modules\Clinical\Models\CorrectionRequest;
 use App\Modules\Clinical\Models\ProcedureDefinition;
@@ -10,6 +11,7 @@ use App\Modules\Clinical\Models\ProcedureRecord;
 use App\Modules\Clinical\Models\ToothBaseline;
 use App\Modules\Clinical\Models\ToothFinding;
 use App\Modules\Clinical\Models\Visit;
+use App\Modules\Clinical\Services\PatientCareSync;
 use App\Modules\Clinical\Services\VisitCloser;
 use App\Modules\Identity\Contracts\UserDirectory;
 use App\Modules\Patients\Contracts\PatientDirectory;
@@ -21,6 +23,8 @@ use App\Shared\Tenancy\Ctx;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class ChartController extends Controller
 {
@@ -122,7 +126,7 @@ class ChartController extends Controller
     }
 
     /** POST /api/appointments/{id}/visit: idempotent (unique tenant_id+appointment_id). */
-    public function visitFromAppointment(string $id, AppointmentDirectory $appointments)
+    public function visitFromAppointment(string $id, AppointmentDirectory $appointments, PatientCareSync $care)
     {
         $a = $appointments->findOrFail($id);
         if (! Ctx::current()->coversBranch($a['branch_id'])) {
@@ -141,6 +145,46 @@ class ChartController extends Controller
             return response()->json(self::visit(Visit::where('appointment_id', $id)->firstOrFail()));
         }
         Audit::log('buat', 'visit', $v->id, ['appointment_id' => $id]);
+        $care->push($v->patient_id);
+
+        return response()->json(self::visit($v), 201);
+    }
+
+    /**
+     * POST /api/patients/{id}/visits/walk-in: open today's visit without an appointment (appointment_id NULL) at the active branch.
+     * Idempotent per patient+branch while a visit is `berlangsung` (200 + same visit). An open visit at another branch is not returned.
+     */
+    public function walkIn(string $id, WalkInRequest $request, PatientDirectory $patients, TenancyDirectory $tenancy, PatientCareSync $care)
+    {
+        $ctx = Ctx::current();
+        if (! $ctx->coversBranch($ctx->branchId)) {
+            return Audit::denied('branch:'.$ctx->branchId);
+        }
+        $dentist = $request->validated('dentist_id') ?? (in_array('dentist', $ctx->roles, true) ? $ctx->userId : null);
+        if ($dentist === null) {
+            throw ValidationException::withMessages(['dentist_id' => 'Pilih dokter gigi untuk kunjungan ini.']);
+        }
+        // Branch-scoped list (dentists who may work here), same as booking in Scheduling.
+        if (! in_array($dentist, $tenancy->dentistIdsForBranch($ctx->branchId), true)) {
+            throw ValidationException::withMessages(['dentist_id' => 'Dokter gigi tidak aktif di cabang ini.']);
+        }
+
+        [$v, $created] = DB::transaction(function () use ($id, $patients, $ctx, $dentist) {
+            $patients->lock($id); // 404 for other tenants; serializes parallel walk-ins (appointment_id NULL has no unique guard)
+            if ($open = Visit::where('patient_id', $id)->where('branch_id', $ctx->branchId)->where('status', 'berlangsung')
+                ->orderByDesc('started_at')->first()) {
+                return [$open, false];
+            }
+            $v = Visit::create(['patient_id' => $id, 'branch_id' => $ctx->branchId, 'dentist_id' => $dentist,
+                'appointment_id' => null, 'started_at' => now(), 'status' => 'berlangsung', 'created_by' => $ctx->userId]);
+            Audit::log('buat', 'visit', $v->id, ['walk_in' => true, 'patient_id' => $id, 'dentist_id' => $dentist, 'branch_id' => $ctx->branchId]);
+
+            return [$v, true];
+        });
+        if (! $created) {
+            return response()->json(self::visit($v)); // replay: no second 'buat'; the chart GET already logs 'baca'
+        }
+        $care->push($v->patient_id);
 
         return response()->json(self::visit($v), 201);
     }

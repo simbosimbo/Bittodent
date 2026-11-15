@@ -5,7 +5,10 @@
 (diskon/penghapusan/koreksi, alasan wajib, front desk/pemilik, append-only). Saldo = baris − penyesuaian, dihitung (tidak disimpan).
 API: `GET /api/visits/{id}/invoice`, `GET /api/invoices/{id}`, `POST /api/invoices/{id}/adjustments`,
 `POST /api/invoice-adjustments/{id}/approve|reject` (unit 4), `POST /api/invoices/{id}/payments`, `GET|POST /api/payment-accounts`,
-`PATCH /api/payment-accounts/{id}` (unit 5), nota kredit / void / koreksi baris (unit B), refund (unit C, di bawah). Belum: tagihan final, `FinalizedRevenue`.
+`PATCH /api/payment-accounts/{id}` (unit 5), nota kredit / void / koreksi baris (unit B), refund (unit C, di bawah),
+`GET /api/billing/daily-revenue` (billing.read; jumlah `invoice_payment` hari ini Asia/Jakarta untuk tagihan di **cabang aktif** saja, juga
+untuk pemilik yang mencakup semua cabang; penghapusan/diskon/nota kredit bukan pembayaran; refund tidak dikurangkan — angka bruto uang masuk).
+Belum: tagihan final, `FinalizedRevenue`.
 
 ## Alur koreksi tindakan & tagihan (unit A–D, ringkas)
 

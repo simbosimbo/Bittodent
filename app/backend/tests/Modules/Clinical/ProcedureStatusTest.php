@@ -7,6 +7,7 @@ use App\Modules\Billing\Models\InvoiceLine;
 use App\Modules\Clinical\Domain\ProcedureStatus;
 use App\Modules\Clinical\Models\ProcedureRecord;
 use App\Modules\Clinical\Models\Visit;
+use App\Modules\Patients\Models\Patient;
 use App\Shared\Audit\AuditEvent;
 use App\Shared\Tenancy\Ctx;
 use Tests\TestCase;
@@ -66,6 +67,8 @@ class ProcedureStatusTest extends TestCase
         $v = $this->todayVisit();
         $old = $this->inA(fn () => ProcedureRecord::where('tooth', 18)->where('state', 'final')->firstOrFail());
         $this->assertSame('direncanakan', $old->status);
+        $patient = fn () => $this->inA(fn () => Patient::findOrFail($old->patient_id));
+        $this->assertTrue($patient()->care_unfinished_procedure); // seeded: 18 direncanakan
 
         $this->as('asisten@senyum.test')->postJson("/api/procedures/{$old->id}/status", ['to' => 'selesai'])->assertForbidden();
         $this->as('pemilik@senyum.test')->postJson("/api/procedures/{$old->id}/status", ['to' => 'selesai'])->assertForbidden(); // owner: clinical read-only
@@ -73,6 +76,7 @@ class ProcedureStatusTest extends TestCase
             ->assertCreated()->assertJsonPath('status', 'selesai')->assertJsonPath('supersedes_id', $old->id)->assertJsonPath('state', 'final')->json('id');
 
         $this->assertSame('direncanakan', $this->inA(fn () => $old->fresh()->status)); // original row untouched
+        $this->assertFalse($patient()->care_unfinished_procedure); // Clinical pushed the new fact to Patients
         $chart = $this->as(self::DOC)->getJson("/api/patients/{$old->patient_id}/chart")->assertOk();
         $this->assertSame(['selesai'], collect($chart->json('procedures'))->where('tooth', 18)->pluck('status')->all());
 

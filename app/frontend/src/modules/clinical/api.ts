@@ -88,6 +88,10 @@ export const closeVisit = (visitId: string, reason?: string) =>
   api<{ id: string; status: string; closed_without_invoice: boolean }>(`/api/visits/${visitId}/close`, { method: 'POST', body: { reason: reason || null } })
 /** Walk-in only: record that attendance was cancelled (then the visit may close without an invoice, with a reason). */
 export const cancelAttendance = (visitId: string, reason: string) => api(`/api/visits/${visitId}/cancel-attendance`, { method: 'POST', body: { reason } })
+// Walk-in: today's visit without an appointment at the active branch. 201 new, 200 = the open visit already there. dentist_id required for non-dentists.
+export const startWalkInVisit = (patientId: string, body: { dentist_id?: string } = {}) =>
+  api<{ id: string }>(`/api/patients/${patientId}/visits/walk-in`, { method: 'POST', body })
+export const getDentists = () => api<{ data: { id: string; name: string }[] }>('/api/dentists')
 export const visitFromAppointment = (appointmentId: string) => api<{ id: string }>(`/api/appointments/${appointmentId}/visit`, { method: 'POST' })
 /** Visual condition only (karies, hilang, ...). Treatments go through saveProcedure. */
 export const saveFinding = (visitId: string, body: { tooth: number; surface: Surface | null; condition: string }) =>

@@ -71,7 +71,7 @@ class RefundTest extends TestCase
             $done['refunds_rp'], $done['refunds'][0]['status']]);
         $this->assertSame($price, $done['payments'][0]['refunded_rp']);
         $this->assertSame($before, $this->paymentRow($pay)); // same id, amount, account, time
-        $this->assertSame(1, $this->in($this->tenantA(), fn () => InvoicePayment::count()));
+        $this->assertSame(1, $this->in($this->tenantA(), fn () => InvoicePayment::where('invoice_id', $inv)->count()));
         $this->as(self::OWNER)->postJson("/api/refunds/$refund/approve")->assertConflict()->assertJsonPath('error', 'not_pending');
         $this->assertSame([], $this->as(self::OWNER)->getJson('/api/billing/reversals/pending')->json('refunds'));
         foreach (['refund.diajukan', 'refund.disetujui'] as $a) {

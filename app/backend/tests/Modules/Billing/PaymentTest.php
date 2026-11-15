@@ -41,7 +41,7 @@ class PaymentTest extends TestCase
 
     private function payments(): int
     {
-        return $this->inA(fn () => InvoicePayment::count());
+        return $this->inA(fn () => InvoicePayment::where('invoice_id', $this->invoice())->count()); // seed has paid demo invoices
     }
 
     public function test_split_across_two_clinic_accounts_until_lunas_then_overpay_is_rejected(): void

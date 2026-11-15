@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Identity\Models\User;
+use App\Modules\Patients\Services\PatientCareStateService;
 use App\Modules\Recall\Services\ReminderService;
 use App\Modules\Tenancy\Models\Tenant;
 use App\Shared\Tenancy\Ctx;
@@ -158,3 +159,11 @@ Artisan::command('icd:import {--source=file : file (CSV lokal) | satusehat (API 
 
     return 0;
 })->purpose('Impor daftar ICD-10/ICD-9-CM resmi SATUSEHAT (idempoten)');
+
+// Care status depends on time (appointments pass, visits age past 30 days / 12 months): recompute from stored facts, per tenant.
+Artisan::command('patients:refresh-care-status', function () {
+    foreach (Tenant::pluck('id') as $tenantId) {
+        $this->line("$tenantId: ".Ctx::runAs($tenantId, fn () => app(PatientCareStateService::class)->refreshAll()));
+    }
+})->purpose('Hitung ulang status perawatan pasien (daftar pasien) dari fakta tersimpan');
+Schedule::command('patients:refresh-care-status')->dailyAt('00:10')->timezone('Asia/Jakarta')->withoutOverlapping();

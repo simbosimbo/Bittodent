@@ -10,7 +10,7 @@ const START = 8 * 60, END = 20 * 60, STEP = 30, ROW = 52
 const SLOTS = Array.from({ length: (END - START) / STEP }, (_, i) => START + i * STEP)
 const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
 
-function minutesOfDay(iso: string, tz: string) {
+export function minutesOfDay(iso: string, tz: string) {
   const p = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(iso))
   return Number(p.find((x) => x.type === 'hour')!.value) * 60 + Number(p.find((x) => x.type === 'minute')!.value)
 }
@@ -72,7 +72,7 @@ export default function Schedule({ me }: { me: Me }) {
     <>
       <div className="page-head">
         <div>
-          <h1>Jadwal</h1>
+          <h1 className="shell-dup-title">Jadwal</h1>
           <p className="muted">{fmtDate(date)} · {me.active.branch_name} · {count} janji</p>
         </div>
         <div className="toolbar">
@@ -222,7 +222,7 @@ function PlannedList({ sched, date, canCreate, onScheduled }: { sched: Sched; da
         {items?.map((p) => (
           <li key={p.id} className="planned-row">
             <div>
-              <strong>{p.patient_name}</strong> {p.priority === 'segera' && <span className="chip chip-cancelled">Segera</span>}
+              <strong>{p.patient_name}</strong> {p.priority === 'segera' && <span className="chip chip-urgent">Segera</span>}
               <div className="small">{p.procedure} · {p.est_minutes} menit · {p.dentist_name}</div>
               {p.note && <div className="muted small">Catatan: {p.note}</div>}
             </div>

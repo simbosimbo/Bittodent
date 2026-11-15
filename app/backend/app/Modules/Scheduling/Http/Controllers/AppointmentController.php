@@ -4,11 +4,13 @@ namespace App\Modules\Scheduling\Http\Controllers;
 
 use App\Modules\Identity\Contracts\UserDirectory;
 use App\Modules\Patients\Contracts\PatientDirectory;
+use App\Modules\Scheduling\Contracts\WalkInVisits;
 use App\Modules\Scheduling\Domain\AppointmentStatus;
 use App\Modules\Scheduling\Events\AppointmentCompleting;
 use App\Modules\Scheduling\Http\Requests\StoreAppointmentRequest;
 use App\Modules\Scheduling\Models\Appointment;
 use App\Modules\Scheduling\Models\Chair;
+use App\Modules\Scheduling\Services\PatientCareSync;
 use App\Modules\Tenancy\Contracts\TenancyDirectory;
 use App\Shared\Audit\Audit;
 use App\Shared\Http\Controller;
@@ -21,10 +23,10 @@ use Illuminate\Support\Fluent;
 
 class AppointmentController extends Controller
 {
-    public function __construct(private TenancyDirectory $tenancy, private PatientDirectory $patients, private UserDirectory $users) {}
+    public function __construct(private TenancyDirectory $tenancy, private PatientDirectory $patients, private UserDirectory $users, private PatientCareSync $care) {}
 
     /** Chairs of one branch with that local day's appointments; patient/dentist names via other modules' Contracts (constant query count). */
-    public function schedule(Request $request)
+    public function schedule(Request $request, WalkInVisits $walkIns)
     {
         $d = $request->validate(['branch_id' => ['required', 'uuid'], 'date' => ['required', 'date_format:Y-m-d']]);
         $branch = $this->tenancy->branchOrFail($d['branch_id']);
@@ -45,7 +47,17 @@ class AppointmentController extends Controller
             ->setRelation('dentist', isset($names[$a->dentist_id]) ? new Fluent($names[$a->dentist_id]) : null));
         $dentists = $names->only($dentistIds)->values(); // ordered by name
 
-        return response()->json(['branch' => $branch, 'date' => $d['date'], 'chairs' => $chairs, 'dentists' => $dentists]);
+        // Beranda KPI: walk-in patients (visit without appointment) who have no active appointment that day. Count only, no ids/names.
+        $booked = $appts->whereNotIn('status', ['cancelled', 'no_show'])->pluck('patient_id')->all();
+        $walkIn = count(array_diff($walkIns->patientIds($branch['id'], $from, $from->addDay()), $booked));
+
+        return response()->json(['branch' => $branch, 'date' => $d['date'], 'chairs' => $chairs, 'dentists' => $dentists, 'walk_in_patients' => $walkIn]);
+    }
+
+    /** GET /api/dentists: active dentists of this tenant [{id, name}] ordered by name (patient list "Dokter" filter). */
+    public function dentists()
+    {
+        return response()->json(['data' => $this->users->namesByIds($this->tenancy->activeUserIdsWithRole('dentist'))]);
     }
 
     public function store(StoreAppointmentRequest $request)
@@ -63,6 +75,7 @@ class AppointmentController extends Controller
             }
             $a->fill(['patient_id' => $d['patient_id'], 'status' => 'booked', 'reason' => $d['reason'] ?? null, 'created_by' => $ctx->userId])->save();
             Audit::log('buat', 'appointment', $a->id);
+            $this->care->push($a->patient_id);
 
             return response()->json(['id' => $a->id, 'status' => $a->status], 201);
         });
@@ -116,6 +129,7 @@ class AppointmentController extends Controller
             }
             $r->save();
             Audit::log('jadwal_ulang', 'appointment', $a->id, ['from' => $from, 'to' => $a->starts_at->toIso8601ZuluString()]);
+            $this->care->push($a->patient_id);
 
             return response()->json(['id' => $a->id, 'status' => $a->status, 'starts_at' => $a->starts_at, 'ends_at' => $a->ends_at]);
         });
@@ -138,6 +152,7 @@ class AppointmentController extends Controller
             $stamp = AppointmentStatus::STAMPS[$d['to']] ?? null;
             $a->update(['status' => $d['to']] + ($stamp ? [$stamp => now()] : []));
             Audit::log('ubah_status', 'appointment', $a->id, ['from' => $from, 'to' => $d['to']]);
+            $this->care->push($a->patient_id);
 
             return response()->json($a->only(['id', 'status', 'arrived_at', 'seated_at', 'dismissed_at', 'wait_minutes', 'chair_minutes']));
         });

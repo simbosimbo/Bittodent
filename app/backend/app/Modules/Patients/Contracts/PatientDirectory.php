@@ -7,7 +7,10 @@ interface PatientDirectory
     /** Throws ModelNotFoundException (404) when the patient is not in the current tenant. */
     public function assertExists(string $patientId): void;
 
-    /** Chart header. 404 when not in the current tenant. @return array{id: string, name: string, dob: ?string, sex: ?string, payer_type: string, is_minor: bool} */
+    /** Locks the patient row FOR UPDATE (serializes per-patient writes). Call inside a transaction. 404 when not in this tenant. */
+    public function lock(string $patientId): void;
+
+    /** Chart header. 404 when not in the current tenant. @return array{id: string, mrn: ?string, name: string, dob: ?string, sex: ?string, payer_type: string, is_minor: bool} */
     public function summary(string $patientId): array;
 
     /** Who pays this patient's bills: the guarantor (penanggung biaya) or the patient themself. 404 when not in this tenant. */
