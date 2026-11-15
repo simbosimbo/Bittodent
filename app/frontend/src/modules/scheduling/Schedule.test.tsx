@@ -464,7 +464,11 @@ function mockApi(list: (date: string) => any[], o: { invoices?: Record<string, s
         { id: 'c1', label: 'Kursi 1', appointments: l.filter((a) => a.chair_id !== 'c2') },
         { id: 'c2', label: 'Kursi 2', appointments: l.filter((a) => a.chair_id === 'c2') }] })
     }
-    if (url.startsWith('/api/visits/')) { const v = url.split('/')[3]; return o.invoices?.[v] ? json({ id: 'i-' + v, status: o.invoices[v] }) : json({}, 404) }
+    if (url.startsWith('/api/visits/')) throw new Error('per-visit invoice call: use the batch endpoint ' + url)
+    if (url.startsWith('/api/billing/invoice-status')) {
+      const ids = (new URL(url, 'http://x').searchParams.get('visit_ids') ?? '').split(',')
+      return json({ statuses: Object.fromEntries(ids.filter((v) => o.invoices?.[v]).map((v) => [v, o.invoices![v]])) })
+    }
     if (url.startsWith('/api/billing/daily-revenue')) return json({ date: DAY, branch_id: 'b1', amount_rp: 350000, payment_count: 2 })
     if (url.startsWith('/api/planned-appointments')) return json({ data: [] })
     if (url.startsWith('/api/patients')) return json({ data: [] })

@@ -8,7 +8,7 @@ import { storage } from '../../shared/storage'
 import { DateField } from '../../shared/ui/DateField'
 import { Icon, ICONS } from '../../shared/ui/Icon'
 import { Sheet } from '../../shared/ui/Sheet'
-import { getDailyRevenue, invoiceForVisit } from '../billing'
+import { getDailyRevenue, invoiceStatuses } from '../billing'
 import { reschedule, type Appointment, type Schedule as Sched } from './api'
 import { END, hhmm, minutesOfDay, SLOTS } from './parts'
 
@@ -90,9 +90,8 @@ export function useInvoiceStatus(appts: Appointment[], on: boolean) {
     if (!key) return
     let live = true
     setError(false)
-    Promise.all(key.split(',').map((v) => invoiceForVisit(v).then((i) => [v, i.status] as const,
-      (e) => { if (e instanceof ApiError && e.status === 404) return [v, 'none'] as const; throw e })))
-      .then((r) => { if (live) setMap(Object.fromEntries(r)) }, () => { if (live) setError(true) })
+    // One request for the whole day (was one per finished visit, which could trip the rate limit on a busy day).
+    invoiceStatuses(key.split(',')).then((r) => { if (live) setMap(r.statuses) }, () => { if (live) setError(true) })
     return () => { live = false }
   }, [key, tick])
   return { unpaid: (a: Appointment) => !!a.visit_id && map[a.visit_id] === 'terbuka', error, retry: () => setTick((t) => t + 1) }

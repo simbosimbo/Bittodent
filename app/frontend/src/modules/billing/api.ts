@@ -32,6 +32,9 @@ export type PendingReversals = {
     account: Pick<PaymentAccount, 'name' | 'kind' | 'bank_name' | 'account_last4'> }[] }
 
 export const invoiceForVisit = (visitId: string) => api<Invoice>(`/api/visits/${visitId}/invoice`)
+/** One request for many visits (Jadwal "Belum bayar"); visits without an invoice (or outside the branch) are absent. */
+export const invoiceStatuses = (visitIds: string[]) =>
+  api<{ statuses: Record<string, Invoice['status']> }>(`/api/billing/invoice-status?visit_ids=${visitIds.map(encodeURIComponent).join(',')}`)
 /** 201 = applied; 202 = brings the balance to Rp0, waits for an owner (unit 4). */
 export const addAdjustment = (invoiceId: string, body: { kind: string; amount_rp: number; reason: string }) =>
   api<Invoice>(`/api/invoices/${invoiceId}/adjustments`, { method: 'POST', body })

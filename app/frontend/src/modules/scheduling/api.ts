@@ -35,6 +35,8 @@ export const STATUS: Record<string, string> = {
 
 export const getSchedule = (branchId: string, date: string) => api<Schedule>(`/api/schedule?branch_id=${branchId}&date=${date}`)
 export const transition = (id: string, to: string) => api(`/api/appointments/${id}/transition`, { method: 'POST', body: { to } })
+/** Toast "Batalkan" after a check-in (board 08): checked_in -> booked, only shortly after the check-in; audited server-side. */
+export const undoCheckin = (id: string) => api(`/api/appointments/${id}/undo-checkin`, { method: 'POST' })
 // Staff move of a booked appointment (same chair/dentist double-booking guard as create; needs appointment.create).
 export const reschedule = (id: string, body: { starts_at: string; ends_at: string; chair_id: string }) =>
   api(`/api/appointments/${id}/reschedule`, { method: 'POST', body })
