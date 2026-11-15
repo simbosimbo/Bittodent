@@ -80,7 +80,7 @@ function mockChairs(date: () => string) {
 }
 afterEach(() => vi.useRealTimers())
 
-test('desktop: satu kolom per dokter (judul = nama dokter), kursi sebagai label kartu, tanpa pil dan tanpa garis sekarang', async () => {
+test('desktop: satu kolom per dokter (judul = nama dokter), kursi sebagai label kartu, tanpa garis sekarang; chip dokter (#70) menyaring ke satu kolom', async () => {
   viewport(1280)
   mockChairs(() => '2030-01-07')
   const { container } = render(<Schedule me={ME} />)
@@ -88,10 +88,15 @@ test('desktop: satu kolom per dokter (judul = nama dokter), kursi sebagai label 
   expect(container.querySelectorAll('.sched-col')).toHaveLength(3)
   expect([...container.querySelectorAll('.sched-head')].map((h) => h.textContent)).toEqual(['', 'drg. Satu · 1', 'drg. Dua · 2', 'drg. Tiga · 0'])
   expect(screen.getByText('Budi Contoh').closest('.appt')!.querySelector('.appt-chair')).toHaveTextContent('Kursi 2')
-  expect(screen.queryByRole('group', { name: 'Pilih dokter' })).toBeNull()
   expect(container.querySelector('.sched-now')).toBeNull()
   expect(container.querySelector('.sched-bar')).toBeNull()
   expect(screen.getByRole('button', { name: 'Hari sebelumnya' })).toHaveTextContent('‹')
+  const pills = within(screen.getByRole('group', { name: 'Pilih dokter' }))
+  expect(pills.getByRole('button', { name: /^Semua/ })).toHaveAttribute('aria-pressed', 'true')
+  fireEvent.click(pills.getByRole('button', { name: /^drg\. Dua/ }))
+  expect([...container.querySelectorAll('.sched-head')].map((h) => h.textContent)).toEqual(['', 'drg. Dua · 2'])
+  fireEvent.click(pills.getByRole('button', { name: /^Semua/ }))
+  expect(container.querySelectorAll('.sched-col')).toHaveLength(3)
 })
 
 test('HP Grid: pil dokter + satu kolom; default dokter dengan janji berikutnya, pil mengganti dokter', async () => {
