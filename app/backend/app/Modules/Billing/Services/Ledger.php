@@ -178,7 +178,7 @@ final class Ledger
     }
 
     /** A flagged line is handled by: a credit note for that correction, a line billed for the corrected procedure, or a cashier review. */
-    private static function reviewed(LineCorrection $r, $notes, $bd, array $billedProcs): bool
+    public static function reviewed(LineCorrection $r, $notes, $bd, array $billedProcs): bool
     {
         return $notes->contains(fn ($n) => $n->invoice_line_id === $r->invoice_line_id && $n->procedure_correction_id === $r->procedure_correction_id)
             || in_array($r->new_procedure_id, $billedProcs, true)

@@ -7,6 +7,21 @@ API: `GET /api/visits/{id}/invoice`, `GET /api/invoices/{id}`, `POST /api/invoic
 `POST /api/invoice-adjustments/{id}/approve|reject` (unit 4), `POST /api/invoices/{id}/payments`, `GET|POST /api/payment-accounts`,
 `PATCH /api/payment-accounts/{id}` (unit 5), nota kredit / void / koreksi baris (unit B), refund (unit C, di bawah). Belum: tagihan final, `FinalizedRevenue`.
 
+## Alur koreksi tindakan & tagihan (unit A–D, ringkas)
+
+Salah catat **tidak pernah** menjadi baris tagihan Rp0 atau diskon 100%. Koreksi klinis dan koreksi keuangan adalah dokumen terpisah;
+baris tindakan, baris tagihan, dan pembayaran asli tidak pernah dihapus/diubah.
+
+1. **Koreksi tindakan (A, #53, Clinical):** `POST /api/procedures/{id}/corrections` dengan `reason_type` (`salah_kode`/`salah_situs`/
+   `salah_provider`/`tidak_dikerjakan`) + alasan. Dalam tenggat klinik (`tenant.correction_window_hours`, bawaan 48 jam dari
+   `finalized_at`) langsung berlaku sebagai baris baru; lewat tenggat menunggu pemilik.
+2. **Nota kredit / void / tinjau baris (B, #56, Billing):** `tidak_dikerjakan` atas tindakan tertagih → nota kredit penuh menunggu
+   pemilik; `salah_*` → baris ditandai "perlu tinjau koreksi" (nota kredit, tagih kode yang benar, atau tandai ditinjau). Void hanya
+   tagihan tanpa pembayaran. Tarif Rp0 = anomali tarif untuk pemilik, bukan koreksi.
+3. **Refund (C, #57, Billing):** kelebihan bayar akibat nota kredit dikembalikan ke akun pembayaran asal, selalu disetujui pemilik.
+4. **Laporan (D, #58, Reporting):** laporan integritas pemilik memisahkan koreksi klinis, nota kredit, void, refund, diskon 100%, dan
+   anomali tarif Rp0 per dokter, plus peringatan untuk yang menunggu / disetujui sendiri / perlu tinjau > 2 hari.
+
 ## Penjaga tagihan kunjungan (unit 4, DEVIATIONS #50)
 - **Letak modul.** Tutup kunjungan ada di Clinical (`POST /api/visits/{id}/close`, `Services\VisitCloser`). Sebelum menutup, Clinical
   mengirim `Clinical\Events\VisitClosing` (berisi id tindakan `selesai`); `Listeners\InvoiceGuard` di Billing memanggil `block()` untuk
