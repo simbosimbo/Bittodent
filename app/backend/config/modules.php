@@ -20,5 +20,7 @@ return [
     'Inventory' => [],
     'Recall' => ['Scheduling'], // C3: reminder_log reads appointments via Scheduling\Contracts\AppointmentDirectory
     'Integrations' => [],
+    // A0 AI foundation: agent_run/agent_draft + run recorder; reaches models only via Integrations\Contracts\ModelClient.
+    'Agents' => ['Integrations'],
     'Reporting' => [],
 ];

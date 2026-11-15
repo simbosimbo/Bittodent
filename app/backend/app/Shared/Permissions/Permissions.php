@@ -10,7 +10,8 @@ final class Permissions
         'owner' => ['patient.read', 'patient.read_nik', 'patient.create', 'appointment.read', 'appointment.create',
             'appointment.transition', 'note.read', 'audit.read', 'correction.approve', 'patient.update', 'billing.read', 'billing.adjust', 'tariff.manage'],
         'dentist' => ['patient.read', 'patient.read_nik', 'patient.create', 'appointment.read', 'appointment.create',
-            'appointment.transition', 'note.read', 'note.write', 'note.sign', 'patient.update', 'appointment.plan'],
+            'appointment.transition', 'note.read', 'note.write', 'note.sign', 'patient.update', 'appointment.plan',
+            'ai_draft.review'], // approve/reject agent drafts (D-001); never owner/assistant
         'assistant' => ['patient.read', 'appointment.read', 'appointment.transition', 'note.read', 'note.write', 'appointment.plan'],
         'front_desk' => ['patient.read', 'patient.create', 'appointment.read', 'appointment.create', 'appointment.transition',
             'patient.update', 'billing.read', 'billing.adjust'],
