@@ -16,7 +16,6 @@ use App\Shared\Terminology\Icd10Code;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
-use PragmaRX\Google2FA\Google2FA;
 use Tests\TestCase;
 
 class ChartApiTest extends TestCase
@@ -29,11 +28,6 @@ class ChartApiTest extends TestCase
     private function inA(callable $fn): mixed
     {
         return Ctx::runAs($this->tenantA()->id, $fn);
-    }
-
-    private function code(): string
-    {
-        return app(Google2FA::class)->getCurrentOtp(DatabaseSeeder::TOTP_SECRET);
     }
 
     /** New visit (from a booked appointment without a visit) with a draft note at revision 1. */
@@ -49,7 +43,7 @@ class ChartApiTest extends TestCase
 
     private function sign(string $visit, array $body = [], string $email = self::DOC)
     {
-        return $this->as($email)->postJson("/api/visits/$visit/sign", $body + ['revision' => 1, 'confirm' => true, 'code' => $this->code()]);
+        return $this->as($email)->postJson("/api/visits/$visit/selesai", $body + ['revision' => 1, 'confirm' => true]);
     }
 
     private function noteOf(string $visit): ClinicalNote
@@ -72,11 +66,16 @@ class ChartApiTest extends TestCase
             ->assertCreated()->assertJsonPath('state', 'draft')->json('id');
         $this->as(self::DOC)->postJson("/api/visits/$visit/findings", ['tooth' => 16, 'surface' => null, 'condition' => 'mahkota'])->assertCreated();
 
-        $this->sign($visit)->assertOk()->assertJsonPath('findings_locked', 2);
+        // an agent draft must be approved ("Setujui") before Selesai; approval keeps source ai_draft for provenance
+        $this->sign($visit)->assertUnprocessable()->assertJsonPath('error', 'unapproved_drafts')->assertJsonPath('finding_ids', [$f]);
+        $this->as(self::DOC)->postJson("/api/visits/$visit/approve-drafts")->assertOk()->assertJsonPath('approved.findings', 1)
+            ->assertJsonPath('pending.finding_ids', []);
+        $this->sign($visit)->assertOk()->assertJsonPath('findings_locked', 2)->assertJsonPath('visit.status', 'selesai');
 
         $v = $this->noteOf($visit)->versions->first();
         $this->assertSame(['signed', $this->user(self::DOC)->id, Soap::hash(self::SOAP)], [$v->state, $v->signed_by, $v->content_hash]);
-        $this->assertSame('final', $this->inA(fn () => ToothFinding::find($f)->state));
+        $finding = $this->inA(fn () => ToothFinding::find($f));
+        $this->assertSame(['final', 'ai_draft', $this->user(self::DOC)->id], [$finding->state, $finding->source, $finding->approved_by]);
         $this->assertTrue($this->inA(fn () => Outbox::where('idempotency_key', "satusehat:note_version:{$v->id}")->exists()));
         $this->assertTrue($this->inA(fn () => AuditEvent::where('action', 'tanda_tangan')->where('entity_id', $v->id)->exists()));
 
@@ -98,7 +97,7 @@ class ChartApiTest extends TestCase
         $this->as(self::DOC)->patchJson("/api/findings/$f", ['condition' => 'tambalan'])->assertStatus(409);
         $this->as(self::DOC)->deleteJson("/api/findings/$f")->assertStatus(409);
         $this->as(self::DOC)->postJson("/api/visits/$visit/findings", ['tooth' => 22, 'surface' => 'I', 'condition' => 'karies'])->assertStatus(409);
-        $this->sign($visit)->assertStatus(409);
+        $this->sign($visit)->assertOk(); // second Selesai: idempotent, nothing re-signed
 
         // DB backstop (as ehr_app): trigger rejects UPDATE of the signed version / final finding; no DELETE grant at all.
         $v = $this->noteOf($visit)->versions->first();
@@ -130,16 +129,16 @@ class ChartApiTest extends TestCase
         $this->assertSame('draft', $this->noteOf($visit)->versions->first()->state);
     }
 
-    public function test_missing_or_wrong_confirmation_is_403(): void
+    public function test_missing_confirmation_is_403_and_no_totp_is_asked(): void
     {
         $visit = $this->draftVisit();
-        $this->sign($visit, ['confirm' => false])->assertForbidden();
-        $this->as(self::DOC)->postJson("/api/visits/$visit/sign", ['revision' => 1, 'code' => $this->code()])->assertForbidden();
-        $this->as(self::DOC)->postJson("/api/visits/$visit/sign", ['revision' => 1, 'confirm' => true])->assertForbidden();
-        $this->sign($visit, ['code' => $this->code() === '000000' ? '111111' : '000000'])->assertForbidden();
+        $this->sign($visit, ['confirm' => false])->assertForbidden()->assertJsonPath('error', 'confirmation_required');
+        $this->as(self::DOC)->postJson("/api/visits/$visit/selesai", ['revision' => 1])->assertForbidden();
         $this->sign($visit, ['confirm' => 'true'])->assertForbidden(); // must be a real boolean
         $this->assertSame('draft', $this->noteOf($visit)->versions->first()->state);
-        $this->assertSame(5, $this->inA(fn () => AuditEvent::where('action', 'tanda_tangan_ditolak')->count()));
+        $this->assertSame(3, $this->inA(fn () => AuditEvent::where('action', 'tanda_tangan_ditolak')->count()));
+        // the separate TOTP re-prompt is gone (#54): confirm alone signs when the clinic does not require a PIN
+        $this->as(self::DOC)->postJson("/api/visits/$visit/selesai", ['revision' => 1, 'confirm' => true])->assertOk();
     }
 
     public function test_stale_revision_is_409(): void

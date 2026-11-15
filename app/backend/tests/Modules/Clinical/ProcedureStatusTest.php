@@ -9,8 +9,6 @@ use App\Modules\Clinical\Models\ProcedureRecord;
 use App\Modules\Clinical\Models\Visit;
 use App\Shared\Audit\AuditEvent;
 use App\Shared\Tenancy\Ctx;
-use Database\Seeders\DatabaseSeeder;
-use PragmaRX\Google2FA\Google2FA;
 use Tests\TestCase;
 
 class ProcedureStatusTest extends TestCase
@@ -91,8 +89,10 @@ class ProcedureStatusTest extends TestCase
     public function test_signing_bills_draft_items_with_status_selesai_once(): void
     {
         $v = $this->todayVisit();
-        $code = app(Google2FA::class)->getCurrentOtp(DatabaseSeeder::TOTP_SECRET);
-        $this->as(self::DOC)->postJson("/api/visits/{$v->id}/sign", ['revision' => 1, 'confirm' => true, 'code' => $code])->assertOk();
+        $this->as(self::DOC)->postJson("/api/visits/{$v->id}/selesai", ['revision' => 1, 'confirm' => true])->assertUnprocessable()
+            ->assertJsonPath('error', 'unapproved_drafts'); // seeded agent finding (26 karies)
+        $this->as(self::DOC)->postJson("/api/visits/{$v->id}/approve-drafts")->assertOk();
+        $this->as(self::DOC)->postJson("/api/visits/{$v->id}/selesai", ['revision' => 1, 'confirm' => true])->assertOk();
 
         $inv = $this->inA(fn () => Invoice::where('visit_id', $v->id)->firstOrFail());
         $lines = $this->inA(fn () => InvoiceLine::where('invoice_id', $inv->id)->get());

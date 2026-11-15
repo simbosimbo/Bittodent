@@ -75,7 +75,7 @@ class ProcedureController extends Controller
             if (! is_array($attrs)) {
                 return $attrs;
             }
-            $p->update([...$attrs, 'source' => $d['source'] ?? $p->source]);
+            $p->update([...$attrs, 'source' => $d['source'] ?? $p->source, 'approved_by' => null, 'approved_at' => null]); // edited draft: Setujui again (#54)
             Audit::log('ubah', 'procedure_record', $p->id, self::externalAudit($p));
 
             return response()->json(self::out($p));
@@ -396,7 +396,7 @@ class ProcedureController extends Controller
             : ($defs ? $defs->get($p->procedure_code) : ProcedureDefinition::where('procedure_code', $p->procedure_code)->first());
 
         return $p->only(['id', 'visit_id', 'patient_id', 'treat_area', 'tooth', 'surfaces', 'tooth_range', 'quadrant', 'arch', 'status',
-            'procedure_code', 'variant', 'diagnosis_code', 'diagnosis_source', 'provider_id', 'state', 'source', 'supersedes_id', 'reason', 'replaces_id',
+            'procedure_code', 'variant', 'diagnosis_code', 'diagnosis_source', 'provider_id', 'state', 'source', 'approved_at', 'supersedes_id', 'reason', 'replaces_id',
             'created_by', 'finalized_by', 'finalized_at', 'external_clinic_name', 'external_date_precision', 'external_confirmation',
             'external_confirmed_by', 'external_confirmed_at', 'external_confirmation_reason'])
             + ['external_date' => $p->external_date ? substr((string) $p->external_date, 0, 10) : null]

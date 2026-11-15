@@ -148,7 +148,7 @@ class ChartController extends Controller
 
     public static function finding(ToothFinding $f): array
     {
-        return $f->only(['id', 'visit_id', 'tooth', 'surface', 'condition', 'status', 'procedure_code', 'variant', 'diagnosis_code', 'diagnosis_source', 'state', 'source', 'supersedes_id', 'created_by', 'finalized_by', 'finalized_at']);
+        return $f->only(['id', 'visit_id', 'tooth', 'surface', 'condition', 'status', 'procedure_code', 'variant', 'diagnosis_code', 'diagnosis_source', 'state', 'source', 'approved_at', 'supersedes_id', 'created_by', 'finalized_by', 'finalized_at']);
     }
 
     private static function note(ClinicalNote $n, $names, ?CorrectionRequest $pending): array
@@ -163,9 +163,9 @@ class ChartController extends Controller
                 'id' => $v->id, 'version' => $v->version, 'revision' => $v->revision, 'supersedes_id' => $v->supersedes_id,
                 // 'digantikan' is derived from supersedes_id, never stored on the old row.
                 'status' => $v->state === 'draft' ? 'draf' : ($superseded->has($v->id) ? 'digantikan' : 'berlaku'),
-                'source' => $v->source, 'signed_by' => $v->signed_by, 'signed_by_name' => $names[$v->signed_by] ?? null,
+                'source' => $v->source, 'approved_at' => $v->approved_at, 'signed_by' => $v->signed_by, 'signed_by_name' => $names[$v->signed_by] ?? null,
                 'signed_at' => $v->signed_at, 'reason' => $v->reason, 'correction_request_id' => $v->correction_request_id,
-                'content_hash' => $v->content_hash, 'soap' => $v->soap(),
+                'content_hash' => $v->content_hash, 'signature_hash' => $v->signature_hash, 'soap' => $v->soap(),
             ]),
         ];
     }

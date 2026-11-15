@@ -14,8 +14,6 @@ use App\Modules\Scheduling\Models\Appointment;
 use App\Modules\Tenancy\Models\Membership;
 use App\Shared\Tenancy\Ctx;
 use Database\Seeders\DatabaseSeeder;
-use Illuminate\Support\Facades\Cache;
-use PragmaRX\Google2FA\Google2FA;
 use Tests\TestCase;
 
 // P0 split (DEVIATIONS #47): tooth_finding = visual condition, procedure_record = treatment. One procedure = one price = one line.
@@ -45,10 +43,8 @@ class ProcedureTest extends TestCase
 
     private function sign(string $visit)
     {
-        Cache::flush(); // Fortify refuses a reused TOTP code
 
-        return $this->as(self::DOC)->postJson("/api/visits/$visit/sign", ['revision' => 1, 'confirm' => true,
-            'code' => app(Google2FA::class)->getCurrentOtp(DatabaseSeeder::TOTP_SECRET)]);
+        return $this->as(self::DOC)->postJson("/api/visits/$visit/selesai", ['revision' => 1, 'confirm' => true]);
     }
 
     private function lines(string $visit)
@@ -68,9 +64,9 @@ class ProcedureTest extends TestCase
         $this->assertCount(1, $lines);
         $this->assertSame([$id, 250000, 'MOD', 26], [$lines[0]->procedure_id, $lines[0]->price_rp, $lines[0]->surface, $lines[0]->tooth]);
 
-        // idempotent: re-raising the event for the same procedure (or signing again) never adds a line
+        // idempotent: re-raising the event for the same procedure (or pressing Selesai again: 200, same signature) never adds a line
         $this->inA(fn () => ProcedureController::recorded(ProcedureRecord::findOrFail($id)));
-        $this->sign($visit)->assertConflict();
+        $this->sign($visit)->assertOk();
         $this->assertCount(1, $this->lines($visit));
 
         $patient = $this->inA(fn () => Visit::findOrFail($visit)->patient_id);

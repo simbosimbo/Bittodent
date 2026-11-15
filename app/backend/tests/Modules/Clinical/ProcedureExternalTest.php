@@ -16,8 +16,6 @@ use App\Shared\Tenancy\Ctx;
 use Carbon\CarbonImmutable;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Database\QueryException;
-use Illuminate\Support\Facades\Cache;
-use PragmaRX\Google2FA\Google2FA;
 use Tests\TestCase;
 
 // Unit 2 (DEVIATIONS #48): status external = work at another clinic. Clinic + approximate date, never billed; same site as today's
@@ -54,10 +52,7 @@ class ProcedureExternalTest extends TestCase
 
     private function sign(string $visit)
     {
-        Cache::flush();
-
-        return $this->as(self::DOC)->postJson("/api/visits/$visit/sign", ['revision' => 1, 'confirm' => true,
-            'code' => app(Google2FA::class)->getCurrentOtp(DatabaseSeeder::TOTP_SECRET)]);
+        return $this->as(self::DOC)->postJson("/api/visits/$visit/selesai", ['revision' => 1, 'confirm' => true]);
     }
 
     private function lines(string $visit)

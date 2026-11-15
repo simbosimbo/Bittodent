@@ -10,6 +10,7 @@ use Illuminate\Http\Exceptions\HttpResponseException;
 use LogicException;
 
 // Unit 4: appointment -> done closes its open visit under the same guard; a refusal aborts the transition (exception rolls back).
+// #54: an already `selesai` visit is a no-op; unsigned clinical work is refused (use_selesai) so done never bypasses Selesai.
 final class CloseVisitOnAppointmentDone
 {
     public function __construct(private VisitCloser $closer) {}

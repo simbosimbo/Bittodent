@@ -41,6 +41,11 @@ final class TenancyDirectoryService implements TenancyDirectory
         return (int) Tenant::findOrFail(Ctx::current()->tenant())->correction_window_hours;
     }
 
+    public function selesaiPinRequired(): bool
+    {
+        return (bool) Tenant::findOrFail(Ctx::current()->tenant())->selesai_pin_required;
+    }
+
     public function dentistIdsForBranch(string $branchId): array
     {
         return Membership::where('role', 'dentist')->whereNull('revoked_at')

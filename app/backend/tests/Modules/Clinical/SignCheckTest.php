@@ -7,11 +7,9 @@ use App\Modules\Clinical\Models\ProcedureRecord;
 use App\Modules\Clinical\Models\ToothFinding;
 use App\Modules\Clinical\Models\Visit;
 use App\Modules\Scheduling\Models\Appointment;
+use App\Modules\Tariffs\Models\Tariff;
 use App\Shared\Audit\AuditEvent;
 use App\Shared\Tenancy\Ctx;
-use Database\Seeders\DatabaseSeeder;
-use Illuminate\Support\Facades\Cache;
-use PragmaRX\Google2FA\Google2FA;
 use Tests\TestCase;
 
 // Sign-time combination checks (SignCheck): blocks => 422 sign_blocked; warnings => 422 unless accept_warnings + reason.
@@ -50,10 +48,7 @@ class SignCheckTest extends TestCase
 
     private function sign(string $visit, array $body = [])
     {
-        Cache::flush(); // Fortify refuses a reused TOTP code; each attempt stands for a fresh code
-
-        return $this->as(self::DOC)->postJson("/api/visits/$visit/sign", $body + ['revision' => 1, 'confirm' => true,
-            'code' => app(Google2FA::class)->getCurrentOtp(DatabaseSeeder::TOTP_SECRET)]);
+        return $this->as(self::DOC)->postJson("/api/visits/$visit/selesai", $body + ['revision' => 1, 'confirm' => true]);
     }
 
     private function noteState(string $visit): string
@@ -128,6 +123,9 @@ class SignCheckTest extends TestCase
     {
         $visit = $this->draftVisit();
         $this->procedure($visit, 46, null, '23.71', 'K02.0'); // root canal = whole tooth (catalog)
+        // Selesai also closes the visit under the invoice guard: give 23.71 a (synthetic) price
+        $this->inA(fn () => Tariff::create(['procedure_code' => '23.71', 'name' => 'Perawatan saluran akar (uji)', 'variant' => 'standar',
+            'price_rp' => 500000, 'valid_from' => '2026-01-01']));
 
         $r = $this->sign($visit)->assertUnprocessable()->assertJsonPath('error', 'warnings')->assertJsonPath('warnings.0.rule', 'diagnosis_tindakan');
         $this->assertStringContainsString('K02.0 (Caries limited to enamel)', $r->json('warnings.0.message'));

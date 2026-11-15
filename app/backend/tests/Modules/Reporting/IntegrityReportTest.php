@@ -10,8 +10,6 @@ use App\Modules\Tenancy\Models\Membership;
 use App\Shared\Audit\AuditEvent;
 use App\Shared\Tenancy\Ctx;
 use Database\Seeders\DatabaseSeeder;
-use Illuminate\Support\Facades\Cache;
-use PragmaRX\Google2FA\Google2FA;
 use Tests\TestCase;
 
 // Unit 6 (DEVIATIONS #52): owner integrity report per dentist + alerts. Counts are compared as deltas over the seeded month.
@@ -52,9 +50,7 @@ class IntegrityReportTest extends TestCase
 
     private function sign(string $visit): void
     {
-        Cache::flush();
-        $this->as(self::DOC)->postJson("/api/visits/$visit/sign", ['revision' => 1, 'confirm' => true,
-            'code' => app(Google2FA::class)->getCurrentOtp(DatabaseSeeder::TOTP_SECRET)])->assertOk();
+        $this->as(self::DOC)->postJson("/api/visits/$visit/selesai", ['revision' => 1, 'confirm' => true])->assertOk();
     }
 
     /** @return array<string, array> dentist id => row */
@@ -84,8 +80,7 @@ class IntegrityReportTest extends TestCase
         $ext = $this->proc($v1, ['tooth' => 26, 'treat_area' => 'tooth', 'provider_id' => $doc2->id, 'status' => 'external',
             'external_clinic_name' => 'Klinik Contoh Lain', 'external_date' => '06/2025'])->assertJsonPath('external_confirmation', 'pending')->json('id');
         $this->as(self::DESK)->postJson("/api/procedures/$ext/confirm-external", ['confirm' => true])->assertOk();
-        $this->sign($v1);
-        $this->as(self::DESK)->postJson("/api/visits/$v1/close")->assertOk();
+        $this->sign($v1); // Selesai also closes the visit
         $inv = $this->inA(fn () => Invoice::where('visit_id', $v1)->value('id'));
         $balance = $this->as(self::DESK)->postJson("/api/invoices/$inv/adjustments", ['kind' => 'discount', 'amount_rp' => 10000, 'reason' => 'Diskon kecil uji'])
             ->assertCreated()->json('balance_rp');
@@ -95,12 +90,12 @@ class IntegrityReportTest extends TestCase
         // (2) unbilled `selesai`, visit still open
         [$v2] = $this->visit();
         $this->proc($v2, self::NO_TARIFF);
-        $this->sign($v2);
+        $this->as(self::DOC)->postJson("/api/visits/$v2/selesai", ['revision' => 1, 'confirm' => true])->assertConflict()
+            ->assertJsonPath('error', 'invoice_required'); // #54: Selesai refused, work stays an unsigned `selesai` draft
 
         // (3) unbilled `selesai` but the appointment was cancelled: closed without invoice => batal, not tanpa tagihan
         [$v3, $appt3] = $this->visit();
         $this->proc($v3, self::NO_TARIFF);
-        $this->sign($v3);
         $this->as(self::DESK)->postJson("/api/appointments/$appt3/transition", ['to' => 'cancelled'])->assertOk();
         $this->as(self::DESK)->postJson("/api/visits/$v3/close", ['reason' => 'Pasien batal hadir, dicatat front desk'])->assertOk()
             ->assertJsonPath('closed_without_invoice', true);
