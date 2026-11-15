@@ -15,9 +15,10 @@ test('anterior teeth use I, posterior teeth use O', () => {
   expect(surfacesOf(46)).not.toContain('I')
 })
 
-test('procedure statuses mirror ProcedureStatus::TRANSITIONS: eight keys, selesai final, every target exists', () => {
-  expect(STATUSES.map((s) => s.key)).toEqual(['kondisi_pantau', 'ada_di_klinik_ini', 'ada_di_tempat_lain', 'direncanakan', 'selesai', 'dirujuk', 'cancelled', 'superseded'])
+test('procedure statuses mirror ProcedureStatus::TRANSITIONS: nine keys, selesai final, every target exists', () => {
+  expect(STATUSES.map((s) => s.key)).toEqual(['kondisi_pantau', 'ada_di_klinik_ini', 'ada_di_tempat_lain', 'direncanakan', 'selesai', 'dirujuk', 'cancelled', 'superseded', 'tidak_dikerjakan'])
   expect(CHOOSABLE.map((s) => s.key)).not.toContain('superseded')
+  expect(CHOOSABLE.map((s) => s.key)).not.toContain('tidak_dikerjakan')
   expect(STATUSES.find((s) => s.key === 'selesai')!.next).toEqual([])
   for (const s of STATUSES) for (const n of s.next) expect(STATUSES.some((x) => x.key === n)).toBe(true)
 })

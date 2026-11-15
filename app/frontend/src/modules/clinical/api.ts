@@ -2,7 +2,7 @@ import { api } from '../../shared/api/http'
 
 export type Surface = 'M' | 'D' | 'O' | 'I' | 'B' | 'L'
 export type Source = 'manual' | 'ai_draft'
-export type ProcStatus = 'kondisi_pantau' | 'ada_di_klinik_ini' | 'ada_di_tempat_lain' | 'direncanakan' | 'selesai' | 'dirujuk' | 'cancelled' | 'superseded'
+export type ProcStatus = 'kondisi_pantau' | 'ada_di_klinik_ini' | 'ada_di_tempat_lain' | 'direncanakan' | 'selesai' | 'dirujuk' | 'cancelled' | 'superseded' | 'tidak_dikerjakan'
 export type Finding = {
   id: string; visit_id: string; tooth: number; surface: Surface | null; condition: string; status: ProcStatus
   procedure_code: string | null; supersedes_id: string | null
@@ -57,9 +57,24 @@ export const getChart = (patientId: string, asOf?: string | null) =>
 export const replaceProcedure = (procedureId: string, body: { visit_id: string; status: 'direncanakan' | 'selesai'; procedure_code: string; tooth: number | null
   surfaces: string | null; reason: string }) =>
   api<{ replaced: Procedure; procedure: Procedure }>(`/api/procedures/${procedureId}/replace`, { method: 'POST', body })
-/** Correct a signed record (not its status): new row, old one stays readable. Never bills. Dentist only. */
-export const correctProcedure = (procedureId: string, body: { reason: string; procedure_code?: string; surfaces?: string | null }) =>
-  api<Procedure>(`/api/procedures/${procedureId}/corrections`, { method: 'POST', body })
+export type CorrectionType = 'salah_kode' | 'salah_situs' | 'salah_provider' | 'tidak_dikerjakan'
+/**
+ * Correct a signed record (not its status): new row, old one stays readable. Never bills. Dentist only. Within the clinic's window
+ * it applies at once (approval not_needed); outside it waits for the owner (approval pending, no new row yet).
+ */
+export const correctProcedure = (procedureId: string, body: { reason_type: CorrectionType; reason: string; procedure_code?: string; surfaces?: string | null }) =>
+  api<(Procedure & { approval: 'not_needed'; correction_id: string }) | { approval: 'pending'; correction_id: string; window_hours: number }>(
+    `/api/procedures/${procedureId}/corrections`, { method: 'POST', body })
+export type PendingCorrection = { id: string; reason_type: CorrectionType; reason: string; proposed: Partial<Procedure> | null
+  requested_by: { id: string; name: string | null }; created_at: string; procedure: Procedure }
+/** Owner only (correction.approve): procedure corrections outside the window, waiting for a decision. */
+export const pendingCorrections = () => api<PendingCorrection[]>('/api/procedure-corrections/pending')
+export const decideCorrection = (id: string, decision: 'approve' | 'reject', reason?: string) =>
+  api(`/api/procedure-corrections/${id}/${decision}`, { method: 'POST', body: { reason: reason || null } })
+/** Owner only (settings.manage): free-edit window for procedure corrections, hours (default 48). */
+export const getClinicSettings = () => api<{ correction_window_hours: number }>('/api/settings/clinic')
+export const saveClinicSettings = (body: { correction_window_hours: number }) =>
+  api<{ correction_window_hours: number }>('/api/settings/clinic', { method: 'PUT', body })
 /** Close a visit (unit 4): 409 invoice_required when completed work has no invoice line; reason required when attendance was cancelled. */
 export const closeVisit = (visitId: string, reason?: string) =>
   api<{ id: string; status: string; closed_without_invoice: boolean }>(`/api/visits/${visitId}/close`, { method: 'POST', body: { reason: reason || null } })
