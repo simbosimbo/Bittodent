@@ -9,4 +9,8 @@ interface AppointmentDirectory
 
     /** Booked appointments starting in [from, to) (UTC), current tenant. @return list<array{id: string, starts_at: \DateTimeInterface}> */
     public function bookedStartingBetween(\DateTimeInterface $from, \DateTimeInterface $to): array;
+
+    /** Cancelled / no-show appointments starting in [from, to) (UTC), current tenant; $branchIds null = all (owner report, unit 6).
+     * @return list<array{id: string, patient_id: string, dentist_id: string, status: string, starts_at: string}> */
+    public function cancelledStartingBetween(\DateTimeInterface $from, \DateTimeInterface $to, ?array $branchIds): array;
 }

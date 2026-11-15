@@ -6,7 +6,7 @@
 return [
     'Tenancy' => [],
     'Identity' => [],
-    'Audit' => [],
+    'Audit' => ['Identity', 'Tenancy'], // unit 6: actor names + branch timezone for the read-only audit log
     'Patients' => ['Tenancy'],
     'Scheduling' => ['Tenancy', 'Patients', 'Identity'],
     'Clinical' => ['Patients', 'Scheduling', 'Tenancy', 'Identity', 'Integrations'],
@@ -22,5 +22,6 @@ return [
     'Inventory' => [],
     'Recall' => ['Scheduling'], // C3: reminder_log reads appointments via Scheduling\Contracts\AppointmentDirectory
     'Integrations' => [],
-    'Reporting' => [],
+    // Unit 6 owner integrity report: reads facts only through each module's Contracts (no Models).
+    'Reporting' => ['Clinical', 'Billing', 'Scheduling', 'Identity', 'Patients', 'Tenancy'],
 ];
