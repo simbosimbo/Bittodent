@@ -3,7 +3,6 @@
 namespace App\Modules\Clinical\Http\Requests;
 
 use App\Modules\Clinical\Domain\Odontogram;
-use App\Modules\Clinical\Domain\ProcedureStatus;
 use App\Modules\Clinical\Domain\Soap;
 use App\Shared\Terminology\OfficialIcdCode;
 use Illuminate\Foundation\Http\FormRequest;
@@ -26,12 +25,20 @@ class FindingRequest extends FormRequest
             'surface' => [$post ? 'present' : 'prohibited', 'nullable', 'string', 'in:'.implode(',', Odontogram::SURFACES)],
             'condition' => ['required', 'string', 'in:'.implode(',', [...Odontogram::SURFACE_CONDITIONS, ...Odontogram::WHOLE_CONDITIONS])],
             'source' => ['sometimes', 'string', 'in:manual,ai_draft'],
-            'status' => ['sometimes', 'string', 'in:'.implode(',', ProcedureStatus::ALL)],
-            'procedure_code' => ['bail', 'sometimes', 'nullable', 'string', 'regex:'.Soap::ICD9CM, OfficialIcdCode::icd9cm()],
+            // DEVIATIONS #47: treatments live in procedure_record; a finding is a visual condition (status stays kondisi_pantau)
+            'status' => ['sometimes', 'string', 'in:kondisi_pantau'],
+            'procedure_code' => ['prohibited'],
+            'variant' => ['prohibited'],
             'diagnosis_code' => ['bail', 'sometimes', 'nullable', 'string', 'regex:'.Soap::ICD10, OfficialIcdCode::icd10()],
             'diagnosis_source' => ['sometimes', 'string', 'in:aturan,riwayat,manual,agen'],
-            'variant' => ['sometimes', 'string', 'regex:/^[a-z0-9_]{1,10}$/'], // tariff level code; Clinical cannot see Tariffs (D-035)
         ];
+    }
+
+    public function messages(): array
+    {
+        $m = 'Tindakan dicatat lewat POST /api/visits/{id}/procedures, bukan sebagai temuan.';
+
+        return ['status.in' => $m, 'procedure_code.prohibited' => $m, 'variant.prohibited' => $m];
     }
 
     public function after(): array

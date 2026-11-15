@@ -3,7 +3,7 @@
 namespace Tests\Modules\Tariffs;
 
 use App\Modules\Billing\Models\InvoiceLine;
-use App\Modules\Clinical\Models\ToothFinding;
+use App\Modules\Clinical\Models\ProcedureRecord;
 use App\Modules\Tariffs\Contracts\PriceContext;
 use App\Modules\Tariffs\Contracts\PriceLookup;
 use App\Modules\Tariffs\Domain\Derivation;
@@ -186,9 +186,9 @@ class TariffRulesTest extends TestCase
 
     public function test_bulk_umum_preview_apply_versions_and_keeps_invoice_snapshots(): void
     {
-        $old = $this->inA(fn () => ToothFinding::where('tooth', 18)->where('state', 'final')->firstOrFail());
-        $new = $this->as(self::DOC)->postJson("/api/findings/{$old->id}/status", ['to' => 'selesai'])->assertCreated()->json('id');
-        $line = $this->inA(fn () => InvoiceLine::where('finding_id', $new)->firstOrFail());
+        $old = $this->inA(fn () => ProcedureRecord::where('tooth', 18)->where('state', 'final')->firstOrFail());
+        $new = $this->as(self::DOC)->postJson("/api/procedures/{$old->id}/status", ['to' => 'selesai'])->assertCreated()->json('id');
+        $line = $this->inA(fn () => InvoiceLine::where('procedure_id', $new)->firstOrFail());
         $before = $this->inA(fn () => Tariff::count());
 
         $body = ['target' => 'umum', 'category' => 'pencabutan', 'kind' => 'percent', 'value' => 10, 'rounding' => 'nearest_1000'];

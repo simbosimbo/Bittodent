@@ -2,11 +2,14 @@
 
 namespace App\Modules\Clinical\Domain;
 
+use App\Modules\Clinical\Models\ProcedureDefinition;
+use App\Modules\Clinical\Models\ProcedureRecord;
 use App\Modules\Clinical\Models\ToothFinding;
 use App\Shared\Terminology\IcdCatalog;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
-// Combination checks on a visit's draft findings + SOAP codes, run at sign time (codes stay draft until then).
+// Combination checks on a visit's draft findings + draft procedures + SOAP codes, run at sign time (codes stay draft until then).
 // blocks = sign refused; warnings = sign only with accept_warnings + reason. Official ICD 2010 codes only; titles come from the tables.
 final class SignCheck
 {
@@ -15,33 +18,45 @@ final class SignCheck
         'K02.0' => ['23.70', '23.71'], // karies email + perawatan saluran akar
     ];
 
-    /** @return array{blocks: list<array>, warnings: list<array>} */
-    public static function run(Collection $drafts, array $soap, string $patientId): array
+    /**
+     * $findings = draft tooth_finding rows (visual: surface/condition fit only); $procedures = draft procedure_record rows (all checks).
+     *
+     * @return array{blocks: list<array>, warnings: list<array>}
+     */
+    public static function run(Collection $findings, Collection $procedures, array $soap, string $patientId): array
     {
         $blocks = $warnings = [];
-        $issue = fn (string $rule, ?ToothFinding $f, string $msg) => ['rule' => $rule, 'finding_id' => $f?->id, 'tooth' => $f?->tooth, 'message' => $msg];
-        $isProcedure = fn (ToothFinding $f) => $f->procedure_code !== null || $f->status === 'selesai';
-        $missing = self::missingTeeth($patientId, $drafts->filter($isProcedure)->pluck('tooth')->unique()->all());
+        $issue = fn (string $rule, ?Model $r, string $msg) => ['rule' => $rule, 'finding_id' => $r instanceof ToothFinding ? $r->id : null,
+            'procedure_id' => $r instanceof ProcedureRecord ? $r->id : null, 'tooth' => $r?->tooth, 'message' => $msg];
+        $missing = self::missingTeeth($patientId, $procedures->pluck('tooth')->filter()->unique()->all());
+        $paint = ProcedureDefinition::whereIn('procedure_code', $procedures->pluck('procedure_code')->filter()->unique())->pluck('paint_type', 'procedure_code');
 
-        foreach ($drafts as $f) {
+        foreach ($findings as $f) {
             if ($e = Odontogram::error($f->tooth, $f->surface, $f->condition)) {
                 $blocks[] = $issue('permukaan', $f, "Gigi {$f->tooth}: $e");
             }
-            if (! $isProcedure($f)) {
-                continue;
+        }
+        foreach ($procedures as $p) {
+            $where = $p->tooth === null ? 'Tindakan' : "Gigi {$p->tooth}";
+            if ($p->tooth !== null && ! Odontogram::validTooth($p->tooth)) {
+                $blocks[] = $issue('permukaan', $p, "$where: nomor gigi FDI tidak dikenal.");
+            } elseif ($p->surfaces !== null && ($e = Odontogram::surfaces($p->tooth, $p->surfaces)[1])) {
+                $blocks[] = $issue('permukaan', $p, "$where: $e");
             }
-            // uuid7 ids are time-ordered: an earlier draft in this visit already marked the tooth missing
-            $markedBefore = $drafts->contains(fn ($h) => $h->id < $f->id && $h->tooth === $f->tooth && $h->condition === 'hilang');
-            if ($f->condition !== 'implan' && (isset($missing[$f->tooth]) || $markedBefore)) {
-                $blocks[] = $issue('gigi_hilang', $f, "Gigi {$f->tooth} tercatat hilang; tindakan pada gigi ini tidak bisa ditandatangani.");
+            if ($p->tooth !== null) {
+                // uuid7 ids are time-ordered: an earlier draft finding in this visit already marked the tooth missing
+                $markedBefore = $findings->contains(fn ($h) => $h->id < $p->id && $h->tooth === $p->tooth && $h->condition === 'hilang');
+                if (($paint[$p->procedure_code] ?? null) !== 'Implant' && (isset($missing[$p->tooth]) || $markedBefore)) {
+                    $blocks[] = $issue('gigi_hilang', $p, "Gigi {$p->tooth} tercatat hilang; tindakan pada gigi ini tidak bisa ditandatangani.");
+                }
+                if ($m = self::dentitionError($p->tooth, $p->procedure_code)) {
+                    $blocks[] = $issue('sulung_tetap', $p, $m);
+                }
             }
-            if ($m = self::dentitionError($f->tooth, $f->procedure_code)) {
-                $blocks[] = $issue('sulung_tetap', $f, $m);
-            }
-            if ($f->diagnosis_code === null) {
-                $warnings[] = $issue('tanpa_diagnosis', $f, "Gigi {$f->tooth}: tindakan tanpa kode diagnosis ICD-10.");
-            } elseif (in_array($f->procedure_code, self::MISALIGNED[$f->diagnosis_code] ?? [], true)) {
-                $warnings[] = $issue('diagnosis_tindakan', $f, "Gigi {$f->tooth}: ".self::misalignedText($f->diagnosis_code, $f->procedure_code));
+            if ($p->diagnosis_code === null) {
+                $warnings[] = $issue('tanpa_diagnosis', $p, "$where: tindakan tanpa kode diagnosis ICD-10.");
+            } elseif (in_array($p->procedure_code, self::MISALIGNED[$p->diagnosis_code] ?? [], true)) {
+                $warnings[] = $issue('diagnosis_tindakan', $p, "$where: ".self::misalignedText($p->diagnosis_code, $p->procedure_code));
             }
         }
         foreach ($soap['A']['codes'] ?? [] as $dx) {

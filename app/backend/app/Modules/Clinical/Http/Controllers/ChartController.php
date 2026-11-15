@@ -4,6 +4,8 @@ namespace App\Modules\Clinical\Http\Controllers;
 
 use App\Modules\Clinical\Models\ClinicalNote;
 use App\Modules\Clinical\Models\CorrectionRequest;
+use App\Modules\Clinical\Models\ProcedureDefinition;
+use App\Modules\Clinical\Models\ProcedureRecord;
 use App\Modules\Clinical\Models\ToothBaseline;
 use App\Modules\Clinical\Models\ToothFinding;
 use App\Modules\Clinical\Models\Visit;
@@ -27,6 +29,9 @@ class ChartController extends Controller
         $notes = ClinicalNote::where('patient_id', $id)->with('versions')->orderBy('created_at')->get();
         $findings = ToothFinding::where('patient_id', $id)->whereIn('state', ['draft', 'final'])
             ->orderBy('finalized_at')->orderBy('id')->get(); // uuid7 id = creation order
+        $procedures = ProcedureRecord::where('patient_id', $id)->whereIn('state', ['draft', 'final'])->orderBy('id')->get();
+        $defs = ProcedureDefinition::whereIn('procedure_code', $procedures->pluck('procedure_code')->filter()->unique())->get()->keyBy('procedure_code');
+        $proc = fn ($p) => ProcedureController::out($p, $defs);
         $requests = CorrectionRequest::whereIn('note_id', $notes->pluck('id'))->where('state', 'diajukan')->get()->keyBy('note_id');
 
         // Current odontogram: latest final finding per tooth+surface (not superseded). D-021 does this with DISTINCT ON in PG.
@@ -42,6 +47,7 @@ class ChartController extends Controller
             'status' => $v->status, 'dentist' => ['id' => $v->dentist_id, 'name' => $names[$v->dentist_id] ?? null],
             'notes' => $notes->where('visit_id', $v->id)->values()->map(fn ($n) => self::note($n, $names, $requests->get($n->id))),
             'draft_findings' => $findings->where('visit_id', $v->id)->where('state', 'draft')->values()->map(self::finding(...)),
+            'draft_procedures' => $procedures->where('visit_id', $v->id)->where('state', 'draft')->values()->map($proc),
         ]);
 
         $crossBranch = $visits->contains(fn ($v) => $v->branch_id !== Ctx::current()->branchId);
@@ -53,6 +59,9 @@ class ChartController extends Controller
             'baseline' => ($b = ToothBaseline::where('patient_id', $id)->orderByDesc('version')->first()) ? BaselineController::out($b) : null,
             'findings' => $current->map(self::finding(...)),
             'drafts' => $findings->where('state', 'draft')->where('created_by', $me)->values()->map(self::finding(...)),
+            // treatments: every current (final, not superseded) procedure, several per tooth allowed; findings stay the visual layer
+            'procedures' => $procedures->where('state', 'final')->reject(fn ($p) => $procedures->contains('supersedes_id', $p->id))->values()->map($proc),
+            'procedure_drafts' => $procedures->where('state', 'draft')->where('created_by', $me)->values()->map($proc),
             'visits' => $out,
         ]);
     }

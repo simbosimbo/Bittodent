@@ -36,9 +36,20 @@ export const STATUSES: { key: ProcStatus; label: string; legend: string; next: P
   { key: 'kondisi_pantau', label: 'Kondisi / pantau', legend: 'kondisi', next: ['direncanakan', 'dirujuk'] },
   { key: 'ada_di_klinik_ini', label: 'Sudah ada (di sini)', legend: 'sudah_ada_sini', next: ['direncanakan'] },
   { key: 'ada_di_tempat_lain', label: 'Sudah ada (tempat lain)', legend: 'sudah_ada_lain', next: ['direncanakan'] },
-  { key: 'direncanakan', label: 'Direncanakan', legend: 'direncanakan', next: ['selesai', 'dirujuk', 'kondisi_pantau'] },
+  { key: 'direncanakan', label: 'Direncanakan', legend: 'direncanakan', next: ['selesai', 'dirujuk', 'kondisi_pantau', 'cancelled'] },
   { key: 'selesai', label: 'Selesai', legend: 'selesai', next: [] },
   { key: 'dirujuk', label: 'Dirujuk', legend: 'dirujuk', next: ['direncanakan'] },
+  { key: 'cancelled', label: 'Dibatalkan', legend: 'batal', next: [] },
+  { key: 'superseded', label: 'Digantikan', legend: 'digantikan', next: [] }, // written by the server only, never chosen
 ]
+/** Statuses a user may choose for a new treatment (server also accepts `external` as an alias of ada_di_tempat_lain). */
+export const CHOOSABLE = STATUSES.filter((s) => s.key !== 'superseded')
+
+// paint_type (clinical catalog) -> legend condition used for colour/glyph until the odontogram has its own paint shapes.
+const PAINT_CONDITION: Record<string, string> = { Filling: 'tambalan', Sealant: 'tambalan', Veneer: 'tambalan', Crown: 'mahkota', Bridge: 'mahkota',
+  PostBU: 'mahkota', Denture: 'mahkota', Extraction: 'perlu_dicabut', Implant: 'implan', RCT: 'tambalan', RetainedRoot: 'sisa_akar' }
+export const paintCondition = (paint: string) => PAINT_CONDITION[paint] ?? 'tambalan'
+export const procedureText = (p: { tooth: number | null; surfaces: string | null; name: string | null; procedure_code: string | null }) =>
+  `${p.tooth ? `Gigi ${p.tooth}` : 'Mulut'}${p.surfaces ? ' ' + [...p.surfaces].map((s) => surfaceLabel(p.tooth ?? 0, s as Surface)).join('') : ''}: ${p.name ?? 'Tindakan'}${p.procedure_code ? ` (ICD-9-CM ${p.procedure_code})` : ''}`
 export const statusOf = (key: string) => STATUSES.find((s) => s.key === key)
 export const PRESENCE = [['ada', 'Ada'], ['hilang', 'Tidak ada (baseline)'], ['belum_tumbuh', 'Belum tumbuh']] as const

@@ -47,6 +47,33 @@ final class Odontogram
             self::isAnterior($t) ? 'anterior' : 'posterior', 'any'];
     }
 
+    /** Canonical letter order of a procedure's surface combination (Open Dental style "MOD"). */
+    public const SURFACE_ORDER = 'MODIBL';
+
+    /**
+     * Procedure surfaces ("dom", "M,O,D" or ['M','O','D']) => [canonical "MOD", null] or [null, Indonesian error].
+     * Rejects empty, unknown letters, duplicates, O on anterior and I on posterior teeth.
+     */
+    public static function surfaces(int $tooth, string|array $in): array
+    {
+        $letters = is_array($in) ? array_map(fn ($s) => strtoupper(trim((string) $s)), $in) : str_split(strtoupper(preg_replace('/[\s,]/', '', $in)));
+        $letters = array_values(array_filter($letters, fn ($s) => $s !== ''));
+        $err = match (true) {
+            ! $letters => 'Permukaan wajib diisi (M, O, D, I, B, L).',
+            (bool) array_diff($letters, self::SURFACES) => 'Permukaan hanya boleh M, O, D, I, B, L.',
+            count($letters) !== count(array_unique($letters)) => 'Permukaan tidak boleh diulang.',
+            in_array('O', $letters, true) && self::isAnterior($tooth) => 'Permukaan O hanya untuk premolar dan molar.',
+            in_array('I', $letters, true) && ! self::isAnterior($tooth) => 'Permukaan I hanya untuk insisor dan kaninus.',
+            default => null,
+        };
+        if ($err) {
+            return [null, $err];
+        }
+        usort($letters, fn ($a, $b) => strpos(self::SURFACE_ORDER, $a) <=> strpos(self::SURFACE_ORDER, $b));
+
+        return [implode('', $letters), null];
+    }
+
     /** Null when valid, else an Indonesian message. */
     public static function error(int $tooth, ?string $surface, string $condition): ?string
     {

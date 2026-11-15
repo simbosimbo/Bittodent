@@ -5,7 +5,8 @@ import { CONDITIONS, conditionOf, statusOf, isAnterior, isUpper, LOWER, LOWER_PR
 // FDI chart, operator view (patient's right on the chart's left). Ids follow design/odontogram: tooth "t16", surface "t16-O".
 // data-state on .tooth: empty | draft (dashed violet) | signed (solid + lock). data-condition on surfaces / whole tooth.
 // data-status (legend.json statuses) is a separate layer from data-condition; data-baseline="missing" ghosts a tooth absent at baseline.
-export type Mark = { condition: string; state: 'draft' | 'signed'; source: Source; status?: string }
+// paint = procedure paint_type (Filling, Crown, ...) when the mark comes from a treatment; data-paint lets CSS style it later.
+export type Mark = { condition: string; state: 'draft' | 'signed'; source: Source; status?: string; paint?: string }
 type Props = { marks: Record<string, Mark>; selected?: string | null; onPick?: (tooth: number, surface: Surface) => void
   baseline?: Record<string, ToothPresence>; dentition?: string }
 const DENTITION: Record<string, string> = { tetap: 'permanent', sulung: 'primary', campuran: 'mixed' }
@@ -48,7 +49,7 @@ function Tooth({ t, x, y, marks, selected, onPick, baseline }: Props & { t: numb
   const all = [whole, ...surfacesOf(t).map((s) => marks[`t${t}-${s}`])].filter(Boolean) as Mark[]
   const state = all.some((m) => m.state === 'draft') ? 'draft' : all.length ? 'signed' : 'empty'
   return (
-    <g id={`t${t}`} className="tooth" data-tooth={t} data-state={state} data-condition={whole?.condition} data-status={whole && statusOf(whole.status ?? '')?.legend}
+    <g id={`t${t}`} className="tooth" data-tooth={t} data-state={state} data-condition={whole?.condition} data-status={whole && statusOf(whole.status ?? '')?.legend} data-paint={whole?.paint}
       data-baseline={baseline?.[t] && baseline[t] !== 'ada' ? 'missing' : undefined} transform={`translate(${x},${y})`}>
       {state === 'draft' && <rect className="tooth-wash" x={-4} y={-4} width={S + 8} height={S + 8} rx={6} />}
       {shapes.map(([s, shape]) => {
@@ -56,7 +57,7 @@ function Tooth({ t, x, y, marks, selected, onPick, baseline }: Props & { t: numb
         const label = `Gigi ${t} ${surfaceName(t, s)}${m ? ': ' + (conditionOf(m.condition)?.label ?? m.condition) + (m.status ? ', ' + (statusOf(m.status)?.label ?? m.status) : '') + (m.state === 'draft' ? ' (draf)' : '') : ''}${baseline?.[t] && baseline[t] !== 'ada' ? ' (baseline: ' + (baseline[t] === 'hilang' ? 'tidak ada' : 'belum tumbuh') + ')' : ''}`
         return (
           <g key={s} id={`t${t}-${s}`} className={`tooth-surface${selected === `t${t}-${s}` ? ' is-sel' : ''}`} data-surface={s}
-            data-condition={m?.condition} data-state={m?.state} data-status={m && statusOf(m.status ?? '')?.legend} role={onPick ? 'button' : undefined} tabIndex={onPick ? 0 : undefined} aria-label={label}
+            data-condition={m?.condition} data-state={m?.state} data-status={m && statusOf(m.status ?? '')?.legend} data-paint={m?.paint} role={onPick ? 'button' : undefined} tabIndex={onPick ? 0 : undefined} aria-label={label}
             onClick={onPick && (() => onPick(t, s))} onKeyDown={onPick && ((e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onPick(t, s) } })}>
             <title>{label}</title>
             {shape}

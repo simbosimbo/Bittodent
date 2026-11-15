@@ -3,10 +3,10 @@ import { ApiError, errorText } from '../../shared/api/http'
 import { setActivePatient } from '../../shared/activePatient'
 import type { Me } from '../../shared/session'
 import {
-  approveCorrection, changeStatus, correctNote, discardFinding, getChart, saveBaseline, saveFinding, saveNote, signVisit, visitFromAppointment,
-  type Baseline, type Chart, type ChartVisit, type Finding, type Note, type ProcStatus, type Soap, type Surface, type ToothPresence, type Version,
+  approveCorrection, changeStatus, correctNote, discardFinding, discardProcedure, getChart, saveBaseline, saveFinding, saveNote, saveProcedure, signVisit,
+  visitFromAppointment, type Baseline, type Chart, type ChartVisit, type Note, type ProcStatus, type Procedure, type Soap, type Surface, type ToothPresence, type Version,
 } from './api'
-import { AI_BADGE, CONDITIONS, findingText, PRESENCE, STATUSES, statusOf, surfaceLabel, surfaceName } from './legend'
+import { AI_BADGE, CHOOSABLE, CONDITIONS, findingText, paintCondition, PRESENCE, procedureText, statusOf, surfaceLabel, surfaceName, surfacesOf } from './legend'
 import { Legend, Odontogram, type Mark } from './Odontogram'
 import { SignDialog } from './SignDialog'
 import './clinical.css'
@@ -147,18 +147,18 @@ export function StatusChip({ status }: { status: string }) {
   return <span className={`chip st st-${status}`} data-status={statusOf(status)?.legend}>{statusOf(status)?.label ?? status}</span>
 }
 
-/** Odontogram items with status chips. Dentists move a signed item along the allowed transitions (server appends a new row). */
-function Items({ items, canMove, onMove }: { items: Finding[]; canMove: boolean; onMove: (f: Finding, to: ProcStatus) => void }) {
+/** Treatments with status chips. Dentists move a signed procedure along the allowed transitions (server appends a new row). */
+function Items({ items, canMove, onMove, onDiscard }: { items: Procedure[]; canMove: boolean; onMove: (p: Procedure, to: ProcStatus) => void; onDiscard: (p: Procedure) => void }) {
   if (!items.length) return null
   return (
-    <ul className="items" aria-label="Item odontogram dan status">
-      {[...items].sort((a, b) => a.tooth - b.tooth).map((f) => (
-        <li key={f.id}>
-          <span>{findingText(f)}</span> <StatusChip status={f.status} />
-          {f.procedure_code && <span className="mono small">ICD-9-CM {f.procedure_code}</span>}
-          {f.state === 'draft' ? <span className="badge badge-draft">Draf</span> : <span className="muted small">🔒</span>}
-          {f.state === 'final' && canMove && statusOf(f.status)?.next.map((to) => (
-            <button key={to} className="btn btn-xs" onClick={() => onMove(f, to)}>→ {statusOf(to)!.label}</button>
+    <ul className="items" aria-label="Tindakan dan status">
+      {[...items].sort((a, b) => (a.tooth ?? 0) - (b.tooth ?? 0)).map((p) => (
+        <li key={p.id}>
+          <span>{procedureText(p)}</span> <StatusChip status={p.status} />
+          {p.state === 'draft' ? <><span className="badge badge-draft">Draf</span> <button className="btn btn-xs btn-ghost" onClick={() => onDiscard(p)}>Hapus draf</button></>
+            : <span className="muted small">🔒</span>}
+          {p.state === 'final' && canMove && statusOf(p.status)?.next.map((to) => (
+            <button key={to} className="btn btn-xs" onClick={() => onMove(p, to)}>→ {statusOf(to)!.label}</button>
           ))}
         </li>
       ))}
@@ -208,7 +208,8 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const [msg, setMsg] = useState('')
   const [signing, setSigning] = useState<{ busy: boolean; error: string } | null>(null)
   const [fixing, setFixing] = useState<Note | null>(null)
-  const [status, setStatus] = useState<ProcStatus>('kondisi_pantau')
+  const [status, setStatus] = useState<ProcStatus>('selesai')
+  const [surfs, setSurfs] = useState<Surface[]>([])
   const [procCode, setProcCode] = useState('')
   const [baselineOpen, setBaselineOpen] = useState(false)
   const can = (p: string) => me.permissions.includes(p)
@@ -235,13 +236,20 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const draft = note?.versions.find((x) => x.status === 'draf') ?? null
   const editable = !!visit && can('note.write') && !note?.versions.some((x) => x.signed_at)
   const mine = useMemo(() => chart?.drafts.filter((d) => d.visit_id === visitId) ?? [], [chart, visitId])
+  const myProcs = useMemo(() => chart?.procedure_drafts.filter((d) => d.visit_id === visitId) ?? [], [chart, visitId])
   const marks = useMemo(() => {
     const m: Record<string, Mark> = {}
     for (const f of [...(chart?.findings ?? []), ...mine]) {
-      m[f.surface ? `t${f.tooth}-${f.surface}` : `t${f.tooth}`] = { condition: f.condition, state: f.state === 'draft' ? 'draft' : 'signed', source: f.source, status: f.status }
+      m[f.surface ? `t${f.tooth}-${f.surface}` : `t${f.tooth}`] = { condition: f.condition, state: f.state === 'draft' ? 'draft' : 'signed', source: f.source }
+    }
+    // treatments paint over conditions: every letter of a combination ("MOD" -> M, O, D); cancelled ones are not painted
+    for (const p of [...(chart?.procedures ?? []), ...myProcs]) {
+      if (p.tooth === null || p.status === 'cancelled') continue
+      const mark: Mark = { condition: paintCondition(p.paint_type), paint: p.paint_type, state: p.state === 'draft' ? 'draft' : 'signed', source: p.source, status: p.status }
+      for (const k of p.surfaces ? [...p.surfaces].map((s) => `t${p.tooth}-${s}`) : [`t${p.tooth}`]) m[k] = mark
     }
     return m
-  }, [chart, mine])
+  }, [chart, mine, myProcs])
 
   if (error) return <div className="card state-card error">{error} <a href="#/pasien">Kembali</a></div>
   if (!chart) return <div className="card state-card muted">Memuat rekam medis…</div>
@@ -258,7 +266,11 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
     }
   }
   const choose = (condition: string, whole: boolean) => pick && visit && run(() => saveFinding(visit.id,
-    { tooth: pick.tooth, surface: whole ? null : pick.surface, condition, status, procedure_code: procCode.trim() || null }))
+    { tooth: pick.tooth, surface: whole ? null : pick.surface, condition }))
+  // one procedure for all toggled surfaces (MOD = one row, one price); no surface = whole tooth. The catalog decides the area for known codes.
+  const surfaces = pick ? surfacesOf(pick.tooth).filter((s) => surfs.includes(s)).join('') || null : null
+  const record = () => pick && visit && run(() => saveProcedure(visit.id, { tooth: pick.tooth, surfaces, status, procedure_code: procCode.trim() || null,
+    ...(procCode.trim() ? {} : { treat_area: surfaces ? 'surface' : 'tooth' }) }), 'Tindakan tersimpan sebagai draf.')
   const myDraftAt = (whole: boolean) => pick && mine.find((d) => d.tooth === pick.tooth && d.surface === (whole ? null : pick.surface))
 
   async function sign(code: string) {
@@ -290,7 +302,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
       <div className="card">
         <div className="card-head">
           <h2>Odontogram</h2>
-          {mine.length > 0 && <span className="badge badge-draft">Draf: {mine.length} temuan</span>}
+          {mine.length + myProcs.length > 0 && <span className="badge badge-draft">Draf: {mine.length} temuan, {myProcs.length} tindakan</span>}
           {mine.some((d) => d.source === 'ai_draft') && <span className="badge badge-ai">{AI_BADGE}</span>}
         </div>
         {can('note.write') && (
@@ -301,32 +313,39 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
         )}
         {baselineOpen && <BaselineEditor value={chart.baseline} onClose={() => setBaselineOpen(false)}
           onSave={(b) => run(async () => { await saveBaseline(p.id, { base_version: chart.baseline?.version ?? null, ...b }); setBaselineOpen(false) }, 'Keadaan awal tersimpan (versi baru).')} />}
-        <Odontogram marks={marks} baseline={chart.baseline?.teeth} dentition={chart.baseline?.dentition} selected={pick ? `t${pick.tooth}-${pick.surface}` : null} onPick={editable ? (tooth, surface) => setPick({ tooth, surface }) : undefined} />
+        <Odontogram marks={marks} baseline={chart.baseline?.teeth} dentition={chart.baseline?.dentition} selected={pick ? `t${pick.tooth}-${pick.surface}` : null}
+          onPick={editable ? (tooth, surface) => { setSurfs(pick?.tooth === tooth ? (surfs.includes(surface) ? surfs : [...surfs, surface]) : [surface]); setPick({ tooth, surface }) } : undefined} />
         {!editable && <p className="muted small">{visit ? 'Kunjungan ini sudah ditandatangani.' : 'Tidak ada kunjungan aktif. Buka dari kartu janji untuk mengisi.'}</p>}
         {pick && editable && (
           <div className="picker-pop" role="group" aria-label="Pilih kondisi">
             <strong>Gigi {pick.tooth} · {surfaceName(pick.tooth, pick.surface)} ({surfaceLabel(pick.tooth, pick.surface)})</strong>
-            <div className="cond-row">
+            <div className="cond-row" role="group" aria-label="Tindakan">
+              <span className="muted small">Tindakan:</span>
+              <label className="small">Kode ICD-9-CM <input className="mono" size={6} value={procCode} placeholder="23.2" onChange={(e) => setProcCode(e.target.value)} /></label>
               <label className="small">Status <select value={status} onChange={(e) => setStatus(e.target.value as ProcStatus)}>
-                {STATUSES.map((x) => <option key={x.key} value={x.key}>{x.label}</option>)}
+                {CHOOSABLE.map((x) => <option key={x.key} value={x.key}>{x.label}</option>)}
               </select></label>
-              <label className="small">Kode tindakan ICD-9-CM (opsional) <input className="mono" size={6} value={procCode} placeholder="23.2" onChange={(e) => setProcCode(e.target.value)} /></label>
+              {surfacesOf(pick.tooth).map((s) => (
+                <button key={s} type="button" className="btn btn-xs" aria-pressed={surfs.includes(s)} title={surfaceName(pick.tooth, s)}
+                  onClick={() => setSurfs(surfs.includes(s) ? surfs.filter((x) => x !== s) : [...surfs, s])}>{surfaceLabel(pick.tooth, s)}</button>
+              ))}
+              <button className="btn btn-xs btn-primary" onClick={record}>Simpan tindakan{surfaces ? ` (${[...surfaces].map((s) => surfaceLabel(pick.tooth, s as Surface)).join('')})` : ' (seluruh gigi)'}</button>
             </div>
             <div className="cond-row">
-              <span className="muted small">Permukaan:</span>
+              <span className="muted small">Kondisi permukaan:</span>
               {CONDITIONS.filter((c) => !c.whole).map((c) => <button key={c.key} className={`btn btn-xs cond cond-${c.key}`} onClick={() => choose(c.key, false)}>{c.label}</button>)}
               {myDraftAt(false) && <button className="btn btn-xs btn-ghost" onClick={() => run(() => discardFinding(myDraftAt(false)!.id))}>Hapus draf permukaan</button>}
             </div>
             <div className="cond-row">
-              <span className="muted small">Seluruh gigi:</span>
+              <span className="muted small">Kondisi seluruh gigi:</span>
               {CONDITIONS.filter((c) => c.whole).map((c) => <button key={c.key} className={`btn btn-xs cond cond-${c.key}`} onClick={() => choose(c.key, true)}>{c.label}</button>)}
               {myDraftAt(true) && <button className="btn btn-xs btn-ghost" onClick={() => run(() => discardFinding(myDraftAt(true)!.id))}>Hapus draf gigi</button>}
             </div>
             <button className="btn btn-xs btn-link" onClick={() => setPick(null)}>Tutup</button>
           </div>
         )}
-        <Items items={[...chart.findings, ...mine]} canMove={can('note.sign')}
-          onMove={(f, to) => run(() => changeStatus(f.id, to, visit?.id), `Status gigi ${f.tooth} diubah (baris baru; versi lama tetap).`)} />
+        <Items items={[...chart.procedures, ...myProcs]} canMove={can('note.sign')} onDiscard={(p) => run(() => discardProcedure(p.id))}
+          onMove={(p, to) => run(() => changeStatus(p.id, to, visit?.id), `Status ${procedureText(p)} diubah (baris baru; versi lama tetap).`)} />
         <Legend />
       </div>
 
@@ -356,7 +375,8 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
       {signing && visit && draft && (
         <SignDialog busy={signing.busy} error={signing.error} onClose={() => setSigning(null)} onConfirm={sign}
           lines={[`Catatan SOAP versi ${draft.version} (revisi ${draft.revision})${draft.soap.A.codes.length ? ' · ICD-10 ' + draft.soap.A.codes.join(', ') : ''}`,
-            ...visit.draft_findings.map((f) => findingText(f) + (f.created_by !== me.user.id ? ' (draf pengguna lain)' : ''))]} />
+            ...visit.draft_findings.map((f) => findingText(f) + (f.created_by !== me.user.id ? ' (draf pengguna lain)' : '')),
+            ...visit.draft_procedures.map((p) => procedureText(p) + ` · ${statusOf(p.status)?.label ?? p.status}` + (p.created_by !== me.user.id ? ' (draf pengguna lain)' : ''))]} />
       )}
       {fixing && <CorrectionDialog note={fixing} solo={chart.solo_practice} onClose={() => setFixing(null)} onDone={async () => { setFixing(null); await load(); setMsg('Koreksi tersimpan.') }} />}
     </>

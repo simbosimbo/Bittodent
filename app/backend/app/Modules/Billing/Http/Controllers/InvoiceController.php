@@ -71,7 +71,7 @@ class InvoiceController extends Controller
     {
         return [...$inv->only(['id', 'visit_id', 'patient_id', 'payer_patient_id', 'branch_id', 'status', 'created_at']), ...self::totals($inv),
             'lines' => InvoiceLine::where('invoice_id', $inv->id)->orderBy('created_at')->get()
-                ->map->only(['id', 'finding_id', 'procedure_code', 'variant', 'tooth', 'price_rp', 'created_at']),
+                ->map->only(['id', 'procedure_id', 'procedure_code', 'procedure_name', 'variant', 'tooth', 'surface', 'price_rp', 'created_at']),
             'adjustments' => InvoiceAdjustment::where('invoice_id', $inv->id)->orderBy('created_at')->get()
                 ->map->only(['id', 'kind', 'amount_rp', 'reason', 'created_by', 'created_at'])];
     }
