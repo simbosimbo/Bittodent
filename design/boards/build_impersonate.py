@@ -7,9 +7,11 @@ Data sintetis. Tanpa JavaScript. Tidak mengubah kode app.
 
 Keputusan: tanpa persetujuan klinik, tanpa alasan, tanpa durasi.
 Log hanya di log platform. Data pasien tetap terlihat.
-Hanya aksi tanda tangan klinis yang disembunyikan (Selesai, adendum,
-koreksi, Setujui draf agen). Hanya peran admin yang boleh diimpersonasi,
-bukan dokter gigi.
+Disembunyikan selama sesi: Selesai, adendum, koreksi, keputusan koreksi,
+Setujui draf agen, serta ubah kata sandi, MFA, dan PIN milik admin.
+Hanya peran admin yang boleh diimpersonasi, bukan dokter gigi.
+Pita memakai data /api/me impersonation (active, platform_admin_name, started_at).
+Keluar langsung, tanpa konfirmasi.
 """
 from __future__ import annotations
 
@@ -50,7 +52,8 @@ EXTRA_CSS = """
 .i16{width:16px;height:16px}
 .i24{width:24px;height:24px}
 .nav{height:44px}
-.ib{width:44px;height:44px}
+.ib,.srch{height:44px}
+.ib{width:44px}
 .av-hit{width:44px;height:44px;display:flex;align-items:center;justify-content:center;flex:none}
 .app{position:relative}
 .tbl th,.tbl td{height:44px;padding:8px 12px;vertical-align:middle}
@@ -92,6 +95,21 @@ EXTRA_CSS = """
 .side.set .clinic{margin:0}
 .cnt.set{gap:16px;padding:20px 28px}
 .note{background:#fff;border:1px solid var(--bd);border-radius:16px;padding:16px}
+.filters{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.filt{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;border-radius:10px;border:1px solid var(--n200);background:#fff;font:600 14px/20px var(--ff);color:var(--tx)}
+.filt.on{border-color:var(--b);box-shadow:inset 0 0 0 1px var(--b);background:var(--b0);color:var(--bh)}
+.srch.wide{width:260px;height:44px}
+.dw-w{position:absolute;inset:0;background:rgba(22,33,43,.24);display:flex;justify-content:flex-end;z-index:5}
+.dw{width:420px;height:100%;background:#fff;border-left:1px solid var(--bd);display:flex;flex-direction:column;gap:16px;padding:20px 24px;flex:none}
+.dw h2{font-size:20px;line-height:28px;font-weight:700;margin:0}
+.login{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--cv)}
+.login-card{width:400px;background:#fff;border:1px solid var(--bd);border-radius:20px;padding:32px;display:flex;flex-direction:column;gap:16px}
+.otp{display:flex;gap:8px}
+.otp b{width:44px;height:44px;border:1px solid var(--n200);border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px}
+.otp b.on{border-color:var(--b);box-shadow:var(--fo)}
+.fld{display:flex;flex-direction:column;gap:4px}
+.fld .lab{font-size:12px;line-height:16px;font-weight:600;color:var(--mu)}
+.fld .box{min-height:44px;padding:0 14px;border:1px solid var(--n200);border-radius:10px;background:var(--n25);display:flex;align-items:center;font-weight:600}
 .f{display:flex}.fc{display:flex;flex-direction:column}.g4{gap:4px}.g8{gap:8px}.g12{gap:12px}.g16{gap:16px}
 .jb{justify-content:space-between}.ac{align-items:center}.w1{flex:1;min-width:0}
 .t12{font-size:12px;line-height:16px}.t14{font-size:14px;line-height:20px}
@@ -230,11 +248,14 @@ def con_topbar(title, icon='building'):
 
 
 def impersonate_banner():
+    # Data from /api/me impersonation: active, platform_admin_name, started_at.
     return (
         '<div class="imp-ban" role="status">'
         '<span>Masuk sebagai Rina Wulandari</span>'
         '<span class="sep" aria-hidden="true">·</span>'
         '<span>Klinik Gigi Senyum Sehat</span>'
+        '<span class="sep" aria-hidden="true">·</span>'
+        '<span>sejak 14.05</span>'
         '<span class="w1"></span>'
         '<button class="kel" type="button">Keluar</button>'
         '</div>'
@@ -287,43 +308,122 @@ def modal(title, body, actions):
     )
 
 
+def drawer(title, body, actions=''):
+    foot = f'<div class="f g8" style="margin-top:auto">{actions}</div>' if actions else ''
+    return (
+        f'<div class="dw-w"><div class="dw">'
+        f'<div class="f jb ac"><h2>{title}</h2>'
+        f'<span class="ib" aria-label="Tutup">{ico("x")}</span></div>'
+        f'{body}{foot}</div></div>'
+    )
+
+
 # ---------- shared tenant table ----------
 TENANTS = [
-    ('Klinik Gigi Senyum Sehat', 'Tebet, Jakarta Selatan', 'Setup awal', True, True),
-    ('Klinik Gigi Harmoni', 'Menteng, Jakarta Pusat', 'Aktif', False, True),
-    ('Klinik Gigi Melati', 'Bandung', 'Aktif', False, True),
+    ('Klinik Gigi Senyum Sehat', 'Tebet, Jakarta Selatan', 'Setup awal', 'Awal', '10 Nov 2026', True),
+    ('Klinik Gigi Harmoni', 'Menteng, Jakarta Pusat', 'Aktif', 'Praktik', '2 Agu 2026', False),
+    ('Klinik Gigi Melati', 'Bandung', 'Aktif', 'Praktik', '18 Sep 2026', False),
 ]
+
+
+def filter_bar(status='Semua', plan='Semua', made='Semua', q=''):
+    def chip(label, on):
+        cls = 'filt on' if on else 'filt'
+        return f'<span class="{cls}">{label}</span>'
+
+    ph = q or 'Cari klinik'
+    val = q if q else ''
+    srch = (
+        f'<div class="srch wide">{ico("search", 16)}'
+        f'{val if val else ph}</div>'
+    )
+    return (
+        f'<div class="filters">{srch}'
+        f'{chip("Status: " + status, status != "Semua")}'
+        f'{chip("Paket: " + plan, plan != "Semua")}'
+        f'{chip("Dibuat: " + made, made != "Semua")}'
+        '</div>'
+    )
 
 
 def tenant_table(highlight=None):
     rows = ''
-    for name, loc, status, setup, can in TENANTS:
+    for name, loc, status, plan, created, setup in TENANTS:
         on = ' style="background:var(--b0)"' if name == highlight else ''
         st = ' bdg wt' if setup else ' bdg ok'
-        act = (
-            '<button class="row-act" type="button">Masuk sebagai admin</button>'
-            if can else ''
-        )
         rows += (
             f'<tr{on}><td><div class="fc"><b>{name}</b>'
             f'<span class="mu t12">{loc}</span></div></td>'
             f'<td><span class="{st}">{status}</span></td>'
-            f'<td class="r">{act}</td></tr>'
+            f'<td>{plan}</td><td class="t12">{created}</td>'
+            f'<td class="r"><button class="row-act" type="button">Masuk sebagai admin</button></td></tr>'
         )
     return (
         '<main class="cnt" style="padding:20px 28px;gap:16px">'
         '<div class="f jb ac"><h1 class="t28" style="margin:0">Klinik</h1>'
         '<span class="mu">Masuk kapan saja, tanpa persetujuan klinik.</span></div>'
+        f'{filter_bar()}'
         '<div class="card p16" style="padding:0;overflow:hidden">'
-        '<table class="tbl"><thead><tr><th>Klinik</th><th>Status</th><th></th></tr></thead>'
+        '<table class="tbl"><thead><tr><th>Klinik</th><th>Status</th><th>Paket</th><th>Dibuat</th><th></th></tr></thead>'
         f'<tbody>{rows}</tbody></table></div></main>'
     )
 
 
-# ---------- 01 console ----------
-board1 = con_frame('Klinik', 'Klinik', 'building', tenant_table())
+# ---------- 01 platform login with TOTP ----------
+otp = '<div class="otp">'
+for i, ch in enumerate('81420'):
+    otp += f'<b>{ch}</b>'
+otp += '<b class="on"></b></div>'
+login = (
+    '<div class="login"><div class="login-card">'
+    '<div class="f jb ac"><div class="logo" style="margin:0;padding:0;height:auto">'
+    '<span class="lg">B</span>Bittodent</div>'
+    '<span class="syn">DATA SINTETIS</span></div>'
+    '<div class="fc g4"><h1 class="t28" style="margin:0">Kode autentikator</h1>'
+    '<span class="mu">Konsol platform. Kode TOTP wajib, tanpa ingat saya.</span></div>'
+    '<span class="mu t12">maya@bittodent.test</span>'
+    f'{otp}'
+    '<button class="btn pri wf" type="button">Verifikasi</button>'
+    '</div></div>'
+)
+board1 = f'<div class="scr d"><div class="app">{login}</div></div>'
 
-# ---------- 02 start popup ----------
+# ---------- 02 clinic list with filters ----------
+board2 = con_frame('Klinik', 'Klinik', 'building', tenant_table())
+
+# ---------- 03 clinic detail drawer ----------
+checks = [
+    (True, 'Profil klinik'),
+    (True, 'Cabang'),
+    (False, 'Templat tindakan'),
+    (False, 'Tarif'),
+    (True, 'Pengguna admin'),
+    (False, 'Alur kunjungan'),
+]
+ck_html = '<div class="list-card">'
+for on, label in checks:
+    mark = f'<span class="ck on">{ico("check", 16)}</span>' if on else '<span class="ck"></span>'
+    ck_html += f'<div class="rw">{mark}<span class="w1">{label}</span></div>'
+ck_html += '</div>'
+drawer_body = (
+    '<div class="fc g4"><span class="mu t12">Tebet, Jakarta Selatan</span>'
+    '<span class="bdg wt" style="align-self:flex-start">Setup awal</span></div>'
+    '<div class="fc g8"><span class="mu t12">Admin klinik</span>'
+    '<div class="list-card"><div class="rw"><span class="av">RW</span>'
+    '<div class="fc w1"><b>Rina Wulandari</b><span class="mu t12">Admin</span></div></div></div>'
+    '<span class="mu t12">Dokter tidak masuk daftar.</span></div>'
+    f'<div class="fc g8"><span class="mu t12">Progress setup</span>{ck_html}</div>'
+    '<div class="fc g4"><span class="mu t12">Impersonasi terakhir</span>'
+    '<span>Belum ada sesi</span></div>'
+)
+ov3 = drawer(
+    'Klinik Gigi Senyum Sehat',
+    drawer_body,
+    '<button class="btn pri wf" type="button">Masuk sebagai admin</button>',
+)
+board3 = con_frame('Klinik', 'Klinik', 'building', tenant_table('Klinik Gigi Senyum Sehat'), overlay=ov3)
+
+# ---------- 04 start popup ----------
 picker = (
     '<span class="mu t12">Klinik Gigi Senyum Sehat. Hanya peran admin. Dokter tidak masuk daftar.</span>'
     '<div class="rdo">'
@@ -331,15 +431,15 @@ picker = (
     '<div class="fc w1"><b>Rina Wulandari</b><span class="mu t12">Admin</span></div></div>'
     '</div>'
 )
-ov2 = modal(
+ov4 = modal(
     'Masuk sebagai admin',
     picker,
     '<button class="btn sec" type="button">Batal</button>'
     '<button class="btn pri" type="button">Masuk</button>',
 )
-board2 = con_frame('Klinik', 'Klinik', 'building', tenant_table('Klinik Gigi Senyum Sehat'), overlay=ov2)
+board4 = con_frame('Klinik', 'Klinik', 'building', tenant_table('Klinik Gigi Senyum Sehat'), overlay=ov4)
 
-# ---------- 03 clinic app + banner ----------
+# ---------- 05 clinic app + banner (started_at -> sejak 14.05) ----------
 antrean_rows = [
     ('Budi Santoso', 'Kontrol 15. Kursi 1.', 'Datang, 09.52'),
     ('Siti Rahma', 'Pemeriksaan awal.', 'Di kursi'),
@@ -360,14 +460,14 @@ antrean_main = (
     '<span class="mu">Senin, 15 Nov 2026</span></div>'
     f'{lis}</main>'
 )
-board3 = clinic_frame(
+board5 = clinic_frame(
     ops_sidebar('Antrean'),
     ops_topbar('Antrean'),
     antrean_main,
     banner=True,
 )
 
-# ---------- 04 settings: import templat tindakan ----------
+# ---------- 06 settings: import templat tindakan ----------
 TEMPLATES = [
     'Pemeriksaan awal',
     'Scaling',
@@ -377,7 +477,7 @@ TEMPLATES = [
     'Pencabutan gigi permanen',
 ]
 trows = ''
-for i, name in enumerate(TEMPLATES):
+for name in TEMPLATES:
     trows += (
         f'<div class="rw"><span class="ck on">{ico("check", 16)}</span>'
         f'<span class="w1"><b>{name}</b></span></div>'
@@ -391,14 +491,14 @@ import_main = (
     f'<div class="list-card">{trows}</div>'
     '</main>'
 )
-board4 = clinic_frame(
+board6 = clinic_frame(
     set_sidebar('Tindakan'),
     set_topbar('Tindakan'),
     import_main,
     banner=True,
 )
 
-# ---------- 05 clinical screen, signing hidden, patient data visible ----------
+# ---------- 07 visit: signing and correction decisions hidden, data visible ----------
 visit_main = (
     '<main class="cnt" style="padding:20px 28px;gap:16px">'
     '<div class="f jb ac">'
@@ -411,85 +511,122 @@ visit_main = (
     '</div>'
     '<div class="note fc g12">'
     '<div class="f jb ac"><b>Draf catatan</b><span class="mu t12">Ditulis agen, 10.18 WIB</span></div>'
-    '<span>Kontrol tumpatan gigi 15. Rencana: ganti tumpatan jika retak dalam, atau poles tepi jika dangkal. Pasien setuju ditunda ke kunjungan berikut jika perlu foto.</span>'
+    '<span>Kontrol tumpatan gigi 15. Rencana: ganti tumpatan jika retak dalam, atau poles tepi jika dangkal.</span>'
     '</div>'
-    '</main>'
+    '<div class="note fc g12">'
+    '<div class="f jb ac"><b>Permintaan koreksi</b><span class="bdg wt">Menunggu keputusan</span></div>'
+    '<span class="mu t12">drg. Arif Hidayat, 15 Nov 2026, 10.40 WIB. Gigi 15, ganti tumpatan.</span>'
+    '<span>Tepi mesial lebih dalam dari draf awal. Minta ubah rencana ke ganti tumpatan pada kunjungan ini.</span>'
+    '</div></main>'
 )
-board5 = clinic_frame(
-    ops_sidebar('Rekam Medis', syn=True),
+board7 = clinic_frame(
+    ops_sidebar('Rekam Medis'),
     ops_topbar('Rekam Medis', icon='tooth'),
     visit_main,
     banner=True,
 )
 
-# ---------- 06 session end + summary ----------
+# ---------- 08 Profil saya: password / MFA / PIN controls absent ----------
+profil_main = (
+    '<main class="cnt" style="padding:20px 28px;gap:16px">'
+    '<div class="f ac g16">'
+    '<span class="av" style="width:56px;height:56px;font-size:18px;border-radius:16px">RW</span>'
+    '<div class="fc g4"><h1 class="t28" style="margin:0">Profil saya</h1>'
+    '<span class="mu">Rina Wulandari, Admin</span></div></div>'
+    '<div class="gd" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:720px">'
+    '<div class="fld"><span class="lab">Nama</span><div class="box">Rina Wulandari</div></div>'
+    '<div class="fld"><span class="lab">Email</span><div class="box">rina@senyum.test</div></div>'
+    '<div class="fld"><span class="lab">Peran</span><div class="box">Admin</div></div>'
+    '<div class="fld"><span class="lab">Klinik</span><div class="box">Klinik Gigi Senyum Sehat</div></div>'
+    '</div></main>'
+)
+board8 = clinic_frame(
+    ops_sidebar('Beranda'),
+    ops_topbar('Profil saya', icon='user'),
+    profil_main,
+    banner=True,
+)
+
+# ---------- 09 session end, no confirmation ----------
 summary = (
     '<div class="fc g8">'
     '<div class="f jb"><span class="mu">Klinik</span><b>Klinik Gigi Senyum Sehat</b></div>'
     '<div class="f jb"><span class="mu">Masuk sebagai</span><b>Rina Wulandari, Admin</b></div>'
-    '<div class="f jb"><span class="mu">Mulai</span><span>15 Nov 2026, 14.02 WIB</span></div>'
+    '<div class="f jb"><span class="mu">Mulai</span><span>15 Nov 2026, 14.05 WIB</span></div>'
     '<div class="f jb"><span class="mu">Keluar</span><span>15 Nov 2026, 14.11 WIB</span></div>'
     '</div>'
     '<div class="fc g8">'
     '<span class="mu t12">Jejak, hanya di log platform</span>'
     '<div class="list-card">'
-    '<div class="rw"><span class="mu t12">14.02</span><span class="w1">Masuk sebagai Rina Wulandari</span></div>'
-    '<div class="rw"><span class="mu t12">14.06</span><span class="w1">Impor templat tindakan, 6 item</span></div>'
+    '<div class="rw"><span class="mu t12">14.05</span><span class="w1">Masuk sebagai Rina Wulandari</span></div>'
+    '<div class="rw"><span class="mu t12">14.08</span><span class="w1">Impor templat tindakan, 6 item</span></div>'
     '<div class="rw"><span class="mu t12">14.11</span><span class="w1">Keluar</span></div>'
     '</div></div>'
 )
-ov6 = modal(
+ov9 = modal(
     'Sesi selesai',
     summary,
     '<button class="btn sec" type="button">Tutup</button>'
     '<button class="btn pri" type="button">Lihat log</button>',
 )
-board6 = con_frame('Klinik', 'Klinik', 'building', tenant_table(), overlay=ov6)
+board9 = con_frame('Klinik', 'Klinik', 'building', tenant_table(), overlay=ov9)
 
-# ---------- 07 platform log ----------
+# ---------- 10 platform log with filters ----------
 LOGS = [
     ('15 Nov 2026, 14.11 WIB', 'Maya Kusuma', 'Klinik Gigi Senyum Sehat', 'Keluar, sesi sebagai Rina Wulandari'),
-    ('15 Nov 2026, 14.06 WIB', 'Maya Kusuma', 'Klinik Gigi Senyum Sehat', 'Impor templat tindakan, 6 item'),
-    ('15 Nov 2026, 14.02 WIB', 'Maya Kusuma', 'Klinik Gigi Senyum Sehat', 'Masuk sebagai Rina Wulandari'),
+    ('15 Nov 2026, 14.08 WIB', 'Maya Kusuma', 'Klinik Gigi Senyum Sehat', 'Impor templat tindakan, 6 item'),
+    ('15 Nov 2026, 14.05 WIB', 'Maya Kusuma', 'Klinik Gigi Senyum Sehat', 'Masuk sebagai Rina Wulandari'),
     ('12 Nov 2026, 09.40 WIB', 'Maya Kusuma', 'Klinik Gigi Harmoni', 'Keluar, sesi sebagai Dina Pratiwi'),
     ('12 Nov 2026, 09.18 WIB', 'Maya Kusuma', 'Klinik Gigi Harmoni', 'Masuk sebagai Dina Pratiwi'),
 ]
 lrows = ''
 for when, who, clinic, ev in LOGS:
-    hi = ' style="background:var(--b0)"' if '14.06' in when else ''
+    hi = ' style="background:var(--b0)"' if '14.08' in when else ''
     lrows += (
         f'<tr{hi}><td class="t12">{when}</td>'
         f'<td>{who}</td><td>{clinic}</td><td>{ev}</td></tr>'
     )
+log_filters = (
+    '<div class="filters">'
+    f'<div class="srch wide">{ico("search", 16)}Cari peristiwa</div>'
+    '<span class="filt">Klinik: Semua</span>'
+    '<span class="filt">Peristiwa: Semua</span>'
+    '<span class="filt on">Waktu: 30 hari</span>'
+    '</div>'
+)
 log_main = (
     '<main class="cnt" style="padding:20px 28px;gap:16px">'
     '<div class="fc g4"><h1 class="t28" style="margin:0">Log platform</h1>'
     '<span class="mu">Jejak impersonasi hanya di sini. Tidak ditulis ke audit log klinik.</span></div>'
+    f'{log_filters}'
     '<div class="card p16" style="padding:0;overflow:hidden">'
     '<table class="tbl"><thead><tr><th>Waktu</th><th>Pelaku</th><th>Klinik</th><th>Peristiwa</th></tr></thead>'
     f'<tbody>{lrows}</tbody></table></div></main>'
 )
-board7 = con_frame('Log', 'Log', 'clip', log_main)
+board10 = con_frame('Log', 'Log', 'clip', log_main)
 
 # ---------- assemble ----------
 sec_in = section(
-    'Masuk dari konsol platform',
-    'Superadmin masuk kapan saja, tanpa persetujuan klinik. Hanya peran admin, bukan dokter gigi. Tanpa alasan dan tanpa durasi.',
-    [ab('01', 'Konsol, daftar klinik dan aksi Masuk sebagai admin', '1440×900', board1)],
-    [ab('02', 'Mulai sesi, pilih admin lalu Masuk', '1440×900', board2)],
+    'Konsol platform',
+    'Login terpisah dengan TOTP. Daftar klinik bisa dicari dan disaring. Detail klinik di laci, lalu pilih admin dan Masuk. Tanpa alasan, durasi, atau persetujuan.',
+    [ab('01', 'Masuk konsol platform, TOTP wajib', '1440×900', board1)],
+    [ab('02', 'Daftar klinik, cari dan saring status, paket, dibuat', '1440×900', board2)],
+    [ab('03', 'Laci detail klinik, admin, progress setup, sesi terakhir', '1440×900', board3)],
+    [ab('04', 'Mulai sesi, pilih admin lalu Masuk', '1440×900', board4)],
 )
 sec_in2 = section(
     'Di dalam klinik, sebagai admin',
-    'Pita tetap di atas. Data pasien tetap terlihat. Hanya aksi tanda tangan klinis yang disembunyikan.',
-    [ab('03', 'Aplikasi klinik, pita Masuk sebagai', '1440×900', board3)],
-    [ab('04', 'Pengaturan, impor templat tindakan', '1440×900', board4)],
-    [ab('05', 'Kunjungan, Selesai dan aksi tanda tangan disembunyikan', '1440×900', board5)],
+    'Pita memakai started_at dari /api/me. Data pasien tetap terlihat. Aksi tanda tangan, keputusan koreksi, serta ubah kata sandi, MFA, dan PIN tidak ditampilkan. Keluar langsung, tanpa konfirmasi.',
+    [ab('05', 'Aplikasi klinik, pita Masuk sebagai, sejak 14.05', '1440×900', board5)],
+    [ab('06', 'Pengaturan, impor templat tindakan', '1440×900', board6)],
+    [ab('07', 'Kunjungan, Selesai, Setujui, adendum, dan keputusan koreksi disembunyikan', '1440×900', board7)],
+    [ab('08', 'Profil saya, tanpa ubah kata sandi, MFA, atau PIN', '1440×900', board8)],
 )
 sec_out = section(
     'Keluar dan jejak platform',
-    'Setelah Keluar, kembali ke konsol dengan ringkasan. Jejak hanya di log platform, tidak di audit log klinik.',
-    [ab('06', 'Sesi selesai, ringkasan tindakan', '1440×900', board6)],
-    [ab('07', 'Log platform, jejak impersonasi', '1440×900', board7)],
+    'Setelah Keluar, kembali ke konsol dengan ringkasan. Jejak hanya di log platform, dengan saringan.',
+    [ab('09', 'Sesi selesai, ringkasan tindakan', '1440×900', board9)],
+    [ab('10', 'Log platform, saring klinik, peristiwa, dan waktu', '1440×900', board10)],
 )
 
 html = (
