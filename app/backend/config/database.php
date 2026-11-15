@@ -71,8 +71,9 @@ return [
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '3306'),
             'database' => env('DB_DATABASE', 'laravel'),
-            'username' => env('DB_ADMIN_USERNAME', 'ehr_admin'),
-            'password' => env('DB_ADMIN_PASSWORD', ''),
+            // Empty DB_ADMIN_* (single-account hosting) = same account as runtime.
+            'username' => env('DB_ADMIN_USERNAME', 'ehr_admin') ?: env('DB_USERNAME', 'root'),
+            'password' => env('DB_ADMIN_USERNAME', 'ehr_admin') ? env('DB_ADMIN_PASSWORD', '') : env('DB_PASSWORD', ''),
             'charset' => 'utf8mb4',
             'collation' => 'utf8mb4_unicode_ci',
             'prefix' => '',

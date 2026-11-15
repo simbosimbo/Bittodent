@@ -2,6 +2,7 @@
 
 // Owning module: Clinical (procedure_record, procedure_definition). MySQL only.
 
+use Database\Support\MysqlGrants;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 
@@ -12,11 +13,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        $db = DB::connection()->getDatabaseName();
-        $grantee = sprintf("'%s'@'%s'", config('database.connections.mysql.username'), env('DB_APP_GRANT_HOST', '127.0.0.1'));
-        foreach (['procedure_record', 'procedure_definition'] as $t) {
-            DB::statement("GRANT SELECT, INSERT, UPDATE ON `$db`.`$t` TO $grantee");
-        }
+        MysqlGrants::grant('SELECT, INSERT, UPDATE', 'procedure_record', 'procedure_definition');
         DB::unprepared("CREATE TRIGGER procedure_record_no_update_final BEFORE UPDATE ON procedure_record FOR EACH ROW
              BEGIN
                IF OLD.state = 'final' THEN

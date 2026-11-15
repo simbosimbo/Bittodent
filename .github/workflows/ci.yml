@@ -1,0 +1,103 @@
+# CI saja: tes + gaya kode. TIDAK ADA deploy, SSH, atau token cloud di workflow ini. Data sintetis saja.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: ["**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app/backend
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: ci_root_only   # container sekali pakai di runner, bukan rahasia
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pci_root_only --silent"
+          --health-interval=5s --health-timeout=5s --health-retries=30
+    env:
+      APP_ENV: testing
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: "3306"
+      DB_DATABASE: ehr_test
+      DB_USERNAME: ehr_app
+      DB_PASSWORD: ci_app_only
+      DB_ADMIN_USERNAME: ehr_admin
+      DB_ADMIN_PASSWORD: ci_admin_only
+      DB_APP_GRANT_HOST: "%"   # runner terhubung ke container lewat jaringan Docker, bukan 127.0.0.1
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: pdo_mysql, bcmath, intl, zip, mbstring
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache/files
+          key: composer-${{ runner.os }}-${{ hashFiles('app/backend/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
+      - run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Siapkan MySQL (ehr_test, ehr_admin ALL + GRANT OPTION, ehr_app tanpa hak)
+        run: |
+          mysql -h 127.0.0.1 -uroot -pci_root_only <<'SQL'
+          SET GLOBAL log_bin_trust_function_creators = 1;
+          SET GLOBAL time_zone = '+00:00';
+          CREATE DATABASE ehr_test CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+          CREATE USER 'ehr_admin'@'%' IDENTIFIED BY 'ci_admin_only';
+          CREATE USER 'ehr_app'@'%' IDENTIFIED BY 'ci_app_only';
+          GRANT ALL PRIVILEGES ON ehr_test.* TO 'ehr_admin'@'%' WITH GRANT OPTION;
+          SQL
+
+      - name: Buat APP_KEY / ENCRYPTION_KEY / BLIND_INDEX_KEY sekali pakai (bukan repo secret)
+        run: |
+          cp .env.example .env
+          for k in APP_KEY ENCRYPTION_KEY BLIND_INDEX_KEY; do
+            v="base64:$(openssl rand -base64 32)"
+            echo "::add-mask::$v"
+            echo "$k=$v" >> "$GITHUB_ENV"
+          done
+
+      - run: php artisan test
+
+      - run: vendor/bin/pint --test
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "26"
+          cache: npm
+          cache-dependency-path: app/frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm test
+      - run: npx tsc --noEmit
+      - run: npm run build
+      - name: Build SPA ke Laravel (jalur Laravel Cloud, public/client)
+        working-directory: app
+        run: SKIP_NPM_CI=1 scripts/build-spa-into-backend.sh
