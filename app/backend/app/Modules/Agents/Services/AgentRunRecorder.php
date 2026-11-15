@@ -4,6 +4,7 @@ namespace App\Modules\Agents\Services;
 
 use App\Modules\Agents\Contracts\AgentCall;
 use App\Modules\Agents\Contracts\AgentCallResult;
+use App\Modules\Agents\Contracts\AgentKind;
 use App\Modules\Agents\Contracts\AgentRuns;
 use App\Modules\Agents\Contracts\ReplyCheck;
 use App\Modules\Agents\Contracts\RunOutcome;
@@ -93,6 +94,24 @@ final class AgentRunRecorder implements AgentRuns
         ], fn ($v) => $v !== null));
 
         return new AgentCallResult($run->id, $outcome, $outcome === RunOutcome::Berhasil ? $reply : null, $error);
+    }
+
+    public function recordDeterministic(AgentKind $agent, string $promptVersion, array $inputRefs, string $inputHash, ?string $patientId = null, bool $crossBranch = false): string
+    {
+        $ctx = Ctx::current();
+        $ctx->tenant();
+        $run = AgentRun::create([
+            'branch_id' => $ctx->branchId, 'agent' => $agent->value, 'requested_by' => $ctx->userId, 'patient_id' => $patientId,
+            'cross_branch' => $crossBranch, 'provider' => 'lokal', 'model_id' => 'deterministik', 'region' => 'id-lokal',
+            'prompt_version' => $promptVersion, 'generator' => 'deterministik', 'input_refs' => self::refsOnly($inputRefs),
+            'input_hash' => $inputHash, 'output_hash' => null, 'tokens_in' => 0, 'tokens_out' => 0, 'latency_ms' => 0,
+            'outcome' => RunOutcome::Berhasil->value, 'started_at' => now(), 'finished_at' => now(),
+        ]);
+        Audit::log('ai_panggil', 'agent_run', $run->id, array_filter(['agent' => $agent->value, 'outcome' => RunOutcome::Berhasil->value,
+            'generator' => 'deterministik', 'prompt_version' => $promptVersion, 'patient_id' => $patientId, 'cross_branch' => $crossBranch ?: null,
+            'refs' => count($inputRefs)], fn ($v) => $v !== null));
+
+        return $run->id;
     }
 
     /** Keep only {type, id, version} scalars so no content can slip into input_refs. */

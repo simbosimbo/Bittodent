@@ -18,7 +18,8 @@ final class DraftReviewService implements AgentDrafts
 {
     public const PERMISSION = 'ai_draft.review';
 
-    public function propose(string $runId, DraftKind $kind, string $targetType, ?string $targetId, array $payload, array $sourceSpans = []): string
+    public function propose(string $runId, DraftKind $kind, string $targetType, ?string $targetId, array $payload, array $sourceSpans = [],
+        ?\DateTimeInterface $expiresAt = null): string
     {
         AgentRun::findOrFail($runId); // same tenant only (global scope)
         $draft = AgentDraft::create([
@@ -26,10 +27,58 @@ final class DraftReviewService implements AgentDrafts
             'payload_enc' => Crypto::encrypt(json_encode($payload, JSON_THROW_ON_ERROR)),
             'source_spans_enc' => $sourceSpans === [] ? null : Crypto::encrypt(json_encode($sourceSpans, JSON_THROW_ON_ERROR)),
             'state' => DraftState::MenungguReview,
+            'expires_at' => $expiresAt,
         ]);
         Audit::log('ai_draf_buat', 'agent_draft', $draft->id, ['kind' => $kind->value, 'run_id' => $runId]);
 
         return $draft->id;
+    }
+
+    public function latestOpen(DraftKind $kind, string $targetType, string $targetId, string $requestedBy): ?array
+    {
+        $d = $this->open($kind, $targetType, $targetId, $requestedBy)
+            ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+            ->orderByDesc('created_at')->orderByDesc('id')->first();
+
+        return $d ? ['id' => $d->id, 'run_id' => $d->run_id, 'payload' => $d->payload(), 'created_at' => $d->created_at, 'expires_at' => $d->expires_at] : null;
+    }
+
+    public function supersedeOpen(DraftKind $kind, string $targetType, string $targetId, string $requestedBy, string $exceptId): int
+    {
+        $n = 0;
+        foreach ($this->open($kind, $targetType, $targetId, $requestedBy)->whereKeyNot($exceptId)->get() as $d) {
+            $d->update(['state' => DraftState::Digantikan]);
+            $n++;
+        }
+
+        return $n;
+    }
+
+    public function purgeExpired(DraftKind $kind, \DateTimeInterface $now): int
+    {
+        if ($kind->approvable()) {
+            throw new \LogicException('Hanya draf yang bukan rekam medis (ringkasan) yang boleh dikosongkan.');
+        }
+        foreach (AgentDraft::where('kind', $kind)->where('state', DraftState::MenungguReview)->where('expires_at', '<=', $now)->get() as $d) {
+            $d->update(['state' => DraftState::Kedaluwarsa]);
+        }
+        $n = 0;
+        foreach (AgentDraft::where('kind', $kind)->whereIn('state', [DraftState::Kedaluwarsa, DraftState::Digantikan])
+            ->where('expires_at', '<=', $now)->whereNull('purged_at')->get() as $d) {
+            $d->update(['payload_enc' => null, 'source_spans_enc' => null, 'purged_at' => $now]);
+            $n++;
+        }
+        if ($n > 0) {
+            Audit::log('ai_draf_kosongkan', 'agent_draft', null, ['kind' => $kind->value, 'count' => $n]);
+        }
+
+        return $n;
+    }
+
+    private function open(DraftKind $kind, string $targetType, string $targetId, string $requestedBy)
+    {
+        return AgentDraft::where('kind', $kind)->where('target_type', $targetType)->where('target_id', $targetId)
+            ->where('state', DraftState::MenungguReview)->whereIn('run_id', AgentRun::select('id')->where('requested_by', $requestedBy));
     }
 
     public function approve(string $draftId): array

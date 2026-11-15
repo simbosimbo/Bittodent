@@ -16,4 +16,10 @@ interface AgentRuns
      * @param  (callable(ModelReply): (bool|ReplyCheck))|null  $accept
      */
     public function call(AgentCall $call, ?callable $accept = null): AgentCallResult;
+
+    /**
+     * A result built without any model (deterministic rules). Still one completed agent_run (generator deterministik,
+     * region id-lokal) + one audit row, so every AI-labelled output has a run. @param list<array{type: string, id: string, version?: int}> $inputRefs
+     */
+    public function recordDeterministic(AgentKind $agent, string $promptVersion, array $inputRefs, string $inputHash, ?string $patientId = null, bool $crossBranch = false): string;
 }
