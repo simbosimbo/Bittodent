@@ -9,6 +9,7 @@ use App\Modules\Clinical\Http\Requests\FindingRequest;
 use App\Modules\Clinical\Models\ClinicalNote;
 use App\Modules\Clinical\Models\ToothFinding;
 use App\Modules\Clinical\Models\Visit;
+use App\Modules\Clinical\Services\CodingSuggestions;
 use App\Shared\Audit\Audit;
 use App\Shared\Http\Controller;
 use App\Shared\Tenancy\Ctx;
@@ -40,7 +41,7 @@ class FindingController extends Controller
             $f->fill(['condition' => $d['condition'], 'source' => $d['source'] ?? 'manual', ...self::procedure($d, $f), ...self::diagnosis($d, $f)])->save();
             Audit::log($created ? 'buat' : 'ubah', 'tooth_finding', $f->id, ['tooth' => $f->tooth, 'surface' => $f->surface]);
 
-            return response()->json(ChartController::finding($f), $created ? 201 : 200);
+            return response()->json(self::coded($f, $d, $visit->dentist_id), $created ? 201 : 200);
         });
     }
 
@@ -55,7 +56,7 @@ class FindingController extends Controller
             $f->update(['condition' => $d['condition'], 'source' => $d['source'] ?? $f->source, ...self::procedure($d, $f), ...self::diagnosis($d, $f)]);
             Audit::log('ubah', 'tooth_finding', $f->id);
 
-            return response()->json(ChartController::finding($f));
+            return response()->json(self::coded($f, $d, Visit::findOrFail($f->visit_id)->dentist_id));
         });
     }
 
@@ -113,6 +114,20 @@ class FindingController extends Controller
         $code = $sent ? $d['diagnosis_code'] : $f->diagnosis_code;
 
         return ['diagnosis_code' => $code, 'diagnosis_source' => $code === null ? null : ($d['diagnosis_source'] ?? ($sent ? 'manual' : $f->diagnosis_source))];
+    }
+
+    /**
+     * A diagnosis_code sent in the request counts as the visit dentist's choice (coding_preference). Without a code the JSON
+     * carries `suggestions` only; diagnosis_code is never filled in automatically.
+     */
+    private static function coded(ToothFinding $f, array $d, string $dentistId): array
+    {
+        if (isset($d['diagnosis_code'])) {
+            CodingSuggestions::recordChoice($dentistId, $f->condition, $f->diagnosis_code);
+        }
+
+        return ChartController::finding($f) + ($f->diagnosis_code === null
+            ? ['suggestions' => CodingSuggestions::for($f->condition, $f->tooth, $f->surface, $dentistId)] : []);
     }
 
     /** DELETE /api/findings/{id}: no SQL DELETE on clinical tables; the draft is marked `discarded`. */

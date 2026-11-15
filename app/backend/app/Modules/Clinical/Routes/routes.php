@@ -2,6 +2,7 @@
 
 use App\Modules\Clinical\Http\Controllers\BaselineController;
 use App\Modules\Clinical\Http\Controllers\ChartController;
+use App\Modules\Clinical\Http\Controllers\CodingSuggestionController;
 use App\Modules\Clinical\Http\Controllers\ConsentController;
 use App\Modules\Clinical\Http\Controllers\FindingController;
 use App\Modules\Clinical\Http\Controllers\NoteController;
@@ -13,6 +14,7 @@ Route::middleware(['auth:sanctum', '2fa', 'tenant'])->group(function () {
     Route::put('/patients/{id}/baseline', [BaselineController::class, 'store'])->middleware('perm:note.write');
     Route::post('/patients/{id}/consents', [ConsentController::class, 'store'])->middleware('perm:note.write');
     Route::post('/appointments/{id}/visit', [ChartController::class, 'visitFromAppointment'])->middleware('perm:note.write');
+    Route::get('/coding-suggestions', [CodingSuggestionController::class, 'index'])->middleware('perm:note.write'); // used while charting
     Route::post('/visits/{id}/findings', [FindingController::class, 'store'])->middleware('perm:note.write');
     Route::patch('/findings/{id}', [FindingController::class, 'update'])->middleware('perm:note.write');
     Route::post('/findings/{id}/status', [FindingController::class, 'changeStatus'])->middleware('perm:note.sign');
