@@ -67,6 +67,9 @@ function useWeekCounts(branchId: string | null, from: string, on: boolean) {
 }
 
 /** Mobile: Mon–Sun of the selected date's week; tap a day to select it. Dots = appointments that day (max 3). */
+/** "drg. Clara Wijaya, Sp.KGA" -> "Clara Wijaya": chips show the short name, the full one is the aria-label/tooltip. */
+export const shortName = (n: string) => n.replace(/^drg\.\s*/i, '').replace(/,.*$/, '')
+
 function WeekStrip({ date, counts, error, onPick, onRetry }: {
   date: string; counts: Record<string, number> | null; error: boolean; onPick: (d: string) => void; onRetry: () => void
 }) {
@@ -147,7 +150,11 @@ export default function Schedule({ me }: { me: Me }) {
   const canBill = can('billing.read')
   const tz = data?.branch.timezone ?? 'Asia/Jakarta'
   const mobile = useIsMobile()
-  const [docPick, setDocPick] = useState<string | null>(null) // dentist filter; null = Semua (agenda) / auto dentist (grid)
+  // dentist filter; null = Semua (agenda) / auto dentist (grid). Desktop (review-2): remembered per branch for this tab session.
+  const docKey = `jadwal-dokter:${me.active.branch_id}`
+  const [docPick, setDocPickRaw] = useState<string | null>(() => { try { return sessionStorage.getItem(docKey) } catch { return null } })
+  const setDocPick = (id: string | null) => { setDocPickRaw(id); try { if (id) sessionStorage.setItem(docKey, id); else sessionStorage.removeItem(docKey) } catch { /* private mode */ } }
+  const [weekOpen, setWeekOpen] = useState(false) // phone (review-2): the week strip folds; ‹ › move one day
   const [view, setView] = useState<'agenda' | 'grid'>('agenda') // mobile only; in memory, resets on reload
   const [sheetId, setSheetId] = useState<string | null>(null) // mobile: tapped card -> action sheet
   const isToday = date === todayWib()
@@ -289,7 +296,9 @@ export default function Schedule({ me }: { me: Me }) {
   }
   // Desktop (#70): all dentist columns, or only the one picked in the chip row.
   const shownCol = mobile ? (cols.find((c) => c.id === docPick) ?? cols.find((c) => c.id === nextDoc())) : cols.find((c) => c.id === docPick)
-  const chairs = shownCol ? [shownCol] : cols
+  // Desktop "Semua" hides dentists without appointments (review-2); a picked dentist always shows, even when empty.
+  const busyCols = cols.filter((c) => c.appointments.length > 0)
+  const chairs = shownCol ? [shownCol] : !mobile && busyCols.length > 0 ? busyCols : cols
   const isNotOwn = (id: string) => all.find((x) => x.id === id)?.dentist?.id !== me.user.id
   const chairLabel = (a: Appointment) => data?.chairs.find((c) => c.id === a.chair_id)?.label
   const dokter = mode === 'dokter'
@@ -355,13 +364,14 @@ export default function Schedule({ me }: { me: Me }) {
         : !data || (mobile && loading && data.date !== date) ? <div className="card state-card muted" role="status">Memuat jadwal…</div>
         : data.chairs.length === 0 ? <div className="card state-card muted">Cabang ini belum punya kursi aktif.</div> : (
           <>
-          {(!mobile || !dokter) && cols.length > 1 && (
+          {mobile && !dokter && cols.length > 1 && (
             // Agenda: "Semua" + one pill per dentist. Grid shows one dentist column, so it has no "Semua" (see docPick).
             <div className="chair-pills" role="group" aria-label="Pilih dokter">
               {!gridOn && <button type="button" aria-pressed={!docPick} onClick={() => setDocPick(null)}>Semua <span className="muted small">· {count}</span></button>}
               {cols.map((c) => (
-                <button key={c.id} type="button" aria-pressed={gridOn ? c === shownCol : c.id === docPick} onClick={() => setDocPick(c.id)}>
-                  {c.label} <span className="muted small">· {c.appointments.length}</span>
+                <button key={c.id} type="button" aria-pressed={gridOn ? c === shownCol : c.id === docPick} onClick={() => setDocPick(c.id)}
+                  aria-label={`${c.label} · ${c.appointments.length}`} title={c.label}>
+                  {shortName(c.label)} <span className="muted small">· {c.appointments.length}</span>
                 </button>
               ))}
             </div>
@@ -468,10 +478,11 @@ export default function Schedule({ me }: { me: Me }) {
             {dateInput}
             <span className="muted small sched-count">{count} janji</span>
             {!isToday && today}
-            <button className="btn" onClick={() => shift(-7)} aria-label="Minggu sebelumnya"><Icon d={ICONS.left} /></button>
-            <button className="btn" onClick={() => shift(7)} aria-label="Minggu berikutnya"><Icon d={ICONS.right} /></button>
+            <button className="btn" onClick={() => shift(weekOpen ? -7 : -1)} aria-label={weekOpen ? 'Minggu sebelumnya' : 'Tanggal sebelumnya'}><Icon d={ICONS.left} /></button>
+            <button className="btn" onClick={() => shift(weekOpen ? 7 : 1)} aria-label={weekOpen ? 'Minggu berikutnya' : 'Tanggal berikutnya'}><Icon d={ICONS.right} /></button>
+            <button className="btn week-toggle" aria-expanded={weekOpen} aria-label="Pilih hari minggu ini" onClick={() => setWeekOpen(!weekOpen)}><Icon d={ICONS.calendar} /></button>
           </div>
-          <WeekStrip date={date} counts={weekCounts} error={week.error} onPick={setDate} onRetry={week.retry} />
+          {weekOpen && <WeekStrip date={date} counts={weekCounts} error={week.error} onPick={setDate} onRetry={week.retry} />}
         </div>
         {owner && !dokter && data && data.date === date && <DaySummary list={all} isToday={isToday} canBill={canBill} />}
         </>
@@ -482,6 +493,16 @@ export default function Schedule({ me }: { me: Me }) {
             <p className="muted">{fmtDate(date)} · {me.active.branch_name} · {count} janji</p>
           </div>
           <div className="toolbar">{prev}{today}{next}{dateInput}{create}</div>
+          {cols.length > 1 && (
+            <div className="seg doc-seg" role="group" aria-label="Pilih dokter">
+              <button type="button" aria-pressed={!shownCol} onClick={() => setDocPick(null)}>Semua · {count}</button>
+              {cols.map((c) => (
+                <button key={c.id} type="button" aria-pressed={c === shownCol} onClick={() => setDocPick(c.id)} aria-label={`${c.label} · ${c.appointments.length}`} title={c.label}>
+                  {shortName(c.label)} · {c.appointments.length}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
       {actionError && <p className="form-error" role="alert">{actionError}</p>}
@@ -530,7 +551,7 @@ export default function Schedule({ me }: { me: Me }) {
       {mobile && toast && <Toast key={toast.id} text={toast.text} undo={toast.undo} onDone={() => setToast(null)} />}
       {gridNow && !nowSeen && <button type="button" className="now-chip" onClick={() => toNow(true)}>Sekarang {dotTime(nowMin + START)}</button>}
       {mobile && canCreate && !dokter && <button type="button" className="fab" aria-label="Buat janji" onClick={() => setDialog({})}><Icon d={ICONS.plus} size={26} /></button>}
-      {data && !(mobile && dokter) && <PlannedList sched={data} date={date} canCreate={canCreate} onScheduled={reload} />}
+      {data && !(mobile && dokter) && <PlannedList sched={data} date={date} canCreate={canCreate} onScheduled={reload} folded={mobile} />}
       {dialog && data && (
         <BookDialog sched={data} date={date} me={me} initial={dialog} onClose={() => setDialog(null)} onSaved={() => { setDialog(null); reload(); changed() }} />
       )}
@@ -604,7 +625,7 @@ function BookDialog({ sched, date, me, initial, onClose, onSaved }: {
 }
 
 /** "Perlu dijadwalkan": plans made at the chair; the front desk only picks chair + time. */
-function PlannedList({ sched, date, canCreate, onScheduled }: { sched: Sched; date: string; canCreate: boolean; onScheduled: () => void }) {
+function PlannedList({ sched, date, canCreate, onScheduled, folded }: { sched: Sched; date: string; canCreate: boolean; onScheduled: () => void; folded?: boolean }) {
   const [items, setItems] = useState<Planned[] | null>(null)
   const [pick, setPick] = useState<Record<string, { chair: string; minute: number }>>({})
   const [msg, setMsg] = useState('')
@@ -625,9 +646,9 @@ function PlannedList({ sched, date, canCreate, onScheduled }: { sched: Sched; da
       setMsg(e instanceof ApiError && [409, 422].includes(e.status) ? e.data?.message ?? 'Tidak bisa dijadwalkan.' : errorText(e))
     }
   }
-  return (
-    <div className="card">
-      <h2>Perlu dijadwalkan <span className="muted small">· {items?.length ?? '…'}</span></h2>
+  const title = <h2>Perlu dijadwalkan <span className="muted small">· {items?.length ?? '…'}</span></h2>
+  const body = (
+    <>
       {msg && <p className="notice" role="status">{msg}</p>}
       {items?.length === 0 && <p className="muted">Tidak ada rencana kunjungan yang menunggu.</p>}
       <ul className="planned">
@@ -654,6 +675,10 @@ function PlannedList({ sched, date, canCreate, onScheduled }: { sched: Sched; da
           </li>
         ))}
       </ul>
-    </div>
+    </>
   )
+  // Phone (review-2): folded, so today's operational list stays short; desktop unchanged.
+  return folded
+    ? <details className="card planned-fold"><summary>{title}</summary>{body}</details>
+    : <div className="card">{title}{body}</div>
 }

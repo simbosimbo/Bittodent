@@ -297,14 +297,51 @@ a.tl-block:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px
   .agenda-chips { margin-top: 0; }
 }
 
-/* #70 desktop doctor filter: the same chip row as the phone ("Semua" + one chip per dentist), compact. */
+/* review-2 (#70) desktop doctor filter: a segmented "Semua | <dokter>…" in the Jadwal header; empty columns hidden under "Semua". */
 @media (min-width: 721px) {
-  .chair-pills { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-3); }
-  .chair-pills button {
-    min-height: 36px; padding: 0 var(--space-3); border: 1px solid var(--color-neutral-200); border-radius: var(--radius-pill);
-    background: var(--surface); font: inherit; font-weight: 600; color: var(--color-neutral-700); white-space: nowrap; cursor: pointer;
+  .page-head .doc-seg { flex-basis: 100%; flex-wrap: wrap; width: fit-content; max-width: 100%; }
+  .doc-seg button {
+    min-height: 40px; padding: 0 var(--space-3); border: 0; border-radius: calc(var(--radius-sm) - 2px); background: transparent;
+    font: inherit; font-weight: 600; color: var(--color-neutral-700); white-space: nowrap; cursor: pointer;
   }
-  .chair-pills button[aria-pressed='true'] { background: var(--color-primary-700); border-color: var(--color-primary-700); color: #fff; }
-  .chair-pills button[aria-pressed='true'] .muted { color: inherit; }
-  .chair-pills button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .doc-seg button[aria-pressed='true'] { background: var(--color-primary-700); color: #fff; box-shadow: var(--shadow); }
+  .doc-seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+}
+
+/* review-2 phone Jadwal: 360x800 budget. Week strip folded behind a calendar button, one-line KPI, 48px doctor chips that
+   fade at the right edge (the row scrolls), compact 56-64px agenda rows, "Perlu dijadwalkan" folded. */
+@media (max-width: 720px) {
+  .sched-bar .btn { min-width: 44px; min-height: 44px; padding: 0; display: inline-grid; place-items: center; }
+  .week-toggle[aria-expanded='true'] { background: var(--color-primary-50); border-color: var(--color-primary-200); color: var(--color-primary-700); }
+  .chair-pills { margin-bottom: var(--space-2); -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); padding-right: 24px; }
+  .chair-pills button { min-height: 48px; }
+  .day-sum { display: flex; flex-wrap: nowrap; gap: var(--space-3); align-items: baseline; max-height: none; min-height: 32px; margin: 0 0 var(--space-2);
+    padding: 4px var(--space-3); border: 0; border-radius: 10px; background: var(--color-neutral-50); font-size: var(--font-size-sm); }
+  .day-sum div { display: flex; flex-direction: row; align-items: baseline; gap: 4px; padding: 0; }
+  .day-sum div + div { border-left: 0; }
+  .day-sum dd { font-size: var(--font-size-sm); }
+  .agenda { gap: 6px; }
+  .agenda-item { min-height: 56px; border-radius: 12px; }
+  .agenda-open { padding: 8px 0 8px var(--space-3); }
+  .agenda-main { flex-direction: row; flex-wrap: wrap; align-items: center; column-gap: 6px; row-gap: 2px; }
+  .agenda-main .agenda-name { flex-basis: 100%; }
+  .agenda-main .agenda-meta { flex: 0 1 auto; min-width: 0; }
+  .agenda-main .agenda-chips { flex: none; margin-top: 0; }
+  .agenda-name { line-height: 1.3; }
+  .agenda-meta { line-height: 1.3; }
+  .agenda-chips .chip { padding: 1px 8px; font-size: 12px; }
+  .agenda-cta { min-height: 44px; padding: 0 var(--space-3); }
+  .agenda-sec { margin-bottom: var(--space-2); }
+  .agenda-sec summary { min-height: 40px; }
+  .planned-fold > summary { display: flex; align-items: center; min-height: 48px; list-style: none; cursor: pointer; }
+  .planned-fold > summary::-webkit-details-marker { display: none; }
+  .planned-fold > summary h2 { margin: 0; font-size: var(--font-size-md); }
+  .planned-fold > summary::after { content: '▾'; margin-left: auto; color: var(--muted); }
+  .planned-fold[open] > summary::after { content: '▴'; }
+  .sched-swipe { min-height: 0; }
+}
+/* review-2 P2: phone topbar actions (+, menu) are 48px targets. */
+@media (max-width: 720px) {
+  .shell-top .icon-btn { width: 48px; height: 48px; }
 }
