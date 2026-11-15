@@ -61,7 +61,7 @@ class ChartController extends Controller
 
         $out = $visits->map(fn (Visit $v) => [
             'id' => $v->id, 'appointment_id' => $v->appointment_id, 'branch_id' => $v->branch_id, 'started_at' => $v->started_at,
-            'status' => $v->status, 'dentist' => ['id' => $v->dentist_id, 'name' => $names[$v->dentist_id] ?? null],
+            'status' => $v->status, 'attendance_cancelled_at' => $v->attendance_cancelled_at, 'dentist' => ['id' => $v->dentist_id, 'name' => $names[$v->dentist_id] ?? null],
             'notes' => $notes->where('visit_id', $v->id)->values()->map(fn ($n) => self::note($n, $names, $requests->get($n->id))),
             'draft_findings' => $findings->where('visit_id', $v->id)->where('state', 'draft')->values()->map(self::finding(...)),
             'draft_procedures' => $procedures->where('visit_id', $v->id)->where('state', 'draft')->values()->map($proc),
@@ -141,7 +141,7 @@ class ChartController extends Controller
 
     private static function visit(Visit $v): array
     {
-        return $v->only(['id', 'patient_id', 'branch_id', 'dentist_id', 'appointment_id', 'started_at', 'status']);
+        return VisitController::out($v);
     }
 
     public static function finding(ToothFinding $f): array

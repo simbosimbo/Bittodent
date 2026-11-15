@@ -29,6 +29,11 @@ final class TenancyDirectoryService implements TenancyDirectory
         return Membership::where('role', 'dentist')->whereNull('revoked_at')->distinct()->count('user_id');
     }
 
+    public function activeUserIdsWithRole(string $role): array
+    {
+        return Membership::where('role', $role)->whereNull('revoked_at')->distinct()->pluck('user_id')->all();
+    }
+
     public function dentistIdsForBranch(string $branchId): array
     {
         return Membership::where('role', 'dentist')->whereNull('revoked_at')

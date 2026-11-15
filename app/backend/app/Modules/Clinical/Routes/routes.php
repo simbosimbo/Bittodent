@@ -7,6 +7,7 @@ use App\Modules\Clinical\Http\Controllers\ConsentController;
 use App\Modules\Clinical\Http\Controllers\FindingController;
 use App\Modules\Clinical\Http\Controllers\NoteController;
 use App\Modules\Clinical\Http\Controllers\ProcedureController;
+use App\Modules\Clinical\Http\Controllers\VisitController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth:sanctum', '2fa', 'tenant'])->group(function () {
@@ -30,6 +31,9 @@ Route::middleware(['auth:sanctum', '2fa', 'tenant'])->group(function () {
     // unit 2: external entries made on a visit with `selesai` work that day wait for front desk / assistant
     Route::get('/procedures/pending-external', [ProcedureController::class, 'pendingExternal'])->middleware('perm:procedure.confirm_external');
     Route::post('/procedures/{id}/confirm-external', [ProcedureController::class, 'confirmExternal'])->middleware('perm:procedure.confirm_external');
+    // unit 4: close under the invoice guard (Billing listens to VisitClosing); walk-in attendance cancel = the only no-invoice route
+    Route::post('/visits/{id}/close', [VisitController::class, 'close'])->middleware('perm:appointment.transition');
+    Route::post('/visits/{id}/cancel-attendance', [VisitController::class, 'cancelAttendance'])->middleware('perm:appointment.transition');
     Route::put('/visits/{id}/note', [NoteController::class, 'save'])->middleware('perm:note.write');
     // throttle: limits TOTP guessing on the sign confirmation
     Route::post('/visits/{id}/sign', [NoteController::class, 'sign'])->middleware(['perm:note.sign', 'throttle:10,1']);

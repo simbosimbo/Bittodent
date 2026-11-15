@@ -2,6 +2,7 @@
 
 namespace Tests\Modules\Scheduling;
 
+use App\Modules\Clinical\Models\Visit;
 use App\Modules\Scheduling\Models\Appointment;
 use App\Modules\Scheduling\Models\Chair;
 use App\Modules\Scheduling\Models\PlannedAppointment;
@@ -58,7 +59,9 @@ class PlannedAppointmentTest extends TestCase
 
     public function test_transitions_stamp_arrived_seated_dismissed_and_expose_minutes(): void
     {
-        $a = $this->inA(fn () => Appointment::where('status', 'booked')->where('branch_id', $this->kemang()->id)->orderBy('starts_at')->firstOrFail());
+        // no visit: a visit with unbilled `selesai` work would block `done` (unit 4, EncounterInvoiceGuardTest)
+        $a = $this->inA(fn () => Appointment::where('status', 'booked')->where('branch_id', $this->kemang()->id)
+            ->whereNotIn('id', Visit::whereNotNull('appointment_id')->select('appointment_id'))->orderBy('starts_at')->firstOrFail());
         $r = $this->as('depan@senyum.test');
         $this->travelTo(now()->setTime(2, 0));
         $r->postJson("/api/appointments/{$a->id}/transition", ['to' => 'checked_in'])->assertOk()->assertJsonPath('wait_minutes', null);

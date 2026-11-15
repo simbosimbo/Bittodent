@@ -5,6 +5,7 @@ namespace App\Modules\Scheduling\Http\Controllers;
 use App\Modules\Identity\Contracts\UserDirectory;
 use App\Modules\Patients\Contracts\PatientDirectory;
 use App\Modules\Scheduling\Domain\AppointmentStatus;
+use App\Modules\Scheduling\Events\AppointmentCompleting;
 use App\Modules\Scheduling\Http\Requests\StoreAppointmentRequest;
 use App\Modules\Scheduling\Models\Appointment;
 use App\Modules\Scheduling\Models\Chair;
@@ -130,6 +131,9 @@ class AppointmentController extends Controller
                 return Audit::denied('branch:'.$a->branch_id);
             }
             AppointmentStatus::assertCanMove($a->status, $d['to']);
+            if ($d['to'] === 'done') { // unit 4: closes the linked visit; blocked (invoice_required) => nothing changes
+                event(new AppointmentCompleting(Ctx::current()->tenant(), $a->id));
+            }
             $from = $a->status;
             $stamp = AppointmentStatus::STAMPS[$d['to']] ?? null;
             $a->update(['status' => $d['to']] + ($stamp ? [$stamp => now()] : []));

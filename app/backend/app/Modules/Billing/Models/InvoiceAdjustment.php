@@ -15,5 +15,5 @@ class InvoiceAdjustment extends Model
 
     public const UPDATED_AT = null; // append-only (trigger)
 
-    protected $casts = ['amount_rp' => 'integer'];
+    protected $casts = ['amount_rp' => 'integer', 'requires_approval' => 'boolean'];
 }

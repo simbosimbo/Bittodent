@@ -39,6 +39,11 @@ Akses (U0d): pemilik hanya **membaca** (`note.read`); tidak pernah menulis draf,
 - `GET /api/patients/{id}/chart?as_of=YYYY-MM-DD`: akhir hari lokal cabang. Waktu berlaku = `finalized_at` (luar terkonfirmasi: yang lebih akhir dengan `external_confirmed_at`), bukan `external_date`. Masa depan = sekarang; kosong/salah = 422. Draf dan antrean konfirmasi kosong. Diaudit (`baca` chart, `as_of`).
 - UI bot masih memegang: slider tanggal, linimasa, panel riwayat per gigi.
 
+## Tutup kunjungan (unit 4, DEVIATIONS #50)
+- `POST /api/visits/{id}/close {reason?}` dan janji → `done` (listener `CloseVisitOnAppointmentDone`) memakai `Services\VisitCloser`.
+  Penjaga tagihan dijawab Billing lewat event `VisitClosing` (Clinical tidak bergantung pada Billing). Izin `appointment.transition`.
+- Walk-in: `POST /api/visits/{id}/cancel-attendance {reason}` (hanya `appointment_id` NULL); kunjungan dari janji dibatalkan lewat status janji.
+
 ## Backlog (belum dibuat)
 
 - TODO: audio dikte dihapus setelah catatan ditandatangani; transkrip + diff draf-vs-final (draf agen vs versi bertanda tangan) disimpan ke audit.

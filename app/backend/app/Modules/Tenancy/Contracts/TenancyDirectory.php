@@ -16,6 +16,9 @@ interface TenancyDirectory
     /** Number of distinct users with an active dentist membership in this tenant (1 = solo practice, D-013). */
     public function activeDentistCount(): int;
 
+    /** @return list<string> distinct user ids with an active membership of $role in this tenant (e.g. owners, unit 4 approvals) */
+    public function activeUserIdsWithRole(string $role): array;
+
     /** @return list<string> user ids of active dentists who may work in this branch */
     public function dentistIdsForBranch(string $branchId): array;
 }
