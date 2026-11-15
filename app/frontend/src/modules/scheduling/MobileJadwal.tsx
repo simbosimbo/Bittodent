@@ -375,7 +375,7 @@ export function ReferSheet({ a, dentists, save, onClose, onSaved }: {
         <label>Dokter gigi tujuan<select value={dentist} onChange={(e) => setDentist(e.target.value)}>
           {others.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
         </select></label>
-        <label>Alasan rujukan<textarea value={reason} maxLength={500} rows={3} required onChange={(e) => setReason(e.target.value)} placeholder="mis. Perlu penanganan bedah mulut" /></label>
+        <label>Alasan rujukan<textarea value={reason} maxLength={500} rows={3} required onChange={(e) => { setReason(e.target.value); setError('') }} placeholder="mis. Perlu penanganan bedah mulut" /></label>
         {error && <p className="form-error" role="alert">{error}</p>}
         <div className="appt-sheet-actions">
           <button className="btn btn-primary" disabled={busy || !dentist}>{busy ? 'Menyimpan…' : 'Rujuk'}</button>
