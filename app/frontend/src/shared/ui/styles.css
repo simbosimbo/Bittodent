@@ -271,3 +271,10 @@ html { scroll-padding-top: 160px; } /* scrollIntoView lands below the pinned top
 textarea { font: inherit; font-weight: 400; color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 12px; resize: vertical; }
 label.check { flex-direction: row; align-items: center; gap: 8px; }
 label.check input { min-height: 0; }
+
+/* DEVIATIONS #61: platform impersonation banner, pinned above the top bar */
+.impersonation-banner {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 8px 16px;
+  background: var(--color-warning-bg); border-bottom: 2px solid var(--color-warning-border); color: var(--color-warning-fg);
+}
+.impersonation-banner > span:first-child { flex: 1; }

@@ -2,6 +2,7 @@ import { useState, type FormEvent, type ReactNode } from 'react'
 import { setActivePatient, useActivePatient } from '../activePatient'
 import { ROLE_LABELS, type Me } from '../session'
 import { Icon, ICONS } from '../ui/Icon'
+import { ImpersonationBanner } from './ImpersonationBanner'
 
 // group 'pasien' = screens of the active patient (href points at that patient; without one they lead to the patient list).
 export type NavItem = { path: string; label: string; icon: string; group?: 'klinik' | 'pasien'; href?: string }
@@ -55,6 +56,7 @@ export function Shell({ me, nav, active, ribbon, onSwitchBranch, onLogout, child
       <div className="shell-col">
         {/* top bar + ribbon stay pinned while the page scrolls: alerts must never scroll out of view */}
         <div className="shell-sticky">
+        <ImpersonationBanner me={me} />
         <header className="shell-top">
           <div className="shell-title">
             <strong>{me.active.tenant_name}</strong>
