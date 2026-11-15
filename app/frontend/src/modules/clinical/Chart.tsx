@@ -761,7 +761,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
                 <div key={arch} className="odo-jaw">
                   <p className="odo-jaw-head"><span id={`jaw-${arch}`}>{arch === 'upper' ? 'Rahang atas' : 'Rahang bawah'}</span> <span className="muted">kanan ← kiri pasien</span></p>
                   <div className="odo2d-wrap odo-jaw-scroll" role="group" aria-labelledby={`jaw-${arch}`} ref={(el) => centre(el, String(dent))}>
-                    <Odontogram arch={arch} marks={marks} baseline={chart.baseline?.teeth} dentition={dent} compact={view === '3d'} selected={pick ? `t${pick.tooth}-${pick.surface}` : null} onPick={onPick} />
+                    <Odontogram arch={arch} wholeTooth marks={marks} baseline={chart.baseline?.teeth} dentition={dent} compact={view === '3d'} selected={pick ? `t${pick.tooth}-${pick.surface}` : null} onPick={onPick} />
                   </div>
                 </div>
               ))}

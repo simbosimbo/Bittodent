@@ -10,7 +10,9 @@ export type Mark = { condition: string; state: 'draft' | 'signed'; source: Sourc
 type Props = { marks: Record<string, Mark>; selected?: string | null; onPick?: (tooth: number, surface: Surface) => void
   baseline?: Record<string, ToothPresence>; dentition?: string; compact?: boolean
   /** Phone: draw one jaw only (tight viewBox). Omitted = both jaws in one SVG, as on desktop. */
-  arch?: 'upper' | 'lower' }
+  arch?: 'upper' | 'lower'
+  /** Phone (review-2): a tap anywhere on the tooth (48px+ box) picks the tooth with its centre surface; surfaces are chosen on the sheet's 56px pad. */
+  wholeTooth?: boolean }
 const DENTITION: Record<string, string> = { tetap: 'permanent', sulung: 'primary', campuran: 'mixed' }
 
 const S = 44
@@ -31,7 +33,7 @@ function Glyph({ cond }: { cond: string }) {
   }
 }
 
-function Tooth({ t, x, y, marks, selected, onPick, baseline, arch }: Props & { t: number; x: number; y: number }) {
+function Tooth({ t, x, y, marks, selected, onPick, baseline, arch, wholeTooth }: Props & { t: number; x: number; y: number }) {
   const K = arch ? K_PHONE : K_DESK
   const upper = isUpper(t)
   const q = Math.floor(t / 10)
@@ -56,6 +58,7 @@ function Tooth({ t, x, y, marks, selected, onPick, baseline, arch }: Props & { t
   return (
     <g id={`t${t}`} className="tooth" data-tooth={t} data-state={state} data-condition={whole?.condition} data-status={whole && statusOf(whole.status ?? '')?.legend} data-paint={whole?.paint}
       data-baseline={baseline?.[t] && baseline[t] !== 'ada' ? 'missing' : undefined} transform={`translate(${x},${y})`}>
+      {wholeTooth && onPick && <rect className="tooth-hit" x={-4} y={-4} width={S + 8} height={S + 8} fill="transparent" onClick={() => onPick(t, center)} />}
       {state === 'draft' && <rect className="tooth-wash" x={-4} y={-4} width={S + 8} height={S + 8} rx={6} />}
       {shapes.map(([s, shape]) => {
         const m = marks[`t${t}-${s}`]
@@ -63,7 +66,7 @@ function Tooth({ t, x, y, marks, selected, onPick, baseline, arch }: Props & { t
         return (
           <g key={s} id={`t${t}-${s}`} className={`tooth-surface${selected === `t${t}-${s}` ? ' is-sel' : ''}`} data-surface={s}
             data-condition={m?.condition} data-state={m?.state} data-status={m && statusOf(m.status ?? '')?.legend} data-paint={m?.paint} role={onPick ? 'button' : undefined} tabIndex={onPick ? 0 : undefined} aria-label={label}
-            onClick={onPick && (() => onPick(t, s))} onKeyDown={onPick && ((e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onPick(t, s) } })}>
+            onClick={onPick && (() => onPick(t, wholeTooth ? center : s))} onKeyDown={onPick && ((e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onPick(t, s) } })}>
             <title>{label}</title>
             {shape}
           </g>
