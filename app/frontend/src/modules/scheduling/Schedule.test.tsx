@@ -174,6 +174,42 @@ function mockOne(list: () => unknown[]) {
 }
 const ME_CHART: Me = { ...ME, permissions: [...ME.permissions, 'note.read', 'note.write'] }
 
+test('HP Check-in (papan 08): tombol Memproses (tak bisa diketuk ulang) -> baris ke Menunggu dengan Hadir -> toast "{nama} hadir" + Batalkan memanggil undo-checkin', async () => {
+  viewport(360)
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date('2030-01-07T03:00:00Z')) // 10:00 WIB
+  let status = 'booked'
+  let release = () => {}
+  const posts: string[] = []
+  vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+    if (url === '/sanctum/csrf-cookie') { document.cookie = 'XSRF-TOKEN=abc'; return new Response(null, { status: 204 }) }
+    if (url.startsWith('/api/schedule')) return json(sched([appt('a2', status, 'staff', 'Budi Contoh', '10:00')]))
+    if (url.startsWith('/api/planned-appointments')) return json({ data: [] })
+    if (init?.method === 'POST') {
+      posts.push(url)
+      if (url.endsWith('/transition')) { await new Promise<void>((r) => { release = r }); status = 'checked_in' }
+      if (url.endsWith('/undo-checkin')) status = 'booked'
+      return json({})
+    }
+    throw new Error('unexpected ' + url)
+  }))
+  const { container } = render(<Schedule me={ME} />)
+  fireEvent.click(await screen.findByRole('button', { name: 'Check-in Budi Contoh' }))
+  const busy = await screen.findByRole('button', { name: 'Memproses Budi Contoh' })
+  expect(busy).toBeDisabled()
+  expect(busy).toHaveTextContent('Memproses')
+  fireEvent.click(busy)
+  release()
+  await vi.waitFor(() => expect(screen.getByText(/Budi Contoh hadir/)).toBeInTheDocument())
+  expect(posts).toEqual(['/api/appointments/a2/transition']) // one tap, one request
+  await vi.waitFor(() => expect([...container.querySelectorAll('.agenda-sec h2')].map((h) => h.textContent)).toContain('Menunggu · 1'))
+  expect(container.querySelector('.agenda-item.appt-checked_in .chip')).toHaveTextContent('Hadir')
+  expect(screen.getByText(/Budi Contoh hadir/).closest('.toast')).toHaveAttribute('role', 'status')
+  fireEvent.click(screen.getByRole('button', { name: 'Batalkan' }))
+  await vi.waitFor(() => expect(posts).toEqual(['/api/appointments/a2/transition', '/api/appointments/a2/undo-checkin']))
+  expect(await screen.findByRole('button', { name: 'Check-in Budi Contoh' })).toBeEnabled()
+})
+
 test('desktop: kartu tetap punya tombol Check-in + Buka Rekam Medis inline, tanpa sheet', async () => {
   viewport(1280)
   vi.useFakeTimers({ toFake: ['Date'] })
@@ -210,7 +246,7 @@ test('HP: ketuk kartu membuka sheet aksi; aksi memanggil transisi yang sama; Esc
   const card = await screen.findByRole('button', { name: /^10\.00.*Budi Contoh/ })
   expect(within(card).queryByRole('button')).toBeNull() // the card opens the sheet; its one primary sits beside it
   expect(screen.getByRole('button', { name: 'Check-in Budi Contoh' })).toHaveClass('btn-primary')
-  expect(card).toHaveTextContent('Terjadwal')
+  expect(card).not.toHaveTextContent('Terjadwal') // board 01: the Check-in button says it; no status chip
 
   card.focus()
   fireEvent.click(card)
@@ -547,8 +583,8 @@ test('HP Meja depan (#70): Perlu tindakan sekarang (Check-in jatuh tempo, Bayar,
   const { container } = render(<Schedule me={who(['front_desk'])} />)
   await screen.findByRole('link', { name: 'Bayar Pasien u' })
   expect([...container.querySelectorAll('.agenda-sec h2')].map((h) => h.textContent))
-    .toEqual(['Perlu tindakan sekarang · 3', 'Berikutnya · 2', 'Selesai · 2'])
-  const folds = [...container.querySelectorAll('details.agenda-sec')]
+    .toEqual(['Perlu tindakan sekarang · 3', 'Menunggu · 1', 'Berikutnya · 1', 'Selesai · 2']) // board 08: checked in -> Menunggu
+  const folds = [...container.querySelectorAll('details.agenda-sec')].filter((d) => !d.querySelector('h2')!.textContent!.startsWith('Menunggu'))
   expect(folds.map((d) => d.hasAttribute('open'))).toEqual([true, true, false]) // Selesai collapsed
   const first = [...folds[0].querySelectorAll('.agenda-cta')].map((b) => b.getAttribute('aria-label'))
   expect(first).toEqual(['Check-in Pasien b', 'Bayar Pasien u', 'Konfirmasi Pasien p']) // check-in due first (10:15 at 10:00)

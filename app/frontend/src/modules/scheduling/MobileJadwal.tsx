@@ -68,7 +68,7 @@ const ACT_ICON: Record<string, string> = {
 
 /** Phone chip wording (board): short and front-desk oriented; desktop keeps STATUS. A finished, unpaid visit reads "Belum bayar". */
 const CHIP: Record<string, string> = {
-  pending_confirmation: 'Perlu konfirmasi', booked: 'Terjadwal', checked_in: 'Check-in', in_treatment: 'Merawat', done: 'Selesai',
+  pending_confirmation: 'Perlu konfirmasi', booked: 'Terjadwal', checked_in: 'Hadir', in_treatment: 'Merawat', done: 'Selesai',
   cancelled: 'Batal', no_show: 'No-show', rejected: 'Ditolak',
 }
 const Chip = ({ a, owe }: { a: Appointment; owe?: boolean }) =>
@@ -126,28 +126,35 @@ const CLOSED = ['done', 'cancelled', 'no_show', 'rejected']
 const DUE_SOON = 30 // minutes: a booking this close (or late) counts as "check in now"
 const isOnlineRequest = (a: Appointment) => a.status === 'pending_confirmation' && a.source === 'online'
 
-function Card({ a, tz, chair, dentist, owe, primary, onOpen }: {
+function Card({ a, tz, chair, dentist, owe, primary, onOpen, busy, arrived }: {
   a: Appointment; tz: string; chair?: string; dentist: boolean; owe: boolean; primary: Act | null; onOpen: () => void
+  /** this card's primary action is running ("Memproses", not tappable again) */ busy?: boolean
+  /** just moved into this section (200 ms slide-in) */ arrived?: boolean
 }) {
   const who = a.patient?.name ?? 'Pasien'
   // Buka RM is the one outlined primary (board): opening a chart is not a state change.
   const cls = primary?.key === 'chart' ? 'btn agenda-cta agenda-cta-outline' : 'btn btn-primary agenda-cta'
-  const label = primary && <>{ACT_ICON[primary.key] && primary.key !== 'checkin' && primary.key !== 'confirm' && <Icon d={ACT_ICON[primary.key]} size={18} />}{primary.label}</>
+  const label = busy ? <><span className="spinner" aria-hidden="true" />Memproses</>
+    : primary && <>{ACT_ICON[primary.key] && primary.key !== 'checkin' && primary.key !== 'confirm' && <Icon d={ACT_ICON[primary.key]} size={18} />}{primary.label}</>
+  // Board 01: a Check-in row says its status through the button; no "Terjadwal" chip. The service (reason) is never cut off;
+  // dentist and chair are secondary and may truncate.
+  const showChip = primary?.key !== 'checkin'
+  const extra = [dentist ? a.dentist?.name : null, chair].filter(Boolean).join(' · ')
   return (
-    <li className={`agenda-item appt-${a.status}`}>
+    <li className={`agenda-item appt-${a.status}${arrived ? ' agenda-arrive' : ''}`}>
       <button type="button" className="agenda-open" aria-haspopup="dialog" onClick={onOpen}>
         <span className="agenda-time">{fmtTime(a.starts_at, tz)}</span>
         <span className="agenda-av" aria-hidden="true">{initials(who)}</span>
         <span className="agenda-main">
           <span className="agenda-name">{who}</span>
-          <span className="agenda-meta">{[a.reason, dentist ? a.dentist?.name : null, chair].filter(Boolean).join(' · ')}</span>
-          <span className="agenda-chips">{a.source === 'online' && a.status !== 'pending_confirmation' && <span className="chip chip-online">Online</span>}<Chip a={a} owe={owe} /></span>
+          <span className="agenda-meta">{a.reason && <span className="agenda-svc">{a.reason}</span>}{extra && <span className="agenda-extra">{a.reason ? ' · ' : ''}{extra}</span>}</span>
+          {(showChip || a.source === 'online') && <span className="agenda-chips">{a.source === 'online' && a.status !== 'pending_confirmation' && <span className="chip chip-online">Online</span>}{showChip && <Chip a={a} owe={owe} />}</span>}
         </span>
         {!primary && <span className="agenda-more" aria-hidden="true"><Icon d={ICONS.more} /></span>}
       </button>
       {primary && (primary.href
         ? <a className={cls} href={primary.href} aria-label={`${primary.label} ${who}`}>{label}</a>
-        : <button type="button" className={cls} aria-label={`${primary.label} ${who}`} onClick={primary.run}>{label}</button>)}
+        : <button type="button" className={cls} aria-label={busy ? `Memproses ${who}` : `${primary.label} ${who}`} aria-busy={busy || undefined} disabled={busy} onClick={primary.run}>{label}</button>)}
     </li>
   )
 }
@@ -173,16 +180,18 @@ export type AgendaProps = {
   unpaid: (a: Appointment) => boolean; primary: (a: Appointment) => Act | null; onOpen: (a: Appointment) => void
   /** grid view: only the "Perlu konfirmasi" section above the grid */
   confirmOnly?: boolean; empty: ReactNode
+  /** appointment whose primary action is running / that just moved (check-in feedback, board 08) */
+  busyId?: string | null; arrivedId?: string | null
 }
 
 /**
  * Meja depan: Perlu tindakan sekarang (Check-in due · Bayar · Konfirmasi) → Berikutnya (Sekarang divider on today) → Selesai (collapsed).
  * Dokter (own appointments only, filtered by the caller): Sedang dirawat → Berikutnya → Selesai.
  */
-export function Agenda({ mode, list, tz, chairs, nowMin, unpaid, primary, onOpen, confirmOnly, empty }: AgendaProps) {
+export function Agenda({ mode, list, tz, chairs, nowMin, unpaid, primary, onOpen, confirmOnly, empty, busyId, arrivedId }: AgendaProps) {
   const label = Object.fromEntries(chairs.map((c) => [c.id, c.label]))
   const card = (a: Appointment) => <Card key={a.id} a={a} tz={tz} chair={label[a.chair_id]} dentist={mode === 'depan'} owe={a.status === 'done' && unpaid(a)}
-    primary={primary(a)} onOpen={() => onOpen(a)} />
+    primary={primary(a)} onOpen={() => onOpen(a)} busy={busyId === a.id} arrived={arrivedId === a.id} />
   const nowRow = () => <li key="now" className="agenda-now-row"><span className="agenda-now">Sekarang</span></li>
   const withNow = (a: Appointment, i: number, all: Appointment[]) => {
     const at = minutesOfDay(a.starts_at, tz)
@@ -219,11 +228,14 @@ export function Agenda({ mode, list, tz, chairs, nowMin, unpaid, primary, onOpen
   // then Bayar, then online requests. Later bookings stay in Berikutnya; Selesai stays folded.
   const due = nowMin === null ? [] : list.filter((a) => a.status === 'booked' && minutesOfDay(a.starts_at, tz) <= nowMin + DUE_SOON)
   const act = [...due, ...owe, ...confirm]
-  const next = list.filter((a) => !CLOSED.includes(a.status) && !isOnlineRequest(a) && !due.includes(a))
+  // Board 08: checked-in patients wait in their own section ("Hadir" chip), between the to-do list and later bookings.
+  const waiting = list.filter((a) => a.status === 'checked_in')
+  const next = list.filter((a) => !CLOSED.includes(a.status) && !isOnlineRequest(a) && !due.includes(a) && a.status !== 'checked_in')
   const done = list.filter((a) => CLOSED.includes(a.status) && !owe.includes(a))
   return (
     <>
       <Section title="Perlu tindakan sekarang" items={act} render={card} />
+      <Section title="Menunggu" items={waiting} render={card} />
       {next.length > 0 && <Fold title="Berikutnya" count={next.length} open>{nextWithNow(next)}</Fold>}
       <Section title="Selesai" items={done} render={card} collapsed />
     </>
@@ -420,7 +432,7 @@ export function PayPrompt({ onPay, onLater }: { onPay: () => void; onLater: () =
 }
 
 /** Short status message above the bottom nav; optional undo; gone after 5 s. Never traps focus. */
-export function Toast({ text, undo, onDone }: { text: string; undo?: () => void; onDone: () => void }) {
+export function Toast({ text, undo, undoLabel = 'Urungkan', onDone }: { text: string; undo?: () => void; undoLabel?: string; onDone: () => void }) {
   const done = useRef(onDone)
   done.current = onDone
   useEffect(() => {
@@ -430,7 +442,7 @@ export function Toast({ text, undo, onDone }: { text: string; undo?: () => void;
   return (
     <div className="toast" role="status">
       <span>{text}{undo && ' ·'}</span>
-      {undo && <button type="button" className="btn btn-ghost" onClick={() => { onDone(); undo() }}>Urungkan</button>}
+      {undo && <button type="button" className="btn btn-ghost" onClick={() => { onDone(); undo() }}>{undoLabel}</button>}
     </div>
   )
 }

@@ -10,7 +10,7 @@ import { PageSkeleton } from '../../shared/ui/Skeleton'
 import { useIsMobile } from '../../shared/useIsMobile'
 import { PatientPicker } from '../patients'
 import './scheduling.css'
-import { changeChair, createAppointment, getPlanned, refer, getSchedule, schedulePlanned, STATUS, transition, type Appointment, type Planned, type Schedule as Sched } from './api'
+import { changeChair, createAppointment, getPlanned, refer, getSchedule, schedulePlanned, STATUS, transition, undoCheckin, type Appointment, type Planned, type Schedule as Sched } from './api'
 import { Agenda, ApptSheet, ChairSheet, DaySummary, ModeToggle, PayPrompt, ReferSheet, RescheduleSheet, Toast, useInvoiceStatus, useJadwalMode, type Act } from './MobileJadwal'
 import { addDays, dotTime, END, hhmm, minutesOfDay, ROW, SLOTS, START, StatusChip, STEP } from './parts'
 
@@ -164,8 +164,10 @@ export default function Schedule({ me }: { me: Me }) {
   const shift = (days: number) => setDate(addDays(date, days))
   const week = useWeekCounts(me.active.branch_id, weekStart(date), mobile)
   const { mode, setMode, multi, owner } = useJadwalMode(me)
-  const [toast, setToast] = useState<{ id: number; text: string; undo?: () => void } | null>(null)
-  const say = (text: string, undo?: () => void) => setToast({ id: Date.now(), text, undo })
+  const [toast, setToast] = useState<{ id: number; text: string; undo?: () => void; undoLabel?: string } | null>(null)
+  const say = (text: string, undo?: () => void, undoLabel?: string) => setToast({ id: Date.now(), text, undo, undoLabel })
+  const [busyId, setBusyId] = useState<string | null>(null) // check-in running: the card's button reads "Memproses"
+  const [arrivedId, setArrivedId] = useState<string | null>(null) // just checked in: slides into Menunggu
   const [payFor, setPayFor] = useState<string | null>(null) // appointment just finished -> "Lanjut ke Bayar?"
   const [reschedId, setReschedId] = useState<string | null>(null)
   const [form, setForm] = useState<{ kind: 'chair' | 'refer'; id: string } | null>(null) // Ganti kursi / Rujuk sheet
@@ -211,6 +213,23 @@ export default function Schedule({ me }: { me: Me }) {
   async function confirm(a: Appointment) {
     if (await move(a, 'booked')) say('Dikonfirmasi', () => { move(a, 'pending_confirmation') }) // booked -> pending is a real API move
   }
+  // Check-in feedback (board 08): "Memproses" on the button (no double tap), then the row moves to Menunggu with a "Hadir" chip and
+  // a 5 s toast "{nama} hadir" whose Batalkan really undoes it (POST undo-checkin: server-checked window, audited).
+  async function checkIn(a: Appointment) {
+    if (busyId) return
+    setBusyId(a.id)
+    const ok = await move(a, 'checked_in')
+    setBusyId(null)
+    if (!ok) return
+    setArrivedId(a.id)
+    setTimeout(() => setArrivedId((x) => (x === a.id ? null : x)), 400)
+    say(`${a.patient?.name ?? 'Pasien'} hadir`, async () => {
+      setActionError('')
+      try { await undoCheckin(a.id); await reload(); changed() } catch (e) {
+        setActionError(e instanceof ApiError && e.status === 409 ? e.data?.message ?? 'Check-in tidak bisa dibatalkan lagi.' : errorText(e))
+      }
+    }, 'Batalkan')
+  }
   // Mulai kunjungan = one tap (#70): check in first when the patient is still "Terjadwal" today (the server checks the permission
   // and the transition), then merawat, then straight into the RM.
   async function startVisit(a: Appointment) {
@@ -229,7 +248,7 @@ export default function Schedule({ me }: { me: Me }) {
   const A = {
     confirm: (a: Appointment): Act => ({ key: 'confirm', label: 'Konfirmasi', run: () => confirm(a), tone: 'primary' }),
     reject: (a: Appointment): Act => ({ key: 'reject', label: 'Tolak', run: () => move(a, 'rejected') }),
-    checkin: (a: Appointment): Act => ({ key: 'checkin', label: 'Check-in', run: () => move(a, 'checked_in'), tone: 'primary' }),
+    checkin: (a: Appointment): Act => ({ key: 'checkin', label: 'Check-in', run: () => checkIn(a), tone: 'primary' }),
     start: (a: Appointment): Act => ({ key: 'start', label: 'Mulai kunjungan', run: () => startVisit(a), tone: 'primary' }),
     finish: (a: Appointment): Act => ({ key: 'finish', label: 'Selesai', run: () => finish(a) }),
     pay: (a: Appointment): Act => ({ key: 'pay', label: 'Bayar', href: `#/tagihan/${a.visit_id}`, tone: 'primary' }),
@@ -381,7 +400,7 @@ export default function Schedule({ me }: { me: Me }) {
           {mobile && inv.error && <p className="week-error small" role="alert">Status bayar gagal dimuat. <button type="button" className="btn btn-ghost" onClick={inv.retry}>Coba lagi</button></p>}
           {mobile && (
             <Agenda mode={mode} list={agendaList} tz={tz} chairs={data.chairs} nowMin={isToday ? minutesOfDay(new Date(now).toISOString(), tz) : null}
-              unpaid={inv.unpaid} primary={primary} onOpen={(a) => setSheetId(a.id)} confirmOnly={gridOn}
+              unpaid={inv.unpaid} primary={primary} onOpen={(a) => setSheetId(a.id)} confirmOnly={gridOn} busyId={busyId} arrivedId={arrivedId}
               empty={dokter ? (
                 <div className="sched-empty" role="status">
                   <Icon d={ICONS.people} size={40} />
@@ -564,7 +583,7 @@ export default function Schedule({ me }: { me: Me }) {
           )}
         </Presence>
       )}
-      {mobile && toast && <Toast key={toast.id} text={toast.text} undo={toast.undo} onDone={() => setToast(null)} />}
+      {mobile && toast && <Toast key={toast.id} text={toast.text} undo={toast.undo} undoLabel={toast.undoLabel} onDone={() => setToast(null)} />}
       {gridNow && !nowSeen && <button type="button" className="now-chip" onClick={() => toNow(true)}>Sekarang {dotTime(nowMin + START)}</button>}
       {mobile && canCreate && !dokter && <button type="button" className="fab" aria-label="Buat janji" onClick={() => setDialog({})}><Icon d={ICONS.plus} size={26} /></button>}
       {data && !(mobile && dokter) && <PlannedList sched={data} date={date} canCreate={canCreate} onScheduled={reload} folded={mobile} />}
