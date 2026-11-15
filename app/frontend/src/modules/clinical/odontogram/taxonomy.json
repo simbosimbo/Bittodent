@@ -1,0 +1,239 @@
+{
+  "$comment": "Odontogram v2 taxonomy: the ONE table read by the backend (Domain/OdontogramTaxonomy) and the frontend (npm run taxonomy -> src/modules/clinical/odontogram/taxonomy.json). Codes follow Panduan Rekam Medis Kedokteran Gigi (Kemenkes + PB PDGI 2015): surface letters MODVL in capitals, condition codes lowercase. HOLD: the condition list, icons and colours wait for the revised designer board; `conditions` below are the existing legend keys only (placeholders), each with its official code where one exists. No ICD mapping lives here (design ICD codes are examples only).",
+  "version": 2,
+  "surfaces": [
+    {
+      "key": "M",
+      "label": "Mesial",
+      "stored": "M"
+    },
+    {
+      "key": "O",
+      "label": "Oklusal",
+      "stored": "O",
+      "teeth": "posterior"
+    },
+    {
+      "key": "I",
+      "label": "Insisal",
+      "stored": "I",
+      "teeth": "anterior"
+    },
+    {
+      "key": "D",
+      "label": "Distal",
+      "stored": "D"
+    },
+    {
+      "key": "V",
+      "label": "Vestibular (bukal/labial)",
+      "stored": "B"
+    },
+    {
+      "key": "L",
+      "label": "Lingual/palatal",
+      "stored": "L"
+    }
+  ],
+  "statuses": [
+    {
+      "key": "ada_sebelumnya",
+      "label": "Ada sebelumnya",
+      "procedure_status": "ada_di_klinik_ini"
+    },
+    {
+      "key": "klinik_lain",
+      "label": "Klinik lain",
+      "procedure_status": "ada_di_tempat_lain"
+    },
+    {
+      "key": "rencana",
+      "label": "Rencana",
+      "procedure_status": "direncanakan"
+    },
+    {
+      "key": "selesai",
+      "label": "Selesai",
+      "procedure_status": "selesai"
+    }
+  ],
+  "groups": [
+    {
+      "key": "surface",
+      "label": "Permukaan",
+      "area": "surface"
+    },
+    {
+      "key": "tooth",
+      "label": "Seluruh gigi",
+      "area": "tooth"
+    },
+    {
+      "key": "span",
+      "label": "Rentang",
+      "area": "range"
+    },
+    {
+      "key": "implant",
+      "label": "Implan",
+      "area": "tooth"
+    }
+  ],
+  "span_roles": [
+    {
+      "key": "abutment",
+      "code": "abu",
+      "label": "Penyangga"
+    },
+    {
+      "key": "pontic",
+      "code": "pon",
+      "label": "Pontik"
+    }
+  ],
+  "span_materials": [
+    {
+      "key": "meb",
+      "label": "Logam"
+    },
+    {
+      "key": "pob",
+      "label": "Porselen"
+    }
+  ],
+  "dentitions": {
+    "permanent": [
+      18,
+      17,
+      16,
+      15,
+      14,
+      13,
+      12,
+      11,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      48,
+      47,
+      46,
+      45,
+      44,
+      43,
+      42,
+      41,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38
+    ],
+    "primary": [
+      55,
+      54,
+      53,
+      52,
+      51,
+      61,
+      62,
+      63,
+      64,
+      65,
+      85,
+      84,
+      83,
+      82,
+      81,
+      71,
+      72,
+      73,
+      74,
+      75
+    ]
+  },
+  "modes": [
+    {
+      "key": "perawatan",
+      "label": "Perawatan",
+      "flow": "tooth_first"
+    },
+    {
+      "key": "periksa",
+      "label": "Periksa awal",
+      "flow": "palette"
+    }
+  ],
+  "conditions": [
+    {
+      "key": "sehat",
+      "label": "Sehat",
+      "code": "sou",
+      "group": "surface",
+      "official": true
+    },
+    {
+      "key": "karies",
+      "label": "Karies",
+      "code": "car",
+      "group": "surface",
+      "official": true
+    },
+    {
+      "key": "tambalan",
+      "label": "Tambalan",
+      "code": null,
+      "group": "surface",
+      "official": false
+    },
+    {
+      "key": "mahkota",
+      "label": "Mahkota",
+      "code": null,
+      "group": "tooth",
+      "official": false
+    },
+    {
+      "key": "hilang",
+      "label": "Hilang",
+      "code": "mis",
+      "group": "tooth",
+      "official": true
+    },
+    {
+      "key": "sisa_akar",
+      "label": "Sisa akar",
+      "code": "rrx",
+      "group": "tooth",
+      "official": true
+    },
+    {
+      "key": "perlu_dicabut",
+      "label": "Perlu dicabut",
+      "code": null,
+      "group": "tooth",
+      "official": false
+    },
+    {
+      "key": "implan",
+      "label": "Implan",
+      "code": "ipx",
+      "group": "implant",
+      "official": true
+    },
+    {
+      "key": "bridge",
+      "label": "Bridge",
+      "code": null,
+      "group": "span",
+      "official": false
+    }
+  ]
+}
