@@ -13,7 +13,7 @@ export default function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
   const [code, setCode] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  const [devAccounts, setDevAccounts] = useState<DevAccount[]>([])
+  const [devAccounts, setDevAccounts] = useState<DevAccount[] | null>(null)
 
   // Server truth: /api/dev/status only exists on APP_ENV=local + DEV_QUICK_LOGIN=true (404 otherwise => no picker).
   useEffect(() => {
@@ -97,20 +97,30 @@ export default function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
             <button type="button" className="btn btn-link" onClick={() => { setStep('password'); setError('') }}>Kembali</button>
           </form>
         )}
-        {step === 'password' && devAccounts.length > 0 && (
-          <section className="dev-quick" aria-label="Masuk cepat (dev)">
-            <h2>Masuk cepat (dev)</h2>
-            <p className="muted small">Hanya di mesin dev, akun seed sintetis, tanpa TOTP.</p>
-            <div className="dev-quick-list">
-              {devAccounts.map((a) => {
-                const [local, domain] = a.email.split('@')
-                return (
-                  <button key={a.email} type="button" className="btn" disabled={busy} onClick={() => quick(a.email)} title={a.email}>
-                    {DEV_ROLE[local] ?? a.name} <span className="muted small">{domain.replace(/\.test$/, '')}</span>
-                  </button>
-                )
-              })}
-            </div>
+        {step === 'password' && (devAccounts === null || devAccounts.length > 0) && (
+          <section className="dev-quick" aria-label={devAccounts?.length ? 'Masuk cepat (dev)' : undefined} aria-busy={devAccounts === null}>
+            {devAccounts === null ? (
+              <div className="dev-quick-skel" aria-hidden="true">
+                <div className="sk sk-title" />
+                <div className="sk sk-line w2" />
+                <div className="dev-quick-list">{Array.from({ length: 10 }, (_, i) => <div key={i} className="sk sk-btn" />)}</div>
+              </div>
+            ) : (
+              <>
+                <h2>Masuk cepat (dev)</h2>
+                <p className="muted small">Hanya di mesin dev, akun seed sintetis, tanpa TOTP.</p>
+                <div className="dev-quick-list">
+                  {devAccounts.map((a) => {
+                    const [local, domain] = a.email.split('@')
+                    return (
+                      <button key={a.email} type="button" className="btn" disabled={busy} onClick={() => quick(a.email)} title={a.email}>
+                        {DEV_ROLE[local] ?? a.name} <span className="muted small">{domain.replace(/\.test$/, '')}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </>
+            )}
           </section>
         )}
       </div>

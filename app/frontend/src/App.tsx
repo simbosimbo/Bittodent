@@ -5,15 +5,18 @@ import { clearActivePatients, useActivePatient } from './shared/activePatient'
 import { pageTitle, Shell, withActivePatientHref, type NavItem } from './shared/layout/Shell'
 import type { Me } from './shared/session'
 import { ComingSoon } from './shared/ui/ComingSoon'
+import { PageSkeleton } from './shared/ui/Skeleton'
 import { ICONS } from './shared/ui/Icon'
+import { useIsMobile } from './shared/useIsMobile'
 import { ribbonPatientId } from './shared/ribbonRoute'
 import { getMe, Login, logout as apiLogout, switchBranch as apiSwitchBranch } from './modules/auth'
 import { AlertRibbon, FamilyPage, MedicalHistoryPage, PatientDetail, PatientForm, PatientList } from './modules/patients'
-import { Home, Schedule } from './modules/scheduling'
+import { Home, Schedule, usePendingConfirm } from './modules/scheduling'
 import { ChartPage, SettingsRmPage } from './modules/clinical'
-import { InvoicePage } from './modules/billing'
+import { InvoicePage, KasirPage } from './modules/billing'
 import { ReportPage } from './modules/reporting'
 import { BookingPage, ManagePage } from './modules/booking'
+import { ClinicSettingsPage, SETTINGS_PERMS } from './modules/settings'
 
 const useHash = () => {
   const [hash, setHash] = useState(location.hash.slice(1) || '/')
@@ -37,6 +40,7 @@ export const NAV: (NavItem & { perm: string | null })[] = [
   { path: '/resep', label: 'Resep', perm: 'note.read', icon: ICONS.receipt, section: 'KLINIS' },
   { path: '/pengaturan-rm', label: 'Pengaturan RM', perm: 'note.sign|settings.manage', icon: ICONS.user, section: 'KLINIS' },
   { path: '/kasir', label: 'Kasir', perm: 'billing.read', icon: ICONS.card, section: 'KEUANGAN' },
+  { path: '/pengaturan-klinik', label: 'Pengaturan Klinik', perm: SETTINGS_PERMS, icon: ICONS.settings, section: 'KEUANGAN' },
   { path: '/laporan', label: 'Laporan', perm: 'reporting.read', icon: ICONS.chart, section: 'KEUANGAN' },
 ]
 
@@ -62,6 +66,10 @@ function StaffApp() {
   const [state, setState] = useState<'loading' | 'guest' | 'ready' | 'no2fa' | 'error'>('loading')
   const [hash, query = ''] = useHash().split('?')
   const patient = useActivePatient()
+  const mobile = useIsMobile()
+  // Jadwal badge on the phone bottom nav: online bookings waiting today, for desk roles (Meja depan / Pemilik) only.
+  const desk = !!me?.roles.some((r) => ['owner', 'front_desk', 'kasir'].includes(r)) && !!me?.permissions.includes('appointment.read')
+  const pendingCount = usePendingConfirm(me?.active.branch_id ?? null, mobile && desk)
 
   const load = useCallback(async () => {
     // No XSRF-TOKEN → never had a session here; skip /api/me so a fresh guest visit logs no 401.
@@ -96,7 +104,7 @@ function StaffApp() {
     await load()
   }
 
-  if (state === 'loading') return <div className="center muted">Memuat…</div>
+  if (state === 'loading') return <PageSkeleton variant="app" />
   if (state === 'guest') return <Login onLoggedIn={load} />
   if (state === 'no2fa' || state === 'error' || !me)
     return (
@@ -113,25 +121,28 @@ function StaffApp() {
   // Keluarga / Riwayat Medis are patient screens without a nav item: they count as Pasien.
   const navHash = hash.replace(/^\/(keluarga|riwayat-medis)\//, '/pasien/')
   const active = nav.find((n) => n.path === '/' ? hash === '/' : navHash === n.path || navHash.startsWith(n.path + '/'))
-  const soon = nav.find((n) => ['/antrean', '/resep', '/kasir'].includes(n.path) && hash === n.path)
+  const soon = nav.find((n) => ['/antrean', '/resep'].includes(n.path) && hash === n.path)
   const sub = hash.match(/^\/(keluarga|riwayat-medis)\/([\w-]+)$/)
 
   const ribbonId = ribbonPatientId(hash)
   let page
   const chart = hash.match(/^\/rekam-medis\/([\w-]+)(?:\/janji\/([\w-]+))?$/)
-  if (chart && can('note.read')) page = <ChartPage key={hash} patientId={chart[1]} appointmentId={chart[2]} me={me} />
-  else if (hash.startsWith('/tagihan/') && can('billing.read')) page = <InvoicePage key={hash} visitId={hash.slice(9)} me={me} />
-  else if (sub?.[1] === 'keluarga' && can('patient.read')) page = <FamilyPage key={hash} id={sub[2]} canChart={can('note.read')} />
-  else if (sub?.[1] === 'riwayat-medis' && can('note.read')) page = <MedicalHistoryPage key={hash} id={sub[2]} canChart={can('note.read')} canEdit={can('note.write')} />
+  if (chart && can('note.read')) page = <ChartPage patientId={chart[1]} appointmentId={chart[2]} me={me} />
+  else if (hash.startsWith('/tagihan/') && can('billing.read')) page = <InvoicePage visitId={hash.slice(9)} me={me} />
+  else if (sub?.[1] === 'keluarga' && can('patient.read')) page = <FamilyPage id={sub[2]} canChart={can('note.read')} />
+  else if (sub?.[1] === 'riwayat-medis' && can('note.read')) page = <MedicalHistoryPage id={sub[2]} canChart={can('note.read')} canEdit={can('note.write')} />
   else if (hash === '/pasien/baru' && can('patient.create')) page = <PatientForm />
-  else if (hash.startsWith('/pasien/') && can('patient.read')) page = <PatientDetail key={hash} id={hash.slice(8)} canChart={can('note.read')} />
-  else if (hash === '/pasien' && can('patient.read')) page = <PatientList key={query} canCreate={can('patient.create')} canChart={can('note.read')} initialQ={new URLSearchParams(query).get('q') ?? ''} />
+  else if (hash.startsWith('/pasien/') && can('patient.read')) page = <PatientDetail id={hash.slice(8)} canChart={can('note.read')} />
+  else if (hash === '/pasien' && can('patient.read')) page = <PatientList canCreate={can('patient.create')} canChart={can('note.read')} initialQ={new URLSearchParams(query).get('q') ?? ''} />
   else if (hash === '/jadwal' && can('appointment.read')) page = <Schedule me={me} />
+  else if (hash === '/kasir' && can('billing.read')) page = <KasirPage />
   else if (hash === '/laporan' && can('reporting.read')) page = <ReportPage />
+  else if (/^\/pengaturan-klinik(\/(harga|pembayaran))?$/.test(hash) && can(SETTINGS_PERMS)) page = <ClinicSettingsPage me={me} tab={hash.split('/')[2] ?? ''} onChanged={load} />
   else if (hash === '/pengaturan-rm' && can('note.sign|settings.manage')) page = <SettingsRmPage me={me} onChanged={load} />
   else if (soon) page = <ComingSoon title={soon.label} />
   else page = hash === '/' ? <Home me={me} /> : <ToHome />
 
-  return <Shell me={me} nav={nav} active={active} title={pageTitle(hash, active)} ribbon={ribbonId && can('patient.read') && <AlertRibbon key={ribbonId} patientId={ribbonId} />}
+  return <Shell me={me} nav={nav} active={active} title={pageTitle(hash, active)}
+    badges={{ '/jadwal': { count: pendingCount, label: `${pendingCount} janji online perlu konfirmasi` } }} ribbon={ribbonId && can('patient.read') && <AlertRibbon key={ribbonId} patientId={ribbonId} />}
     onSwitchBranch={switchBranch} onLogout={logout}>{page}</Shell>
 }

@@ -3,9 +3,11 @@ import { fmtDate, fmtTime, initials, todayWib, TZ } from '../../shared/format'
 import type { Me } from '../../shared/session'
 import { RevenueCard } from '../billing'
 import { Icon, ICONS } from '../../shared/ui/Icon'
+import { PageSkeleton } from '../../shared/ui/Skeleton'
 import { useIsMobile } from '../../shared/useIsMobile'
 import type { Appointment } from './api'
-import { minutesOfDay, StatusChip, useSchedule } from './Schedule'
+import Schedule, { minutesOfDay, StatusChip, useSchedule } from './Schedule'
+import { useJadwalMode } from './MobileJadwal'
 
 type Row = Appointment & { chair: string }
 const LEGEND = [['done', 'Selesai'], ['in_treatment', 'Merawat'], ['checked_in', 'Check-in'], ['booked', 'Terjadwal']]
@@ -21,7 +23,14 @@ function useNow() {
   return now
 }
 
+// Phone in Dokter mode (#70): Beranda IS "Pasien saya" (same agenda + one-tap Mulai as Jadwal), no KPI/revenue/desk CTAs to scroll past.
 export default function Home({ me }: { me: Me }) {
+  const mobile = useIsMobile()
+  const { mode } = useJadwalMode(me)
+  return mobile && mode === 'dokter' ? <Schedule me={me} /> : <DeskHome me={me} />
+}
+
+function DeskHome({ me }: { me: Me }) {
   const date = todayWib()
   const now = useNow()
   const { data, error, loading } = useSchedule(me.active.branch_id, date)
@@ -87,7 +96,7 @@ export default function Home({ me }: { me: Me }) {
         </div>
         {!mobile && toolbar}
       </div>
-      {error ? <div className="card state-card error">{error}</div> : loading && !data ? <div className="card state-card muted">Memuat…</div> : (
+      {error ? <div className="card state-card error">{error}</div> : loading && !data ? <PageSkeleton variant="home" /> : (
         <div className="grid-12">
           {kpis.map((k) => (
             <section key={k.label} className="card stat span-3" aria-label={k.label}>

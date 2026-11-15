@@ -1,0 +1,53 @@
+/* Pengaturan Klinik (#71): 48px targets, neutral chips, one primary action per view, phone first. */
+.set-tabs { flex-wrap: nowrap; overflow-x: auto; }
+.set-form { display: grid; gap: var(--space-3); max-width: 640px; }
+.set-form { gap: 0; }
+.set-form label { margin-bottom: 12px; }
+.set-form input, .set-form select, .set-filter input, .set-bulk input, .set-bulk select { min-height: 48px; }
+.set-sub { font-size: var(--font-size-md, 16px); margin: var(--space-2) 0 0; }
+.set-branch { border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-3); display: grid; gap: var(--space-3); margin: 0; }
+.set-branch legend { font-weight: 700; padding: 0 4px; }
+.set-dock { display: flex; gap: var(--space-2); justify-content: flex-end; }
+.set-dock .btn { min-height: 48px; }
+.set-filter { display: grid; gap: var(--space-2); margin-bottom: var(--space-3); }
+.set-filter input[type="search"] { width: 100%; }
+.set-chips { display: flex; gap: var(--space-2); overflow-x: auto; padding-bottom: 2px; }
+.set-chip { min-height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text);
+  font: inherit; font-weight: 600; white-space: nowrap; text-transform: capitalize; cursor: pointer; }
+.set-chip.on { background: var(--text); color: var(--surface); border-color: var(--text); }
+.set-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+.set-row { padding: var(--space-2) var(--space-3); display: grid; gap: 2px; }
+.set-row-head { display: flex; align-items: center; gap: var(--space-2); }
+label.set-pick { margin: 0 0 0 -12px; flex-direction: row; display: inline-flex; align-items: center; justify-content: center; min-width: 48px; min-height: 48px; margin-left: -12px; }
+.set-pick input { width: 20px; height: 20px; }
+.set-row-name { display: grid; min-width: 0; }
+.set-row-name strong { overflow-wrap: anywhere; }
+.set-cat { border: 0; background: transparent; padding: 0; min-height: 0; width: 9em; font: inherit; color: var(--muted); text-transform: capitalize; }
+.set-cat:focus { outline: 2px solid var(--accent); border-radius: 4px; color: var(--text); }
+label.set-price { flex-direction: row; margin: 0; display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); min-height: 52px; padding-left: 36px; }
+.set-rp { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); }
+.set-rp input { width: 9.5em; min-height: 48px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--text); }
+.set-when { margin: 0 0 4px 36px; }
+.set-dock-fixed { position: sticky; bottom: 8px; z-index: 5; background: var(--surface); padding: var(--space-2);
+  border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow); margin-top: var(--space-3); }
+.set-bulk { display: grid; gap: var(--space-2); margin-bottom: var(--space-3); border-left: 3px solid var(--text); }
+.set-bulk p { margin: 0; }
+.set-bulk-row { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.set-bulk-row input { width: 6em; text-align: right; }
+.set-seg { display: inline-flex; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+.set-seg button { min-height: 48px; min-width: 48px; padding: 0 12px; border: 0; background: var(--surface); color: var(--text); font: inherit; font-weight: 600; cursor: pointer; }
+.set-seg button + button { border-left: 1px solid var(--border); }
+.set-seg button.on { background: var(--text); color: var(--surface); }
+.set-kinds { display: grid; grid-template-columns: repeat(4, 1fr); }
+.set-preview { margin: 0; padding-left: 1.2em; }
+.set-acc-group { display: grid; gap: var(--space-1); padding: var(--space-2) var(--space-3); }
+.set-acc { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); min-height: 56px; border-top: 1px solid var(--border); }
+.set-acc > div { display: grid; min-width: 0; }
+.set-acc.is-off strong { color: var(--muted); }
+.set-acc .btn { min-height: 48px; }
+@media (max-width: 720px) {
+  .set-dock-fixed { bottom: calc(73px + env(safe-area-inset-bottom)); }
+  .shell-main:has(.set-dock-fixed) { padding-bottom: calc(80px + 72px + env(safe-area-inset-bottom)); }
+  .set-dock:not(.set-dock-fixed) .btn { flex: 1; }
+  .set-dock-fixed .btn { flex: 1; }
+}

@@ -179,7 +179,7 @@ class EncounterInvoiceGuardTest extends TestCase
         $this->work($visit, self::NO_TARIFF);
         $this->as(self::DESK)->postJson("/api/visits/$visit/close", ['reason' => 'Mau tutup tanpa tagihan'])->assertConflict()
             ->assertJsonPath('error', 'use_selesai');
-        $this->as('kasir@senyum.test')->postJson("/api/visits/$visit/cancel-attendance", ['reason' => 'Pasien pulang sebelum dilayani'])->assertForbidden();
+        // kasir holds appointment.transition since DEVIATIONS #67 (booking management), so it may cancel attendance like front desk.
         $this->as(self::DESK)->postJson("/api/visits/$visit/cancel-attendance")->assertUnprocessable()->assertJsonValidationErrors('reason');
         $this->as(self::DESK)->postJson("/api/visits/$visit/cancel-attendance", ['reason' => 'Pasien pulang sebelum dilayani'])->assertOk();
         $this->as(self::DESK)->postJson("/api/visits/$visit/cancel-attendance", ['reason' => 'Pasien pulang sebelum dilayani'])->assertConflict();

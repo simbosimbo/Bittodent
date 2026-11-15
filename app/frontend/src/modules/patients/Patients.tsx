@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { PageSkeleton } from '../../shared/ui/Skeleton'
 import { errorText } from '../../shared/api/http'
 import { initials, TZ } from '../../shared/format'
 import { Icon, ICONS } from '../../shared/ui/Icon'
@@ -69,6 +70,7 @@ const Allergies = ({ a }: { a?: string[] }) => a?.length
 
 export function PatientList({ canCreate, canChart = false, initialQ = '' }: { canCreate: boolean; canChart?: boolean; initialQ?: string }) {
   const [q, setQ] = useState(initialQ)
+  useEffect(() => { setQ(initialQ) }, [initialQ])
   const [care, setCare] = useState('')
   const [dentist, setDentist] = useState('')
   const [dentists, setDentists] = useState<{ id: string; name: string }[]>([])
@@ -107,7 +109,7 @@ export function PatientList({ canCreate, canChart = false, initialQ = '' }: { ca
           ))}
         </div>
         {error ? <p className="state-card error">{error}</p>
-          : !rows ? <p className="state-card muted">Memuat…</p>
+          : !rows ? <PageSkeleton variant="list" />
           : rows.length === 0 ? <p className="state-card muted">{q ? `Tidak ada pasien yang cocok dengan “${q}”.` : filtered ? 'Tidak ada pasien dengan saringan ini.' : 'Belum ada pasien.'}</p>
           : mobile ? (
             // Mobile: one card per patient instead of the wide table; same row/link rules.

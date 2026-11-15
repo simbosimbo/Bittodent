@@ -67,7 +67,8 @@ test('1280px: tables, no cards', async () => {
   const { container } = render(<ReportPage />)
   await screen.findByText('konfirmasi_tindakan_luar')
   expect(container.querySelectorAll('table.table')).toHaveLength(3)
-  expect(container.querySelector('.report-cards, .report-kpis, .date-field')).toBeNull()
+  expect(container.querySelector('.report-cards, .report-kpis')).toBeNull()
+  expect(container.querySelector('.date-field-desk')).not.toBeNull() // review-3: "15 Nov 2026" on desktop too
 })
 
 test('390px: KPIs, per-dentist cards (key figure first), audit cards, 44px pager; no tables', async () => {

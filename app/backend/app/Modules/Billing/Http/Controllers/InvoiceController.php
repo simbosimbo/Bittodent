@@ -9,6 +9,7 @@ use App\Modules\Billing\Models\InvoiceLine;
 use App\Modules\Billing\Models\InvoicePayment;
 use App\Modules\Billing\Models\PaymentAccount;
 use App\Modules\Billing\Services\Ledger;
+use App\Modules\Patients\Contracts\PatientDirectory;
 use App\Shared\Audit\Audit;
 use App\Shared\Http\Controller;
 use App\Shared\Tenancy\Ctx;
@@ -47,6 +48,46 @@ class InvoiceController extends Controller
             'amount_rp' => (int) $amounts->sum(), 'payment_count' => $amounts->count()]);
     }
 
+    /**
+     * GET /api/billing/invoices: the Kasir worklist (DEVIATIONS #69) for the ACTIVE branch: every open (terbuka) invoice, any day,
+     * plus every invoice created today (Asia/Jakarta, so today's lunas/void ones stay visible). Newest first, at most 100.
+     */
+    public function index(PatientDirectory $patients)
+    {
+        $ctx = Ctx::current();
+        $day = CarbonImmutable::now(self::TIMEZONE)->startOfDay();
+        $rows = Invoice::where('branch_id', $ctx->branchId)
+            ->where(fn ($q) => $q->where('status', 'terbuka')
+                ->orWhere(fn ($q) => $q->where('created_at', '>=', $day->utc())->where('created_at', '<', $day->addDay()->utc())))
+            ->orderByDesc('created_at')->limit(100)->get();
+        $names = collect($patients->namesByIds($rows->pluck('patient_id')->unique()->values()->all()))->pluck('name', 'id');
+        Audit::log('baca', 'invoice_list', null, ['branch_id' => $ctx->branchId, 'date' => $day->toDateString(), 'count' => $rows->count()]);
+
+        return response()->json(['date' => $day->toDateString(), 'branch_id' => $ctx->branchId,
+            'invoices' => $rows->map(fn (Invoice $inv) => [...$inv->only(['id', 'visit_id', 'patient_id', 'status', 'created_at']),
+                'patient_name' => $names[$inv->patient_id] ?? null, ...Ledger::totals($inv)])->values()]);
+    }
+
+    /**
+     * GET /api/billing/invoice-status?visit_ids=a,b,c: status (terbuka | lunas | void) of the invoices of up to 200 visits in ONE
+     * request (Jadwal "Belum bayar"; replaces one /visits/{id}/invoice call per finished visit). Tenant-scoped by the model;
+     * invoices of branches the membership does not cover are left out, like visits without an invoice.
+     */
+    public function statusForVisits(Request $request)
+    {
+        $ids = array_values(array_unique(array_filter(explode(',', (string) $request->query('visit_ids', '')),
+            fn ($v) => preg_match('/^[0-9a-f-]{36}$/i', $v) === 1)));
+        if (count($ids) > 200) {
+            return response()->json(['message' => 'Maksimal 200 kunjungan per permintaan.', 'errors' => ['visit_ids' => ['Maksimal 200.']]], 422);
+        }
+        $ctx = Ctx::current();
+        $rows = $ids ? Invoice::whereIn('visit_id', $ids)->get(['visit_id', 'status', 'branch_id'])
+            ->filter(fn (Invoice $i) => $ctx->coversBranch($i->branch_id)) : collect();
+        Audit::log('baca', 'invoice_status', null, ['count' => $rows->count()]);
+
+        return response()->json(['statuses' => (object) $rows->pluck('status', 'visit_id')->all()]);
+    }
+
     /** GET /api/invoices/{id} */
     public function show(string $id)
     {
@@ -55,7 +96,10 @@ class InvoiceController extends Controller
             return Audit::denied('branch:'.$inv->branch_id);
         }
 
-        return response()->json(Ledger::out($inv));
+        // patient_name: for the Tagihan header and the printed kwitansi (#69)
+        $name = app(PatientDirectory::class)->namesByIds([$inv->patient_id])[0]['name'] ?? null;
+
+        return response()->json([...Ledger::out($inv), 'patient_name' => $name]);
     }
 
     /**

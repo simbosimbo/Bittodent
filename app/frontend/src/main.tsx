@@ -6,6 +6,7 @@ import '@fontsource/plus-jakarta-sans/latin-600.css'
 import '@fontsource/plus-jakarta-sans/latin-700.css'
 import './shared/ui/tokens.css'
 import './shared/ui/styles.css'
+import './shared/ui/motion.css'
 import App from './App'
 
 createRoot(document.getElementById('root')!).render(<StrictMode><App /></StrictMode>)

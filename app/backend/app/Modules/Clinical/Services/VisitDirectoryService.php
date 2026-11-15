@@ -19,4 +19,9 @@ final class VisitDirectoryService implements VisitDirectory, WalkInVisits
         return Visit::where('branch_id', $branchId)->whereNull('appointment_id')
             ->where('started_at', '>=', $from)->where('started_at', '<', $to)->distinct()->pluck('patient_id')->all();
     }
+
+    public function visitIdsByAppointment(array $appointmentIds): array
+    {
+        return $appointmentIds ? Visit::whereIn('appointment_id', $appointmentIds)->pluck('id', 'appointment_id')->all() : [];
+    }
 }

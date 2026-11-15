@@ -3,7 +3,7 @@ import { afterEach, expect, test, vi } from 'vitest'
 import App, { NAV } from './App'
 import { PatientPage } from './modules/patients'
 import { setActivePatient } from './shared/activePatient'
-import { clinicSubtitle, pageTitle, Shell, withActivePatientHref } from './shared/layout/Shell'
+import { clinicSubtitle, pageTitle, Shell, tabOrder, withActivePatientHref } from './shared/layout/Shell'
 import type { Me } from './shared/session'
 import baseCss from './shared/ui/styles.css?raw'
 
@@ -11,9 +11,12 @@ import baseCss from './shared/ui/styles.css?raw'
 const me: Me = {
   user: { id: 'u1', name: 'drg. Uji Sintetis', email: 'dokter@uji.test' }, roles: ['owner'],
   permissions: ['patient.read', 'patient.create', 'note.read', 'appointment.read', 'appointment.create', 'billing.read', 'reporting.read'],
-  active: { tenant_id: 't1', tenant_name: 'Klinik Gigi Senyum Sehat', branch_id: 'b1', branch_name: 'Cabang Tebet', timezone: 'Asia/Jakarta' },
+  active: { tenant_id: 't1', tenant_name: 'Klinik Gigi Senyum Sehat', branch_id: 'b1', branch_name: 'Cabang Tebet', timezone: 'Asia/Jakarta',
+    address: 'Jl. Tebet Raya No. 21, Jakarta Selatan' },
   branches: [{ id: 'b1', name: 'Cabang Tebet', timezone: 'Asia/Jakarta' }, { id: 'b2', name: 'Cabang Uji Dua', timezone: 'Asia/Jakarta' }],
 }
+// writes the chart -> keeps Rekam Medis as a bottom tab (owner without note.write gets Kasir there, #71)
+const clin: Me = { ...me, permissions: [...me.permissions, 'note.write'] }
 const dentist: Me = { ...me, roles: ['dentist'], permissions: ['patient.read', 'note.read', 'appointment.read'], branches: [me.branches[0]] }
 const visible = (m: Me) => NAV.filter((n) => n.perm === null || n.perm.split('|').some((x) => m.permissions.includes(x)))
 const hrefs = (patient: { id: string } | null) =>
@@ -33,9 +36,9 @@ const cssAt = (w: number) => {
 
 afterEach(() => { act(() => setActivePatient(null)); vi.unstubAllGlobals(); location.hash = ''; document.head.querySelectorAll('style').forEach((s) => s.remove()) })
 
-test('NAV: nine items; Rekam Medis leads to the patient list without a patient, to /rekam-medis/p1 with one; no Keluarga / Riwayat Medis', () => {
+test('NAV: ten items; Rekam Medis leads to the patient list without a patient, to /rekam-medis/p1 with one; no Keluarga / Riwayat Medis', () => {
   expect(hrefs(null)).toEqual({ Beranda: '/', Jadwal: '/jadwal', Antrean: '/antrean', Pasien: '/pasien',
-    'Rekam Medis': '/pasien', Resep: '/resep', 'Pengaturan RM': '/pengaturan-rm', Kasir: '/kasir', Laporan: '/laporan' })
+    'Rekam Medis': '/pasien', Resep: '/resep', 'Pengaturan RM': '/pengaturan-rm', Kasir: '/kasir', 'Pengaturan Klinik': '/pengaturan-klinik', Laporan: '/laporan' })
   expect(hrefs({ id: 'p1' })['Rekam Medis']).toBe('/rekam-medis/p1')
   expect(NAV.map((n) => n.path)).not.toContain('/keluarga')
   expect(NAV.map((n) => n.path)).not.toContain('/riwayat-medis')
@@ -43,10 +46,16 @@ test('NAV: nine items; Rekam Medis leads to the patient list without a patient, 
   expect(visible(dentist).map((n) => n.label)).toEqual(['Beranda', 'Jadwal', 'Antrean', 'Pasien', 'Rekam Medis', 'Resep'])
 })
 
-test('clinicSubtitle: synthetic address for the two demo clinics, branch name otherwise', () => {
-  expect(clinicSubtitle(me)).toBe('Jl. Tebet Raya No. 21, Jakarta Selatan')
-  expect(clinicSubtitle({ ...me, active: { ...me.active, tenant_name: 'Klinik Gigi Ceria' } })).toBe('Jl. Ir. H. Djuanda, Dago, Bandung')
-  expect(clinicSubtitle({ ...me, active: { ...me.active, tenant_name: 'Klinik Lain' } })).toBe('Cabang Tebet')
+test('clinicSubtitle: the address from Pengaturan Klinik (/api/me), branch name until one is filled in (no hardcoded map)', () => {
+  expect(clinicSubtitle({ ...me, active: { ...me.active, address: 'Jl. Uji Sintetis No. 1' } })).toBe('Jl. Uji Sintetis No. 1')
+  expect(clinicSubtitle({ ...me, active: { ...me.active, address: undefined } })).toBe('Cabang Tebet')
+  expect(clinicSubtitle({ ...me, active: { ...me.active, address: null } })).toBe('Cabang Tebet')
+})
+
+test('bottom tabs: Kasir in one tap for whoever takes payments without writing the chart; dentists keep Rekam Medis', () => {
+  expect(tabOrder(['billing.read', 'note.read']).slice(0, 4)).toContain('/kasir') // pemilik
+  expect(tabOrder(['billing.read']).slice(0, 4)).toContain('/kasir') // kasir / front desk
+  expect(tabOrder(['note.read', 'note.write', 'note.sign']).slice(0, 4)).toContain('/rekam-medis')
 })
 
 test('pageTitle: patient area reads Daftar Pasien, the form Pasien Baru, others the nav label', () => {
@@ -149,7 +158,7 @@ test('1280px: one branch shows as text; no + button without create permissions; 
 test('390px: no sidebar; header has clinic + DATA SINTETIS; bottom nav 4 tabs + Lainnya with the rest, branch, Keluar', () => {
   viewport(390)
   const logout = vi.fn()
-  shell(me, { id: 'p1' }, '/pasien', () => {}, logout)
+  shell(clin, { id: 'p1' }, '/pasien', () => {}, logout)
   expect(screen.queryByRole('navigation', { name: 'Modul utama' })).toBeNull()
   const top = document.querySelector('header.shell-top') as HTMLElement
   expect(top).toHaveTextContent('Klinik Gigi Senyum Sehat')
@@ -186,7 +195,7 @@ test('390px Beranda: clinic + DATA SINTETIS + bell + avatar; no search', () => {
 test('390px Rekam Medis: back + "Rekam Medis" header instead of the clinic; Pasien list: "Pasien" header; bottom nav unchanged', () => {
   viewport(390)
   location.hash = '/rekam-medis/p1'
-  const { unmount } = shell(me, { id: 'p1' }, '/rekam-medis')
+  const { unmount } = shell(clin, { id: 'p1' }, '/rekam-medis')
   let top = document.querySelector('header.shell-top') as HTMLElement
   expect(within(top).getByRole('link', { name: 'Kembali ke daftar pasien' })).toHaveAttribute('href', '#/pasien')
   expect(top.querySelector('.shell-top-title')).toHaveTextContent('Rekam Medis')
@@ -215,11 +224,11 @@ test('placeholder routes render "Segera hadir"', async () => {
   viewport(1280)
   document.cookie = 'XSRF-TOKEN=abc'
   vi.stubGlobal('fetch', vi.fn(async (url: string) => new Response(JSON.stringify(url === '/api/me' ? me : {}), { status: url === '/api/me' ? 200 : 404 })))
-  location.hash = '/kasir'
+  location.hash = '/antrean'
   render(<App />)
   expect(await screen.findByText('Segera hadir')).toBeInTheDocument()
-  expect(screen.getByRole('heading', { level: 1, name: 'Kasir' })).toBeInTheDocument()
-  expect(screen.getByRole('link', { name: 'Kasir' })).toHaveAttribute('aria-current', 'page')
+  expect(screen.getByRole('heading', { level: 1, name: 'Antrean' })).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: 'Antrean' })).toHaveAttribute('aria-current', 'page')
   document.cookie = 'XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 GMT'
 })
 
@@ -257,9 +266,10 @@ test('route without permission: Beranda shown and the URL replaced with #/ (no e
 test('allowed route keeps its URL', async () => {
   viewport(1280)
   serveApp(me)
-  location.hash = '/kasir'
+  location.hash = '/kasir' // Kasir is a real page now (#69), no longer "Segera hadir"
   render(<App />)
-  expect(await screen.findByText('Segera hadir')).toBeInTheDocument()
+  expect(await screen.findByRole('button', { name: 'Coba lagi' })).toBeInTheDocument() // this stub serves no invoices
+  expect(screen.queryByText('Segera hadir')).toBeNull()
   expect(location.hash).toBe('#/kasir')
   document.cookie = 'XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 GMT'
 })
@@ -290,4 +300,34 @@ test.each(['/pasien/p2', '/keluarga/p2', '/riwayat-medis/p2'])('ribbon on %s is 
   await vi.waitFor(() => expect(alertCalls().some((u) => u.includes('/p2/alerts'))).toBe(true))
   expect(alertCalls().filter((u) => u.includes('/p1/'))).toEqual([])
   document.cookie = 'XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+})
+
+test('HP bottom nav: kasir / front desk / pemilik (no chart writing) -> Kasir in one tap; a chart writer keeps Rekam Medis (#71)', () => {
+  viewport(412)
+  const kasir: Me = { ...me, roles: ['kasir'], permissions: ['patient.read', 'appointment.read', 'billing.read', 'billing.adjust'] }
+  const tabs = () => [...screen.getByRole('navigation', { name: 'Navigasi utama' }).querySelectorAll('a')].map((a) => a.textContent)
+  const k = shell(kasir)
+  expect(tabs()).toEqual(['Beranda', 'Jadwal', 'Pasien', 'Kasir'])
+  k.unmount()
+  const p = shell(me)
+  expect(tabs()).toEqual(['Beranda', 'Jadwal', 'Pasien', 'Kasir'])
+  p.unmount()
+  shell(clin)
+  expect(tabs()).toEqual(['Beranda', 'Jadwal', 'Pasien', 'Rekam Medis'])
+})
+
+test('HP bottom nav: badge jumlah di Jadwal (dengan label pembaca layar); tanpa badge saat 0; desktop tanpa badge', () => {
+  viewport(412)
+  const nav = visible(me)
+  const r = render(<Shell me={me} nav={nav} active={undefined} badges={{ '/jadwal': { count: 3, label: '3 janji online perlu konfirmasi' } }}
+    onSwitchBranch={() => {}} onLogout={() => {}}><p>isi</p></Shell>)
+  const jadwal = within(screen.getByRole('navigation', { name: 'Navigasi utama' })).getByRole('link', { name: /Jadwal/ })
+  expect(jadwal).toHaveAccessibleName(/3 janji online perlu konfirmasi\s*Jadwal/)
+  expect(jadwal.querySelector('.nav-badge')).toHaveTextContent('3')
+  r.rerender(<Shell me={me} nav={nav} active={undefined} badges={{ '/jadwal': { count: 0, label: '' } }} onSwitchBranch={() => {}} onLogout={() => {}}><p>isi</p></Shell>)
+  expect(document.querySelector('.nav-badge')).toBeNull()
+  r.unmount()
+  viewport(1280)
+  render(<Shell me={me} nav={nav} active={undefined} badges={{ '/jadwal': { count: 3, label: 'x' } }} onSwitchBranch={() => {}} onLogout={() => {}}><p>isi</p></Shell>)
+  expect(document.querySelector('.nav-badge')).toBeNull()
 })

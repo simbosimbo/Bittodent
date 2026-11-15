@@ -54,8 +54,9 @@ class TariffLevelsTest extends TestCase
         $from = now()->addDay()->toDateString();
         $this->as(self::OWNER)->putJson("/api/tariffs/{$this->filling()->id}/levels", $this->body($from))->assertOk()
             ->assertJsonPath('levels.1.level_rank', 2)->assertJsonPath('levels.1.price_rp', 380000);
-        // same or earlier date than the latest version => refused
-        $this->as(self::OWNER)->putJson("/api/tariffs/{$this->filling()->id}/levels", $this->body($from))->assertConflict();
+        // earlier date than the latest version => refused; the same (future, never billed) date = corrected in place (Pengaturan Klinik)
+        $this->as(self::OWNER)->putJson("/api/tariffs/{$this->filling()->id}/levels", $this->body(now()->toDateString()))->assertConflict();
+        $this->as(self::OWNER)->putJson("/api/tariffs/{$this->filling()->id}/levels", $this->body($from))->assertOk();
 
         $this->inA(function () use ($line, $from) {
             $prices = app(PriceLookup::class);

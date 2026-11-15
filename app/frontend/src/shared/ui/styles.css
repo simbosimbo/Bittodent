@@ -471,6 +471,8 @@ label.check input { min-height: 0; }
 .date-field input { width: 100%; min-width: 0; color: transparent; }
 .date-field input::-webkit-datetime-edit { color: transparent; }
 .date-field input:focus { color: transparent; }
+.date-field-desk:focus-within input, .date-field-desk:focus-within input::-webkit-datetime-edit { color: var(--text); }
+.date-field-desk:focus-within .date-field-text { display: none; }
 .date-field-text {
   position: absolute; inset: 0 40px 0 0; display: flex; align-items: center; padding-left: 13px; pointer-events: none;
   font-weight: 400; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -493,7 +495,7 @@ label.check input { min-height: 0; }
   input:where(:not([type='checkbox'], [type='radio'], [type='range'])), select, textarea { min-height: 44px; font-size: 16px; }
   label.check { min-height: 44px; }
   .picker-list button { min-height: 44px; align-items: center; }
-  label.check input { width: 20px; height: 20px; flex: none; }
+  label.check:not(.dialog *) input { width: 20px; height: 20px; flex: none; } /* the Selesai dialog row has its own 48px+ target (clinical.css) */
   /* Ribbon "Riwayat medis →" and back links: 44px tall target without making the ribbon taller. */
   .alert-link { display: inline-flex; align-items: center; min-height: 44px; margin-block: -14px; }
   .page-head a.small { display: inline-flex; align-items: center; min-height: 44px; }
@@ -506,6 +508,12 @@ label.check input { min-height: 0; }
   .member-list li .member-switch { margin-left: auto; white-space: nowrap; }
   .member-list li .member-switch, .guarantor-link { display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; }
 }
+/* Phone bottom nav: count badge on a tab icon (Shell `badges`, e.g. Jadwal: online bookings waiting). */
+.bottom-nav a { position: relative; }
+.nav-badge {
+  position: absolute; top: 2px; left: calc(50% + 6px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+  background: var(--danger); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; font-variant-numeric: tabular-nums;
+}
 
 /* HP: peringatan medis di header pasien (RM) membungkus, tidak melebarkan halaman (catatan panjang membuat layout 509px di 360/412
    dan × lembar gigi keluar layar). Toggle Selengkapnya/Ciutkan 44px. Nama klinik 2 baris, tidak terpotong di 360. */
@@ -514,4 +522,21 @@ label.check input { min-height: 0; }
   .patient-head-main, .patient-chip-row, .alert-ribbon.patient-alerts { min-width: 0; max-width: 100%; }
   .alert-toggle { display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; padding: 0 10px; }
   .shell-top-clinic strong { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.2; overflow-wrap: anywhere; }
+}
+
+/* #70 gloved hands: on a phone every primary action is at least 48px tall (desktop unchanged). */
+@media (max-width: 720px) {
+  .btn-primary:not(.btn-xs) { min-height: 48px; }
+}
+
+/* #70 status chips use the status tokens (colour + the chip's text label; border keeps them apart in grey-scale too). */
+.chip-booked { background: var(--status-booked-bg); color: var(--status-booked-fg); box-shadow: inset 0 0 0 1px var(--status-booked-border); }
+.chip-checked_in { background: var(--status-wait-bg); color: var(--status-wait-fg); box-shadow: inset 0 0 0 1px var(--status-wait-border); }
+.chip-in_treatment { background: var(--status-treat-bg); color: var(--status-treat-fg); box-shadow: inset 0 0 0 1px var(--status-treat-border); }
+.chip-done { background: var(--status-done-bg); color: var(--status-done-fg); box-shadow: inset 0 0 0 1px var(--status-done-border); }
+.chip-pending_confirmation { background: var(--status-confirm-bg); color: var(--status-confirm-fg); box-shadow: inset 0 0 0 1px var(--status-confirm-border); }
+.chip-urgent { background: var(--status-confirm-bg); color: var(--status-confirm-fg); box-shadow: inset 0 0 0 2px var(--status-confirm-fg); }
+.chip-unpaid { background: var(--status-unpaid-bg); color: var(--status-unpaid-fg); box-shadow: inset 0 0 0 1px var(--status-unpaid-border); }
+@media (max-width: 720px) { /* #70: the follow-up buttons after Selesai / on the Tagihan are thumb targets too */
+  .rm-done .btn, .kwitansi-actions .btn { min-height: 48px; display: inline-flex; align-items: center; }
 }

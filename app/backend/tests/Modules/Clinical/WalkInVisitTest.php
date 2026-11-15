@@ -101,4 +101,23 @@ class WalkInVisitTest extends TestCase
         $this->as(self::DOC)->postJson($this->url($free))->assertCreated();
         $this->assertSame($base + 1, $count());
     }
+
+    public function test_schedule_gives_visit_id_only_to_billing_readers(): void
+    {
+        $branch = $this->inA(fn () => Branch::orderBy('name')->firstOrFail());
+        $today = now('Asia/Jakarta')->format('Y-m-d');
+        $appt = $this->inA(fn () => Appointment::where('branch_id', $branch->id)->where('status', 'booked')
+            ->where('starts_at', '>=', now('Asia/Jakarta')->startOfDay()->utc())->where('starts_at', '<', now('Asia/Jakarta')->endOfDay()->utc())
+            ->whereNotIn('id', Visit::whereNotNull('appointment_id')->pluck('appointment_id'))->firstOrFail()->id);
+        $visit = $this->as(self::DOC)->postJson("/api/appointments/$appt/visit")->assertCreated()->json('id');
+        $find = fn (string $email) => collect($this->as($email)->getJson("/api/schedule?branch_id={$branch->id}&date=$today")->assertOk()->json('chairs'))
+            ->flatMap(fn ($c) => $c['appointments']);
+
+        foreach (['kasir@senyum.test', 'depan@senyum.test'] as $email) {
+            $rows = $find($email);
+            $this->assertSame($visit, $rows->firstWhere('id', $appt)['visit_id']);
+            $this->assertTrue($rows->where('id', '!=', $appt)->every(fn ($a) => array_key_exists('visit_id', $a))); // null when no visit yet
+        }
+        $this->assertFalse(array_key_exists('visit_id', $find(self::DOC)->firstWhere('id', $appt))); // dentist: no billing.read
+    }
 }

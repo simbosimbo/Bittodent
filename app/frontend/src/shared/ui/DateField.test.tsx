@@ -5,11 +5,14 @@ import { DateField } from './DateField'
 const viewport = (w: number) => vi.stubGlobal('matchMedia', (q: string) => ({ media: q, matches: w <= 720, addEventListener() {}, removeEventListener() {} }))
 afterEach(() => vi.unstubAllGlobals())
 
-test('desktop: the plain native input, nothing else', () => {
+test('desktop (review-3): "15 Nov 2026" label over the input (not 11/15/2026); empty stays the plain input', () => {
   viewport(1280)
   const { container } = render(<DateField aria-label="Tanggal" value="2026-11-15" onChange={() => {}} />)
-  const plain = render(<input type="date" aria-label="Tanggal" value="2026-11-15" onChange={() => {}} />).container
-  expect(container.innerHTML).toBe(plain.innerHTML) // same DOM as before DateField existed
+  expect(container.querySelector('.date-field.date-field-desk .date-field-text')).toHaveTextContent('15 Nov 2026')
+  expect(screen.getByLabelText('Tanggal')).toHaveValue('2026-11-15')
+  const empty = render(<DateField aria-label="Kosong" value="" onChange={() => {}} />).container
+  const plain = render(<input type="date" aria-label="Kosong" value="" onChange={() => {}} />).container
+  expect(empty.innerHTML).toBe(plain.innerHTML)
 })
 
 test('phone: Indonesian label over the native input; changes still flow through the input', () => {

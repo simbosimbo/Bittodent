@@ -29,3 +29,29 @@ test('arch: only that jaw, tight viewBox; campuran keeps the jaw’s primary row
   // Lower row sits at the top of its own SVG (no empty upper row above it).
   expect(low.querySelector('#t48')).toHaveAttribute('transform', 'translate(12,22)')
 })
+
+test('#70 phone (arch set): the centre surface is larger (28 of 44 units) than on desktop (20 of 44)', () => {
+  const centre = (el: HTMLElement) => Number(el.querySelector('#t26-O rect')!.getAttribute('width'))
+  const desk = render(<Odontogram marks={{}} />)
+  expect(centre(desk.container)).toBe(20)
+  desk.unmount()
+  const phone = render(<Odontogram marks={{}} arch="upper" />)
+  expect(centre(phone.container)).toBe(28)
+})
+
+test('review-2 phone (wholeTooth): any surface or the 52-unit hit box picks the tooth with its centre surface', () => {
+  const picks: [number, string][] = []
+  const { container } = render(<Odontogram marks={{}} arch="upper" wholeTooth onPick={(t, s) => picks.push([t, s])} />)
+  ;(container.querySelector('#t26-M') as SVGElement).dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  ;(container.querySelector('#t11 .tooth-hit') as SVGElement).dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  expect(picks).toEqual([[26, 'O'], [11, 'I']])
+  expect(container.querySelector('#t26 .tooth-hit')).toHaveAttribute('width', '52')
+})
+
+test('desktop (no wholeTooth): a surface click picks that surface', () => {
+  const picks: [number, string][] = []
+  const { container } = render(<Odontogram marks={{}} onPick={(t, s) => picks.push([t, s])} />)
+  ;(container.querySelector('#t26-M') as SVGElement).dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  expect(picks).toEqual([[26, 'M']])
+  expect(container.querySelector('.tooth-hit')).toBeNull()
+})

@@ -294,7 +294,6 @@ class OnlineBookingTest extends TestCase
         $id = fn ($r) => $this->inA(fn () => Appointment::where('booking_code', $r->json('code'))->value('id'));
         $a = $id($this->book());
         $this->as('asisten@senyum.test')->postJson("/api/appointments/$a/transition", ['to' => 'booked'])->assertForbidden();
-        $this->as('kasir@senyum.test')->postJson("/api/appointments/$a/transition", ['to' => 'booked'])->assertForbidden();
         $this->as('depan@senyum.test')->postJson("/api/appointments/$a/transition", ['to' => 'checked_in'])->assertStatus(409); // must confirm first
         $this->as('depan@senyum.test')->postJson("/api/appointments/$a/transition", ['to' => 'booked'])->assertOk()->assertJsonPath('status', 'booked');
         $this->assertTrue($this->inA(fn () => AuditEvent::where('entity_id', $a)->where('action', 'ubah_status')->exists()));

@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, expect, test, vi } from 'vitest'
 import type { Me } from '../../shared/session'
+import { rp } from '../../shared/format'
 import type { Invoice, PaymentAccount } from './api'
 
 const line = { id: 'l1', procedure_code: '23.2', procedure_name: 'Tumpatan', tooth: 16, price_rp: 100000, credited_rp: 0, credit_note_numbers: [],
@@ -40,6 +41,7 @@ test('pending Rp0 adjustment: only the owner (billing.approve_zero) sees approve
 
 test('payment methods are only active clinic accounts of this branch; split posts one payment per row', async () => {
   render(<InvoicePage visitId="v1" me={me(['billing.read', 'billing.adjust'])} />)
+  fireEvent.click(await screen.findByRole('button', { name: 'Split' })) // #70: split opens the per-row selects
   const m1 = await screen.findByRole('combobox', { name: 'Metode 1' })
   await screen.findByRole('option', { name: /Kas Kemang/ })
   expect(within(m1).getAllByRole('option').map((o) => o.textContent)).toEqual(['Pilih akun klinik…', 'Kas Kemang (Tunai)', 'QRIS klinik (QRIS)'])
@@ -102,4 +104,91 @@ test('overpaid after a credit note: "kelebihan bayar", refund to the original ac
   await waitFor(() => expect(addRefund).toHaveBeenCalledWith('i1', { payment_id: 'p1', credit_note_id: 'n1', amount_rp: 100000,
     reason: 'Tindakan tidak dikerjakan, uang kembali' }))
   expect(await screen.findByText(/Refund diajukan/)).toBeInTheDocument()
+})
+
+test('kwitansi (#69): offered once money was received; shows clinic, patient, lines, payment and LUNAS; Cetak prints', async () => {
+  current = { ...inv, status: 'lunas', adjustments: [], balance_rp: 0, payments_rp: 100000, patient_name: 'Sari Contoh',
+    payments: [{ id: 'p1', payment_account_id: 'k1', amount_rp: 100000, paid_at: '2026-11-15T03:00:00Z', refunded_rp: 0,
+      account: { name: 'Kas Kemang', kind: 'tunai', bank_name: null, account_last4: null } }] }
+  const print = vi.spyOn(window, 'print').mockImplementation(() => {})
+  render(<InvoicePage visitId="v1" me={{ ...me(['billing.read', 'billing.adjust']), user: { id: 'u1', name: 'Pemilik Contoh', email: '' },
+    active: { tenant_id: 't', tenant_name: 'Klinik Contoh', branch_id: 'b1', branch_name: 'Cabang A', timezone: null } } as Me} />)
+  expect(await screen.findByRole('heading', { name: 'Tagihan · Sari Contoh' })).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Kwitansi' }))
+  const k = screen.getByRole('region', { name: 'Kwitansi' })
+  expect(k).toHaveTextContent('Klinik Contoh · Cabang A')
+  expect(k).toHaveTextContent('Telah diterima dari Sari Contoh')
+  expect(k).toHaveTextContent('Tumpatan · gigi 16')
+  expect(k).toHaveTextContent('Dibayar · Kas Kemang')
+  expect(within(k).getByText('LUNAS')).toBeInTheDocument()
+  fireEvent.click(within(k).getByRole('button', { name: 'Cetak' }))
+  expect(print).toHaveBeenCalled()
+})
+
+test('kwitansi is not offered before any payment', async () => {
+  render(<InvoicePage visitId="v1" me={me(['billing.read', 'billing.adjust'])} />)
+  await screen.findByText('Menunggu pemilik')
+  expect(screen.queryByRole('button', { name: 'Kwitansi' })).toBeNull()
+})
+
+test('#70 Tagihan: Terima pembayaran is the only primary and comes first; corrections fold under "Lainnya"', async () => {
+  render(<InvoicePage visitId="v1" me={me(['billing.read', 'billing.adjust'])} />)
+  const terima = await screen.findByRole('button', { name: 'Terima pembayaran' })
+  await waitFor(() => expect(document.querySelectorAll('.btn-primary')).toHaveLength(1))
+  expect(document.querySelector('.btn-primary')).toBe(terima)
+  const more = document.querySelector('details.inv-more') as HTMLDetailsElement
+  expect(more.open).toBe(false)
+  expect(more.querySelector('summary')?.textContent).toMatch(/^Lainnya/)
+  expect(within(more).getByRole('heading', { name: 'Penyesuaian' })).toBeInTheDocument()
+  const tindakan = screen.getByRole('heading', { name: 'Tindakan' })
+  expect(terima.compareDocumentPosition(tindakan) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+})
+
+test('#70 the payment amount starts at the remaining balance (full payment = no typing), still editable', async () => {
+  render(<InvoicePage visitId="v1" me={me(['billing.read', 'billing.adjust'])} />)
+  const amt = await screen.findByLabelText('Jumlah 1 (Rp)')
+  await waitFor(() => expect(amt).toHaveValue(current.balance_rp))
+  fireEvent.change(amt, { target: { value: '5000' } })
+  expect(amt).toHaveValue(5000)
+})
+
+test('#70 decluttered Tagihan: sisa big + status chip, method chips; lines, history and breakdown folded (open on tap)', async () => {
+  current = { ...inv, adjustments: [], payments_rp: 40000, balance_rp: inv.lines_rp - 40000,
+    payments: [{ id: 'p1', payment_account_id: 'k1', amount_rp: 40000, paid_at: '2026-11-15T03:00:00Z', refunded_rp: 0, account: { name: 'Kas Kemang', kind: 'tunai', bank_name: null, account_last4: null } }] }
+  const { container } = render(<InvoicePage visitId="v1" me={me(['billing.read', 'billing.adjust'])} />)
+  const methods = within(await screen.findByRole('radiogroup', { name: 'Metode bayar' }))
+  expect(screen.getByLabelText(`Sisa ${rp(current.balance_rp)}`)).toHaveClass('inv-big')
+  expect(container.querySelector('.inv-chip')).toHaveTextContent('Belum lunas')
+  expect(screen.queryByText(/Hanya metode milik klinik/)).toBeNull() // helper text -> tooltip
+  expect(screen.queryByRole('combobox', { name: 'Metode 1' })).toBeNull()
+  const lines = container.querySelector('details.inv-lines') as HTMLDetailsElement
+  expect(lines.open).toBe(false)
+  expect(lines.querySelector('summary')).toHaveTextContent(`${current.lines.length} tindakan · ${rp(current.lines_rp)}`)
+  expect(within(lines).getByLabelText('Rincian')).toHaveTextContent('Dibayar')
+  expect(within(lines).getByLabelText('Rincian')).not.toHaveTextContent('Penyesuaian') // zero amounts hidden
+  const hist = container.querySelector('details.inv-fold') as HTMLDetailsElement
+  expect(hist.open).toBe(false)
+  expect(hist.querySelector('summary')).toHaveTextContent('Riwayat bayar (1)')
+  const terima = screen.getByRole('button', { name: 'Terima pembayaran' })
+  await waitFor(() => expect(methods.getAllByRole('radio').length).toBeGreaterThan(0))
+  // review-3: Tunai is preselected, so Terima is active without a tap; another method is one tap.
+  const tunai = methods.getAllByRole('radio').find((r) => r.textContent === 'Tunai')!
+  await waitFor(() => expect(tunai).toHaveAttribute('aria-checked', 'true'))
+  expect(terima).toBeEnabled()
+  const other = methods.getAllByRole('radio').find((r) => r !== tunai)
+  if (other) { fireEvent.click(other); expect(other).toHaveAttribute('aria-checked', 'true'); expect(tunai).toHaveAttribute('aria-checked', 'false') }
+})
+
+test('#70 kwitansi right after paying still names the patient (payment response has no patient_name)', async () => {
+  current = { ...inv, adjustments: [], patient_name: 'Sari Contoh' }
+  addPayment.mockImplementationOnce(() => Promise.resolve({ ...inv, adjustments: [], status: 'lunas', balance_rp: 0, payments_rp: 100000,
+    payments: [{ id: 'p1', payment_account_id: 'k1', amount_rp: 100000, paid_at: '2026-11-15T03:00:00Z', refunded_rp: 0, account: { name: 'Kas Kemang', kind: 'tunai', bank_name: null, account_last4: null } }] }))
+  render(<InvoicePage visitId="v1" me={{ ...me(['billing.read', 'billing.adjust']), user: { id: 'u1', name: 'Kasir', email: '' },
+    active: { tenant_id: 't', tenant_name: 'Klinik Contoh', branch_id: 'b1', branch_name: 'Cabang A', timezone: null } } as Me} />)
+  const methods = within(await screen.findByRole('radiogroup', { name: 'Metode bayar' }))
+  await waitFor(() => expect(methods.getAllByRole('radio').length).toBeGreaterThan(0))
+  fireEvent.click(methods.getByRole('radio', { name: 'Tunai' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Terima pembayaran' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Kwitansi' }))
+  expect(screen.getByRole('region', { name: 'Kwitansi' })).toHaveTextContent('Telah diterima dari Sari Contoh')
 })

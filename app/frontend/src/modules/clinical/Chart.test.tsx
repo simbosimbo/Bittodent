@@ -225,7 +225,7 @@ test('Simpan ke kunjungan hari ini: condition is only chosen (aria-pressed) unti
   const panel = within(screen.getByRole('complementary', { name: 'Detail gigi' }))
   const save = panel.getByRole('button', { name: 'Simpan ke kunjungan hari ini' })
   expect(save).toBeDisabled()
-  expect(save).toHaveAccessibleDescription('Pilih kondisi terlebih dahulu')
+  expect(panel.queryByText('Pilih kondisi terlebih dahulu')).toBeNull() // review-3: disabled is enough, no visible hint
   const posts = () => vi.mocked(fetch).mock.calls.filter(([u]) => String(u).endsWith('/findings'))
   fireEvent.click(panel.getByRole('button', { name: 'Karies' }))
   fireEvent.click(panel.getByRole('button', { name: 'Tambalan' }))
@@ -515,14 +515,11 @@ test('390px: selecting a tooth opens a bottom sheet named for the tooth; keypad 
   expect(within(sheet).getByRole('group', { name: 'Pilih kondisi' })).toBeInTheDocument() // same editable rule as desktop
   expect(within(sheet).getByRole('button', { name: 'Simpan ke kunjungan hari ini' })).toBeDisabled() // no condition chosen yet
   expect(within(sheet).getByRole('button', { name: 'Tutup detail gigi' })).toHaveFocus()
-  // Designer note: patient strip (name, No. RM, allergies) pinned at the top of the sheet, from the header patient (no refetch).
-  const strip = sheet.querySelector('.sheet-strip') as HTMLElement
-  expect(strip).toBe(sheet.firstElementChild)
-  expect(strip).toHaveTextContent('Budi Contoh')
-  expect(strip).toHaveTextContent('No. RM BT-000007')
-  expect(await within(strip).findByText('Alergi: Penisilin')).toBeInTheDocument()
-  expect(strip).not.toHaveTextContent('Kondisi Sintetis') // safety chips only
-  expect(getComputedStyle(strip).position).toBe('sticky')
+  // review-3 (board 02): the sheet does not repeat the patient (name / No. RM); the page header and its alert ribbon stay outside it.
+  expect(sheet.querySelector('.sheet-strip')).toBeNull()
+  expect(sheet).not.toHaveTextContent('Budi Contoh')
+  expect(sheet).not.toHaveTextContent('No. RM')
+  expect(within(sheet).getByRole('heading', { name: 'Gigi 16' })).toBeInTheDocument()
   expect(vi.mocked(fetch).mock.calls.filter(([u]) => /\/patients\/p1$/.test(String(u)))).toHaveLength(1)
   const sheetButtons = within(sheet).getAllByRole('button').filter((b) => b.closest('.cond-row') || b.classList.contains('tooth-save'))
   expect(sheetButtons.length).toBeGreaterThan(5)
@@ -607,4 +604,136 @@ test.each([[390, true], [1280, false]])('%ipx: walk-in "Mulai kunjungan" pinned 
   const start = await screen.findByRole('button', { name: 'Mulai kunjungan' })
   expect(!!start.closest('.walk-in-bar')).toBe(pinned)
   expect(screen.getAllByRole('button', { name: 'Mulai kunjungan' })).toHaveLength(1)
+})
+
+// --- #69: from the RM to the Tagihan (billing readers, e.g. an owner who is also a dentist) ---
+test('Selesai offers "Lanjut ke tagihan" to billing readers; RM > Billing lists visits with "Buka tagihan"', async () => {
+  const draftNote = { id: 'n1', author_id: 'u1', created_at: '2026-01-05T03:00:00Z', pending_correction: null, versions: [{ id: 'nv1', version: 1, revision: 1,
+    supersedes_id: null, status: 'draf', source: 'manual', signed_by: null, signed_by_name: null, signed_at: null, reason: null, correction_request_id: null,
+    content_hash: 'h', soap: { S: 'Nyeri.', O: 'Karies.', A: { codes: ['K02.1'], text: '' }, P: { codes: [], text: '' } } }] }
+  let closed = false
+  const owner: Me = { ...me, roles: ['owner', 'dentist'], permissions: [...me.permissions, 'billing.read', 'billing.adjust', 'appointment.transition'] }
+  vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+    if (url.endsWith('/selesai') && init?.method === 'POST') { closed = true; return new Response('{}', { status: 200 }) }
+    const v = closed ? { ...visit, status: 'selesai', notes: [] } : { ...visit, notes: [draftNote] }
+    return new Response(JSON.stringify(url.endsWith('manifest.json') ? manifest : url.endsWith('/chart') ? { ...chart, findings, visits: [v] }
+      : url.endsWith('/alerts') ? alerts : full), { status: 200 })
+  }))
+  window.Tooth3D = mockTooth3D
+  render(<ChartPage patientId="p1" me={owner} />)
+  await screen.findByRole('region', { name: 'Odontogram' })
+  fireEvent.click(screen.getByRole('tab', { name: 'Catatan Klinis' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Selesai' }))
+  const dlg = screen.getByRole('dialog')
+  fireEvent.click(within(dlg).getByRole('checkbox'))
+  fireEvent.click(within(dlg).getByRole('button', { name: 'Selesai' }))
+  expect(await screen.findByRole('link', { name: 'Lanjut ke tagihan' })).toHaveAttribute('href', '#/tagihan/v1')
+  expect(screen.getByRole('link', { name: 'Lanjut ke tagihan' })).toHaveClass('btn-primary') // review-2 P1: payment is the next step
+
+  fireEvent.click(screen.getByRole('tab', { name: 'Billing' }))
+  expect(screen.getByRole('heading', { name: 'Tagihan per kunjungan' })).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: 'Buka tagihan' })).toHaveAttribute('href', '#/tagihan/v1')
+})
+
+test('RM > Billing without billing.read stays "Belum tersedia"', async () => {
+  renderChart({ visits: [visit] })
+  await screen.findByRole('region', { name: 'Odontogram' })
+  fireEvent.click(screen.getByRole('tab', { name: 'Billing' }))
+  expect(document.body).toHaveTextContent('Belum tersedia')
+  expect(screen.queryByRole('link', { name: 'Buka tagihan' })).toBeNull()
+})
+
+// --- #70 Dokter mode: one-tap procedure, SOAP template, Selesai saves first, phone sticky bar (synthetic data) ---
+function dokterChart(w: number, appt?: string) {
+  localStorage.clear()
+  vi.stubGlobal('matchMedia', (q: string) => ({ media: q, matches: w <= Number(q.match(/(\d+)px/)?.[1] ?? 0), addEventListener() {}, removeEventListener() {} }))
+  const calls: { url: string; method: string; body: any }[] = []
+  let noteSaved = false
+  vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+    const method = init?.method ?? 'GET'
+    if (method !== 'GET') calls.push({ url, method, body: init?.body ? JSON.parse(init.body as string) : null })
+    if (url.endsWith('/procedures') && method === 'POST') return new Response(JSON.stringify({ id: 'x1' }), { status: 201 })
+    if (url.endsWith('/visit') && method === 'POST') return new Response(JSON.stringify({ id: visit.id }), { status: 200 })
+    if ((url.endsWith('/transition') || url.endsWith('/selesai')) && method === 'POST') return new Response(JSON.stringify({ ok: true }), { status: 200 })
+    if (url.endsWith('/note') && method === 'PUT') { noteSaved = true; return new Response(JSON.stringify({ revision: 1 }), { status: 200 }) }
+    const draftNote = { id: 'n1', author_id: 'u1', created_at: '', pending_correction: null, versions: [{ id: 'nv1', version: 1, revision: 1, supersedes_id: null,
+      status: 'draf', source: 'manual', signed_by: null, signed_by_name: null, signed_at: null, reason: null, correction_request_id: null, content_hash: 'h',
+      soap: { S: 'Gigi berlubang, ngilu saat makan/minum dingin.', O: '', A: { codes: [], text: '' }, P: { codes: [], text: '' } } }] }
+    const older = { ...visit, id: 'v0', status: 'selesai', started_at: '2025-12-01T03:00:00Z', notes: [{ ...draftNote, id: 'n0', versions: [{ ...draftNote.versions[0],
+      id: 'nv0', status: 'berlaku', signed_at: '2025-12-01T04:00:00Z', soap: { S: 'Kontrol lama.', O: 'Baik.', A: { codes: ['Z01.2'], text: '' }, P: { codes: [], text: '' } } }] }] }
+    const v = { ...visit, notes: noteSaved ? [draftNote] : [] }
+    return new Response(JSON.stringify(url.endsWith('manifest.json') ? manifest : url.endsWith('/chart') ? { ...chart, findings, visits: [v, older] }
+      : url.endsWith('/alerts') ? alerts : full), { status: 200 })
+  }))
+  window.Tooth3D = mockTooth3D
+  render(<ChartPage patientId="p1" appointmentId={appt} me={appt ? { ...me, permissions: [...me.permissions, 'appointment.transition'] } : me} />)
+  return calls
+}
+
+test('#70 RM Selesai from an appointment also frees the chair (appointment -> done), so "Pasien saya" stays current', async () => {
+  const calls = dokterChart(412, 'a1')
+  await screen.findByRole('region', { name: 'Odontogram' })
+  fireEvent.click(screen.getByRole('tab', { name: 'Catatan Klinis' }))
+  fireEvent.click(within(screen.getByRole('group', { name: 'Template catatan' })).getByRole('button', { name: 'Tambal' }))
+  fireEvent.click(within(document.querySelector('.rm-actionbar') as HTMLElement).getByRole('button', { name: 'Selesai' }))
+  const dlg = await screen.findByRole('dialog')
+  fireEvent.click(within(dlg).getByRole('checkbox'))
+  fireEvent.click(within(dlg).getByRole('button', { name: 'Selesai' }))
+  await waitFor(() => expect(calls.find((c) => c.url.endsWith('/appointments/a1/transition'))?.body).toEqual({ to: 'done' }))
+  expect(calls.findIndex((c) => c.url.endsWith('/selesai'))).toBeLessThan(calls.findIndex((c) => c.url.endsWith('/transition')))
+})
+
+test('#70 tooth panel: one tap "Tambal 23.2" saves procedure + diagnosis (no typing) and becomes this dentist\'s favourite', async () => {
+  const calls = dokterChart(1280)
+  await screen.findByRole('region', { name: 'Odontogram' })
+  fireEvent.click(document.getElementById('t26-O')!)
+  const quick = within(screen.getByRole('group', { name: 'Tindakan cepat' }))
+  fireEvent.click(quick.getByRole('button', { name: 'Tambal (23.2, diagnosis K02.1) di gigi 26' }))
+  await waitFor(() => expect(calls.find((c) => c.url.endsWith('/procedures'))).toBeTruthy())
+  expect(calls.find((c) => c.url.endsWith('/procedures'))!.body).toMatchObject({ tooth: 26, surfaces: 'O', status: 'selesai', procedure_code: '23.2', diagnosis_code: 'K02.1' })
+  expect(JSON.parse(localStorage.getItem('bt.quick-proc.u1')!)[0]).toMatchObject({ code: '23.2', dx: 'K02.1', n: 1 })
+})
+
+test('#70 phone: a quick procedure closes the tooth sheet so the tabs and Selesai bar are reachable again', async () => {
+  const calls = dokterChart(412)
+  await screen.findByRole('region', { name: 'Odontogram' })
+  fireEvent.click(document.getElementById('t26-O')!)
+  const quick = within(screen.getByRole('group', { name: 'Tindakan cepat' }))
+  fireEvent.click(quick.getByRole('button', { name: 'Tambal (23.2, diagnosis K02.1) di gigi 26' }))
+  await waitFor(() => expect(calls.find((c) => c.url.endsWith('/procedures'))).toBeTruthy())
+  await waitFor(() => expect(screen.queryByRole('heading', { name: 'Gigi 26' })).toBeNull())
+  expect(await screen.findByText('Tambal gigi 26 (O) tersimpan.')).toBeInTheDocument()
+})
+
+test('#70 Catatan: template fills only empty fields; "Ulangi kunjungan terakhir" copies the last signed SOAP; Selesai saves the draft first', async () => {
+  const calls = dokterChart(1280)
+  await screen.findByRole('region', { name: 'Odontogram' })
+  fireEvent.click(screen.getByRole('tab', { name: 'Catatan Klinis' }))
+  const tpl = within(screen.getByRole('group', { name: 'Template catatan' }))
+  fireEvent.change(screen.getByLabelText('S'), { target: { value: 'Keluhan saya sendiri.' } })
+  fireEvent.click(tpl.getByRole('button', { name: 'Tambal' }))
+  expect(screen.getByLabelText('S')).toHaveValue('Keluhan saya sendiri.') // typed text kept
+  fireEvent.click(screen.getByRole('tab', { name: 'O — Objektif' }))
+  expect(screen.getByLabelText('O')).toHaveValue('Karies dentin, tes dingin (+), perkusi (-).')
+  expect(tpl.getByRole('button', { name: 'Ulangi kunjungan terakhir' })).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Selesai' })) // dirty: saves, then opens the dialog
+  await waitFor(() => expect(calls.some((c) => c.url.endsWith('/note') && c.method === 'PUT')).toBe(true))
+  expect(calls.find((c) => c.url.endsWith('/note'))!.body.soap).toMatchObject({ S: 'Keluhan saya sendiri.', A: { codes: ['K02.1'] }, P: { codes: ['23.2'] } })
+  expect(await screen.findByRole('dialog')).toHaveTextContent('Selesai: kunci rekam medis')
+})
+
+test('#70 phone: SOAP stacked (no sub-tabs), sticky Selesai bar, Rencana/Resep tabs hidden, details folded', async () => {
+  dokterChart(412)
+  await screen.findByRole('region', { name: 'Odontogram' })
+  expect(screen.queryByRole('tab', { name: 'Resep' })).toBeNull()
+  expect(screen.queryByRole('tab', { name: 'Rencana Perawatan' })).toBeNull()
+  expect(document.querySelector('.rm-actionbar')).toHaveTextContent('Selesai')
+  expect(screen.queryByRole('button', { name: 'Semua gigi' })).toBeNull() // Temuan & tindakan folded
+  expect(screen.getByRole('button', { name: /^Lihat \(\d+\)$/ })).toHaveAttribute('aria-expanded', 'false')
+  fireEvent.click(screen.getByRole('tab', { name: 'Catatan Klinis' }))
+  expect(screen.queryByRole('tab', { name: 'O — Objektif' })).toBeNull()
+  for (const f of ['S', 'O', 'Kode ICD-10', 'Kode ICD-9-CM']) expect(screen.getByLabelText(f)).toBeInTheDocument()
+  expect(screen.queryByRole('heading', { name: 'Riwayat kunjungan' })).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: 'Tutup kunjungan & riwayat' }))
+  expect(screen.getByRole('heading', { name: 'Riwayat kunjungan' })).toBeInTheDocument()
 })

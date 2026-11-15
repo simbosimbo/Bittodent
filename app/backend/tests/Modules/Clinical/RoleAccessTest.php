@@ -94,4 +94,16 @@ class RoleAccessTest extends TestCase
         $this->assertSame(array_keys($front), array_keys($alerts));
         $this->as($kasir)->getJson('/api/me')->assertOk()->assertJsonPath('roles', ['kasir'])->assertJsonPath('role_label', 'Kasir');
     }
+
+    // DEVIATIONS #67: kasir also manages bookings (create, confirm, check-in, reschedule, new patient) but still writes nothing clinical.
+    public function test_kasir_manages_bookings_but_no_clinical_write(): void
+    {
+        $perms = $this->as('kasir@senyum.test')->getJson('/api/me')->assertOk()->json('permissions');
+        foreach (['patient.create', 'appointment.create', 'appointment.transition', 'appointment.confirm'] as $p) {
+            $this->assertContains($p, $perms);
+        }
+        foreach (['note.read', 'note.write', 'note.sign', 'appointment.plan', 'patient.update', 'patient.read_nik', 'procedure.confirm_external', 'billing.approve_zero'] as $p) {
+            $this->assertNotContains($p, $perms);
+        }
+    }
 }

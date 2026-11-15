@@ -225,3 +225,48 @@ label.check { flex-direction: row; gap: 8px; align-items: flex-start; font-weigh
 .temuan-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
 .temuan-head h2 { margin: 0; }
 .tooth-save { width: 100%; min-height: var(--shells-a-size-touch); }
+
+/* RM > Billing (#69): one row per visit, opening its Tagihan */
+.bill-visits { list-style: none; margin: 0; padding: 0; }
+.bill-visits li { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-2) 0;
+  border-top: 1px solid var(--shells-a-color-border); }
+.bill-visits li:first-child { border-top: 0; }
+.bill-visits .btn { min-height: var(--size-touch); white-space: nowrap; }
+
+/* #70 Dokter mode: one-tap procedures, SOAP templates, reason chips (chips = 40px desktop, 48px phone). */
+.quick-procs, .soap-quick { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; margin: 0 0 var(--space-3); }
+.chip-quick { min-height: 40px; border-radius: var(--radius-pill); border: 1px solid var(--color-primary-200); background: var(--surface);
+  color: var(--color-primary-800); font-weight: 600; padding: 0 var(--space-4); }
+.chip-quick[aria-pressed='true'] { background: var(--color-primary-50); border-color: var(--color-primary-700); }
+.chip-quick .mono { color: var(--muted); font-weight: 500; }
+.sign-warnings { border: 1px solid var(--color-warning-border); background: var(--color-warning-bg); color: var(--color-warning-fg);
+  border-radius: var(--radius-md); padding: var(--space-3); margin: var(--space-3) 0; }
+.sign-warnings ul { margin: var(--space-1) 0 var(--space-2); padding-left: 1.2em; }
+.soap-stacked { display: grid; gap: var(--space-2); }
+.soap-stacked label { display: grid; gap: 2px; font-size: var(--font-size-sm); font-weight: 600; }
+.soap-stacked textarea { min-height: 64px; font-size: 16px; }
+.soap-row { display: grid; grid-template-columns: 7.5em minmax(0, 1fr); gap: 4px var(--space-2); align-items: center; font-size: var(--font-size-sm); font-weight: 600; }
+.soap-row .soap-k { grid-row: span 2; }
+.soap-row input { min-height: 44px; font-size: 16px; }
+@media (max-width: 720px) {
+  .chip-quick, .chart-tabs [role=tab], .odo-more summary, .fold-toggle, .temuan-head .btn { min-height: 48px; }
+  /* #70 + review-2: the whole attestation row is the target (>=56px, full width) with a pressed and a checked state. */
+  .dialog .check { min-height: 56px; width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--color-neutral-300); border-radius: 12px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .dialog .check:active { background: var(--color-primary-50); }
+  .dialog .check:has(input:checked) { border-color: var(--color-primary-700); background: var(--color-primary-50); }
+  .dialog .check input { width: 28px; height: 28px; margin: 0; flex: none; accent-color: var(--color-primary-700); }
+  .surf-pad { grid-template-columns: repeat(3, 56px); }
+  .surf { min-width: 56px; min-height: 56px; font-size: var(--font-size-md); }
+  /* teeth near 1:1 (~48px) instead of squeezed to the card width; each jaw scrolls sideways, opened on the midline */
+  .odo-jaw-scroll .odontogram { min-width: 1100px; } /* #70: teeth ~52px on a phone */
+  .odo-more { margin: var(--space-2) 0; }
+  .odo-more summary { display: flex; align-items: center; color: var(--muted); font-weight: 600; cursor: pointer; }
+  .rm-actionbar {
+    position: fixed; left: 0; right: 0; bottom: calc(65px + env(safe-area-inset-bottom)); z-index: 19; display: flex; gap: var(--space-2);
+    padding: var(--space-2) var(--space-3); background: var(--surface); border-top: 1px solid var(--border); box-shadow: 0 -4px 12px rgba(16, 32, 40, 0.06);
+  }
+  .rm-actionbar .btn { flex: 1; min-height: 48px; }
+  .shell-main:has(.rm-actionbar) { padding-bottom: calc(80px + 72px + env(safe-area-inset-bottom)); }
+  .rm-actions-inline .btn-primary { display: none; } /* the sticky bar carries Setujui/Selesai on a phone */
+}

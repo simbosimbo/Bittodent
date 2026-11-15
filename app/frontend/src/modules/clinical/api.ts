@@ -92,11 +92,13 @@ export const cancelAttendance = (visitId: string, reason: string) => api(`/api/v
 export const startWalkInVisit = (patientId: string, body: { dentist_id?: string } = {}) =>
   api<{ id: string }>(`/api/patients/${patientId}/visits/walk-in`, { method: 'POST', body })
 export const getDentists = () => api<{ data: { id: string; name: string }[] }>('/api/dentists')
+// #70: after RM Selesai the doctor's appointment leaves the chair too (in_treatment -> done), so "Pasien saya" stays current.
+export const appointmentDone = (id: string) => api(`/api/appointments/${id}/transition`, { method: 'POST', body: { to: 'done' } })
 export const visitFromAppointment = (appointmentId: string) => api<{ id: string }>(`/api/appointments/${appointmentId}/visit`, { method: 'POST' })
 /** Visual condition only (karies, hilang, ...). Treatments go through saveProcedure. */
 export const saveFinding = (visitId: string, body: { tooth: number; surface: Surface | null; condition: string }) =>
   api<Finding>(`/api/visits/${visitId}/findings`, { method: 'POST', body })
-export const saveProcedure = (visitId: string, body: { tooth: number; surfaces: string | null; status: ProcStatus; procedure_code: string | null; treat_area?: TreatArea
+export const saveProcedure = (visitId: string, body: { tooth: number; surfaces: string | null; status: ProcStatus; procedure_code: string | null; diagnosis_code?: string | null; treat_area?: TreatArea
   external_clinic_name?: string; external_date?: string }) =>
   api<Procedure>(`/api/visits/${visitId}/procedures`, { method: 'POST', body })
 /** Signed procedure: the server appends a new final row superseding it (only along the allowed transitions). */
