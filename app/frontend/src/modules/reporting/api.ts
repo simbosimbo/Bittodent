@@ -28,3 +28,15 @@ export const integrityReport = (from?: string, to?: string) => api<IntegrityRepo
 /** Owner only (audit.read). Read only: the API has no update/delete for audit rows. */
 export const auditEvents = (p: { page?: number; from?: string; to?: string; action?: string; entity_type?: string }) =>
   api<AuditPage>(`/api/audit-events?${qs(p)}`)
+
+/** KL07-KL09 revenue report of the active branch (owner only). Revenue = money received; per dokter/tindakan = billed lines in the period. */
+export type Period = 'today' | '7d' | 'month'
+export type RevenueReport = { period: Period; from: string; to: string; branch: { id: string; name: string }
+  revenue_rp: number; prev_revenue_rp: number; transactions: number; receivable_rp: number; receivable_patients: number
+  daily: { date: string; amount_rp: number }[]
+  by_method: { kind: string; bank_name: string | null; amount_rp: number; count: number }[]
+  by_doctor: { doctor_id: string | null; name: string; procedures: number; patients: number; amount_rp: number }[]
+  by_procedure: { name: string; count: number; amount_rp: number }[]
+  receivables: { patient_name: string; days: number; items: string[]; amount_rp: number }[]
+  shift_differences: { user_name: string; closed_at: string; difference_rp: number; reason: string | null }[] }
+export const revenueReport = (period: Period) => api<RevenueReport>(`/api/reports/revenue?period=${period}`)

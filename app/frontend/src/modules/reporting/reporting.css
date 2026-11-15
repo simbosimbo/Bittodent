@@ -29,3 +29,34 @@
   .report-m .card > ul:not(.report-cards) > li { padding: var(--space-2) 0; border-top: 1px solid var(--border); overflow-wrap: anywhere; }
   .report-m .card li a, .report-m .card > p a { display: inline-flex; align-items: center; min-height: 44px; }
 }
+
+/* KL07-KL09 revenue report */
+.rev-chips { display: flex; gap: var(--space-2); flex-wrap: wrap; margin-bottom: var(--space-3); }
+.rev-chips .chip-method { min-height: 48px; }
+.rev-kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-3); margin-bottom: var(--space-3); }
+.rev-kpi .card { display: flex; flex-direction: column; gap: 4px; }
+.rev-kpi strong { font-size: 22px; font-variant-numeric: tabular-nums; }
+.rev-bars { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; height: 140px; align-items: end; }
+.rev-bars li { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; gap: 4px; }
+.rev-bar { width: 100%; min-height: 2px; border-radius: 6px 6px 0 0; background: var(--color-primary-700); }
+.rev-diff { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); margin-top: var(--space-3); }
+.rev-diff div { display: flex; flex-direction: column; gap: 2px; }
+.rev-cards { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.rev-card { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; min-height: 72px; padding: var(--space-3); text-align: left;
+  border: 1px solid var(--shells-a-color-border); border-radius: var(--radius-md, 12px); background: var(--color-surface, #fff); font: inherit; color: inherit;
+  text-decoration: none; cursor: pointer; justify-content: center; }
+.rev-row { display: flex; align-items: center; gap: var(--space-3); min-height: 64px; padding: var(--space-3); border: 1px solid var(--shells-a-color-border);
+  border-radius: var(--radius-md, 12px); background: var(--color-surface, #fff); font-variant-numeric: tabular-nums; }
+.rev-row .grow { display: flex; flex-direction: column; gap: 2px; }
+.a4 { display: none; }
+@media print {
+  @page { size: A4; margin: 16mm; }
+  body * { visibility: hidden !important; }
+  .a4, .a4 * { visibility: visible !important; }
+  .a4 { display: block; position: absolute; inset: 0 auto auto 0; width: 100%; font-size: 11pt; color: #000; }
+  .a4 header { display: flex; justify-content: space-between; border-bottom: 1px solid #000; padding-bottom: 6pt; }
+  .a4 table { width: 100%; border-collapse: collapse; margin-top: 8pt; }
+  .a4 th, .a4 td { border-bottom: 1px solid #999; padding: 4pt; text-align: left; }
+  .a4 td:last-child, .a4 th:last-child { text-align: right; }
+  .a4 footer { margin-top: 12pt; font-size: 9pt; }
+}

@@ -14,7 +14,7 @@ import { AlertRibbon, FamilyPage, MedicalHistoryPage, PatientDetail, PatientForm
 import { Home, Schedule, usePendingConfirm } from './modules/scheduling'
 import { ChartPage, SettingsRmPage } from './modules/clinical'
 import { InvoicePage, KasirPage, ShiftPage } from './modules/billing'
-import { ReportPage } from './modules/reporting'
+import { ReportPage, RevenuePage } from './modules/reporting'
 import { BookingPage, ManagePage } from './modules/booking'
 import { ClinicSettingsPage, SETTINGS_PERMS } from './modules/settings'
 
@@ -137,7 +137,8 @@ function StaffApp() {
   else if (hash === '/jadwal' && can('appointment.read')) page = <Schedule me={me} />
   else if (hash === '/kasir' && can('billing.read')) page = <KasirPage />
   else if (hash === '/shift' && can('billing.adjust')) page = <ShiftPage />
-  else if (hash === '/laporan' && can('reporting.read')) page = <ReportPage />
+  else if (hash === '/laporan' && can('reporting.read')) page = <RevenuePage me={me} />
+  else if (hash === '/laporan/integritas' && can('reporting.read')) page = <ReportPage />
   else if (/^\/pengaturan-klinik(\/(harga|pembayaran))?$/.test(hash) && can(SETTINGS_PERMS)) page = <ClinicSettingsPage me={me} tab={hash.split('/')[2] ?? ''} onChanged={load} />
   else if (hash === '/pengaturan-rm' && can('note.sign|settings.manage')) page = <SettingsRmPage me={me} onChanged={load} />
   else if (soon) page = <ComingSoon title={soon.label} />
