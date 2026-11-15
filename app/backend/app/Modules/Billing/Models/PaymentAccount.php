@@ -10,7 +10,7 @@ class PaymentAccount extends Model
 {
     use BelongsToTenant;
 
-    public const KINDS = ['tunai', 'qris', 'edc', 'transfer'];
+    public const KINDS = ['tunai', 'qris', 'edc', 'transfer', 'bpjs', 'asuransi']; // bpjs|asuransi = claim as payment (KL03), not a deduction
 
     protected $table = 'payment_account';
 

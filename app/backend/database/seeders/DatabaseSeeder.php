@@ -101,7 +101,8 @@ class DatabaseSeeder extends Seeder
             $this->c3Demo($b1, $users['dokter@senyum.test'], $patients, 1);
             $this->paymentAccounts($users['pemilik@senyum.test'], [
                 ['Kas Kemang', 'tunai', $b1->id], ['Kas Rawamangun', 'tunai', $b2->id], ['QRIS klinik', 'qris', null],
-                ['EDC BCA klinik', 'edc', null, 'BCA'], ['Transfer BCA klinik', 'transfer', null, 'BCA', '0123']]);
+                ['EDC BCA klinik', 'edc', null, 'BCA'], ['Transfer BCA klinik', 'transfer', null, 'BCA', '0123'], ['EDC Mandiri klinik', 'edc', null, 'Mandiri'],
+                ['Transfer Mandiri klinik', 'transfer', null, 'Mandiri', '5678'], ['BPJS Kesehatan', 'bpjs', null], ['Asuransi (klaim)', 'asuransi', null]]);
             $this->bookingDemo($users, $b1, $b2); // before careDemo: the pending online request counts as a next appointment
             $this->careDemo($b1, $users['dokter@senyum.test'], $patients);
             // Kemang today: 300000 + 150000 = Rp450.000 from 2 payments. Excluded: 100000 yesterday (Kemang), 200000 today (Rawamangun).

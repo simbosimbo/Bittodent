@@ -41,7 +41,7 @@ final class PatientDirectoryService implements PatientDirectory
 
     public function namesByIds(array $ids): array
     {
-        return Patient::whereIn('id', $ids)->get(['tenant_id', 'id', 'name'])->toArray();
+        return Patient::whereIn('id', $ids)->get(['tenant_id', 'id', 'name', 'payer_type'])->toArray();
     }
 
     public function findOrCreateForBooking(string $name, string $phone, string $branchId): string

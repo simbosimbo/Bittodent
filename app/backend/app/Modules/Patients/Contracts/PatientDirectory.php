@@ -18,7 +18,7 @@ interface PatientDirectory
 
     public function guardianBelongsTo(string $guardianId, string $patientId): bool;
 
-    /** @param list<string> $ids  @return list<array{tenant_id: string, id: string, name: string}> */
+    /** @param list<string> $ids  @return list<array{tenant_id: string, id: string, name: string, payer_type: string}> */
     public function namesByIds(array $ids): array;
 
     /**

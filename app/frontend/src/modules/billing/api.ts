@@ -3,7 +3,7 @@ import { api } from '../../shared/api/http'
 export type Adjustment = { id: string; kind: string; amount_rp: number; reason: string; created_at: string
   status: 'applied' | 'pending' | 'approved' | 'rejected'; self_approved_sole_owner: boolean }
 /** Clinic-owned payment destination (unit 5): the only payment methods; owner manages them. */
-export type PaymentAccount = { id: string; branch_id: string | null; name: string; kind: 'tunai' | 'qris' | 'edc' | 'transfer'
+export type PaymentAccount = { id: string; branch_id: string | null; name: string; kind: 'tunai' | 'qris' | 'edc' | 'transfer' | 'bpjs' | 'asuransi'
   bank_name: string | null; account_last4: string | null; is_active: boolean }
 export type Payment = { id: string; payment_account_id: string; amount_rp: number; paid_at: string; refunded_rp: number
   account: Pick<PaymentAccount, 'name' | 'kind' | 'bank_name' | 'account_last4'> }
@@ -72,6 +72,7 @@ export const getDailyRevenue = () => api<DailyRevenue>('/api/billing/daily-reven
 
 /** Kasir worklist (#69): every open invoice of the active branch + today's; newest first. */
 export type KasirRow = { id: string; visit_id: string; patient_id: string; patient_name: string | null; status: Invoice['status']; created_at: string
+  payer_type?: 'umum' | 'asuransi' | 'bpjs'; items?: string[]
   lines_rp: number; adjustments_rp: number; credit_notes_rp: number; payments_rp: number; refunds_rp: number; balance_rp: number }
 export type KasirList = { date: string; branch_id: string; invoices: KasirRow[] }
 export const kasirList = () => api<KasirList>('/api/billing/invoices')

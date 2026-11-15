@@ -28,6 +28,8 @@ class KasirListTest extends TestCase
             $this->assertSame('terbuka', $row['status']);
             $this->assertNotEmpty($row['patient_name']);
             $this->assertGreaterThan(0, $row['balance_rp']);
+            $this->assertContains($row['payer_type'], ['umum', 'asuransi', 'bpjs']);
+            $this->assertNotEmpty($row['items']); // KL01 card: billed procedure names
         }
         $this->as(self::DOC)->getJson(self::URL)->assertForbidden();
         $this->as('asisten@senyum.test')->getJson(self::URL)->assertForbidden();
@@ -43,6 +45,9 @@ class KasirListTest extends TestCase
             ->assertCreated()->assertJsonPath('status', 'lunas');
         $row = collect($this->as(self::KASIR)->getJson(self::URL)->json('invoices'))->firstWhere('id', $inv);
         $this->assertSame('lunas', $row['status']);
+        // KL03: BPJS / asuransi are payment methods (claims), owner can add them like any clinic account
+        $this->as(self::OWNER)->postJson('/api/payment-accounts', ['name' => 'BPJS uji', 'kind' => 'bpjs'])->assertCreated();
+        $this->as(self::OWNER)->postJson('/api/payment-accounts', ['name' => 'Kartu', 'kind' => 'kartu'])->assertUnprocessable();
         $this->assertSame(0, $row['balance_rp']);
 
         $rawamangun = $this->in($this->tenantA(), fn () => Branch::where('name', 'like', 'Senyum Sehat Rawamangun%')->value('id'));

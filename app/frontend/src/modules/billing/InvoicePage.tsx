@@ -7,7 +7,10 @@ import { addAdjustment, addCreditNote, addPayment, addRefund, approveZeroTariff,
   paymentAccounts, reviewCorrection, voidInvoice, type Adjustment, type Invoice, type InvoiceLine, type PaymentAccount } from './api'
 import './billing.css'
 
-const KIND: Record<PaymentAccount['kind'], string> = { tunai: 'Tunai', qris: 'QRIS', edc: 'EDC', transfer: 'Transfer' }
+const KIND: Record<PaymentAccount['kind'], string> = { tunai: 'Tunai', qris: 'QRIS', edc: 'Debit', transfer: 'Transfer', bpjs: 'BPJS', asuransi: 'Asuransi' }
+/** KL03: six method cards (order + hint); a kind shows only when the clinic has an active account of it. BPJS/asuransi = claim as payment. */
+const KIND_HINT: Record<PaymentAccount['kind'], string> = { tunai: 'Kembalian dihitung', qris: 'QR statis cabang', edc: 'Pilih bank', transfer: 'Pilih bank',
+  bpjs: 'Klaim sebagai bayar', asuransi: 'Klaim sebagai bayar' }
 const accountLabel = (a: Pick<PaymentAccount, 'name' | 'kind' | 'bank_name' | 'account_last4'>) =>
   `${a.name} (${KIND[a.kind]}${a.bank_name ? ' ' + a.bank_name : ''}${a.account_last4 ? ' ··' + a.account_last4 : ''})`
 /** Short chip label (#70): "Tunai", "QRIS", "EDC BCA", "Transfer BCA"; the full account sits in the tooltip. */
@@ -38,7 +41,10 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
   const [voidReason, setVoidReason] = useState('')
   const [refund, setRefund] = useState<RefundForm | null>(null)
   const [receipt, setReceipt] = useState(false)
-  const [split, setSplit] = useState(false) // #70: one method as chips by default; "Split" opens the per-row selects
+  const [split, setSplit] = useState(false) // #70: one method by default; "Pecah pembayaran" opens the per-row selects
+  const [kind, setKind] = useState<PaymentAccount['kind'] | null>(null) // KL04: Debit/Transfer with several banks wait for a bank chip
+  const [cash, setCash] = useState('') // KL03 tunai: money handed over, only for the change (the payment is the bill amount)
+  const [paidNow, setPaidNow] = useState(false) // KL05: success panel right after the payment that settles the bill
   const can = (p: string) => me.permissions.includes(p)
 
   const vid = useRef(visitId)
@@ -90,8 +96,10 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
         setInv(i)
       }
       setRows([newRow()])
+      setCash('')
+      if (i.status === 'lunas') setPaidNow(true)
       return i
-    }, (i) => i.status === 'lunas' ? 'Pembayaran diterima. Tagihan lunas.' : 'Pembayaran diterima.')
+    }, (i) => i.status === 'lunas' ? '' : 'Pembayaran diterima.')
   }
 
   // Unit B: a financial correction is its own document (Nota Kredit), never a Rp0 line or a 100% discount.
@@ -139,6 +147,18 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
   }
 
   const payable = accounts.filter((a) => a.is_active && (!inv || a.branch_id === null || a.branch_id === inv.branch_id))
+  const kinds = (Object.keys(KIND) as PaymentAccount['kind'][]).filter((k) => payable.some((a) => a.kind === k))
+  const sel = payable.find((a) => a.id === rows[0].account)
+  const curKind = sel?.kind ?? kind
+  const banks = payable.filter((a) => a.kind === curKind)
+  const pickKind = (k: PaymentAccount['kind']) => {
+    const of = payable.filter((a) => a.kind === k)
+    setKind(k)
+    setRows([{ ...rows[0], account: of.length === 1 ? of[0].id : '' }])
+  }
+  const amt = rp(split ? rows.reduce((t, r) => t + Number(r.amount || 0), 0) : Number(rows[0].amount || 0))
+  const payLabel = split || !sel ? `Terima ${amt}` : sel.kind === 'qris' ? 'Sudah dibayar'
+    : ['edc', 'transfer'].includes(sel.kind) ? `Terima ${KIND[sel.kind].toLowerCase()} ${sel.bank_name ?? sel.name} ${amt}` : `Terima ${amt}`
   if (!inv) return error ? <div className="card state-card">{error}</div> : <PageSkeleton variant="invoice" label="Memuat tagihan…" />
   return (
     <>
@@ -156,8 +176,9 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
       </div>
       {msg && <p className="notice" role="status">{msg}</p>}
       {error && <p className="form-error" role="alert">{error}</p>}
-      {inv.payments.length > 0 && inv.status !== 'void' && (receipt ? <Kwitansi inv={inv} me={me} onClose={() => setReceipt(false)} />
-        : <p className="kwitansi-actions"><button className="btn" onClick={() => setReceipt(true)}>Kwitansi</button>
+      {paidNow && inv.status === 'lunas' && !receipt && <PaidPanel inv={inv} me={me} onPrint={() => setReceipt(true)} />}
+      {inv.payments.length > 0 && inv.status !== 'void' && (receipt ? <Kwitansi inv={inv} me={me} autoPrint={paidNow} onClose={() => setReceipt(false)} />
+        : !(paidNow && inv.status === 'lunas') && <p className="kwitansi-actions"><button className="btn" onClick={() => setReceipt(true)}>Kwitansi</button>
           <a className="btn btn-ghost" href="#/kasir">Kembali ke Kasir</a></p>)}
       <div className="card inv-pay">
         <h2 className="sr-only">Pembayaran</h2>
@@ -209,15 +230,23 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
         )}
         {can('billing.adjust') && inv.balance_rp > 0 && (
           <form onSubmit={pay}>
-            {!split ? (
-              <div className="inv-method" role="radiogroup" aria-label="Metode bayar" title="Hanya akun milik klinik; transfer hanya ke rekening klinik.">
-                {payable.map((a) => (
-                  <button key={a.id} type="button" role="radio" aria-checked={rows[0].account === a.id} title={accountLabel(a)} className="chip-method"
-                    onClick={() => setRows([{ ...rows[0], account: a.id }])}>{chipLabel(a)}</button>
+            {!split ? <>
+              <div className="pay-kinds" role="radiogroup" aria-label="Metode bayar" title="Hanya akun milik klinik; transfer hanya ke rekening klinik.">
+                {kinds.map((k) => (
+                  <button key={k} type="button" role="radio" aria-checked={curKind === k} className="pay-kind" onClick={() => pickKind(k)}>
+                    <strong>{KIND[k]}</strong><span className="muted small">{KIND_HINT[k]}</span>
+                  </button>
                 ))}
               </div>
-            ) : rows.map((r, n) => (
-              <div className="toolbar" key={r.key}>
+              {curKind && banks.length > 1 && (
+                <div className="inv-method" role="radiogroup" aria-label="Pilih bank">
+                  {banks.map((a) => <button key={a.id} type="button" role="radio" aria-checked={rows[0].account === a.id} title={accountLabel(a)} className="chip-method"
+                    onClick={() => setRows([{ ...rows[0], account: a.id }])}>{a.bank_name ?? a.name}</button>)}
+                </div>
+              )}
+              {sel?.kind === 'transfer' && sel.account_last4 && <p className="muted small">Rekening klinik {sel.bank_name} ··{sel.account_last4}</p>}
+              {sel?.kind === 'qris' && <p className="notice">Minta pasien memindai QRIS cabang, lalu konfirmasi.</p>}
+            </> : rows.map((r, n) => (              <div className="toolbar" key={r.key}>
                 <select aria-label={`Metode ${n + 1}`} required value={r.account} onChange={(e) => setRows(rows.map((x) => x === r ? { ...x, account: e.target.value } : x))}>
                   <option value="">Pilih akun klinik…</option>
                   {payable.map((a) => <option key={a.id} value={a.id}>{accountLabel(a)}</option>)}
@@ -228,11 +257,18 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
             ))}
             {!split && <input className="inv-amount" aria-label="Jumlah 1 (Rp)" type="number" min={1} required value={rows[0].amount}
               onChange={(e) => setRows([{ ...rows[0], amount: e.target.value }])} />}
+            {!split && sel?.kind === 'tunai' && (
+              <div className="pay-cash">
+                <label>Uang diterima<input type="number" min={0} inputMode="numeric" value={cash} onChange={(e) => setCash(e.target.value)} /></label>
+                <p>Kembalian <strong>{rp(Math.max(0, Number(cash || 0) - Number(rows[0].amount || 0)))}</strong></p>
+              </div>
+            )}
             {split && <p className="muted small">Total {rp(rows.reduce((t, r) => t + Number(r.amount || 0), 0))} dari sisa {rp(inv.balance_rp)}</p>}
             <div className="toolbar pay-submit">
               {split ? <button type="button" className="btn" onClick={() => setRows([...rows, newRow()])}>Tambah metode (split)</button>
-                : <button type="button" className="btn btn-ghost" onClick={() => setSplit(true)}>Split</button>}
-              <button className="btn btn-primary" disabled={!split && !rows[0].account}>Terima pembayaran</button>
+                : <button type="button" className="btn btn-ghost" onClick={() => setSplit(true)}>Pecah pembayaran</button>}
+              <button className="btn btn-primary" disabled={!split && (!rows[0].account || (sel?.kind === 'tunai' && cash !== '' && Number(cash) < Number(rows[0].amount)))}>
+                {payLabel}</button>
             </div>
           </form>
         )}
@@ -366,7 +402,8 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
  * payments, balance; no own number series (the reference is the invoice id) and no tax lines. Print = the browser's print dialog,
  * the rest of the page is hidden by @media print in billing.css.
  */
-export function Kwitansi({ inv, me, onClose }: { inv: Invoice; me: Me; onClose: () => void }) {
+export function Kwitansi({ inv, me, onClose, autoPrint = false }: { inv: Invoice; me: Me; onClose: () => void; autoPrint?: boolean }) {
+  useEffect(() => { if (autoPrint) window.print() }, [autoPrint]) // KL05 "Cetak": straight to the printer dialog
   const deductions = inv.adjustments_rp + (inv.credit_notes_rp ?? 0)
   const lastPaid = inv.payments.map((p) => p.paid_at).sort().at(-1)
   return (
@@ -384,7 +421,7 @@ export function Kwitansi({ inv, me, onClose }: { inv: Invoice; me: Me; onClose: 
           {inv.lines.map((l) => <tr key={l.id}><td>{l.procedure_name}{l.tooth ? ` · gigi ${l.tooth}` : ''}</td><td>{rp(l.price_rp)}</td></tr>)}
           {deductions !== 0 && <tr><td>Penyesuaian / nota kredit</td><td>-{rp(deductions)}</td></tr>}
           <tr className="sum"><td>Total tagihan</td><td>{rp(inv.lines_rp - deductions)}</td></tr>
-          {inv.payments.map((p) => <tr key={p.id}><td>Dibayar · {p.account.name} · {fmtDateTime(p.paid_at)}</td><td>{rp(p.amount_rp)}</td></tr>)}
+          {inv.payments.map((p) => <tr key={p.id}><td>{p.account ? chipLabel(p.account as PaymentAccount) : 'Dibayar'} · {fmtDateTime(p.paid_at)}</td><td>{rp(p.amount_rp)}</td></tr>)}
           {(inv.refunds_rp ?? 0) > 0 && <tr><td>Refund</td><td>-{rp(inv.refunds_rp)}</td></tr>}
           <tr className="sum"><td>Sisa</td><td>{rp(Math.max(0, inv.balance_rp))}</td></tr>
         </tbody>
@@ -394,6 +431,28 @@ export function Kwitansi({ inv, me, onClose }: { inv: Invoice; me: Me; onClose: 
         <button className="btn btn-primary" onClick={() => window.print()}>Cetak</button>
         <button className="btn btn-ghost" onClick={onClose}>Tutup</button>
       </div>
+    </section>
+  )
+}
+
+/**
+ * KL05: right after the payment that settles the bill. Two actions side by side (Cetak, WhatsApp), one primary Selesai.
+ * The WhatsApp text carries no clinical content (D-011): clinic, amount, date, reference only; the patient's number is picked in WhatsApp.
+ */
+function PaidPanel({ inv, me, onPrint }: { inv: Invoice; me: Me; onPrint: () => void }) {
+  const paid = inv.payments.reduce((t, p) => t + p.amount_rp, 0)
+  const methods = [...new Set(inv.payments.map((p) => (p.account ? chipLabel(p.account as PaymentAccount) : '')))].filter(Boolean).join(' + ')
+  const text = `Kuitansi ${me.active.tenant_name}: pembayaran ${rp(paid)} diterima ${fmtDateTime(new Date().toISOString())}. Ref ${inv.id.slice(0, 8).toUpperCase()}. Terima kasih.`
+  return (
+    <section className="card paid" aria-label="Pembayaran diterima">
+      <h2>Pembayaran diterima</h2>
+      <p className="inv-big">{rp(paid)}</p>
+      <p className="muted">{inv.patient_name ?? 'Pasien'} · Lunas{methods && ` · ${methods}`}</p>
+      <div className="paid-actions">
+        <button className="btn" onClick={onPrint}>Cetak</button>
+        <a className="btn" href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noopener noreferrer">WhatsApp</a>
+      </div>
+      <a className="btn btn-primary btn-block" href="#/kasir">Selesai</a>
     </section>
   )
 }
