@@ -6,6 +6,7 @@ use App\Modules\Tenancy\Models\Tenant;
 use App\Shared\Tenancy\Ctx;
 use App\Shared\Terminology\CsvIcdSource;
 use App\Shared\Terminology\IcdImporter;
+use App\Shared\Terminology\SatusehatApiSource;
 use App\Shared\Terminology\SatusehatSpreadsheetSource;
 use Carbon\CarbonImmutable;
 use Database\Seeders\DatabaseSeeder;
@@ -56,7 +57,7 @@ Artisan::command('recall:send-reminders', function () {
 })->purpose('Kirim pengingat janji yang jatuh tempo (kanal no-op; tercatat di reminder_log)');
 
 // Official ICD-10 2010 / ICD-9-CM 2010 reference lists (global tables, written as ehr_admin). Safe to run twice.
-Artisan::command('icd:import {--source=file : file (CSV lokal) | satusehat (unduh spreadsheet publik)} {--path= : berkas/folder CSV (default database/data/icd)} {--force : izinkan di production}', function (IcdImporter $importer) {
+Artisan::command('icd:import {--source=file : file (CSV lokal) | satusehat (API FHIR, butuh kredensial) | satusehat-spreadsheet (spreadsheet publik resmi)} {--path= : berkas/folder CSV (default database/data/icd)} {--fallback= : hanya untuk --source=satusehat: spreadsheet = pakai spreadsheet publik bila API gagal} {--force : izinkan di production}', function (IcdImporter $importer) {
     if (app()->isProduction() && ! $this->option('force')) {
         $this->error('icd:import di production butuh --force.');
 
@@ -64,16 +65,38 @@ Artisan::command('icd:import {--source=file : file (CSV lokal) | satusehat (undu
     }
     $source = match ($this->option('source')) {
         'file' => new CsvIcdSource($this->option('path') ?: database_path('data/icd')),
-        'satusehat' => new SatusehatSpreadsheetSource,
+        'satusehat' => new SatusehatApiSource(config('services.satusehat')),
+        'satusehat-spreadsheet' => new SatusehatSpreadsheetSource,
         default => null,
     };
     if ($source === null) {
-        $this->error('--source harus file atau satusehat.');
+        $this->error('--source harus file, satusehat, atau satusehat-spreadsheet.');
+
+        return 1;
+    }
+    $fallback = $this->option('fallback');
+    if ($fallback !== null && ($fallback !== 'spreadsheet' || ! $source instanceof SatusehatApiSource)) {
+        $this->error('--fallback hanya boleh "spreadsheet" dan hanya dengan --source=satusehat.');
+
+        return 1;
+    }
+    if ($source instanceof SatusehatApiSource && ($missing = $source->missing()) !== []) {
+        $this->error('Konfigurasi SATUSEHAT belum lengkap/valid: '.implode(', ', $missing).'. Wajib diisi di .env: '.implode(', ', SatusehatApiSource::ENV_VARS).' (SATUSEHAT_ENV = sandbox|production).');
+        $this->line('Kredensial sandbox: https://satusehat.kemkes.go.id/platform/docs/id/api-code/access-sandbox/ (daftar: https://satusehat.kemkes.go.id/platform/docs/id/registration-guide/registration/). Tidak ada data yang diubah.');
 
         return 1;
     }
     try {
-        $counts = $importer->import($source);
+        try {
+            $counts = $importer->import($source);
+        } catch (RuntimeException $e) {
+            if ($fallback === null) {
+                throw $e;
+            }
+            $this->warn($e->getMessage());
+            $this->warn('--fallback=spreadsheet: impor dari spreadsheet publik resmi SATUSEHAT.');
+            $counts = $importer->import(new SatusehatSpreadsheetSource);
+        }
     } catch (RuntimeException $e) {
         $this->error($e->getMessage());
 

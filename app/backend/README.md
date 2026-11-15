@@ -61,12 +61,22 @@ Sumber, URL unduhan, dan SHA-256: `database/data/icd/SOURCE.md` (CSV di folder i
 ```sh
 php artisan icd:import                                       # dari CSV lokal database/data/icd (default; juga dipanggil DatabaseSeeder)
 php artisan icd:import --source=file --path=tests/fixtures/icd   # berkas/folder CSV lain (kolom code,display,version)
-php artisan icd:import --source=satusehat                    # unduh spreadsheet publik resmi (Google Sheets export, tanpa kredensial)
+php artisan icd:import --source=satusehat                    # API FHIR SATUSEHAT (OAuth2; butuh SATUSEHAT_* di .env)
+php artisan icd:import --source=satusehat --fallback=spreadsheet # sama, tapi pakai spreadsheet bila API tidak memberi daftar
+php artisan icd:import --source=satusehat-spreadsheet        # unduh spreadsheet publik resmi (Google Sheets export, tanpa kredensial)
 ```
 
 Ditulis sebagai `ehr_admin` (`mysql_admin`), idempoten: upsert per `code`; kode yang hilang dari sumber jadi `valid=false`
 (tidak dihapus, catatan lama mungkin memakainya), kode yang muncul lagi jadi valid. Production butuh `--force`.
-Pencarian: `App\Shared\Terminology\IcdCatalog` (hanya `valid=true`). API FHIR SATUSEHAT (OAuth2) tidak dipakai untuk impor ini.
+Pencarian: `App\Shared\Terminology\IcdCatalog` (hanya `valid=true`).
+
+`--source=satusehat` (`SatusehatApiSource`): token `POST {base}/oauth2/v1/accesstoken?grant_type=client_credentials` (form
+`client_id`, `client_secret`), lalu Bearer ke `{base}/fhir-r4/v1`: `ValueSet/$expand?url=` lalu `CodeSystem?url=` untuk
+`http://hl7.org/fhir/sid/icd-10` dan `.../icd-9-cm`. **Per 15 Nov 2026 katalog API resmi tidak mendokumentasikan unduhan daftar ICD
+lengkap lewat API** (CodeSystem/ValueSet tidak tercantum); bila server tidak menjawab, perintah gagal tanpa menulis apa pun dan menyarankan
+`--source=satusehat-spreadsheet` (daftar lengkap resmi). Isi `.env`: `SATUSEHAT_ENV` (`sandbox`|`production`), `SATUSEHAT_CLIENT_ID`,
+`SATUSEHAT_CLIENT_SECRET`, `SATUSEHAT_ORG_ID` (wajib walau belum dikirim; satu client_id = satu organisasi). Cara mendapat kredensial
+sandbox & detail: `database/data/icd/SOURCE.md`. Tes hanya memakai `Http::fake` (tanpa kredensial asli).
 
 ## Masuk cepat (DEV SAJA)
 
