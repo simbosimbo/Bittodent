@@ -248,3 +248,28 @@ test('the untouched payment amount follows the balance after a discount; a typed
   await waitFor(() => expect(addAdjustment).toHaveBeenCalledTimes(2))
   expect(amount).toHaveValue(50000)
 })
+
+test('audit: a billed line without a name shows "Kode <code>" on the bill, the discount picker and the kwitansi (never a blank row)', async () => {
+  current = { ...inv, adjustments: [], patient_name: 'Sari Contoh', lines: [{ ...line, procedure_name: null }],
+    payments: [{ id: 'p1', payment_account_id: 'k1', amount_rp: 50000, paid_at: '2026-11-15T03:00:00Z', refunded_rp: 0,
+      account: { name: 'Kas Kemang', kind: 'tunai', bank_name: null, account_last4: null } }] }
+  render(<InvoicePage visitId="v1" me={{ ...me(['billing.read', 'billing.adjust']), user: { id: 'u1', name: 'Kasir', email: '' },
+    active: { tenant_id: 't', tenant_name: 'Klinik Contoh', branch_id: 'b1', branch_name: 'Cabang A', timezone: null } } as Me} />)
+  await screen.findByRole('heading', { name: 'Tagihan · Sari Contoh' })
+  expect(screen.getByText(/1 tindakan/).closest('details')).toHaveTextContent('Kode 23.2 · gigi 16 · Rp100.000')
+  expect(screen.getByRole('option', { name: 'Kode 23.2 · gigi 16', hidden: true })).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Kwitansi' }))
+  expect(screen.getByRole('region', { name: 'Kwitansi' })).toHaveTextContent('Kode 23.2 · gigi 16')
+})
+
+test('audit: after a partial payment Tunai stays preselected, so the next instalment needs no extra tap', async () => {
+  current = { ...inv, adjustments: [] }
+  render(<InvoicePage visitId="v1" me={me(['billing.read', 'billing.adjust'])} />)
+  const amt = await screen.findByLabelText('Jumlah dibayar (Rp)')
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Terima Rp100.000' })).toBeEnabled())
+  fireEvent.change(amt, { target: { value: '40000' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Terima Rp40.000' }))
+  expect(await screen.findByText('Pembayaran diterima.')).toBeInTheDocument()
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Terima Rp60.000' })).toBeEnabled())
+  expect(screen.queryByText('Pilih metode bayar.')).toBeNull()
+})

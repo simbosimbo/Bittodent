@@ -917,3 +917,22 @@ test('Pasien datang (audit P1-6): the desk registers a walk-in with dentist + ke
   expect((await screen.findByText('Pasien Rina Contoh terdaftar datang')).closest('[role="status"]')).not.toBeNull()
   await vi.waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
 })
+
+test('audit: Buat Janji today starts at the next slot from now and says so when a past time is picked (still allowed)', async () => {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date('2030-01-07T07:10:00Z')) // 14:10 WIB
+  vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+    if (url.startsWith('/api/schedule')) return json(sched([]))
+    if (url.startsWith('/api/planned-appointments')) return json({ data: [] })
+    if (url === '/api/patients/p9') return json({ id: 'p9', name: 'Bayu Contoh' })
+    throw new Error('unexpected ' + url)
+  }))
+  render(<Schedule me={ME} newFor="p9" />)
+  const dlg = within(await screen.findByRole('dialog', { name: 'Buat Janji' }))
+  const start = dlg.getByLabelText('Jam mulai')
+  expect(start).toHaveValue('870') // 14:30
+  expect(dlg.queryByText(/sudah lewat/)).toBeNull()
+  fireEvent.change(start, { target: { value: '540' } })
+  expect(dlg.getByText('Jam 09:00 sudah lewat. Tetap bisa disimpan untuk mencatat janji yang sudah terjadi.')).toBeInTheDocument()
+  vi.useRealTimers()
+})

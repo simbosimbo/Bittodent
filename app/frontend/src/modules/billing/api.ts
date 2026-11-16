@@ -17,7 +17,7 @@ export type Refund = { id: string; credit_note_id: string; payment_id: string; p
 /** A clinical correction (salah_kode/situs/provider) touched this billed line: the cashier decides (credit note, bill corrected code, reviewed). */
 export type CorrectionReview = { id: string; procedure_correction_id: string; reason_type: string; new_procedure_id: string
   billable_code: string | null; status: 'perlu_tinjau' | 'selesai' }
-export type InvoiceLine = { id: string; procedure_code: string; procedure_name: string; tooth: number | null; price_rp: number
+export type InvoiceLine = { id: string; procedure_code: string; procedure_name: string | null; tooth: number | null; price_rp: number
   credited_rp: number; discount_rp?: number; credit_note_numbers: string[]; tariff_zero: 'pending' | 'approved' | null; correction_reviews: CorrectionReview[] }
 export type Invoice = { id: string; number?: string | null; visit_id: string; branch_id: string; status: 'terbuka' | 'lunas' | 'void'
   patient_name?: string | null; created_at?: string
@@ -26,7 +26,7 @@ export type Invoice = { id: string; number?: string | null; visit_id: string; br
   adjustments: Adjustment[]; payments: Payment[]; refunds: Refund[] }
 export type PendingReversals = {
   credit_notes: { id: string; number: string; invoice_id: string; visit_id: string; amount_rp: number; reason_type: string; reason: string
-    created_at: string; line: { procedure_code: string; procedure_name: string; tooth: number | null; price_rp: number } }[]
+    created_at: string; line: { procedure_code: string; procedure_name: string | null; tooth: number | null; price_rp: number } }[]
   voids: { id: string; invoice_id: string; visit_id: string; reason: string; created_at: string }[]
   refunds: { id: string; invoice_id: string; visit_id: string; amount_rp: number; reason: string; created_at: string; credit_note_number: string | null
     account: Pick<PaymentAccount, 'name' | 'kind' | 'bank_name' | 'account_last4'> }[] }

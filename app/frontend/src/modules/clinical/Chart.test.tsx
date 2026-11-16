@@ -945,3 +945,11 @@ test('#70 phone: SOAP stacked (no sub-tabs), sticky Selesai bar, Rencana/Resep t
   fireEvent.click(screen.getByRole('button', { name: 'Tutup kunjungan & riwayat' }))
   expect(screen.getByRole('heading', { name: 'Riwayat kunjungan' })).toBeInTheDocument()
 })
+
+test('audit: a role that cannot start a visit (no note.write) is not told to start one', async () => {
+  renderChart({}, { ...me, permissions: me.permissions.filter((p) => p !== 'note.write') })
+  await screen.findByRole('region', { name: 'Odontogram' })
+  expect(screen.getByText(/Belum ada kunjungan aktif/)).toBeInTheDocument()
+  expect(screen.queryByText(/Mulai kunjungan hari ini/)).toBeNull()
+  expect(screen.getByText('Buka janji hari ini')).toHaveAttribute('href', '#/jadwal')
+})

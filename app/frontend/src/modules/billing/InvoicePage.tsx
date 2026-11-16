@@ -118,7 +118,7 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
         i = await addPayment(inv.id, { payment_account_id: r.account, amount_rp: Number(r.amount), request_key: r.key })
         setInv(i)
       }
-      setRows([newRow()])
+      setRows([{ ...newRow(), account: tunai?.id ?? '' }]) // the next instalment starts on Tunai too, like the first
       setCash('')
       if (i.status === 'lunas') setPaidNow(true)
       return i
@@ -306,7 +306,7 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
         <ul>
           {inv.lines.map((l) => (
             <li key={l.id}>
-              {l.procedure_code} {l.procedure_name}{l.tooth ? ` · gigi ${l.tooth}` : ''} · {rp(l.price_rp)}
+              {l.procedure_name ? `${l.procedure_code} ${l.procedure_name}` : lineName(l)}{l.tooth ? ` · gigi ${l.tooth}` : ''} · {rp(l.price_rp)}
               {(l.discount_rp ?? 0) > 0 && <> · diskon -{rp(l.discount_rp!)} · <strong>{rp(l.price_rp - l.discount_rp!)}</strong></>}
               {(l.credit_note_numbers ?? []).length > 0 && <> · <strong>Dikoreksi — lihat {l.credit_note_numbers.join(', ')}</strong></>}
               {l.tariff_zero === 'pending' && <> · <strong>Tarif Rp0 — menunggu pemilik</strong></>}
@@ -382,7 +382,7 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
               </Select>
               <Select aria-label="Untuk" value={form.line} onChange={(e) => setForm({ ...form, line: e.target.value })}>
                 <option value="">Seluruh tagihan</option>
-                {inv.lines.map((l) => <option key={l.id} value={l.id}>{l.procedure_name}{l.tooth ? ` · gigi ${l.tooth}` : ''}</option>)}
+                {inv.lines.map((l) => <option key={l.id} value={l.id}>{lineName(l)}{l.tooth ? ` · gigi ${l.tooth}` : ''}</option>)}
               </Select>
               <Input className={FIELD} aria-label={form.unit === 'pct' ? 'Jumlah (%)' : 'Jumlah (Rp)'} type="number" min={1} max={form.unit === 'pct' ? 100 : undefined} required
                 value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
@@ -454,7 +454,7 @@ export function Kwitansi({ inv, me, onClose, autoPrint = false }: { inv: Invoice
       <p>Telah diterima dari <strong>{inv.patient_name ?? 'Pasien'}</strong>{lastPaid && <> pada {fmtDateTime(lastPaid)}</>}.</p>
       <table>
         <tbody>
-          {inv.lines.map((l) => <tr key={l.id}><td>{l.procedure_name}{l.tooth ? ` · gigi ${l.tooth}` : ''}</td><td>{rp(l.price_rp)}</td></tr>)}
+          {inv.lines.map((l) => <tr key={l.id}><td>{lineName(l)}{l.tooth ? ` · gigi ${l.tooth}` : ''}</td><td>{rp(l.price_rp)}</td></tr>)}
           {deductions !== 0 && <tr><td>Penyesuaian / nota kredit</td><td>-{rp(deductions)}</td></tr>}
           <tr className="sum"><td>Total tagihan</td><td>{rp(inv.lines_rp - deductions)}</td></tr>
           {inv.payments.map((p) => <tr key={p.id}><td>{p.account ? chipLabel(p.account as PaymentAccount) : 'Dibayar'} · {fmtDateTime(p.paid_at)}</td><td>{rp(p.amount_rp)}</td></tr>)}
@@ -475,6 +475,9 @@ export function Kwitansi({ inv, me, onClose, autoPrint = false }: { inv: Invoice
  * KL05: right after the payment that settles the bill. Two actions side by side (Cetak, WhatsApp), one primary Selesai.
  * The WhatsApp text carries no clinical content (D-011): clinic, amount, date, reference only; the patient's number is picked in WhatsApp.
  */
+// old/seeded lines may have no name: say the code, never a blank row (same wording as the Kasir list)
+const lineName = (l: { procedure_name: string | null; procedure_code: string }) => l.procedure_name ?? `Kode ${l.procedure_code}`
+
 function PaidPanel({ inv, me, onPrint }: { inv: Invoice; me: Me; onPrint: () => void }) {
   const paid = inv.payments.reduce((t, p) => t + p.amount_rp, 0)
   const methods = [...new Set(inv.payments.map((p) => (p.account ? chipLabel(p.account as PaymentAccount) : '')))].filter(Boolean).join(' + ')

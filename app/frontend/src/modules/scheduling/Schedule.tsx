@@ -631,9 +631,12 @@ function BookDialog({ sched, date, me, initial, onClose, onSaved }: {
 }) {
   const [patient, setPatient] = useState<{ id: string; name: string } | null>(null)
   useEffect(() => { if (initial.patientId) getPatient(initial.patientId).then((p) => setPatient({ id: p.id, name: p.name }), () => null) }, [initial.patientId])
-  const [minute, setMinute] = useState(initial.minute ?? 9 * 60)
+  // Today: start at the next slot from now, not 09:00 (a past time stays allowed for a visit recorded late, but is said out loud).
+  const nowMin = date === todayWib() ? minutesOfDay(new Date().toISOString(), sched.branch.timezone) : -1
+  const first = initial.minute ?? (nowMin < 0 ? 9 * 60 : SLOTS.find((m) => m >= nowMin) ?? 9 * 60)
+  const [minute, setMinute] = useState(first)
   // Columns are dentists: a tapped slot presets the dentist; the chair defaults to the first one free at that start (server re-checks).
-  const [chairId, setChairId] = useState(() => freeChair(sched, initial.minute ?? 9 * 60) ?? sched.chairs[0]?.id ?? '')
+  const [chairId, setChairId] = useState(() => freeChair(sched, first) ?? sched.chairs[0]?.id ?? '')
   const [dentistId, setDentistId] = useState(initial.dentistId ?? sched.dentists.find((d) => d.id === me.user.id)?.id ?? sched.dentists[0]?.id ?? '')
   const [duration, setDuration] = useState(30)
   const [reason, setReason] = useState('')
@@ -677,6 +680,7 @@ function BookDialog({ sched, date, me, initial, onClose, onSaved }: {
           <label>Durasi<Select value={duration} onChange={(e) => setDuration(Number(e.target.value))}>{[30, 45, 60, 90].map((d) => <option key={d} value={d}>{d} menit</option>)}</Select></label>
         </div>
         <label>Keperluan (opsional)<input value={reason} maxLength={300} onChange={(e) => setReason(e.target.value)} placeholder="mis. Kontrol, scaling" /></label>
+        {minute < nowMin && <p className="muted small" role="status">Jam {hhmm(minute)} sudah lewat. Tetap bisa disimpan untuk mencatat janji yang sudah terjadi.</p>}
         {error && <Note status="danger" role="alert">{error}</Note>}
         <div className="dialog-actions">
           <Button variant="outline" onPress={onClose}>Batal</Button>
