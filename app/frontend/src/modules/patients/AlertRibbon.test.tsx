@@ -3,7 +3,8 @@ import { afterEach, expect, test, vi } from 'vitest'
 import { setActivePatient } from '../../shared/activePatient'
 import { Shell } from '../../shared/layout/Shell'
 import type { Me } from '../../shared/session'
-import { AlertRibbon } from './AlertRibbon'
+import { useState } from 'react'
+import { AlertRibbon, AlertSheet, AlertStrip } from './AlertRibbon'
 
 const me: Me = {
   user: { id: 'u1', name: 'drg. Uji Sintetis', email: 'dokter@uji.test' }, roles: ['dentist'], permissions: ['patient.read', 'note.read'],
@@ -53,7 +54,7 @@ test('front desk (not full): allergy + premed + urgent flag without its text; em
   expect(await screen.findByText('Riwayat medis belum diisi')).toBeInTheDocument()
 })
 
-test('compact (chart route): safety + condition chips always shown, medications behind Selengkapnya', async () => {
+test('compact (chart route): safety + condition chips always shown, medications behind "+n obat"', async () => {
   stub(alerts())
   act(() => setActivePatient({ id: 'p1', name: 'Sari Sintetis' }))
   render(<AlertRibbon patientId="p1" compactDefault />)
@@ -65,13 +66,13 @@ test('compact (chart route): safety + condition chips always shown, medications 
   expect(cond).toHaveTextContent('Kondisi: Hipertensi')
   expect(screen.queryByText('Obat: Amlodipin')).toBeNull()
   expect(screen.getByRole('link', { name: 'Riwayat medis →' })).toBeInTheDocument()
-  const more = screen.getByRole('button', { name: /Selengkapnya/ })
+  const more = screen.getByRole('button', { name: /\+\d+ obat/ })
   expect(more).toHaveAttribute('aria-expanded', 'false')
-  expect(more).toHaveTextContent('+1 lainnya')
+  expect(more).toHaveTextContent('+1 obat')
   act(() => more.click())
   expect(screen.getByText('Kondisi: Hipertensi')).toBeInTheDocument()
   expect(screen.getByText('Obat: Amlodipin')).toBeInTheDocument()
-  act(() => screen.getByRole('button', { name: 'Ciutkan' }).click())
+  act(() => screen.getByRole('button', { name: 'Sembunyikan obat' }).click())
   expect(screen.queryByText('Obat: Amlodipin')).toBeNull()
   expect(screen.getByText('Hipertensi')).toBeInTheDocument()
   expect(screen.getByText('Alergi: Penisilin')).toBeInTheDocument()
@@ -88,4 +89,26 @@ test('compact keeps empty safety states visible', async () => {
   stub(alerts({ version: null }))
   render(<AlertRibbon patientId="p1" compactDefault />)
   expect(await screen.findByText('Riwayat medis belum diisi')).toBeInTheDocument()
+})
+
+test('phone strip (chart scrolled): allergies by name, the rest as +n; tap opens every alert incl. the urgent text and medications', async () => {
+  stub(alerts({ allergies: ['Penisilin', 'Lateks'] }))
+  const Both = () => { const [o, setO] = useState(false); return <><AlertStrip patientId="p1" onOpen={() => setO(true)} />{o && <AlertSheet patientId="p1" onClose={() => setO(false)} />}</> }
+  render(<Both />)
+  const strip = await screen.findByRole('button', { name: /^Peringatan medis: perlu premedikasi, ada catatan penting, Alergi: Penisilin, Lateks, 2 lainnya/ })
+  expect(strip).toHaveTextContent('Alergi: Penisilin, Lateks')
+  expect(strip).toHaveTextContent('+2')
+  expect(screen.queryByText('Obat: Amlodipin')).toBeNull()
+  act(() => strip.click())
+  const sheet = screen.getByRole('dialog', { name: 'Peringatan medis' })
+  expect(await screen.findByText('Penting: Riwayat pingsan saat anestesi')).toBeInTheDocument()
+  expect(sheet).toHaveTextContent('Obat: Amlodipin')
+  expect(sheet).toHaveTextContent('Kondisi: Hipertensi')
+  expect(screen.getByRole('link', { name: 'Riwayat medis lengkap →' })).toHaveAttribute('href', '#/riwayat-medis/p1')
+})
+
+test('phone strip: no allergies recorded is said, never left blank', async () => {
+  stub(alerts({ allergies: [], problems: [], medications: [], premedication_required: false, has_urgent_note: false }))
+  render(<AlertStrip patientId="p1" onOpen={() => {}} />)
+  expect(await screen.findByRole('button', { name: /Tidak ada alergi tercatat/ })).not.toHaveTextContent('+')
 })

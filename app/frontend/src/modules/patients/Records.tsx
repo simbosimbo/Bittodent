@@ -1,11 +1,12 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { ApiError, errorText } from '../../shared/api/http'
 import { setActivePatient } from '../../shared/activePatient'
 import { fmtDateTime, initials } from '../../shared/format'
 import { Icon, ICONS } from '../../shared/ui/Icon'
 import { Menu } from '../../shared/ui/Menu'
 import { PageSkeleton } from '../../shared/ui/Skeleton'
-import { ALERTS_CHANGED, AlertRibbon } from './AlertRibbon'
+import { useIsMobile } from '../../shared/useIsMobile'
+import { ALERTS_CHANGED, AlertRibbon, AlertSheet, AlertStrip } from './AlertRibbon'
 import { getFamily, getMedicalHistory, getPatient, saveMedicalHistory, type Family, type MedicalHistory, type PatientFull } from './api'
 import { age, ageTahun, dob, SEX } from './Patients'
 
@@ -16,6 +17,10 @@ const TABS = [['pasien', 'Profil'], ['rekam-medis', 'Rekam Medis'], ['keluarga',
 export function PatientPage({ id, tab, canChart, actions, alerts, status, children }: { id: string; tab: string; canChart: boolean; actions?: ReactNode; alerts?: boolean; status?: ReactNode; children: (p: PatientFull) => ReactNode }) {
   const [p, setP] = useState<PatientFull | null>(null)
   const [error, setError] = useState('')
+  const mobile = useIsMobile()
+  const head = useRef<HTMLDivElement>(null)
+  const passed = useScrolledPast(head, mobile && !!alerts && !!p)
+  const [sheet, setSheet] = useState(false)
   useEffect(() => {
     let live = true
     setP(null)
@@ -28,7 +33,7 @@ export function PatientPage({ id, tab, canChart, actions, alerts, status, childr
   return (
     <>
       <nav className="crumbs small" aria-label="Breadcrumb"><a href="#/pasien">Daftar Pasien</a> <span aria-hidden="true">›</span> <span aria-current="page">{p.name}</span></nav>
-      <div className="patient-head">
+      <div className="patient-head" ref={head}>
         <span className="avatar avatar-lg" aria-hidden="true">{initials(p.name)}</span>
         <div className="patient-head-main">
           <div className="patient-head-title">
@@ -53,9 +58,31 @@ export function PatientPage({ id, tab, canChart, actions, alerts, status, childr
           </Menu>
         </div>
       </div>
+      {/* Phone: the full header scrolls away; this strip keeps name + allergies under the top bar. */}
+      {mobile && alerts && (
+        <div className="patient-mini" hidden={!passed}>
+          <p className="patient-mini-who"><strong>{p.name}</strong> <span className="muted">{p.mrn ?? ''}</span></p>
+          <AlertStrip patientId={p.id} onOpen={() => setSheet(true)} />
+        </div>
+      )}
+      {sheet && <AlertSheet patientId={p.id} onClose={() => setSheet(false)} />}
       {children(p)}
     </>
   )
+}
+
+/** true once `ref` has scrolled up under the pinned top bar (--shell-sticky-h). No IntersectionObserver (jsdom) = never. */
+function useScrolledPast(ref: { current: HTMLElement | null }, on: boolean) {
+  const [past, setPast] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!on || !el || typeof IntersectionObserver === 'undefined') { setPast(false); return }
+    const top = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--shell-sticky-h')) || 0
+    const io = new IntersectionObserver(([e]) => setPast(!e.isIntersecting && e.boundingClientRect.top < top), { rootMargin: `-${top}px 0px 0px 0px` })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [ref, on])
+  return past
 }
 
 const REL: Record<string, string> = { ayah: 'Ayah', ibu: 'Ibu', kakek_nenek: 'Kakek/Nenek', saudara: 'Saudara', wali_lain: 'Wali lain' }

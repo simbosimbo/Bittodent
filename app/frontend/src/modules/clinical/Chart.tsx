@@ -882,7 +882,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
     <>
       {visit?.status === 'berlangsung' && !visit.notes.some((n) => n.versions.some((x) => x.signed_at))
         && <span className="visit-chip" role="note" aria-label="Status kunjungan">{visitStatusText(visit, mobile)}</span>}
-      {visit?.complaint && <span className="visit-chip" role="note" aria-label="Keluhan pasien">Keluhan: {visit.complaint}</span>}
+      {visit?.complaint && <span className="visit-note" role="note" aria-label="Keluhan pasien"><strong>Keluhan:</strong> {visit.complaint}</span>}
     </>,
   )
 }
