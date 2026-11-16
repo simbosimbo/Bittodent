@@ -4,11 +4,14 @@ namespace Tests\Feature;
 
 use App\Modules\Billing\Models\InvoiceLine;
 use App\Modules\Clinical\Models\ProcedureRecord;
+use App\Modules\Clinical\Models\Visit;
 use App\Modules\Scheduling\Models\Appointment;
 use App\Modules\Scheduling\Models\Chair;
 use App\Shared\Audit\AuditEvent;
 use App\Shared\Tenancy\Ctx;
 use Carbon\CarbonImmutable;
+use Database\Seeders\DatabaseSeeder;
+use PHPUnit\Framework\AssertionFailedError;
 use Tests\TestCase;
 
 // The clinic's customer journey, end to end through the real HTTP API (audit 16-11-2026, docs/audit/2026-11-16-alur-erm.md):
@@ -16,6 +19,20 @@ use Tests\TestCase;
 // Covers the spine that works today. Known gaps are listed in the audit; each fix adds its assertion here.
 class PatientJourneyTest extends TestCase
 {
+    use AssertsReconciled;
+
+    // S9: the seed itself (both demo clinics) must reconcile, so it cannot drift.
+    public function test_fresh_seed_is_reconciled(): void
+    {
+        $this->assertReconciled();
+        // R7 is not zero on purpose: these demo codes stay unpriced so "Tindakan tanpa harga" (S1) has something to show and tests
+        // can drive the waiting path. A newly mapped code without a price must be added here deliberately.
+        $unpriced = ['23.11', '23.3', '23.41', '23.42', '23.43', '23.5', '23.6', '23.70', '23.71'];
+        foreach ([$this->tenantA(), $this->tenantB()] as $t) {
+            $this->assertSame($unpriced, Ctx::runAs($t->id, fn () => $this->unpricedMappedCodes()), $t->name);
+        }
+    }
+
     public function test_gigi_berlubang_from_arrival_to_paid(): void
     {
         $desk = 'depan@senyum.test';
@@ -60,6 +77,7 @@ class PatientJourneyTest extends TestCase
             $this->assertSame(1, InvoiceLine::whereIn('procedure_id', $done)->count());
             $this->assertFalse(AuditEvent::get()->contains(fn ($e) => str_contains(json_encode($e->detail), 'ngilu'))); // never logged
         });
+        $this->assertReconciled();
     }
 
     // S1: finished work whose price is not set yet never loses the record and never dead-ends: signed, visit waits, owner prices it, close bills it.
@@ -74,6 +92,7 @@ class PatientJourneyTest extends TestCase
         $r = $this->as($doc)->postJson("/api/visits/$visit/selesai", ['revision' => 1, 'confirm' => true, 'accept_warnings' => true, 'reason' => 'Diagnosis ditulis di catatan.']);
         $this->assertSame(409, $r->status(), $r->getContent());
         $r->assertJsonPath('error', 'invoice_required')->assertJsonPath('signed', true);
+        $this->assertReconciled(); // signed + open + empty invoice is the legitimate "menunggu harga" state (R4/R5 exception)
 
         $this->as('pemilik@senyum.test')->postJson('/api/tariffs', ['procedure_code' => $code, 'name' => 'Mahkota porselen (uji)', 'price_rp' => 2500000])->assertCreated();
         $this->as('pemilik@senyum.test')->postJson('/api/tariffs', ['procedure_code' => $code, 'name' => 'Lagi', 'price_rp' => 1])->assertConflict();
@@ -81,6 +100,7 @@ class PatientJourneyTest extends TestCase
 
         $row = collect($this->as('kasir@senyum.test')->getJson('/api/billing/invoices')->assertOk()->json('invoices'))->firstWhere('visit_id', $visit);
         $this->assertSame(2500000, $row['balance_rp']);
+        $this->assertReconciled();
     }
 
     // S2: the dentist picks the stage/level done today (labels only, no prices); the kasir line carries that level's price and label.
@@ -99,6 +119,7 @@ class PatientJourneyTest extends TestCase
         $row = collect($this->as('kasir@senyum.test')->getJson('/api/billing/invoices')->assertOk()->json('invoices'))->firstWhere('visit_id', $visit);
         $this->assertStringContainsString('('.$stages[1]['label'].')', $row['items'][0]);
         $this->assertSame(350000, $row['balance_rp']);
+        $this->assertReconciled();
     }
 
     // S3: the dentist records the procedure (cabut 46), the odontogram fills itself ("hilang"), and the kasir bills it (audit P0-2).
@@ -115,6 +136,7 @@ class PatientJourneyTest extends TestCase
         $this->assertCount(1, $row['items']);
         $this->assertStringContainsString('46', $row['items'][0]);
         $this->assertSame(150000, $row['balance_rp']);
+        $this->assertReconciled();
     }
 
     // S2: an unpriced procedure can get its stages at creation, so they apply today (not from tomorrow).
@@ -142,5 +164,64 @@ class PatientJourneyTest extends TestCase
         $this->as($desk)->postJson("/api/appointments/$appt/transition", ['to' => 'checked_in', 'complaint' => 'Gusi bengkak sejak kemarin'])->assertOk();
         $visit = collect($this->as($doc)->getJson("/api/patients/$patient/chart")->assertOk()->json('visits'))->firstWhere('status', 'berlangsung');
         $this->assertSame('Gusi bengkak sejak kemarin', $visit['complaint']);
+    }
+
+    // S9: appointment -> cabut 48 at the "Sulit" stage -> Selesai: the appointment is done (R3) and the line carries the stage price.
+    public function test_appointment_cabut_with_stage_reconciles(): void
+    {
+        $desk = 'depan@senyum.test';
+        $doc = 'dokter@senyum.test';
+        $patient = $this->as($desk)->postJson('/api/patients', ['name' => 'Eko Uji Cabut Sulit', 'dob' => '1975-04-09', 'sex' => 'laki_laki'])->assertCreated()->json('id');
+        $chair = Ctx::runAs($this->tenantA()->id, fn () => Chair::orderBy('label')->firstOrFail()->id);
+        $at = CarbonImmutable::now('Asia/Jakarta')->setTime(21, 0);
+        $appt = $this->as($desk)->postJson('/api/appointments', ['patient_id' => $patient, 'chair_id' => $chair, 'dentist_id' => $this->user($doc)->id,
+            'starts_at' => $at->toIso8601String(), 'ends_at' => $at->addMinutes(45)->toIso8601String(), 'reason' => 'Cabut'])->assertCreated()->json('id');
+        $this->as($desk)->postJson("/api/appointments/$appt/transition", ['to' => 'checked_in', 'complaint' => 'Gigi bungsu sakit'])->assertOk();
+        $visit = $this->as($doc)->postJson("/api/appointments/$appt/visit")->assertCreated()->json('id');
+        $this->as($doc)->postJson("/api/visits/$visit/tooth-entries", ['tooth' => 48, 'procedure_code' => '23.09', 'status' => 'selesai', 'variant' => 'sulit'])->assertCreated();
+        $this->as($doc)->putJson("/api/visits/$visit/note", ['soap' => ['S' => 'Gigi bungsu sakit.', 'O' => 'Gigi 48 impaksi sebagian.']])->assertOk();
+        $this->as($doc)->postJson("/api/visits/$visit/selesai", ['revision' => 1, 'confirm' => true, 'accept_warnings' => true, 'reason' => 'Diagnosis ditulis di catatan.'])->assertOk();
+        $row = collect($this->as('kasir@senyum.test')->getJson('/api/billing/invoices')->assertOk()->json('invoices'))->firstWhere('visit_id', $visit);
+        $this->assertSame(300000, $row['balance_rp']);
+        $this->assertReconciled();
+    }
+
+    // S9: front desk registers a walk-in with a complaint; Selesai without work is refused (no_billable_work); a Kontrol 89.31 at Rp0 bills and closes.
+    public function test_walk_in_check_up_only_bills_kontrol_rp0_and_reconciles(): void
+    {
+        $doc = 'dokter@senyum.test';
+        $patient = $this->as('depan@senyum.test')->postJson('/api/patients', ['name' => 'Fitri Uji Kontrol', 'dob' => '1995-09-14', 'sex' => 'perempuan'])->assertCreated()->json('id');
+        $visit = $this->as('depan@senyum.test')->postJson("/api/patients/$patient/visits/walk-in", ['dentist_id' => $this->user($doc)->id, 'complaint' => 'Kontrol pasca cabut'])
+            ->assertCreated()->json('id');
+        $this->assertSame('Kontrol pasca cabut', $this->as($doc)->getJson("/api/patients/$patient/chart")->json('visits.0.complaint'));
+        $this->as($doc)->putJson("/api/visits/$visit/note", ['soap' => ['S' => 'Kontrol pasca cabut.', 'O' => 'Soket menutup baik.']])->assertOk();
+        $this->as($doc)->postJson("/api/visits/$visit/selesai", ['revision' => 1, 'confirm' => true])->assertConflict()->assertJsonPath('error', 'no_billable_work');
+        $this->assertReconciled(); // refused: nothing signed, visit still open, no invoice
+
+        $this->as($doc)->postJson("/api/visits/$visit/procedures", ['procedure_code' => '89.31', 'variant' => 'kontrol', 'status' => 'selesai'])->assertCreated();
+        $this->as($doc)->postJson("/api/visits/$visit/selesai", ['revision' => 1, 'confirm' => true, 'accept_warnings' => true, 'reason' => 'Diagnosis ditulis di catatan.'])->assertOk();
+        $this->as('kasir@senyum.test')->getJson("/api/visits/$visit/invoice")->assertOk()->assertJsonPath('balance_rp', 0)->assertJsonPath('status', 'lunas');
+        $this->assertReconciled();
+    }
+
+    // S9: the check is not vacuous: a visit closed behind the guard's back (finished, coded work, no invoice) fails R1 and R6 by id.
+    public function test_reconciliation_names_the_broken_invariant(): void
+    {
+        $doc = $this->user('dokter@senyum.test');
+        [$visit, $proc] = Ctx::runAs($this->tenantA()->id, function () use ($doc) {
+            $v = Visit::create(['patient_id' => $this->patientOf($this->tenantA())->id, 'branch_id' => Chair::firstOrFail()->branch_id, 'dentist_id' => $doc->id,
+                'started_at' => now(), 'ended_at' => now(), 'status' => 'selesai']);
+
+            return [$v->id, DatabaseSeeder::procedure($v, 36, 'O', 'selesai', '23.2', null, 'final', $doc)->id];
+        });
+        try {
+            $this->assertReconciled();
+        } catch (AssertionFailedError $e) {
+            $this->assertStringContainsString("R1 kunjungan selesai, tindakan selesai berkode tanpa baris tagihan\": [\n        \"$proc\"", $e->getMessage());
+            $this->assertStringContainsString("R6 kunjungan selesai tanpa tagihan\": [\n        \"$visit\"", $e->getMessage());
+
+            return;
+        }
+        $this->fail('assertReconciled accepted a closed visit with unbilled work');
     }
 }
