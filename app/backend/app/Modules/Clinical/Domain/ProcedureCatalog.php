@@ -33,6 +33,7 @@ final class ProcedureCatalog
         '23.70' => ['tooth', 'RCT', 'Perawatan saluran akar', 'Perawatan akar gigi', ['rct']],
         '23.71' => ['tooth', 'RCT', 'Perawatan saluran akar dengan irigasi', 'Perawatan akar gigi', ['rct']],
         '96.54' => ['mouth', 'Text', 'Scaling', 'Pembersihan karang gigi', []],
+        '89.31' => ['mouth', 'Text', 'Pemeriksaan gigi', 'Konsultasi / kontrol', []],
     ];
 
     /** Idempotent for the current tenant (Ctx): existing rows are left as the clinic edited them. Fails closed on a non-official code. */

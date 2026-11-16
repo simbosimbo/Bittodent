@@ -67,21 +67,21 @@ class TariffRulesTest extends TestCase
     public function test_specialist_rule_preview_apply_audit_disable(): void
     {
         $preview = $this->rule(self::SP30, true)->assertOk()->assertJsonPath('dry_run', true)->json();
-        $this->assertSame(10, $preview['affected']); // every Umum row of the template
+        $this->assertSame(12, $preview['affected']); // every Umum row of the template
         $this->assertSame([250000, 325000, 'rule'], array_values(array_intersect_key($this->row($preview['rows'], '23.2'),
             array_flip(['before_rp', 'after_rp', 'source']))));
         $this->inA(fn () => $this->assertSame(0, TariffRule::count()));
         $this->assertSame(250000, $this->price('specialist'));
 
-        $this->rule(self::SP30)->assertOk()->assertJsonPath('dry_run', false)->assertJsonPath('affected', 10);
+        $this->rule(self::SP30)->assertOk()->assertJsonPath('dry_run', false)->assertJsonPath('affected', 12);
         $this->assertSame([325000, 250000, 455000], [$this->price('specialist'), $this->price('general'), $this->price('specialist', null, '23.2', 'p2')]);
         $this->assertSame(['specialist', true], [$this->quote('specialist')['band'], $this->quote('specialist')['derived']]);
         $this->assertSame(250000, $this->inA(fn () => app(PriceLookup::class)->priceFor('23.2', 'standar', CarbonImmutable::now())));
         $detail = $this->inA(fn () => AuditEvent::where('action', 'tarif_aturan_diubah')->sole()->detail);
-        $this->assertSame([null, 30, 10, 'specialist'], [$detail['old'], $detail['new']['value'], $detail['affected'], $detail['band']]);
+        $this->assertSame([null, 30, 12, 'specialist'], [$detail['old'], $detail['new']['value'], $detail['affected'], $detail['band']]);
 
         $off = $this->rule(['band' => 'specialist', 'enabled' => false])->assertOk()->json();
-        $this->assertSame([10, 'fallback', 250000], [$off['affected'], $this->row($off['rows'], '23.2')['source'], $this->price('specialist')]);
+        $this->assertSame([12, 'fallback', 250000], [$off['affected'], $this->row($off['rows'], '23.2')['source'], $this->price('specialist')]);
         $this->inA(fn () => $this->assertSame([1, false], [TariffRule::count(), TariffRule::sole()->enabled])); // kept, not deleted
         $this->inA(fn () => $this->assertSame(2, AuditEvent::where('action', 'tarif_aturan_diubah')->count()));
     }
@@ -90,7 +90,7 @@ class TariffRulesTest extends TestCase
     {
         $this->as(self::OWNER)->putJson('/api/tariffs/rates', ['procedure_code' => '23.2', 'variant' => 'standar', 'band' => 'specialist',
             'price_rp' => 300000, 'valid_from' => now()->toDateString()])->assertOk();
-        $rows = $this->rule(self::SP30)->assertOk()->assertJsonPath('affected', 9)->json('rows');
+        $rows = $this->rule(self::SP30)->assertOk()->assertJsonPath('affected', 11)->json('rows');
         $this->assertSame(['cell', 300000], [$this->row($rows, '23.2')['source'], $this->row($rows, '23.2')['after_rp']]);
         $this->assertSame([300000, false, 455000], [$this->price('specialist'), $this->quote('specialist')['derived'], $this->price('specialist', null, '23.2', 'p2')]);
     }
@@ -119,7 +119,7 @@ class TariffRulesTest extends TestCase
             ->assertOk()->assertJsonPath('affected', 3);
         $this->assertSame([220000, 250000], [$this->price('specialist', null, '96.54'), $this->price('specialist')]);
 
-        $this->rule(self::SP30)->assertOk()->assertJsonPath('affected', 7); // the 3 scaling rows keep their more specific rule
+        $this->rule(self::SP30)->assertOk()->assertJsonPath('affected', 9); // the 3 scaling rows keep their more specific rule
         $this->assertSame([220000, 325000], [$this->price('specialist', null, '96.54'), $this->price('specialist')]);
 
         $this->rule(['band' => 'specialist', 'procedure_code' => '96.54', 'variant' => 'berat', 'enabled' => true, 'kind' => 'amount', 'value' => 0, 'rounding' => 'none'])
