@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ApiError, hasCsrfCookie } from './shared/api/http'
 import { clearActivePatients, useActivePatient } from './shared/activePatient'
+import { clearLetterhead } from './shared/letterhead'
 import { pageTitle, Shell, withActivePatientHref, type NavItem } from './shared/layout/Shell'
 import type { Me } from './shared/session'
 import { ComingSoon } from './shared/ui/ComingSoon'
@@ -86,7 +87,7 @@ function StaffApp() {
 
   useEffect(() => {
     load()
-    const out = () => { setMe(null); clearActivePatients(); setState('guest') }
+    const out = () => { setMe(null); clearActivePatients(); clearLetterhead(); setState('guest') }
     addEventListener('ehr:unauthorized', out)
     return () => removeEventListener('ehr:unauthorized', out)
   }, [load])
@@ -95,6 +96,7 @@ function StaffApp() {
     await apiLogout().catch(() => null)
     setMe(null)
     clearActivePatients()
+    clearLetterhead()
     setState('guest')
     location.hash = '/'
   }

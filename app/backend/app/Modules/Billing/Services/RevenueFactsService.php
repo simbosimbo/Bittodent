@@ -33,7 +33,8 @@ final class RevenueFactsService implements RevenueFacts
 
     public function receivables(string $branchId): array
     {
-        $open = Invoice::where('branch_id', $branchId)->where('status', 'terbuka')->orderBy('created_at')->limit(500)->get();
+        // every open invoice: the report totals are summed from this list (a cap here understated piutang); the list shown is capped by the caller
+        $open = Invoice::where('branch_id', $branchId)->where('status', 'terbuka')->orderBy('created_at')->get();
         $items = InvoiceLine::whereIn('invoice_id', $open->pluck('id'))->get(['invoice_id', 'procedure_name', 'procedure_code'])->groupBy('invoice_id');
 
         return $open->map(fn ($i) => ['patient_id' => $i->patient_id, 'created_at' => $i->created_at->toIso8601ZuluString(),

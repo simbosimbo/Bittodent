@@ -58,7 +58,7 @@ class RevenueReportController extends Controller
                 ->sortByDesc('amount_rp')->values(),
             'receivables' => $owed->map(fn ($r) => ['patient_name' => $patientNames[$r['patient_id']] ?? 'Pasien',
                 'days' => (int) CarbonImmutable::parse($r['created_at'])->setTimezone($tz)->startOfDay()->diffInDays($today), 'items' => $r['items'],
-                'amount_rp' => $r['balance_rp']])->sortByDesc('days')->values(),
+                'amount_rp' => $r['balance_rp']])->sortByDesc('days')->take(500)->values(), // shown list only; receivable_rp counts every open invoice
             'shift_differences' => $shifts->map(fn ($s) => ['user_name' => $userNames[$s['user_id']] ?? 'Kasir', 'closed_at' => $s['closed_at'],
                 'difference_rp' => $s['difference_rp'], 'reason' => $s['reason']])->values(),
         ]);

@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react'
 import { api } from './api/http'
 
 // Kop (boards KL05/KL09/KL11): one logo + clinic name for every branch, address/phone of the given branch, NPWP and licence.
-// Read by every clinic role (GET /api/clinic/letterhead); cached for the page life, refreshed after the owner saves the profile.
+// Read by every clinic role (GET /api/clinic/letterhead); cached per session, refreshed after the owner saves the profile and
+// dropped on logout (clearLetterhead), so the next clinic signed in on this tab never prints the previous clinic's kop.
 export type Letterhead = { name: string; phone: string | null; email: string | null; npwp: string | null; license_no: string | null
   receipt_paper_mm: 58 | 80; has_logo: boolean; branches: { id: string; name: string; address: string | null; phone: string | null }[] }
 let cache: Promise<Letterhead> | null = null
 export const loadLetterhead = (fresh = false) =>
   (cache && !fresh ? cache : (cache = api<Letterhead>('/api/clinic/letterhead').catch((e) => { cache = null; throw e })))
+export const clearLetterhead = () => { cache = null }
 export function useLetterhead() {
   const [l, setL] = useState<Letterhead | null>(null)
   useEffect(() => { loadLetterhead().then(setL, () => setL(null)) }, [])
