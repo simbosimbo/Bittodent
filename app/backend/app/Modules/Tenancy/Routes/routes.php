@@ -12,4 +12,7 @@ Route::middleware(['auth:sanctum', '2fa', 'tenant'])->group(function () {
     Route::get('/settings/clinic', [ClinicSettingsController::class, 'show'])->middleware('perm:settings.manage');
     Route::put('/settings/clinic', [ClinicSettingsController::class, 'update'])->middleware('perm:settings.manage');
     Route::put('/settings/branches/{id}', [ClinicSettingsController::class, 'updateBranch'])->middleware('perm:settings.manage');
+    Route::post('/settings/clinic/logo', [ClinicSettingsController::class, 'uploadLogo'])->middleware('perm:settings.manage');
+    Route::get('/clinic/letterhead', [ClinicSettingsController::class, 'letterhead']); // KL05/KL09 kop: every clinic role
+    Route::get('/clinic/logo', [ClinicSettingsController::class, 'logo']);
 });

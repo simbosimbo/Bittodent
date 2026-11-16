@@ -99,6 +99,9 @@ class ProcedureController extends Controller
             if ($e = self::notCurrent($p)) {
                 return $e;
             }
+            if ($d['to'] === ProcedureStatus::BILLABLE && $p->procedure_code === null) {
+                return self::needsCode();
+            }
             if (! ProcedureStatus::canMove($p->status, $d['to'])) {
                 return response()->json(['error' => 'invalid_transition', 'message' => "Status tidak bisa berpindah dari {$p->status} ke {$d['to']}."], 409);
             }
@@ -441,10 +444,23 @@ class ProcedureController extends Controller
         return $d;
     }
 
+    /**
+     * A finished procedure without an ICD-9-CM code can never be billed (no tariff line, no invoice): the patient would leave
+     * without paying while the screen says "antrean bayar" (E2E 16-11-2026). Code is required for `selesai`.
+     */
+    private static function needsCode(): JsonResponse
+    {
+        return response()->json(['message' => 'Tindakan selesai wajib punya kode ICD-9-CM agar masuk tagihan. Ketuk tindakan cepat (mis. Tambal) atau isi kodenya.',
+            'errors' => ['procedure_code' => ['Wajib untuk tindakan selesai.']]], 422);
+    }
+
     /** Validated columns, or an error response. */
     private static function attributes(array $d, Visit $visit, TenancyDirectory $tenancy, ?string $self = null): array|JsonResponse
     {
         $code = $d['procedure_code'] ?? null;
+        if ($d['status'] === ProcedureStatus::BILLABLE && $code === null) {
+            return self::needsCode();
+        }
         $def = $code === null ? null : ProcedureDefinition::where('procedure_code', $code)->first();
         [$loc, $e] = ProcedureLocation::resolve($d, $def);
         if ($e) {

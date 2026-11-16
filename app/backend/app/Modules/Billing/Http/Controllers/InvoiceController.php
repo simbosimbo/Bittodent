@@ -60,12 +60,16 @@ class InvoiceController extends Controller
             ->where(fn ($q) => $q->where('status', 'terbuka')
                 ->orWhere(fn ($q) => $q->where('created_at', '>=', $day->utc())->where('created_at', '<', $day->addDay()->utc())))
             ->orderByDesc('created_at')->limit(100)->get();
-        $names = collect($patients->namesByIds($rows->pluck('patient_id')->unique()->values()->all()))->pluck('name', 'id');
+        $people = collect($patients->namesByIds($rows->pluck('patient_id')->unique()->values()->all()))->keyBy('id');
+        // KL01 card line "Tumpatan 26 · Scaling": names + tooth of the billed lines, one query for the whole list.
+        $items = InvoiceLine::whereIn('invoice_id', $rows->pluck('id'))->orderBy('created_at')->get(['invoice_id', 'procedure_name', 'procedure_code', 'tooth'])
+            ->groupBy('invoice_id')->map(fn ($ls) => $ls->map(fn ($l) => trim(($l->procedure_name ?? $l->procedure_code).' '.$l->tooth))->values());
         Audit::log('baca', 'invoice_list', null, ['branch_id' => $ctx->branchId, 'date' => $day->toDateString(), 'count' => $rows->count()]);
 
         return response()->json(['date' => $day->toDateString(), 'branch_id' => $ctx->branchId,
             'invoices' => $rows->map(fn (Invoice $inv) => [...$inv->only(['id', 'visit_id', 'patient_id', 'status', 'created_at']),
-                'patient_name' => $names[$inv->patient_id] ?? null, ...Ledger::totals($inv)])->values()]);
+                'patient_name' => $people[$inv->patient_id]['name'] ?? null, 'payer_type' => $people[$inv->patient_id]['payer_type'] ?? 'umum',
+                'items' => $items[$inv->id] ?? [], ...Ledger::totals($inv)])->values()]);
     }
 
     /**

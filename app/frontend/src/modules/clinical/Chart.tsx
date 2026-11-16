@@ -603,7 +603,9 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
     try {
       await selesaiVisit(visit.id, { revision: draft.revision, confirm: true, ...(pin ? { pin } : {}), ...(reason ? { accept_warnings: true, reason } : {}) })
       setSigning(null)
-      setMsg('Selesai: rekam medis terkunci, pasien masuk antrean bayar.')
+      // only promise the cashier queue when this visit really has billed work (a coded selesai procedure)
+      const billed = procs.some((x) => x.visit_id === visit.id && x.status === 'selesai' && x.procedure_code)
+      setMsg(billed ? 'Selesai: rekam medis terkunci, pasien masuk antrean bayar.' : 'Selesai: rekam medis terkunci. Tidak ada tindakan yang ditagih.')
       setBillFor(visit.id)
       // The chair is free too: move the appointment to done (best effort; the server checks the transition + permission).
       if (appointmentId && can('appointment.transition')) await appointmentDone(appointmentId).catch(() => undefined)
@@ -629,6 +631,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const only = pick && allFor !== pick.tooth ? pick.tooth : null
   const shownItems = only ? items.filter((f) => f.tooth === only) : items
   const shownProcs = only ? procs.filter((x) => x.tooth === only) : procs
+  const needsCode = status === 'selesai' && !procCode.trim() // a finished procedure without a code can never be billed (E2E 16-11-2026)
   const saveWhy = !visit ? 'Belum ada kunjungan aktif. Mulai kunjungan dulu.' : !editable ? readOnlyWhy
     : !chosen ? 'Pilih kondisi terlebih dahulu' : ''
   const center: Surface | null = pick && (isAnterior(pick.tooth) ? 'I' : 'O')
@@ -670,8 +673,8 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
           </div>
           {(!mobile || manualOpen) && <div className="cond-row" role="group" aria-label="Tindakan">
             <span className="muted small">Tindakan:</span>
-            <label className="small">Kode ICD-9-CM <input className="mono" size={6} value={procCode} placeholder="23.2" onChange={(e) => setProcCode(e.target.value)} /></label>
-            <label className="small">Diagnosis ICD-10 <input className="mono" size={6} value={procDx} placeholder="K02.1" onChange={(e) => setProcDx(e.target.value)} /></label>
+            <label className="small">Kode ICD-9-CM <input className="mono" size={6} value={procCode} placeholder="mis. 23.2" onChange={(e) => setProcCode(e.target.value)} /></label>
+            <label className="small">Diagnosis ICD-10 <input className="mono" size={6} value={procDx} placeholder="mis. K02.1" onChange={(e) => setProcDx(e.target.value)} /></label>
             <label className="small">Status <select value={status} onChange={(e) => setStatus(e.target.value as ProcStatus)}>
               {CHOOSABLE.map((x) => <option key={x.key} value={x.key}>{x.label}</option>)}
             </select></label>
@@ -688,7 +691,9 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
                   : selesaiToday.length > 0 && <span className="notice notice-warn small">Kunjungan ini sudah ada tindakan selesai hari ini: perlu konfirmasi resepsionis/asisten.</span>}
               </>
             )}
-            <button className="btn btn-xs btn-primary" onClick={record} disabled={extBlocked || (external && (!extClinic.trim() || !extDate.trim()))}>Simpan tindakan{surfaces ? ` (${[...surfaces].map((sf) => surfaceLabel(pick.tooth, sf as Surface)).join('')})` : ' (seluruh gigi)'}</button>
+            {needsCode && <span className="muted small" id="proc-code-hint">Tindakan selesai perlu kode ICD-9-CM agar ditagih. Ketuk tindakan cepat di atas atau isi kodenya.</span>}
+            <button className="btn btn-xs btn-primary" onClick={record} aria-describedby={needsCode ? 'proc-code-hint' : undefined}
+              disabled={needsCode || extBlocked || (external && (!extClinic.trim() || !extDate.trim()))}>Simpan tindakan{surfaces ? ` (${[...surfaces].map((sf) => surfaceLabel(pick.tooth, sf as Surface)).join('')})` : ' (seluruh gigi)'}</button>
           </div>}
           <div className="cond-row">
             <span className="muted small">Kondisi permukaan:</span>
@@ -740,7 +745,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   )
   return page(
     <div className="chart-actions">
-      {can('appointment.create') && <a className="btn btn-primary" href="#/jadwal">Buat janji</a>}
+      {can('appointment.create') && <a className="btn btn-primary" href={`#/jadwal?baru=${encodeURIComponent(patientId)}`}>Buat janji</a>}
     </div>,
     (pp: PatientFull) => <>
       {msg && <p className="notice" role="status">{msg}</p>}

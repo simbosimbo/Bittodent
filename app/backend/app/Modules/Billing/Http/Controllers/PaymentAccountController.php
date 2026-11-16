@@ -5,6 +5,7 @@ namespace App\Modules\Billing\Http\Controllers;
 use App\Modules\Billing\Models\PaymentAccount;
 use App\Modules\Tenancy\Contracts\TenancyDirectory;
 use App\Shared\Audit\Audit;
+use App\Shared\Files\PrivateImage;
 use App\Shared\Http\Controller;
 use App\Shared\Tenancy\Ctx;
 use Illuminate\Http\Request;
@@ -21,7 +22,7 @@ class PaymentAccountController extends Controller
     {
         return response()->json(PaymentAccount::orderBy('name')->get()
             ->filter(fn ($a) => $a->branch_id === null || Ctx::current()->coversBranch($a->branch_id))
-            ->map->only(self::FIELDS)->values());
+            ->map(fn ($a) => self::out($a))->values());
     }
 
     /** POST /api/payment-accounts {name, kind, branch_id?, bank_name?, account_last4?} */
@@ -43,7 +44,7 @@ class PaymentAccountController extends Controller
         $a = PaymentAccount::create([...$d, 'created_by' => Ctx::current()->userId]);
         Audit::log('akun_bayar_dibuat', 'payment_account', $a->id, ['kind' => $a->kind, 'branch_id' => $a->branch_id]);
 
-        return response()->json($a->fresh()->only(self::FIELDS), 201);
+        return response()->json(self::out($a->fresh()), 201);
     }
 
     /** PATCH /api/payment-accounts/{id} {name?, is_active?} */
@@ -60,7 +61,40 @@ class PaymentAccountController extends Controller
         $a->update($d);
         Audit::log(($d['is_active'] ?? true) ? 'akun_bayar_diubah' : 'akun_bayar_dinonaktifkan', 'payment_account', $a->id, ['changed' => array_keys($d)]);
 
-        return response()->json($a->only(self::FIELDS));
+        return response()->json(self::out($a));
+    }
+
+    /** POST /api/payment-accounts/{id}/qris-image (multipart image): static QRIS photo of a QRIS account (KL12), owner. */
+    public function uploadQris(Request $request, string $id)
+    {
+        $request->validate(['image' => PrivateImage::RULES]);
+        $a = self::covered($id);
+        if ($a->kind !== 'qris') {
+            return response()->json(['message' => 'Foto QRIS hanya untuk akun QRIS.', 'errors' => ['image' => ['Bukan akun QRIS.']]], 422);
+        }
+        $a->update(['qris_image_path' => PrivateImage::store($request->file('image'), $a->tenant_id, 'qris')]);
+        Audit::log('akun_bayar_diubah', 'payment_account', $a->id, ['changed' => ['qris_image']]);
+
+        return response()->json(self::out($a));
+    }
+
+    /** GET /api/payment-accounts/{id}/qris-image: shown to the patient at the cashier (KL04). */
+    public function qrisImage(string $id)
+    {
+        return PrivateImage::serve(self::covered($id)->qris_image_path);
+    }
+
+    private static function covered(string $id): PaymentAccount
+    {
+        $a = PaymentAccount::findOrFail($id);
+        abort_if($a->branch_id !== null && ! Ctx::current()->coversBranch($a->branch_id), 403);
+
+        return $a;
+    }
+
+    private static function out(PaymentAccount $a): array
+    {
+        return [...$a->only(self::FIELDS), 'has_qris_image' => (bool) $a->qris_image_path];
     }
 
     /** Strict allow-list: a stray field (e.g. a typed nomor rekening) is rejected, never silently stored or ignored. */

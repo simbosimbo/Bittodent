@@ -540,3 +540,7 @@ label.check input { min-height: 0; }
 @media (max-width: 720px) { /* #70: the follow-up buttons after Selesai / on the Tagihan are thumb targets too */
   .rm-done .btn, .kwitansi-actions .btn { min-height: 48px; display: inline-flex; align-items: center; }
 }
+
+/* Kop (shared/letterhead.tsx): logo 1:1 + clinic name, branch address, contact. */
+.kop { display: flex; gap: 12px; align-items: center; }
+.kop-logo { width: 48px; height: 48px; object-fit: contain; flex: none; }

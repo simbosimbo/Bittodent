@@ -8,7 +8,7 @@ import { useDialog } from '../../shared/ui/Sheet'
 import { Presence, usePresenceClass } from '../../shared/ui/presence'
 import { PageSkeleton } from '../../shared/ui/Skeleton'
 import { useIsMobile } from '../../shared/useIsMobile'
-import { PatientPicker } from '../patients'
+import { getPatient, PatientPicker } from '../patients'
 import './scheduling.css'
 import { changeChair, createAppointment, getPlanned, refer, getSchedule, schedulePlanned, STATUS, transition, undoCheckin, type Appointment, type Planned, type Schedule as Sched } from './api'
 import { Agenda, ApptSheet, ChairSheet, DaySummary, ModeToggle, PayPrompt, ReferSheet, RescheduleSheet, Toast, useInvoiceStatus, useJadwalMode, type Act } from './MobileJadwal'
@@ -137,10 +137,16 @@ export function useSchedule(branchId: string | null, date: string) {
   return { data, error, loading, reload }
 }
 
-export default function Schedule({ me }: { me: Me }) {
+export default function Schedule({ me, newFor = null }: { me: Me; newFor?: string | null }) {
   const [date, setDate] = useState(todayWib)
   const { data, error, loading, reload } = useSchedule(me.active.branch_id, date)
-  const [dialog, setDialog] = useState<{ dentistId?: string; minute?: number } | null>(null)
+  const [dialog, setDialog] = useState<{ dentistId?: string; minute?: number; patientId?: string } | null>(null)
+  // "Buat janji" from a patient's RM lands here with ?baru=<patient id>: open the booking form for that patient right away.
+  useEffect(() => {
+    if (!newFor) return
+    setDialog({ patientId: newFor })
+    history.replaceState(null, '', '#/jadwal') // a reload or Back does not reopen it
+  }, [newFor])
   const [actionError, setActionError] = useState('')
   // Same checks the API enforces; actions an impersonation session blocks are hidden too (never shown disabled).
   const blocked = me.impersonation?.blocked_actions ?? []
@@ -605,9 +611,10 @@ function freeChair(s: Sched, minute: number) {
 }
 
 function BookDialog({ sched, date, me, initial, onClose, onSaved }: {
-  sched: Sched; date: string; me: Me; initial: { dentistId?: string; minute?: number }; onClose: () => void; onSaved: () => void
+  sched: Sched; date: string; me: Me; initial: { dentistId?: string; minute?: number; patientId?: string }; onClose: () => void; onSaved: () => void
 }) {
   const [patient, setPatient] = useState<{ id: string; name: string } | null>(null)
+  useEffect(() => { if (initial.patientId) getPatient(initial.patientId).then((p) => setPatient({ id: p.id, name: p.name }), () => null) }, [initial.patientId])
   const [minute, setMinute] = useState(initial.minute ?? 9 * 60)
   // Columns are dentists: a tapped slot presets the dentist; the chair defaults to the first one free at that start (server re-checks).
   const [chairId, setChairId] = useState(() => freeChair(sched, initial.minute ?? 9 * 60) ?? sched.chairs[0]?.id ?? '')

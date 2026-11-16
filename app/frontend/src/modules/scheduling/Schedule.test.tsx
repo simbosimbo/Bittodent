@@ -160,6 +160,18 @@ test('HP Grid: hari kosong menampilkan pesan, grid tetap bisa diklik', async () 
   expect(await screen.findByRole('dialog', { name: 'Buat Janji' })).toBeInTheDocument()
 })
 
+test('"Buat janji" from the RM (?baru=<patient>) opens the booking form with that patient already chosen', async () => {
+  vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+    if (url.startsWith('/api/schedule')) return json(sched([]))
+    if (url.startsWith('/api/planned-appointments')) return json({ data: [] })
+    if (url === '/api/patients/p9') return json({ id: 'p9', name: 'Bayu Contoh' })
+    throw new Error('unexpected ' + url)
+  }))
+  render(<Schedule me={ME} newFor="p9" />)
+  const dlg = await screen.findByRole('dialog', { name: 'Buat Janji' })
+  expect(await within(dlg).findByText('Bayu Contoh')).toBeInTheDocument()
+})
+
 // ---- Mobile action sheet ----
 function mockOne(list: () => unknown[]) {
   const posts: { url: string; body: any }[] = []

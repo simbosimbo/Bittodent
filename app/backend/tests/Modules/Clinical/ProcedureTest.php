@@ -82,9 +82,27 @@ class ProcedureTest extends TestCase
             $this->proc($visit, ['tooth' => [14, 15, 24, 25, 34, 35][$i], 'surfaces' => 'O', 'procedure_code' => '23.2', 'status' => $status]
                 + ($status === 'external' ? ['external_clinic_name' => 'Klinik Contoh Lain', 'external_date' => '06/2025'] : []))->assertCreated();
         }
-        $this->proc($visit, ['tooth' => 36, 'treat_area' => 'tooth', 'status' => 'selesai'])->assertCreated(); // no code: nothing to bill
-        $this->sign($visit)->assertOk()->assertJsonPath('procedures_locked', 7);
+        // a finished procedure needs its ICD-9-CM code: without it nothing could be billed (E2E 16-11-2026: patient left unbilled)
+        $this->proc($visit, ['tooth' => 36, 'treat_area' => 'tooth', 'status' => 'selesai'])->assertUnprocessable()->assertJsonValidationErrors('procedure_code');
+        $this->sign($visit)->assertOk()->assertJsonPath('procedures_locked', 6);
         $this->assertCount(0, $this->lines($visit));
+    }
+
+    public function test_selesai_without_code_never_slips_through_status_change_or_legacy_rows(): void
+    {
+        // planned without a code is fine; moving it to selesai is not (it could never be billed)
+        $visit = $this->draftVisit();
+        $planned = $this->proc($visit, ['tooth' => 26, 'treat_area' => 'tooth', 'status' => 'direncanakan'])->assertCreated()->json('id');
+        $this->sign($visit)->assertOk();
+        $this->as(self::DOC)->postJson("/api/procedures/$planned/status", ['to' => 'selesai'])->assertUnprocessable()->assertJsonValidationErrors('procedure_code');
+
+        // a legacy code-less selesai row (saved before the rule) keeps the visit open instead of closing it with no invoice
+        $legacy = $this->draftVisit();
+        $this->proc($legacy, ['tooth' => 36, 'surfaces' => 'O', 'procedure_code' => '23.2'])->assertCreated();
+        $this->inA(fn () => ProcedureRecord::where('visit_id', $legacy)->firstOrFail()->update(['procedure_code' => null]));
+        $this->sign($legacy);
+        $this->assertNotSame('selesai', $this->inA(fn () => Visit::findOrFail($legacy)->status));
+        $this->assertCount(0, $this->lines($legacy));
     }
 
     public function test_provider_override_prices_and_snapshots_the_provider_not_the_visit_dentist(): void
@@ -119,7 +137,7 @@ class ProcedureTest extends TestCase
         $bad(['tooth' => 26, 'surfaces' => 'I', 'procedure_code' => '23.2'], 'surfaces');                 // I is anterior only
         $bad(['tooth' => 11, 'surfaces' => 'MO', 'procedure_code' => '23.2'], 'surfaces');                // O is posterior only
         $bad(['tooth' => 26, 'surfaces' => 'O', 'procedure_code' => '23.2', 'treat_area' => 'tooth'], 'treat_area'); // must match catalog
-        $bad(['tooth' => 26], 'treat_area');                                                               // no code, no area
+        $bad(['tooth' => 26, 'status' => 'direncanakan'], 'treat_area');                                   // no code, no area
         $bad(['tooth' => 19, 'procedure_code' => '23.09'], 'tooth');                                       // not FDI
         $bad(['procedure_code' => '96.54', 'tooth' => 11], 'tooth');                                       // whole mouth: no tooth
         $this->proc($visit, ['procedure_code' => '96.54'])->assertCreated()->assertJsonPath('treat_area', 'mouth')->assertJsonPath('tooth', null);

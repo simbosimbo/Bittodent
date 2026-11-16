@@ -66,3 +66,37 @@
   .inv-amount { max-width: none; width: 100%; }
   .inv-lines > summary, .inv-fold > summary { min-height: 48px; }
 }
+
+/* Board KL01-KL05 (kasir-laporan): cards, method grid, change, success. Teal only on the primary button. */
+.kasir-kpi { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); margin-bottom: var(--space-3); }
+.kasir-kpi .card { display: flex; flex-direction: column; gap: 4px; }
+.kasir-kpi strong { font-size: 24px; font-variant-numeric: tabular-nums; }
+.kasir-filter { display: flex; gap: var(--space-2); flex-wrap: wrap; margin-bottom: var(--space-3); }
+.kasir-filter .chip-method { min-height: 48px; }
+.kasir-h { font-size: 15px; margin: var(--space-3) 0 var(--space-2); }
+.kasir-list { display: flex; flex-direction: column; gap: var(--space-2); }
+.kasir-card { display: flex; align-items: center; gap: var(--space-3); min-height: 72px; padding: var(--space-3); border: 1px solid var(--shells-a-color-border);
+  border-radius: var(--radius-md, 12px); background: var(--color-surface, #fff); color: inherit; text-decoration: none; }
+.kasir-card:hover { border-color: var(--color-primary-700); }
+.kasir-amt { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; text-align: right; font-variant-numeric: tabular-nums; }
+.pay-kinds { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); margin-bottom: var(--space-3); }
+.pay-kind { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; min-height: 72px; padding: var(--space-3);
+  border: 1px solid var(--shells-a-color-border); border-radius: var(--radius-md, 12px); background: var(--color-surface, #fff); text-align: left; cursor: pointer; font: inherit; color: inherit; }
+.pay-kind[aria-checked='true'] { border: 2px solid var(--color-primary-700); background: var(--color-primary-50, #fff); }
+.pay-cash { display: flex; gap: var(--space-3); align-items: end; flex-wrap: wrap; margin: var(--space-2) 0; }
+.pay-cash p { margin: 0; min-height: 48px; display: flex; align-items: center; gap: 8px; }
+.paid { text-align: center; display: flex; flex-direction: column; gap: var(--space-2); }
+.paid-actions { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
+.paid .btn { min-height: 48px; }
+@media print { .kwitansi.paper-80 { max-width: 80mm; font-size: 12px; } .kwitansi.paper-58 { max-width: 58mm; font-size: 10px; } } /* KL13 paper from clinic settings */
+.pay-qris { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); }
+.pay-qris img { width: min(100%, 280px); aspect-ratio: 1; object-fit: contain; }
+/* KL06 shift */
+.shift { max-width: 560px; display: flex; flex-direction: column; gap: var(--space-3); }
+.shift-dl { display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; margin: 0; }
+.shift-dl div { display: contents; }
+.shift-dl dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+/* ui review: focus rings on custom controls, readable width on desktop, labelled amount */
+.pay-kind:focus-visible, .kasir-card:focus-visible { outline: 2px solid var(--color-primary-700); outline-offset: 2px; }
+.kasir { max-width: 960px; }
+.inv-amount { display: flex; flex-direction: column; gap: 4px; }

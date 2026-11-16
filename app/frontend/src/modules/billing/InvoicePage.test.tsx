@@ -41,7 +41,7 @@ test('pending Rp0 adjustment: only the owner (billing.approve_zero) sees approve
 
 test('payment methods are only active clinic accounts of this branch; split posts one payment per row', async () => {
   render(<InvoicePage visitId="v1" me={me(['billing.read', 'billing.adjust'])} />)
-  fireEvent.click(await screen.findByRole('button', { name: 'Split' })) // #70: split opens the per-row selects
+  fireEvent.click(await screen.findByRole('button', { name: 'Pecah pembayaran' })) // KL03: split opens the per-row selects
   const m1 = await screen.findByRole('combobox', { name: 'Metode 1' })
   await screen.findByRole('option', { name: /Kas Kemang/ })
   expect(within(m1).getAllByRole('option').map((o) => o.textContent)).toEqual(['Pilih akun klinik…', 'Kas Kemang (Tunai)', 'QRIS klinik (QRIS)'])
@@ -51,7 +51,7 @@ test('payment methods are only active clinic accounts of this branch; split post
   fireEvent.change(screen.getByLabelText('Jumlah 1 (Rp)'), { target: { value: '40000' } })
   fireEvent.change(screen.getByRole('combobox', { name: 'Metode 2' }), { target: { value: 'q1' } })
   fireEvent.change(screen.getByLabelText('Jumlah 2 (Rp)'), { target: { value: '60000' } })
-  fireEvent.click(screen.getByRole('button', { name: 'Terima pembayaran' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Terima Rp100.000' }))
   await waitFor(() => expect(addPayment).toHaveBeenCalledTimes(2))
   expect(addPayment.mock.calls.map(([, b]) => [(b as unknown as { payment_account_id: string }).payment_account_id, b.amount_rp])).toEqual([['k1', 40000], ['q1', 60000]])
 })
@@ -119,7 +119,7 @@ test('kwitansi (#69): offered once money was received; shows clinic, patient, li
   expect(k).toHaveTextContent('Klinik Contoh · Cabang A')
   expect(k).toHaveTextContent('Telah diterima dari Sari Contoh')
   expect(k).toHaveTextContent('Tumpatan · gigi 16')
-  expect(k).toHaveTextContent('Dibayar · Kas Kemang')
+  expect(k).toHaveTextContent('Tunai · ') // KL05: method as recorded (Tunai, Debit BCA, BPJS)
   expect(within(k).getByText('LUNAS')).toBeInTheDocument()
   fireEvent.click(within(k).getByRole('button', { name: 'Cetak' }))
   expect(print).toHaveBeenCalled()
@@ -133,7 +133,7 @@ test('kwitansi is not offered before any payment', async () => {
 
 test('#70 Tagihan: Terima pembayaran is the only primary and comes first; corrections fold under "Lainnya"', async () => {
   render(<InvoicePage visitId="v1" me={me(['billing.read', 'billing.adjust'])} />)
-  const terima = await screen.findByRole('button', { name: 'Terima pembayaran' })
+  const terima = await screen.findByRole('button', { name: /^Terima / })
   await waitFor(() => expect(document.querySelectorAll('.btn-primary')).toHaveLength(1))
   expect(document.querySelector('.btn-primary')).toBe(terima)
   const more = document.querySelector('details.inv-more') as HTMLDetailsElement
@@ -146,7 +146,7 @@ test('#70 Tagihan: Terima pembayaran is the only primary and comes first; correc
 
 test('#70 the payment amount starts at the remaining balance (full payment = no typing), still editable', async () => {
   render(<InvoicePage visitId="v1" me={me(['billing.read', 'billing.adjust'])} />)
-  const amt = await screen.findByLabelText('Jumlah 1 (Rp)')
+  const amt = await screen.findByLabelText('Jumlah dibayar (Rp)') // visible label (ui review)
   await waitFor(() => expect(amt).toHaveValue(current.balance_rp))
   fireEvent.change(amt, { target: { value: '5000' } })
   expect(amt).toHaveValue(5000)
@@ -169,10 +169,10 @@ test('#70 decluttered Tagihan: sisa big + status chip, method chips; lines, hist
   const hist = container.querySelector('details.inv-fold') as HTMLDetailsElement
   expect(hist.open).toBe(false)
   expect(hist.querySelector('summary')).toHaveTextContent('Riwayat bayar (1)')
-  const terima = screen.getByRole('button', { name: 'Terima pembayaran' })
+  const terima = screen.getByRole('button', { name: /^Terima / })
   await waitFor(() => expect(methods.getAllByRole('radio').length).toBeGreaterThan(0))
   // review-3: Tunai is preselected, so Terima is active without a tap; another method is one tap.
-  const tunai = methods.getAllByRole('radio').find((r) => r.textContent === 'Tunai')!
+  const tunai = methods.getAllByRole('radio').find((r) => r.textContent?.startsWith('Tunai'))!
   await waitFor(() => expect(tunai).toHaveAttribute('aria-checked', 'true'))
   expect(terima).toBeEnabled()
   const other = methods.getAllByRole('radio').find((r) => r !== tunai)
@@ -187,8 +187,19 @@ test('#70 kwitansi right after paying still names the patient (payment response 
     active: { tenant_id: 't', tenant_name: 'Klinik Contoh', branch_id: 'b1', branch_name: 'Cabang A', timezone: null } } as Me} />)
   const methods = within(await screen.findByRole('radiogroup', { name: 'Metode bayar' }))
   await waitFor(() => expect(methods.getAllByRole('radio').length).toBeGreaterThan(0))
-  fireEvent.click(methods.getByRole('radio', { name: 'Tunai' }))
-  fireEvent.click(screen.getByRole('button', { name: 'Terima pembayaran' }))
-  fireEvent.click(await screen.findByRole('button', { name: 'Kwitansi' }))
+  fireEvent.click(methods.getByRole('radio', { name: /^Tunai/ }))
+  fireEvent.change(screen.getByLabelText('Uang diterima'), { target: { value: '150000' } })
+  expect(screen.getByText('Rp50.000')).toBeInTheDocument() // KL03 kembalian
+  fireEvent.click(screen.getByRole('button', { name: 'Terima Rp100.000' }))
+  // KL05: success panel; WhatsApp text has no clinical content (D-011)
+  const paid = await screen.findByRole('region', { name: 'Pembayaran diterima' })
+  const wa = decodeURIComponent(within(paid).getByRole('link', { name: 'WhatsApp' }).getAttribute('href')!)
+  expect(wa).toContain('Rp100.000')
+  expect(wa).not.toContain('Tumpatan')
+  expect(within(paid).getByRole('link', { name: 'Selesai' })).toHaveAttribute('href', '#/kasir')
+  expect(screen.queryByRole('button', { name: 'Kwitansi' })).toBeNull() // no second receipt row under the panel
+  const print = vi.spyOn(window, 'print').mockImplementation(() => {})
+  fireEvent.click(within(paid).getByRole('button', { name: 'Cetak' }))
+  expect(print).toHaveBeenCalled() // KL05 Cetak goes straight to the print dialog
   expect(screen.getByRole('region', { name: 'Kwitansi' })).toHaveTextContent('Telah diterima dari Sari Contoh')
 })

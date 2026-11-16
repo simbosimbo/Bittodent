@@ -40,11 +40,15 @@ test('profile: one Simpan saves clinic fields and the branch address', async () 
   m.saveBranch.mockResolvedValue({})
   render(<ClinicSettingsPage me={me(OWNER)} tab="" onChanged={onChanged} />)
   fireEvent.change(await screen.findByLabelText('Alamat'), { target: { value: 'Jl. Uji Sintetis 1' } })
-  fireEvent.change(screen.getByLabelText('Nomor izin klinik'), { target: { value: 'IZIN-UJI-1' } })
+  fireEvent.change(screen.getByLabelText(/Nomor izin klinik/), { target: { value: 'IZIN-UJI-1' } })
+  fireEvent.change(screen.getByLabelText('NPWP'), { target: { value: '10.0.1.3-012.000' } })
+  fireEvent.click(screen.getByRole('radio', { name: '58 mm' })) // KL13 receipt paper
   fireEvent.change(screen.getByLabelText('Alamat cabang'), { target: { value: 'Jl. Cabang Uji 2' } })
+  expect(screen.getByLabelText(/^Pratinjau kop/)).toHaveTextContent('Jl. Cabang Uji 2') // KL11: kop follows the branch address
   fireEvent.click(screen.getByRole('button', { name: 'Simpan profil' }))
   await waitFor(() => expect(onChanged).toHaveBeenCalled())
-  expect(m.saveProfile.mock.calls[0][0]).toMatchObject({ name: 'Klinik Uji', address: 'Jl. Uji Sintetis 1', license_no: 'IZIN-UJI-1' })
+  expect(m.saveProfile.mock.calls[0][0]).toMatchObject({ name: 'Klinik Uji', address: 'Jl. Uji Sintetis 1', license_no: 'IZIN-UJI-1',
+    npwp: '10.0.1.3-012.000', receipt_paper_mm: 58 })
   expect(m.saveBranch).toHaveBeenCalledWith('b1', { address: 'Jl. Cabang Uji 2', phone: null })
 })
 
