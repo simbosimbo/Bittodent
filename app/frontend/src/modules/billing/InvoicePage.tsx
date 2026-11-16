@@ -19,6 +19,7 @@ const chipLabel = (a: PaymentAccount) => `${KIND[a.kind]}${a.bank_name ? ' ' + a
 const INV_CHIP: Record<Invoice['status'], [string, string]> = { terbuka: ['Belum lunas', 'unpaid'], lunas: ['Lunas', 'done'], void: ['Void', 'alert'] }
 type PayRow = { account: string; amount: string; key: string }
 const newRow = (amount = ''): PayRow => ({ account: '', amount, key: crypto.randomUUID() })
+const ADJ_KIND: Record<string, string> = { discount: 'Diskon', write_off: 'Penghapusan', correction: 'Koreksi' }
 const STATUS: Record<Adjustment['status'], string> = { applied: 'Berlaku', pending: 'Menunggu pemilik', approved: 'Disetujui', rejected: 'Ditolak' }
 const REASON: Record<string, string> = { tidak_dikerjakan: 'Tidak dikerjakan', salah_kode: 'Salah kode', salah_situs: 'Salah gigi/permukaan',
   salah_provider: 'Salah dokter', salah_tarif: 'Salah tarif', lainnya: 'Lainnya' }
@@ -97,7 +98,10 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
     e.preventDefault()
     if (!inv) return
     run(() => addAdjustment(inv.id, { kind: form.kind, amount_rp: formRp, reason: form.reason.trim(), ...(form.line ? { invoice_line_id: form.line } : {}) }),
-      (i) => i.adjustments.at(-1)?.status === 'pending' ? 'Saldo menjadi Rp0: menunggu persetujuan pemilik.' : 'Penyesuaian tersimpan.')
+      (i) => {
+        setForm({ kind: 'discount', amount: '', reason: '', line: '', unit: 'rp' }) // saved: an empty form, so a second press cannot repeat it
+        return i.adjustments.at(-1)?.status === 'pending' ? 'Saldo menjadi Rp0: menunggu persetujuan pemilik.' : 'Penyesuaian tersimpan.'
+      })
   }
 
   // Unit 5: money goes only into a clinic account (no rekening field). Split = one POST per row, stops at the first error.
@@ -368,7 +372,7 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
           <ul>
             {inv.adjustments.map((a) => (
               <li key={a.id}>
-                {a.kind} {rp(a.amount_rp)}{a.invoice_line_id && ` · ${inv.lines.find((l) => l.id === a.invoice_line_id)?.procedure_name ?? 'baris'}`} · {a.reason} · <strong>{STATUS[a.status]}</strong>{a.self_approved_sole_owner && ' (disetujui sendiri)'}
+                {ADJ_KIND[a.kind] ?? a.kind} {rp(a.amount_rp)}{a.invoice_line_id && ` · ${inv.lines.find((l) => l.id === a.invoice_line_id)?.procedure_name ?? 'baris'}`} · {a.reason} · <strong>{STATUS[a.status]}</strong>{a.self_approved_sole_owner && ' (disetujui sendiri)'}
                 {a.status === 'pending' && can('billing.approve_zero') && (
                   <span className="toolbar">
                     <button className="btn btn-xs" onClick={() => run(() => decideAdjustment(a.id, 'approve'), () => 'Disetujui.')}>Setujui</button>

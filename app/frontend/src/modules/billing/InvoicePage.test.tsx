@@ -218,6 +218,14 @@ test('KlinikMe-style diskon: on one line, in %, sent as whole rupiah with the li
   addAdjustment.mockResolvedValueOnce(current)
   fireEvent.click(screen.getByRole('button', { name: 'Simpan' }))
   await waitFor(() => expect(addAdjustment).toHaveBeenCalledWith('i1', { kind: 'discount', amount_rp: 15000, reason: 'Pasien lama', invoice_line_id: 'l1' }))
+  await waitFor(() => expect(screen.getByLabelText('Alasan')).toHaveValue('')) // saved: the form is empty again
+  expect(screen.getByRole('combobox', { name: 'Untuk' })).toHaveValue('')
+})
+
+test('adjustments are listed by their Indonesian name', async () => {
+  current = { ...inv, adjustments: [{ id: 'a2', kind: 'write_off', amount_rp: 5000, reason: 'Pembulatan', created_at: '', status: 'applied', self_approved_sole_owner: false }] }
+  render(<InvoicePage visitId="v1" me={me(['billing.read'])} />)
+  expect(await screen.findByText(/Penghapusan Rp\s?5\.000/)).toBeInTheDocument()
 })
 
 test('the untouched payment amount follows the balance after a discount; a typed amount stays', async () => {
@@ -234,6 +242,8 @@ test('the untouched payment amount follows the balance after a discount; a typed
 
   fireEvent.change(amount, { target: { value: '50000' } }) // cashier types a partial payment: kept on the next change
   addAdjustment.mockResolvedValueOnce({ ...current, balance_rp: 80000, adjustments_rp: 20000 })
+  fireEvent.change(screen.getByLabelText('Jumlah (Rp)'), { target: { value: '10000' } }) // the form is empty after each save
+  fireEvent.change(screen.getByLabelText('Alasan'), { target: { value: 'Pasien lama' } })
   fireEvent.click(screen.getByRole('button', { name: 'Simpan' }))
   await waitFor(() => expect(addAdjustment).toHaveBeenCalledTimes(2))
   expect(amount).toHaveValue(50000)
