@@ -28,6 +28,8 @@
 .tooth-lock rect { fill: #111827; }
 .tooth-lock path { stroke: #111827; }
 .tooth-glyph, .tooth-letter, .tooth-number, .tooth-lock, .tooth-draft-mark, .tooth-wash { pointer-events: none; }
+/* only surfaces and the whole-tooth hit area take taps; any drawing on top (the X of an extraction) must not swallow them */
+.tooth > :not(.tooth-surface, .tooth-hit) { pointer-events: none; }
 .tooth-glyph[data-state='draft'] { stroke-dasharray: 4 2; }
 .tooth-letter { font-size: 8px; fill: var(--muted); }
 .tooth-number { font-size: 12px; font-weight: 600; fill: #1F2937; }
