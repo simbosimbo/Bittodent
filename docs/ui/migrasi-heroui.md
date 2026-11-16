@@ -53,6 +53,17 @@ Patokan: target sentuh Apple HIG 44pt dan Material 48dp. Target sentuh boleh leb
 - **Tombol ikon:** 44×44 dengan ikon 20px dan `aria-label`.
 - **Kartu sempit:** tombol tidak boleh memotong meta. Bila nama/meta + tombol tidak muat, tombol turun ke baris sendiri di bawah meta, rata kanan.
 
+## Gaya ringkas HP (referensi pemilik 2026-11-16, menggantikan #70)
+
+Referensi gaya Zendenta: ambil prinsipnya saja, jangan salin tata letak atau warnanya.
+
+- Skala huruf HP: body 14, sekunder 13, caption 12, judul halaman 20. Input tetap 16px (iOS).
+- **Kartu daftar tanpa tombol.** Seluruh kartu = satu target; ketuk → `Sheet` detail berisi info lengkap + aksi. Aksi utama satu tombol lebar penuh di bawah sheet (48px); aksi lain di bawahnya `outline`/`ghost` atau menu "⋯". Ini mengganti #70: "Mulai kunjungan" dokter jadi 2 ketuk (kartu → sheet → Mulai kunjungan).
+- **Isi kartu:** baris 1 nama (14/600) + status di kanan atas; baris 2 rentang jam "10.40 › 11.00" dan/atau meta (13, muted). Tanpa avatar bila tidak menambah arti.
+- **Status = titik + teks** (12–13px, warna teks netral, titik berwarna status), latar netral lembut, tanpa bingkai tebal. Bukan chip berbingkai berwarna penuh.
+- Garis/bingkai tipis (`--border`), latar kartu putih di atas latar abu muda, ruang kosong lega (padding kartu 12–16, jarak antarkartu 8–12).
+- Info keselamatan tetap terlihat di kartu bila relevan (alergi/peringatan, sisa tagihan).
+
 ## Radius (jangan terlalu bulat)
 
 Skala rumah di `app.css`: field 10px, tombol 12px, kartu/popover/modal 16px, chip 12px. Jangan menambah `rounded-full`, `rounded-3xl`, atau radius di atas 16px, kecuali tombol ikon bulat yang memang bulat di kanvas (tombol "+", avatar). Jangan menimpa radius per komponen; ubah skala di `app.css` (milik koordinator) bila perlu.
