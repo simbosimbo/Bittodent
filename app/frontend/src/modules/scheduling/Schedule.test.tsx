@@ -265,14 +265,14 @@ test('HP: ketuk kartu membuka sheet aksi; aksi memanggil transisi yang sama; Esc
   card.focus()
   fireEvent.click(card)
   const dialog = screen.getByRole('dialog', { name: 'Budi Contoh' })
-  expect(dialog).toHaveAttribute('aria-modal', 'true')
-  expect(dialog.contains(document.activeElement)).toBe(true)
-  expect(document.body.style.overflow).toBe('hidden')
+  expect(screen.queryByRole('button', { name: /^10\.00.*Budi Contoh/ })).toBeNull() // modal (HeroUI Sheet): the board behind is hidden from assistive tech
+  await vi.waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true)) // React Aria moves focus in after mount
+  expect(document.documentElement.style.overflow).toBe('hidden') // React Aria locks scroll on <html>
   expect(within(dialog).getByRole('link', { name: 'Buka RM' })).toHaveAttribute('href', '#/rekam-medis/p-a2/janji/a2')
-  fireEvent.keyDown(document, { key: 'Escape' })
+  fireEvent.keyDown(document.activeElement!, { key: 'Escape' })
   expect(screen.queryByRole('dialog')).toBeNull()
-  expect(document.activeElement).toBe(card)
-  expect(document.body.style.overflow).toBe('')
+  await vi.waitFor(() => expect(document.activeElement).toBe(card)) // focus back to the card (React Aria restores it a frame later)
+  expect(document.documentElement.style.overflow).toBe('')
 
   fireEvent.click(card)
   const keluhan = within(screen.getByRole('dialog')).getByLabelText('Keluhan')
@@ -307,7 +307,9 @@ test('HP: Tab tetap di dalam sheet; klik latar menutup', async () => {
   expect(document.activeElement).toBe(controls[0])
   fireEvent.keyDown(document, { key: 'Tab', shiftKey: true })
   expect(document.activeElement).toBe(controls[controls.length - 1])
-  fireEvent.click(container.ownerDocument.querySelector('.sheet-backdrop') as HTMLElement)
+  const backdrop = container.ownerDocument.querySelector('.sheet__backdrop') as HTMLElement // HeroUI Sheet backdrop
+  fireEvent.pointerDown(backdrop) // outside press = pointerdown + click (React Aria)
+  fireEvent.click(backdrop)
   expect(screen.queryByRole('dialog')).toBeNull()
 })
 

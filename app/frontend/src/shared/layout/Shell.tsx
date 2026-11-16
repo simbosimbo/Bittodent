@@ -1,12 +1,13 @@
-import { Fragment, useEffect, useRef, useState, type FormEvent, type ReactNode, type RefObject } from 'react'
+import { Fragment, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { Avatar, Button } from '@heroui/react'
 import { useActivePatient } from '../activePatient'
 import { initials } from '../format'
 import { ROLE_LABELS, type Me } from '../session'
 import { Icon, ICONS } from '../ui/Icon'
 import { Menu } from '../ui/Menu'
-import { PageStage, Presence, usePresenceClass } from '../ui/presence'
+import { PageStage, Presence } from '../ui/presence'
 import { useScrollHints } from '../ui/scrollHint'
-import { Sheet, useDialog } from '../ui/Sheet'
+import { Sheet } from '../ui/Sheet'
 import { useIsMobile, useMedia } from '../useIsMobile'
 
 // Mobile bottom tabs: the first 4 of these the user may open, in order; every other nav item goes in the "Lainnya" sheet (with
@@ -66,8 +67,6 @@ export function Shell({ me, nav, active, title = '', ribbon, badges, queue, queu
   const [more, setMore] = useState(false)
   const wide = useMedia('(min-width: 1281px)') && queueRail
   const [queueOpen, setQueueOpen] = useState(false)
-  const moreRef = useRef<HTMLDivElement>(null)
-  useDialog(moreRef, () => setMore(false), mobile && more) // modal: focus in/trapped/back to Lainnya, Escape, no page scroll
   // Pinned top bar height -> --shell-sticky-h, so the chart's sticky patient header (allergies) sits right below it.
   const sticky = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -96,18 +95,20 @@ export function Shell({ me, nav, active, title = '', ribbon, badges, queue, queu
   )
   const queueBtn = queue && !wide && (
     // phone: icon only, so the clinic name keeps its room
-    <button type="button" className={mobile ? 'icon-btn' : 'btn queue-toggle'} aria-label={mobile ? 'Antrean hari ini' : undefined}
-      aria-haspopup="dialog" aria-expanded={queueOpen} onClick={() => setQueueOpen(true)}>
+    <Button variant="ghost" className={mobile ? 'icon-btn' : 'btn queue-toggle'} aria-label={mobile ? 'Antrean hari ini' : undefined}
+      aria-haspopup="dialog" aria-expanded={queueOpen} onPress={() => setQueueOpen(true)}>
       <Icon d={ICONS.queue} size={mobile ? undefined : 18} />{!mobile && 'Antrean'}
-    </button>
+    </Button>
   )
-  const bell = <button type="button" className="icon-btn" disabled aria-label="Notifikasi (segera hadir)"><Icon d={ICONS.bell} /></button>
+  const bell = <Button variant="ghost" isIconOnly className="icon-btn" isDisabled aria-label="Notifikasi (segera hadir)"><Icon d={ICONS.bell} /></Button>
   // App re-renders on hashchange, so reading the hash here stays current.
   const route = location.hash.slice(1).split('?')[0] || '/'
   useEffect(() => setQueueOpen(false), [route]) // the queue sheet never follows the user to another page
   const user = (
     <Menu label={`Akun ${me.user.name}`} className="shell-user" trigger={<>
-      <span className="avatar" aria-hidden="true">{initials(me.user.name.replace(/^drg\.?\s*/i, ''))}</span>
+      <Avatar size="sm" color="accent" variant="soft" className="shell-avatar" aria-hidden="true">
+        <Avatar.Fallback>{initials(me.user.name.replace(/^drg\.?\s*/i, ''))}</Avatar.Fallback>
+      </Avatar>
       {!mobile && <span className="shell-user-text"><strong>{me.user.name}</strong><small>{role}</small></span>}
     </>}>
       {(close) => <>
@@ -158,7 +159,6 @@ export function Shell({ me, nav, active, title = '', ribbon, badges, queue, queu
             </header>
           ) : (
             <header className="shell-top">
-              <span className="brand-mark" aria-hidden="true"><Icon d={ICONS.tooth} /></span>
               <span className="shell-top-clinic"><strong title={me.active.tenant_name}>{me.active.tenant_name}</strong><span className="badge-synthetic">DATA SINTETIS</span></span>
               {queueBtn}
               {quick}
@@ -200,7 +200,8 @@ export function Shell({ me, nav, active, title = '', ribbon, badges, queue, queu
           {tabs.map((n) => link(n, <>
             <Icon d={n.icon} />
             {!!badges?.[n.path]?.count && <><span className="nav-badge" aria-hidden="true">{badges[n.path].count}</span><span className="sr-only">{badges[n.path].label}</span></>}
-            <span>{n.label}</span>
+            {/* one-line labels: "Rekam Medis" reads "RM" on the tab, full name for screen readers */}
+            {n.path === '/rekam-medis' ? <><span aria-hidden="true">RM</span><span className="sr-only">{n.label}</span></> : <span>{n.label}</span>}
           </>))}
           <button type="button" className={active && rest.includes(active) ? 'on' : undefined} aria-expanded={more} aria-haspopup="dialog" onClick={() => setMore(!more)}>
             <Icon d={ICONS.more} /><span>Lainnya</span>
@@ -209,7 +210,7 @@ export function Shell({ me, nav, active, title = '', ribbon, badges, queue, queu
       )}
       {mobile && (
         <Presence open={more} exitMs={200}>
-          <LainnyaSheet sheetRef={moreRef} rest={rest} link={link} me={me}
+          <LainnyaSheet rest={rest} link={link} me={me}
             onSwitchBranch={(id) => { setMore(false); onSwitchBranch(id) }}
             onLogout={() => { setMore(false); onLogout() }}
             onClose={() => setMore(false)} />
@@ -219,8 +220,7 @@ export function Shell({ me, nav, active, title = '', ribbon, badges, queue, queu
   )
 }
 
-function LainnyaSheet({ sheetRef, rest, link, me, onSwitchBranch, onLogout, onClose }: {
-  sheetRef: RefObject<HTMLDivElement | null>
+function LainnyaSheet({ rest, link, me, onSwitchBranch, onLogout, onClose }: {
   rest: NavItem[]
   link: (n: NavItem, extra?: ReactNode) => ReactNode
   me: Me
@@ -228,17 +228,11 @@ function LainnyaSheet({ sheetRef, rest, link, me, onSwitchBranch, onLogout, onCl
   onLogout: () => void
   onClose: () => void
 }) {
-  const phase = usePresenceClass()
   return (
-    <>
-      <div className={`sheet-backdrop ${phase}`} onClick={onClose} />
-      <div ref={sheetRef} className={`sheet more-sheet ${phase}`} role="dialog" aria-modal="true" aria-label="Menu lainnya">
-        <div className="sheet-handle" aria-hidden="true" />
-        {rest.map((n) => link(n, <><Icon d={n.icon} /> {n.label}</>))}
-        <Branch me={me} onSwitchBranch={onSwitchBranch} />
-        <button type="button" className="btn" onClick={onLogout}>Keluar</button>
-        <button type="button" className="btn btn-ghost" autoFocus onClick={onClose}>Tutup</button>
-      </div>
-    </>
+    <Sheet title="Menu lainnya" className="more-sheet" onClose={onClose}>
+      {rest.map((n) => link(n, <><Icon d={n.icon} /> {n.label}</>))}
+      <Branch me={me} onSwitchBranch={onSwitchBranch} />
+      <Button variant="secondary" fullWidth className="btn" onPress={onLogout}>Keluar</Button>
+    </Sheet>
   )
 }

@@ -28,18 +28,20 @@ test('chart sits inside the patient page (no outer tab bar; Profil/Keluarga/Riwa
   const menu = await screen.findByRole('button', { name: 'Menu pasien' })
   expect(screen.queryByRole('navigation', { name: 'Data pasien' })).toBeNull()
   expect(screen.queryByRole('link', { name: 'Keluarga' })).toBeNull()
+  menu.focus() // a real click focuses the button; React Aria returns focus to it on close
   fireEvent.click(menu)
   expect(menu).toHaveAttribute('aria-expanded', 'true')
-  const pop = menu.parentElement!.querySelector('.menu-pop') as HTMLElement
+  const pop = screen.getByRole('dialog', { name: 'Menu pasien' }) // shared Menu = HeroUI popover
   expect(within(pop).getAllByRole('link').map((a) => [a.textContent, a.getAttribute('href')])).toEqual([
     ['Profil', '#/pasien/p1'], ['Rekam Medis', '#/rekam-medis/p1'], ['Keluarga', '#/keluarga/p1'], ['Riwayat Medis', '#/riwayat-medis/p1']])
   expect(within(pop).getByRole('link', { name: 'Rekam Medis' })).toHaveAttribute('aria-current', 'page')
   expect(within(pop).getByRole('link', { name: 'Profil' })).not.toHaveAttribute('aria-current')
   fireEvent.keyDown(pop, { key: 'Escape' })
   expect(menu).toHaveAttribute('aria-expanded', 'false')
-  expect(menu).toHaveFocus()
+  await vi.waitFor(() => expect(menu).toHaveFocus())
   fireEvent.click(menu)
-  fireEvent.mouseDown(document.body)
+  fireEvent.pointerDown(document.body) // outside press = pointerdown + click (React Aria)
+  fireEvent.click(document.body)
   expect(screen.queryByRole('link', { name: 'Keluarga' })).toBeNull()
 
   expect(await screen.findByText('Buka janji hari ini')).toHaveAttribute('href', '#/jadwal')

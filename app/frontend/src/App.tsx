@@ -1,5 +1,6 @@
 // Composition root: routes + shell. Imports modules only through their index.ts.
 import { useCallback, useEffect, useState } from 'react'
+import { Card } from '@heroui/react'
 import { ApiError, hasCsrfCookie } from './shared/api/http'
 import { clearActivePatients, useActivePatient } from './shared/activePatient'
 import { pageTitle, Shell, withActivePatientHref, type NavItem } from './shared/layout/Shell'
@@ -108,10 +109,10 @@ function StaffApp() {
   if (state === 'no2fa' || state === 'error' || !me)
     return (
       <div className="center">
-        <div className="card state-card">
+        <Card className="state-card items-center">
           <p>{state === 'no2fa' ? 'Akun ini wajib memakai autentikasi dua langkah. Hubungi pemilik klinik untuk mengaktifkannya.' : 'Tidak bisa terhubung ke server.'}</p>
           <button className="btn" onClick={state === 'no2fa' ? logout : load}>{state === 'no2fa' ? 'Keluar' : 'Coba lagi'}</button>
-        </div>
+        </Card>
       </div>
     )
 

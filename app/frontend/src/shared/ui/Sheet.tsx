@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef, type ReactNode, type RefObject } from 'react'
+import { useEffect, useRef, type ReactNode, type RefObject } from 'react'
+import { Button, Sheet as HSheet } from '@heroui/react'
 import { usePresenceClass } from './presence'
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
@@ -37,23 +38,26 @@ export function useDialog(ref: RefObject<HTMLElement | null>, onClose: () => voi
   }, [ref, on])
 }
 
-/** Mobile bottom sheet (same .sheet / .sheet-backdrop look as the "Lainnya" sheet) as a modal dialog with a 44px "Tutup". */
+/** Mobile bottom sheet (HeroUI Sheet): modal dialog, title + 44px "Tutup"; Escape, backdrop tap or swipe down close it. Mounted = open. */
 export function Sheet({ title, onClose, className = '', children }: { title: ReactNode; onClose: () => void; className?: string; children: ReactNode }) {
-  const ref = useRef<HTMLDivElement>(null)
-  const id = useId()
+  // Inside <Presence>: open on mount, slide out while Presence holds the node for its exit.
   const phase = usePresenceClass()
-  useDialog(ref, onClose)
+  const shown = useRef(false)
+  if (phase === 'is-open') shown.current = true
   return (
-    <>
-      <div className={`sheet-backdrop ${phase}`} onClick={onClose} />
-      <div ref={ref} className={`sheet ${className} ${phase}`} role="dialog" aria-modal="true" aria-labelledby={id} tabIndex={-1}>
-        <div className="sheet-handle" aria-hidden="true" />
-        <div className="sheet-head">
-          <h2 id={id}>{title}</h2>
-          <button type="button" className="btn btn-ghost sheet-close" onClick={onClose}>Tutup</button>
-        </div>
-        {children}
-      </div>
-    </>
+    <HSheet isOpen={!(shown.current && phase === 'is-leave')} onOpenChange={(open) => { if (!open) onClose() }}>
+      <HSheet.Backdrop>
+        <HSheet.Content className={`shell-sheet ${className}`}>
+          <HSheet.Dialog>
+            <HSheet.Handle />
+            <HSheet.Header className="sheet-head">
+              <HSheet.Heading level={2}>{title}</HSheet.Heading>
+              <Button slot="close" variant="ghost" className="btn btn-ghost sheet-close">Tutup</Button>
+            </HSheet.Header>
+            <HSheet.Body>{children}</HSheet.Body>
+          </HSheet.Dialog>
+        </HSheet.Content>
+      </HSheet.Backdrop>
+    </HSheet>
   )
 }

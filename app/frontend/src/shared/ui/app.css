@@ -4,6 +4,7 @@
 @layer theme, base, legacy-base, components, legacy, utilities;
 
 @import "@heroui/styles";
+@import "@heroui-pro/react/css";
 
 @import "./tokens.css" layer(legacy);
 @import "./legacy-base.css" layer(legacy-base);

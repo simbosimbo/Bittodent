@@ -26,6 +26,8 @@ const shell = (m: Me, patient: { id: string } | null = null, path?: string, onSw
   const active = nav.find((n) => n.path === path)
   return render(<Shell me={m} nav={nav} active={active} title={path ? pageTitle(path, active) : ''} onSwitchBranch={onSwitchBranch} onLogout={onLogout}><p>isi</p></Shell>)
 }
+// visible bottom-tab label ("RM" for Rekam Medis; the full name is the link's accessible name)
+const tabLabel = (a: Element) => a.querySelector('span:not(.sr-only):not(.nav-badge)')?.textContent
 const viewport = (w: number) => vi.stubGlobal('matchMedia', (q: string) => ({ media: q, matches: w <= 720, addEventListener() {}, removeEventListener() {} }))
 
 // jsdom menilai @media pada lebar tetap 1024px: geser ambang agar styles.css berlaku seperti pada lebar w.
@@ -128,19 +130,21 @@ test('1280px top bar: title, search, + menu, disabled bell, user menu with branc
   expect(within(top).queryByRole('button', { name: /Pasien aktif/ })).toBeNull()
   expect(screen.queryByRole('button', { name: 'Keluar' })).toBeNull()
 
+  // menus are HeroUI popovers (rendered outside the header); Escape closes one before the next
   fireEvent.click(within(top).getByRole('button', { name: 'Aksi cepat' }))
-  expect(within(top).getByRole('link', { name: 'Daftarkan pasien' })).toHaveAttribute('href', '#/pasien/baru')
-  expect(within(top).getByRole('link', { name: 'Buat janji' })).toHaveAttribute('href', '#/jadwal')
+  expect(screen.getByRole('link', { name: 'Daftarkan pasien' })).toHaveAttribute('href', '#/pasien/baru')
+  expect(screen.getByRole('link', { name: 'Buat janji' })).toHaveAttribute('href', '#/jadwal')
+  fireEvent.keyDown(screen.getByRole('dialog', { name: 'Aksi cepat' }), { key: 'Escape' })
 
   const user = within(top).getByRole('button', { name: 'Akun drg. Uji Sintetis' })
   expect(user).toHaveTextContent('US')
   expect(user).toHaveTextContent('Pemilik')
   fireEvent.click(user)
-  const branch = within(top).getByRole('combobox', { name: 'Cabang aktif' })
+  const branch = screen.getByRole('combobox', { name: 'Cabang aktif' })
   fireEvent.change(branch, { target: { value: 'b2' } })
   expect(switchBranch).toHaveBeenCalledWith('b2')
   fireEvent.click(user)
-  fireEvent.click(within(top).getByRole('button', { name: 'Keluar' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Keluar' }))
   expect(logout).toHaveBeenCalled()
 })
 
@@ -151,8 +155,8 @@ test('1280px: one branch shows as text; no + button without create permissions; 
   expect(within(top).queryByRole('button', { name: 'Aksi cepat' })).toBeNull()
   expect(within(top).queryByRole('search')).toBeNull()
   fireEvent.click(within(top).getByRole('button', { name: /^Akun/ }))
-  expect(within(top).queryByRole('combobox')).toBeNull()
-  expect(top).toHaveTextContent('Cabang Tebet')
+  expect(screen.queryByRole('combobox')).toBeNull()
+  expect(screen.getByRole('dialog', { name: /^Akun/ })).toHaveTextContent('Cabang Tebet')
 })
 
 test('390px: no sidebar; header has clinic + DATA SINTETIS; bottom nav 4 tabs + Lainnya with the rest, branch, Keluar', () => {
@@ -167,8 +171,9 @@ test('390px: no sidebar; header has clinic + DATA SINTETIS; bottom nav 4 tabs + 
   expect(within(top).getByRole('button', { name: 'Aksi cepat' })).toBeInTheDocument()
 
   const bottom = screen.getByRole('navigation', { name: 'Navigasi utama' })
-  expect(within(bottom).getAllByRole('link').map((a) => [a.textContent, a.getAttribute('href')])).toEqual([
-    ['Beranda', '#/'], ['Jadwal', '#/jadwal'], ['Pasien', '#/pasien'], ['Rekam Medis', '#/rekam-medis/p1']])
+  expect(within(bottom).getAllByRole('link').map((a) => [tabLabel(a), a.getAttribute('href')])).toEqual([
+    ['Beranda', '#/'], ['Jadwal', '#/jadwal'], ['Pasien', '#/pasien'], ['RM', '#/rekam-medis/p1']])
+  expect(within(bottom).getByRole('link', { name: 'Rekam Medis' })).toHaveAttribute('href', '#/rekam-medis/p1')
   expect(within(bottom).getByRole('link', { name: 'Pasien' })).toHaveAttribute('aria-current', 'page')
 
   fireEvent.click(within(bottom).getByRole('button', { name: 'Lainnya' }))
@@ -202,7 +207,7 @@ test('390px Rekam Medis: back + "Rekam Medis" header instead of the clinic; Pasi
   expect(top).not.toHaveTextContent('Klinik Gigi Senyum Sehat')
   expect(within(top).getByText('DATA SINTETIS')).toBeInTheDocument()
   const bottom = screen.getByRole('navigation', { name: 'Navigasi utama' })
-  expect(within(bottom).getAllByRole('link').map((a) => a.textContent)).toEqual(['Beranda', 'Jadwal', 'Pasien', 'Rekam Medis'])
+  expect(within(bottom).getAllByRole('link').map(tabLabel)).toEqual(['Beranda', 'Jadwal', 'Pasien', 'RM'])
   expect(within(bottom).getByRole('link', { name: 'Rekam Medis' })).toHaveAttribute('aria-current', 'page')
   unmount()
 
@@ -305,7 +310,7 @@ test.each(['/pasien/p2', '/keluarga/p2', '/riwayat-medis/p2'])('ribbon on %s is 
 test('HP bottom nav: kasir / front desk / pemilik (no chart writing) -> Kasir in one tap; a chart writer keeps Rekam Medis (#71)', () => {
   viewport(412)
   const kasir: Me = { ...me, roles: ['kasir'], permissions: ['patient.read', 'appointment.read', 'billing.read', 'billing.adjust'] }
-  const tabs = () => [...screen.getByRole('navigation', { name: 'Navigasi utama' }).querySelectorAll('a')].map((a) => a.textContent)
+  const tabs = () => [...screen.getByRole('navigation', { name: 'Navigasi utama' }).querySelectorAll('a')].map(tabLabel)
   const k = shell(kasir)
   expect(tabs()).toEqual(['Beranda', 'Jadwal', 'Pasien', 'Kasir'])
   k.unmount()
@@ -313,7 +318,7 @@ test('HP bottom nav: kasir / front desk / pemilik (no chart writing) -> Kasir in
   expect(tabs()).toEqual(['Beranda', 'Jadwal', 'Pasien', 'Kasir'])
   p.unmount()
   shell(clin)
-  expect(tabs()).toEqual(['Beranda', 'Jadwal', 'Pasien', 'Rekam Medis'])
+  expect(tabs()).toEqual(['Beranda', 'Jadwal', 'Pasien', 'RM'])
 })
 
 test('HP bottom nav: badge jumlah di Jadwal (dengan label pembaca layar); tanpa badge saat 0; desktop tanpa badge', () => {

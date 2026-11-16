@@ -113,7 +113,7 @@ html { scroll-padding-top: 160px; } /* scrollIntoView lands below the pinned top
 .shell-title svg { color: var(--color-primary-700); flex: none; }
 /* Page h1 that repeats the top bar title: screen-reader only on desktop (the visible title is in the top bar), visible on mobile. */
 @media (min-width: 721px) { .shell-dup-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } }
-/* Round icon buttons (+ quick actions, bell, patient menu) and disclosure menus (shared/ui/Menu.tsx). */
+/* Round icon buttons (+ quick actions, bell, patient menu) and disclosure menus (shared/ui/Menu.tsx, HeroUI Popover). */
 .icon-btn {
   display: grid; place-items: center; width: var(--shells-a-size-touch); height: var(--shells-a-size-touch); flex: none; padding: 0;
   border: 0; border-radius: 50%; background: none; color: var(--muted); cursor: pointer;
@@ -124,13 +124,7 @@ html { scroll-padding-top: 160px; } /* scrollIntoView lands below the pinned top
 .icon-btn-primary:hover:not(:disabled) { background: var(--color-primary-800); }
 .icon-btn-outline { border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
 .icon-btn:focus-visible, .shell-user:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.menu { position: relative; flex: none; }
-.menu-pop {
-  position: absolute; top: calc(100% + var(--space-2)); z-index: 25; min-width: 220px; display: grid; gap: 2px; padding: var(--space-2);
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); box-shadow: var(--shadow-lg);
-}
-.menu-right { right: 0; }
-.menu-left { left: 0; }
+.menu-pop { min-width: 220px; display: grid; gap: 2px; padding: var(--space-2); }
 .menu-pop > a, .menu-pop > button {
   display: flex; align-items: center; min-height: var(--shells-a-size-touch); padding: 0 var(--space-3); border: 0; background: none;
   border-radius: var(--radius-sm); font: inherit; font-weight: 600; color: var(--text); text-align: left; cursor: pointer; white-space: nowrap;
@@ -160,7 +154,7 @@ html { scroll-padding-top: 160px; } /* scrollIntoView lands below the pinned top
 .shell-user-text strong { font-size: var(--font-size-sm); }
 .shell-user-text { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
 .shell-user-text > * { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.shell-user .avatar { flex: none; }
+.shell-user .avatar { flex: none; display: flex; } /* HeroUI Avatar: legacy .avatar grid would shrink its fallback */
 .shell-user-text small { color: var(--muted); font-size: var(--font-size-xs); }
 .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--accent-50); color: var(--accent-600); display: grid; place-items: center; font-weight: 700; }
 .shell-main { flex: 1; min-width: 0; padding: var(--shells-a-space-page); }
@@ -377,30 +371,34 @@ label.check input { min-height: 0; }
 
 /* Mobile (≤720px, same as useIsMobile): sidebar is not rendered; bottom nav + "Lainnya" sheet; 44px touch targets. */
 .bottom-nav {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
-  background: var(--surface); border-top: 1px solid var(--border); padding: 4px 4px calc(4px + env(safe-area-inset-bottom));
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center;
+  height: calc(64px + env(safe-area-inset-bottom)); background: var(--surface); border-top: 1px solid var(--border); padding: 0 4px env(safe-area-inset-bottom);
 }
 .bottom-nav a, .bottom-nav button {
-  display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 2px; min-height: 56px; min-width: 44px; padding: 4px 2px;
-  border: 0; background: none; font: inherit; font-size: var(--font-size-xs); font-weight: 600; line-height: 1.2; text-align: center; color: var(--muted); cursor: pointer; border-radius: var(--radius-sm);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 56px; min-width: 44px; padding: 0 2px;
+  border: 0; background: none; font: inherit; font-size: 12px; font-weight: 600; line-height: 16px; text-align: center; color: var(--muted); cursor: pointer; border-radius: var(--radius-sm);
 }
-.bottom-nav svg { padding: 2px 12px; box-sizing: content-box; border-radius: var(--radius-pill); }
-.bottom-nav .on { color: var(--color-primary-700); }
-.bottom-nav .on svg { background: var(--color-primary-50); }
+.bottom-nav a > span:not(.nav-badge), .bottom-nav button > span { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } /* labels never wrap */
+.bottom-nav svg { width: 20px; height: 20px; padding: 6px 18px; box-sizing: content-box; border-radius: var(--radius-pill); } /* 56×32 pill */
+.bottom-nav .on { color: var(--color-primary-800); }
+.bottom-nav .on svg { background: var(--color-primary-100); }
 .bottom-nav a:hover { text-decoration: none; }
 .bottom-nav a:focus-visible, .bottom-nav button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .sheet-backdrop { position: fixed; inset: 0; z-index: 30; background: rgba(16, 32, 40, 0.25); }
+/* shared/ui/Sheet.tsx (HeroUI Sheet): white panel, 16px gutter, scrolls inside, clears the home indicator. */
+.shell-sheet { background: var(--surface); border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+.shell-sheet .sheet__dialog { padding: var(--space-2) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom)); max-height: 85dvh; overflow-y: auto; }
+.shell-sheet .sheet__body { padding: 0; }
 .sheet {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 31; max-height: 70vh; overflow-y: auto;
   background: var(--surface); border-radius: var(--radius-lg) var(--radius-lg) 0 0; box-shadow: var(--shadow-lg);
   padding: var(--space-4) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom));
 }
-.more-sheet { display: grid; gap: var(--space-1); }
+.more-sheet .sheet__body { display: grid; gap: var(--space-1); }
 .more-sheet a { display: flex; align-items: center; gap: var(--space-3); min-height: 48px; padding: 0 var(--space-3); border-radius: var(--radius-sm); color: var(--text); font-weight: 600; }
 .more-sheet a[aria-current] { background: var(--color-primary-50); color: var(--color-primary-700); }
 .shell-top-clinic { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; line-height: 1.25; }
 .shell-top-clinic strong { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.shell-top-clinic .badge-synthetic { font-size: var(--font-size-xs); padding: 1px 8px; }
 .shell-top-title { flex: 1; min-width: 0; font-size: var(--font-size-lg); font-weight: 700; color: var(--text); }
 .shell-top > a.icon-btn { color: var(--text); }
 /* Mobile FAB (Pasien baru): above the bottom nav, 56px. */
@@ -415,11 +413,16 @@ label.check input { min-height: 0; }
 @media (max-width: 720px) {
   /* Phone type scale: body 15, secondary 14, captions 13; one gap (12) and one page gutter (16). */
   :root { --shells-a-font-size: 15px; --font-size-base: 15px; --font-size-sm: 14px; --font-size-xs: 13px; --shells-a-font-title: 22px; --shells-a-space-gap: 12px; }
-  .shell-top { flex-wrap: nowrap; gap: var(--space-2); padding: var(--space-2) var(--space-3); min-height: 0; }
+  .shell-top { flex-wrap: nowrap; gap: var(--space-1); height: 56px; min-height: 56px; padding: 0 8px 0 16px; }
+  .shell-top-clinic strong { font-size: 16px; font-weight: 700; }
+  .shell-top-title { font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .shell-top .badge-synthetic { font-size: 12px; line-height: 16px; padding: 0 6px; }
+  /* + is a 36px circle inside the full touch target (44–48px) */
+  .shell-top .icon-btn-primary { background: radial-gradient(circle 18px, var(--accent) 17.5px, transparent 18px); }
+  .shell-top .icon-btn-primary:hover:not(:disabled) { background: radial-gradient(circle 18px, var(--color-primary-800) 17.5px, transparent 18px); }
   .shell-top .aps { flex: 1 1 auto; min-width: 0; }
   .shell-top .aps-trigger { flex: 1; min-width: 0; }
   .shell-top .aps-text small, .shell-top .aps-action { display: none; }
-  .shell-top-synthetic { font-size: var(--font-size-xs); padding: 2px 6px; }
   .aps-text strong { white-space: normal; overflow-wrap: anywhere; } /* wrap, never clip, on a phone */
   .aps-pop { position: fixed; left: var(--space-2); right: var(--space-2); width: auto; top: auto; }
   .shell-main { padding: var(--space-4) var(--space-4) calc(80px + env(safe-area-inset-bottom)); }
@@ -439,7 +442,7 @@ label.check input { min-height: 0; }
   .crumbs { display: none; } /* bottom nav + tabs cover it; saves header height */
 }
 /* Shared bottom sheet (shared/ui/Sheet.tsx): title + 44px "Tutup". */
-.sheet-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-2); }
+.sheet-head { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-2); text-align: left; }
 .sheet-head h2 { margin: 0; min-width: 0; overflow-wrap: anywhere; }
 .sheet-close { flex: none; min-height: 44px; }
 
@@ -505,12 +508,11 @@ label.check input { min-height: 0; }
 }
 
 /* HP: peringatan medis di header pasien (RM) membungkus, tidak melebarkan halaman (catatan panjang membuat layout 509px di 360/412
-   dan × lembar gigi keluar layar). Toggle Selengkapnya/Ciutkan 44px. Nama klinik 2 baris, tidak terpotong di 360. */
+   dan × lembar gigi keluar layar). Toggle Selengkapnya/Ciutkan 44px. */
 @media (max-width: 720px) {
   .alert-ribbon.patient-alerts .alert-chip { white-space: normal; flex: 0 1 auto; min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
   .patient-head-main, .patient-chip-row, .alert-ribbon.patient-alerts { min-width: 0; max-width: 100%; }
   .alert-toggle { display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; padding: 0 10px; }
-  .shell-top-clinic strong { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.2; overflow-wrap: anywhere; }
 }
 
 /* #70 gloved hands: on a phone every primary action is at least 48px tall (desktop unchanged). */
