@@ -43,7 +43,7 @@ function Branch({ me, onSwitchBranch }: { me: Me; onSwitchBranch: (id: string) =
 
 // Shell A: sidebar (brand, clinic block, KLINIK/KLINIS/KEUANGAN nav; icon rail <=1100px; bottom nav instead at <=720px),
 // top bar (page title, search, + quick actions, bell, user menu), medical-alert ribbon slot whenever a patient is active.
-export function Shell({ me, nav, active, title = '', ribbon, badges, queue, onSwitchBranch, onLogout, children }: {
+export function Shell({ me, nav, active, title = '', ribbon, badges, queue, queueRail = true, onSwitchBranch, onLogout, children }: {
   me: Me
   nav: NavItem[]
   /** phone bottom-nav count per path (e.g. Jadwal: online bookings waiting); the label is read by screen readers */
@@ -53,6 +53,8 @@ export function Shell({ me, nav, active, title = '', ribbon, badges, queue, onSw
   ribbon?: ReactNode
   /** "Antrean hari ini" on desk pages: a rail on the right at ≥1281px, behind a top-bar button (sheet) below that */
   queue?: (where: 'rail' | 'sheet') => ReactNode
+  /** false: the page needs its full width (patient table), so the queue stays behind the button even on a wide screen */
+  queueRail?: boolean
   onSwitchBranch: (id: string) => void
   onLogout: () => void
   children: ReactNode
@@ -62,7 +64,7 @@ export function Shell({ me, nav, active, title = '', ribbon, badges, queue, onSw
   useScrollHints(mobile)
   const [q, setQ] = useState('')
   const [more, setMore] = useState(false)
-  const wide = useMedia('(min-width: 1281px)')
+  const wide = useMedia('(min-width: 1281px)') && queueRail
   const [queueOpen, setQueueOpen] = useState(false)
   const moreRef = useRef<HTMLDivElement>(null)
   useDialog(moreRef, () => setMore(false), mobile && more) // modal: focus in/trapped/back to Lainnya, Escape, no page scroll

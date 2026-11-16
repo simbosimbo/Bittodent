@@ -143,7 +143,7 @@ export function PatientList({ canCreate, canChart = false, initialQ = '' }: { ca
                         <span className="muted small pl-payer">{PAYER[p.payer_type] ?? p.payer_type}</span>
                         <Allergies a={p.allergies} /></span>
                     </div></td>
-                    <td className={p.mrn ? undefined : 'muted'}>{p.mrn ?? <Missing />}</td>
+                    <td className={p.mrn ? 'nowrap' : 'muted'}>{p.mrn ?? <Missing />}</td>
                     <td title={p.dob ? 'Lahir ' + dob(p.dob) : undefined}>{age(p.dob) || <Missing />}</td>
                     <td className={p.last_visit_at ? undefined : 'muted'}>{p.last_visit_at ? day(p.last_visit_at) : <Missing />}</td>
                     <td className={p.last_dentist_name ? undefined : 'muted'}>{p.last_dentist_name ?? <Missing />}</td>

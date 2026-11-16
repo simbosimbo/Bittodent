@@ -6,6 +6,7 @@ import { useInvoiceStatus } from './MobileJadwal'
 import { useSchedule } from './Schedule'
 
 const REFRESH_MS = 60_000
+const LATE_MS = 15 * 60_000 // a booked patient this far past the start time is late, not just "not yet here"
 
 /**
  * "Antrean hari ini" (pattern from KlinikMe's always-visible queue): today's patients of the active branch grouped by where they are
@@ -26,11 +27,14 @@ export function QueuePanel({ me, where = 'rail' }: { me: Me; where?: 'rail' | 's
     .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
   const { unpaid } = useInvoiceStatus(all, can('billing.read'))
   const of = (s: string) => all.filter((a) => a.status === s)
+  const now = Date.now() // re-read on every refresh (REFRESH_MS)
+  const late = (a: Appointment) => Date.parse(a.starts_at) + LATE_MS < now
   const groups = [
     { key: 'checked_in', label: 'Menunggu', items: of('checked_in') },
     { key: 'in_treatment', label: 'Dirawat', items: of('in_treatment') },
     { key: 'unpaid', label: 'Siap bayar', items: of('done').filter(unpaid) },
-    { key: 'booked', label: 'Belum datang', items: of('booked') },
+    { key: 'late', label: 'Terlambat', items: of('booked').filter(late) },
+    { key: 'booked', label: 'Belum datang', items: of('booked').filter((a) => !late(a)) },
   ]
   // Same rule as Beranda: a chart reader opens the chart (writers with the active visit), others the patient page.
   const href = (a: Appointment) => !a.patient ? null
@@ -69,7 +73,7 @@ export function QueuePanel({ me, where = 'rail' }: { me: Me; where?: 'rail' | 's
                 const body = <><strong>{a.patient?.name ?? '—'}</strong><span className="muted small">{[a.dentist?.name, a.chair].filter(Boolean).join(' · ')}</span></>
                 return (
                   <li key={a.id}>
-                    <span className={`queue-panel-no chip-${g.key}`}>{g.key === 'booked' ? fmtTime(a.starts_at, tz) : i + 1}</span>
+                    <span className={`queue-panel-no chip-${g.key}`}>{g.key === 'booked' || g.key === 'late' ? fmtTime(a.starts_at, tz) : i + 1}</span>
                     {h ? <a className="queue-panel-who" href={h}>{body}</a> : <span className="queue-panel-who">{body}</span>}
                     {g.key === 'unpaid' && a.visit_id && <a className="btn btn-primary btn-sm" href={`#/tagihan/${a.visit_id}`} aria-label={`Bayar ${a.patient?.name ?? ''}`}>Bayar</a>}
                   </li>

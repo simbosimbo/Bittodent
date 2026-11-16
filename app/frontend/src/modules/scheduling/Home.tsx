@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { fmtDate, fmtTime, initials, todayWib, TZ } from '../../shared/format'
 import type { Me } from '../../shared/session'
 import { RevenueCard } from '../billing'
@@ -35,6 +35,7 @@ function DeskHome({ me }: { me: Me }) {
   const now = useNow()
   const { data, error, loading } = useSchedule(me.active.branch_id, date)
   const [filter, setFilter] = useState<'open' | 'all'>('open')
+  const tlScroll = useRef<HTMLDivElement>(null)
   const can = (p: string) => me.permissions.includes(p)
   const mobile = useIsMobile()
   // Phone: CTAs leave the first fold (greeting + KPIs); they sit after the KPI tiles and in the header + menu.
@@ -80,6 +81,13 @@ function DeskHome({ me }: { me: Me }) {
   const orphan = active.filter((a) => !a.dentist)
   if (orphan.length) lanes.push({ id: '-', name: 'Tanpa dokter', items: orphan })
 
+  // Long day: open the timeline at "now" (a third in from the left) instead of 08.00.
+  const hasLanes = lanes.length > 0
+  useEffect(() => {
+    const el = tlScroll.current, line = el?.querySelector<HTMLElement>('.tl-now')
+    if (el && line) el.scrollLeft = Math.max(0, line.getBoundingClientRect().left - el.getBoundingClientRect().left + el.scrollLeft - el.clientWidth / 3)
+  }, [hasLanes])
+
   const kpis = [
     { label: 'Pasien hari ini', icon: ICONS.user, value: patients + walkIns, note: `${patients} dengan janji${walkIns ? ` · ${walkIns} tanpa janji` : ''}` },
     { label: 'Janji temu', icon: ICONS.calendar, value: active.length, note: `${done} selesai · ${active.length - done} tersisa` },
@@ -119,7 +127,7 @@ function DeskHome({ me }: { me: Me }) {
               </div>
             </div>
             {lanes.length === 0 ? <p className="muted empty">Belum ada janji aktif hari ini.</p> : (
-              <div className="tl-scroll">
+              <div className="tl-scroll" ref={tlScroll}>
                 <div className="tl" style={{ '--tl-hours': hours.length - 1 } as CSSProperties}>
                   <div className="tl-row tl-axis" aria-hidden="true">
                     <div />

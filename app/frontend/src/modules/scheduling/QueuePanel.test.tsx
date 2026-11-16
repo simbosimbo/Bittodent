@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
-import { afterEach, expect, test, vi } from 'vitest'
+import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import type { Me } from '../../shared/session'
 import { QueuePanel } from './QueuePanel'
 
@@ -18,6 +18,7 @@ const schedule = {
     appt('a1', 'checked_in', 'Budi Contoh', '08:00'), appt('a2', 'in_treatment', 'Sari Sintetis', '08:30', 'd2'),
     appt('a3', 'done', 'Dina Utang', '07:00', 'd1', { visit_id: 'v3' }), appt('a4', 'done', 'Lunas Contoh', '07:30', 'd1', { visit_id: 'v4' }),
     appt('a5', 'booked', 'Putri Nanti', '17:30'), appt('a6', 'cancelled', 'Batal Contoh', '10:00'),
+    appt('a7', 'booked', 'Rudi Telat', '15:30'),
   ] }],
 }
 const mount = (perms: string[]) => {
@@ -27,7 +28,8 @@ const mount = (perms: string[]) => {
 }
 const group = async (label: string) => (await screen.findByRole('heading', { name: new RegExp('^' + label) })).closest('div') as HTMLElement
 
-afterEach(() => vi.unstubAllGlobals())
+beforeEach(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-11-14T16:00:00+07:00')) })
+afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers() })
 
 test('groups today by visit step; cancelled never shows; links follow the chart rule', async () => {
   mount(['appointment.read', 'note.read', 'note.write'])
@@ -35,6 +37,9 @@ test('groups today by visit step; cancelled never shows; links follow the chart 
   expect(within(await group('Menunggu')).getByRole('link', { name: /Budi Contoh/ })).toHaveAttribute('href', '#/rekam-medis/p-a1/janji/a1')
   expect(within(await group('Dirawat')).getByText('Sari Sintetis')).toBeInTheDocument()
   expect(within(await group('Belum datang')).getByText('17.30')).toBeInTheDocument()
+  // booked 15.30, now 16.00 (> 15 minutes past): late, not "belum datang"
+  expect(within(await group('Terlambat')).getByText('Rudi Telat')).toBeInTheDocument()
+  expect(within(await group('Belum datang')).queryByText('Rudi Telat')).toBeNull()
   expect(screen.queryByText('Batal Contoh')).toBeNull()
   expect(screen.queryByRole('heading', { name: /^Siap bayar/ })).toBeNull() // no billing.read: no payment status
 })

@@ -56,3 +56,5 @@
   /* last card clears FAB (56px) + its 16px gap above the bottom nav; .shell-main already pads for the nav + safe area */
   .card:has(.fab) { margin-bottom: 88px; }
 }
+/* No. RM is one token ("BT-000041"): never split across lines. */
+.nowrap { white-space: nowrap; }

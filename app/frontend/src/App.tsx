@@ -143,7 +143,7 @@ function StaffApp() {
 
   // Desk pages keep today's queue in view (KlinikMe pattern); the chart and settings need the full width.
   const queue = can('appointment.read') && QUEUE_PAGES.includes(hash) ? (where: 'rail' | 'sheet') => <QueuePanel me={me} where={where} /> : undefined
-  return <Shell me={me} nav={nav} active={active} title={pageTitle(hash, active)} queue={queue}
+  return <Shell me={me} nav={nav} active={active} title={pageTitle(hash, active)} queue={queue} queueRail={hash !== '/pasien'}
     badges={{ '/jadwal': { count: pendingCount, label: `${pendingCount} janji online perlu konfirmasi` } }} ribbon={ribbonId && can('patient.read') && <AlertRibbon key={ribbonId} patientId={ribbonId} />}
     onSwitchBranch={switchBranch} onLogout={logout}>{page}</Shell>
 }
