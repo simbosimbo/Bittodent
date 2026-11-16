@@ -18,7 +18,7 @@ const BILLING_ALERTS: Alert['kind'][] = ['rp0_menunggu', 'disetujui_sendiri', 'p
 const COLS: [keyof IntegrityReport['totals'], string][] = [['external', 'Luar'], ['external_pending', 'Luar menunggu'], ['rp0', 'Diskon 100% disetujui'],
   ['rp0_pending', 'Rp0 menunggu'], ['discounts', 'Diskon'], ['full_discounts', 'Diskon 100%'], ['self_approved', 'Disetujui sendiri'],
   ['unbilled_visits', 'Tanpa tagihan'], ['batal', 'Batal'], ['closed_without_invoice', 'Batal tanpa tagihan'],
-  ['tariff_zero', 'Anomali tarif Rp0'], ['tariff_zero_pending', 'Anomali tarif menunggu']]
+  ['tariff_zero', 'Baris Rp0 (gratis)'], ['tariff_zero_pending', 'Anomali tarif menunggu']]
 type Key = keyof IntegrityReport['totals']
 // Unit D: corrections are their own documents, never "Rp0". [group, columns]; *_rp columns are rupiah.
 const CORR: [string, [Key, string][]][] = [
@@ -117,7 +117,7 @@ export default function ReportPage() {
             </tbody>
           </table></div>
         )}
-        <p className="muted small">Luar &amp; tanpa tagihan = dokter pelaksana tindakan; diskon = dokter kunjungan; anomali tarif Rp0 = dokter baris tagihan (bukan koreksi, bukan diskon); batal = janji dibatalkan/tidak datang atau kehadiran dibatalkan.</p>
+        <p className="muted small">Luar &amp; tanpa tagihan = dokter pelaksana tindakan; diskon = dokter kunjungan; baris Rp0 (gratis) = dokter baris tagihan (bukan koreksi, bukan diskon); batal = janji dibatalkan/tidak datang atau kehadiran dibatalkan.</p>
       </div>
 
       <div className="card">

@@ -177,11 +177,10 @@ class EncounterInvoiceGuardTest extends TestCase
 
         $this->work($visit, ['procedure_code' => '89.31', 'variant' => 'kontrol']);
         $this->selesai($visit)->assertOk()->assertJsonPath('visit.status', 'selesai')->assertJsonPath('visit.closed_without_invoice', false);
-        $this->assertSame([[0, true]], $this->lines($visit)->map(fn ($l) => [$l->price_rp, (bool) $l->tariff_zero])->all());
-        // Rp0 kontrol: the line waits for the owner (#56) but blocks nothing; there is nothing to pay and a Rp0 invoice never turns lunas
-        $inv = $this->as(self::DESK)->getJson("/api/visits/$visit/invoice")->assertOk()->assertJsonPath('balance_rp', 0)
-            ->assertJsonPath('status', 'terbuka')->assertJsonPath('lines.0.tariff_zero', 'pending')->json();
-        $this->as(self::OWNER)->postJson("/api/invoice-lines/{$inv['lines'][0]['id']}/approve-zero-tariff")->assertOk();
+        $this->assertSame([[0, false]], $this->lines($visit)->map(fn ($l) => [$l->price_rp, (bool) $l->tariff_zero])->all());
+        // Rp0 kontrol from the price list is free work (#78): no owner approval, the invoice is lunas at once
+        $this->as(self::DESK)->getJson("/api/visits/$visit/invoice")->assertOk()->assertJsonPath('balance_rp', 0)
+            ->assertJsonPath('status', 'lunas')->assertJsonPath('lines.0.tariff_zero', null);
         $this->assertSame('done', $this->inA(fn () => Appointment::findOrFail($appt)->status));
 
         [$konsul] = $this->visit();

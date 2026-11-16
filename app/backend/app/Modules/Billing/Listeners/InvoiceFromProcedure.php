@@ -4,6 +4,7 @@ namespace App\Modules\Billing\Listeners;
 
 use App\Modules\Billing\Models\Invoice;
 use App\Modules\Billing\Models\InvoiceLine;
+use App\Modules\Billing\Services\Ledger;
 use App\Modules\Clinical\Contracts\VisitDirectory;
 use App\Modules\Clinical\Events\ProcedureRecorded;
 use App\Modules\Patients\Contracts\PatientDirectory;
@@ -16,7 +17,7 @@ use RuntimeException;
 
 // Sync listener (runs inside Clinical's signing/status transaction): one invoice per visit, one line per procedure,
 // price = Tariffs snapshot at this moment for the procedure provider's band (per-dentist > field > Spesialis > Umum). No tariff => no line (never an invented price) + audit row for the front desk.
-// Tariff Rp0 => line flagged tariff_zero, waiting for an owner (billing.approve_zero; DEVIATIONS #56), distinct from corrections.
+// Tariff Rp0 = free work the owner priced on purpose (Yohanes 16 Nov 2026, DEVIATIONS #78): no approval, the invoice may be lunas at Rp0.
 final class InvoiceFromProcedure
 {
     public function __construct(private VisitDirectory $visits, private PatientDirectory $patients, private PriceLookup $prices) {}
@@ -50,9 +51,10 @@ final class InvoiceFromProcedure
         InvoiceLine::create(['invoice_id' => $invoice->id, 'procedure_id' => $e->procedureId, 'procedure_code' => $e->procedureCode,
             'procedure_name' => $quote['name'].(($quote['label'] ?? 'Standar') === 'Standar' ? '' : ' ('.$quote['label'].')'), 'variant' => $e->variant, 'tooth' => $e->tooth === null || $e->tooth === '' ? null : (int) $e->tooth,
             'surface' => $e->surfaces, 'doctor_id' => $e->dentistId, 'dentist_category' => $e->dentistCategory, 'dentist_field' => $e->dentistField,
-            'price_rp' => $quote['price_rp'], 'tariff_zero' => (int) $quote['price_rp'] === 0]);
-        if ((int) $quote['price_rp'] === 0) { // tariff anomaly (unit B): visible + owner approval, never a correction
+            'price_rp' => $quote['price_rp']]);
+        if ((int) $quote['price_rp'] === 0) {
             Audit::log('tarif_nol', 'invoice', $invoice->id, ['procedure_code' => $e->procedureCode, 'variant' => $e->variant]);
         }
+        Ledger::syncStatus($invoice->refresh()); // a new invoice has no status loaded yet
     }
 }

@@ -203,18 +203,16 @@ class CreditNoteTest extends TestCase
             ->assertJsonPath('status', 'void');
     }
 
-    public function test_zero_tariff_line_is_an_anomaly_for_the_owner_not_a_correction(): void
+    // #78 (Yohanes 16 Nov 2026): a Rp0 price set by the owner is free work, approved by setting it; the invoice is lunas at Rp0.
+    public function test_zero_tariff_line_is_free_work_not_a_correction(): void
     {
         $this->in($this->tenantA(), fn () => Tariff::create(['procedure_code' => '23.01', 'name' => 'Cabut gigi susu (gratis contoh)',
             'variant' => 'gratis', 'level_label' => 'Gratis', 'price_rp' => 0, 'valid_from' => '2026-01-01']));
         [, , $inv] = $this->billed(proc: ['tooth' => 51, 'procedure_code' => '23.01', 'variant' => 'gratis']);
         $i = $this->invoice($inv);
-        $this->assertSame([0, 'pending'], [$i['lines'][0]['price_rp'], $i['lines'][0]['tariff_zero']]);
+        $this->assertSame([0, null, 'lunas', 0], [$i['lines'][0]['price_rp'], $i['lines'][0]['tariff_zero'], $i['status'], $i['balance_rp']]);
         $this->assertSame([[], []], [$i['credit_notes'], $i['adjustments']]); // not a correction
         $this->assertTrue($this->audited('tarif_nol', $this->tenantA()));
-        $this->as(self::KASIR)->postJson("/api/invoice-lines/{$i['lines'][0]['id']}/approve-zero-tariff")->assertForbidden();
-        $this->as(self::OWNER)->postJson("/api/invoice-lines/{$i['lines'][0]['id']}/approve-zero-tariff")->assertOk()
-            ->assertJsonPath('lines.0.tariff_zero', 'approved');
     }
 
     public function test_correction_adjustment_must_point_at_a_line(): void

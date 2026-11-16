@@ -92,8 +92,10 @@ final class Ledger
             return;
         }
         $t = self::totals($inv);
-        // lunas = something was really owed and it is settled; fully credited (nothing left to bill) stays terbuka, never "lunas Rp0"
-        InvoiceStatus::move($inv, $t['balance_rp'] === 0 && $t['lines_rp'] - $t['credit_notes_rp'] > 0 ? 'lunas' : 'terbuka');
+        // lunas = something owed is settled, or only free work was billed (Rp0 from the owner's price list, Yohanes 16 Nov 2026).
+        // Fully credited (nothing left to bill) stays terbuka: a correction, not free work.
+        $free = $t['lines_rp'] === 0 && $t['credit_notes_rp'] === 0 && InvoiceLine::where('invoice_id', $inv->id)->exists();
+        InvoiceStatus::move($inv, $t['balance_rp'] === 0 && ($t['lines_rp'] - $t['credit_notes_rp'] > 0 || $free) ? 'lunas' : 'terbuka');
     }
 
     /** NK-YYYY-000001, sequential per tenant and year. Caller is inside a transaction; the counter row lock serializes numbering. */
