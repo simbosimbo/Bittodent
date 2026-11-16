@@ -1,7 +1,7 @@
 /* Entry CSS. Layer order while screens migrate:
-   legacy-base (bare element rules: label, input, h1 …) < HeroUI components < legacy (class rules; HeroUI shares names like .card/.menu/.chip, legacy markup must keep its look).
+   legacy-base (bare element rules: label, input, h1 …) < HeroUI components < bittodent (house radius) < legacy (class rules; HeroUI shares names like .card/.menu/.chip, legacy markup must keep its look).
    shortcut: legacy layers stay until every screen uses HeroUI; delete them then. */
-@layer theme, base, legacy-base, components, legacy, utilities;
+@layer theme, base, legacy-base, components, bittodent, legacy, utilities;
 
 @import "@heroui/styles";
 @import "@heroui-pro/react/css";
@@ -39,7 +39,16 @@
   --field-background: #FFFFFF;
   --field-border: #D4DBE1;
   --field-border-width: 1px;
-  --radius: 8px; /* HeroUI scales from this: fields/buttons 12px, cards 16px+ */
+  --radius: 8px;
+  --field-radius: 10px;
+  --radius-2xl: 12px; /* HeroUI chips, dropdown items */
+  --radius-3xl: 16px; /* HeroUI cards, popovers, modals: min(32px, 3xl) */
 }
 
 body { font-family: var(--font-sans); }
+
+/* House radius (kanvas: field 10, button 12, card/popover 16). HeroUI buttons use rounded-3xl, which would be 16 here.
+   Below `legacy` and `utilities`, so a className such as rounded-full or the legacy round .icon-btn still wins. */
+@layer bittodent {
+  .button { border-radius: 12px; }
+}

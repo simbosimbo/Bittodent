@@ -1,5 +1,5 @@
 // Per-role UI audit for the HeroUI migration. Starts nothing itself. Expects backend :8000 with DEV_QUICK_LOGIN=true and `npm run dev` on :5173.
-// For each role × route × width: horizontal overflow, controls past the right edge, touch targets < 44px (phone only), text < 12px, and a screenshot.
+// For each role × route × width: horizontal overflow, controls past the right edge, touch targets < 44px and button text > 15px (phone only), text < 12px, and a screenshot.
 // Usage: node scripts/ui-audit.mjs [--roles dokter,depan] [--routes /,/pasien] [--widths 390,1440] [--out ../../screenshots/ui-audit]
 // Exit 1 when any page fails a check. Report: <out>/report.json
 import { mkdirSync, writeFileSync } from 'node:fs'
@@ -29,10 +29,15 @@ const measure = ({ phone, width }) => {
   const tiny = [...document.querySelectorAll('body *')]
     .filter((e) => [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()) && vis(e) && parseFloat(getComputedStyle(e).fontSize) < 12)
     .map((e) => `${label(e)} ${getComputedStyle(e).fontSize}`)
+  const big = phone
+    ? [...document.querySelectorAll('button,a[href],[role=button]')].filter(vis)
+        .filter((e) => e.textContent.trim() && parseFloat(getComputedStyle(e).fontSize) > 15)
+        .map((e) => `${label(e)} ${getComputedStyle(e).fontSize}`)
+    : []
   const offscreen = [...document.querySelectorAll('a[href],button,input:not([type=hidden]),select,textarea,[role=button],[role=tab]')]
     .filter(vis).filter((e) => e.getBoundingClientRect().right > width + 1 && !e.closest('[data-audit-skip],[data-more]'))
     .map((e) => `${label(e)} right=${Math.round(e.getBoundingClientRect().right)}`)
-  return { offscreen, overflowX: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) - width, small, tiny }
+  return { big, offscreen, overflowX: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) - width, small, tiny }
 }
 
 mkdirSync(out, { recursive: true })
@@ -65,9 +70,9 @@ try {
         const m = await page.evaluate(measure, { phone, width })
         const file = join(out, `${width}-${role}-${route.replace(/\//g, '_') || '_'}.png`)
         await page.screenshot({ path: file, fullPage: true })
-        const fail = m.overflowX > 0 || m.offscreen.length > 0 || m.small.length > 0 || m.tiny.length > 0
+        const fail = m.overflowX > 0 || m.offscreen.length > 0 || m.small.length > 0 || m.tiny.length > 0 || m.big.length > 0
         report.push({ role, width, route, fail, ...m, file })
-        console.log(`${fail ? 'FAIL' : 'ok  '} ${width} ${role.padEnd(8)} ${route.padEnd(20)} overflow=${m.overflowX} offscreen=${m.offscreen.length} small=${m.small.length} tiny=${m.tiny.length}`)
+        console.log(`${fail ? 'FAIL' : 'ok  '} ${width} ${role.padEnd(8)} ${route.padEnd(20)} overflow=${m.overflowX} offscreen=${m.offscreen.length} small=${m.small.length} tiny=${m.tiny.length} big=${m.big.length}`)
       }
       await ctx.close()
     }

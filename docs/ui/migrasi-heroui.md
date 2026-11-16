@@ -42,6 +42,28 @@ Seluruh React SPA (`app/frontend`) memakai komponen HeroUI v3 + HeroUI Pro denga
 - HP (≤720px): body 15px, sekunder 14px, caption 13px, minimal 12px. Judul halaman 20–22px/700. Gutter 16px, gap 12px. Kartu radius 16px, padding 12–16px. Target sentuh ≥44px (aksi primer ≥48px). Tanpa overflow horizontal. Meta kartu tidak terpotong oleh tombol (tombol turun ke baris sendiri bila sempit).
 - Desktop: tata letak sekarang dipertahankan, hanya komponennya diganti.
 
+## Tombol HP: seimbang, tidak besar, tetap mudah dipencet
+
+Patokan: target sentuh Apple HIG 44pt dan Material 48dp. Target sentuh boleh lebih besar dari bentuk yang terlihat.
+
+- **Satu aksi utama per layar atau per kartu.** Hanya aksi itu yang solid (`variant="primary"`). Aksi lain `secondary`, `outline`, atau `ghost`.
+- **Tombol di dalam baris/kartu:** tinggi 44px, teks 14px/600, padding samping 12px, lebar mengikuti isi (jangan `fullWidth`). Label pendek 1–2 kata ("Mulai", "Buka RM", "Bayar"); konteks sudah ada di kartu. Ikon hanya bila menambah arti.
+- **Seluruh baris/kartu = satu target** bila aksinya "buka detail". Tanpa tombol terpisah; pakai chevron kecil di kanan.
+- **Tombol utama halaman/form:** tinggi 48px, teks 15px/600, lebar penuh, menempel di bawah (sticky) di atas bottom nav bila form panjang.
+- **Tombol ikon:** 44×44 dengan ikon 20px dan `aria-label`.
+- **Kartu sempit:** tombol tidak boleh memotong meta. Bila nama/meta + tombol tidak muat, tombol turun ke baris sendiri di bawah meta, rata kanan.
+
+## Radius (jangan terlalu bulat)
+
+Skala rumah di `app.css`: field 10px, tombol 12px, kartu/popover/modal 16px, chip 12px. Jangan menambah `rounded-full`, `rounded-3xl`, atau radius di atas 16px, kecuali tombol ikon bulat yang memang bulat di kanvas (tombol "+", avatar). Jangan menimpa radius per komponen; ubah skala di `app.css` (milik koordinator) bila perlu.
+
+## Progressive disclosure di HP
+
+- Paling banyak 1 aksi utama + 1 aksi sekunder terlihat per kartu. Sisanya masuk menu "⋯" (`Menu` dari shared/ui) atau sheet aksi (`Sheet`).
+- Detail sekunder (riwayat, catatan panjang, rincian tagihan) dilipat di balik "Lihat detail" / disclosure, jangan dibentangkan semua.
+- Saringan banyak: tampilkan 2–3 chip yang paling sering dipakai, sisanya di sheet "Saring".
+- Informasi keselamatan (alergi, peringatan medis, status tanda tangan, sisa tagihan) **tidak boleh** disembunyikan di balik disclosure.
+
 ## Artboard per modul
 
 | Modul | Artboard |
