@@ -62,7 +62,14 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
   useEffect(() => { paymentAccounts().then(setAccounts, () => setAccounts([])) }, [])
   // #70: the single, untouched payment row starts at the remaining balance (no typing for the usual full payment; still editable).
   const balance = inv && inv.status !== 'void' ? inv.balance_rp : 0
-  useEffect(() => { if (balance > 0) setRows((rs) => rs.length === 1 && rs[0].amount === '' ? [{ ...rs[0], amount: String(balance) }] : rs) }, [balance])
+  // It follows the balance while untouched (a discount lowers it), so Terima never asks for more than is owed; a typed amount stays.
+  const prefilled = useRef('')
+  useEffect(() => {
+    if (balance <= 0) return
+    const prev = prefilled.current // read outside the updater: StrictMode runs updaters twice
+    prefilled.current = String(balance)
+    setRows((rs) => rs.length === 1 && (rs[0].amount === '' || rs[0].amount === prev) ? [{ ...rs[0], amount: String(balance) }] : rs)
+  }, [balance])
   // review-3: the usual method (Tunai of this branch, else a clinic-wide Tunai) is preselected, so Terima is active right away.
   const tunai = accounts.find((a) => a.is_active && a.kind === 'tunai' && inv && a.branch_id === inv.branch_id)
     ?? accounts.find((a) => a.is_active && a.kind === 'tunai' && a.branch_id === null)

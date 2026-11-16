@@ -219,3 +219,22 @@ test('KlinikMe-style diskon: on one line, in %, sent as whole rupiah with the li
   fireEvent.click(screen.getByRole('button', { name: 'Simpan' }))
   await waitFor(() => expect(addAdjustment).toHaveBeenCalledWith('i1', { kind: 'discount', amount_rp: 15000, reason: 'Pasien lama', invoice_line_id: 'l1' }))
 })
+
+test('the untouched payment amount follows the balance after a discount; a typed amount stays', async () => {
+  const addAdjustment = vi.spyOn(await import('./api'), 'addAdjustment')
+  current = { ...inv, adjustments: [] }
+  render(<InvoicePage visitId="v1" me={me(['billing.read', 'billing.adjust'])} />)
+  const amount = await screen.findByLabelText('Jumlah dibayar (Rp)')
+  await waitFor(() => expect(amount).toHaveValue(100000))
+  addAdjustment.mockResolvedValueOnce({ ...current, balance_rp: 90000, adjustments_rp: 10000 })
+  fireEvent.change(screen.getByLabelText('Jumlah (Rp)'), { target: { value: '10000' } })
+  fireEvent.change(screen.getByLabelText('Alasan'), { target: { value: 'Pasien lama' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Simpan' }))
+  await waitFor(() => expect(amount).toHaveValue(90000))
+
+  fireEvent.change(amount, { target: { value: '50000' } }) // cashier types a partial payment: kept on the next change
+  addAdjustment.mockResolvedValueOnce({ ...current, balance_rp: 80000, adjustments_rp: 20000 })
+  fireEvent.click(screen.getByRole('button', { name: 'Simpan' }))
+  await waitFor(() => expect(addAdjustment).toHaveBeenCalledTimes(2))
+  expect(amount).toHaveValue(50000)
+})
