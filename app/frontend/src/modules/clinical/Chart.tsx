@@ -56,8 +56,21 @@ function trapTab(e: KeyboardEvent<HTMLElement>) {
   }
 }
 /** "2 karies · 1 tambalan" over current rows, CONDITIONS order, zero counts skipped. */
-export const findingSummary = (items: { condition: string }[]) =>
-  CONDITIONS.map((c) => [items.filter((f) => f.condition === c.key).length, c.label.toLowerCase()] as const).filter(([n]) => n).map(([n, l]) => `${n} ${l}`).join(' · ')
+/**
+ * "8 gigi hilang (mis) · 1 tambalan amalgam (amf) · 21 sehat (sou)": legacy findings + odontogram v2 entries, counted per tooth per
+ * condition (a span counts each tooth). Same exclusions as the chart: cancelled / not done / superseded rows and unconfirmed externals.
+ */
+export function findingSummary(items: { condition: string }[], procs: Procedure[] = []) {
+  const legacy = CONDITIONS.map((c) => [items.filter((f) => f.condition === c.key).length, c.label.toLowerCase()] as const).filter(([n]) => n).map(([n, l]) => `${n} ${l}`)
+  const teeth = new Map<string, Set<number>>()
+  for (const p of procs) {
+    if (!p.condition || ['cancelled', 'superseded', 'tidak_dikerjakan'].includes(p.status) || p.external_confirmation === 'pending' || p.external_confirmation === 'rejected') continue
+    const ts = p.tooth !== null ? [p.tooth] : p.tooth_range ? spanTeeth(...(p.tooth_range.split('-').map(Number) as [number, number])) : []
+    teeth.set(p.condition, new Set([...(teeth.get(p.condition) ?? []), ...ts]))
+  }
+  const v2 = TAXONOMY.conditions.filter((c) => teeth.get(c.key)?.size).map((c) => `${teeth.get(c.key)!.size} ${c.label.toLowerCase()} (${c.code ?? 'panah'})`)
+  return [...legacy, ...v2].join(' · ')
+}
 const FREE_EDIT_MS = 48 * 3600 * 1000
 const INNER = [['odo', 'Odontogram'], ['notes', 'Catatan Klinis'], ['plan', 'Rencana Perawatan'], ['rx', 'Resep'], ['bill', 'Billing']] as const
 // Surface keypad (sketch): lingual/palatal top, M left, O/I centre, D right, buccal/labial bottom. Labels come from surfaceLabel.
@@ -602,7 +615,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
 
   const items = [...chart.findings, ...mine]
   const procs = [...chart.procedures, ...myProcs]
-  const summary = findingSummary(items)
+  const summary = findingSummary(items, procs)
   const only = pick && allFor !== pick.tooth ? pick.tooth : null
   const shownItems = only ? items.filter((f) => f.tooth === only) : items
   const shownProcs = only ? procs.filter((x) => x.tooth === only) : procs
