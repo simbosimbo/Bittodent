@@ -1,0 +1,44 @@
+/* Entry CSS. Layer order while screens migrate:
+   legacy-base (bare element rules: label, input, h1 …) < HeroUI components < legacy (class rules; HeroUI shares names like .card/.menu/.chip, legacy markup must keep its look).
+   shortcut: legacy layers stay until every screen uses HeroUI; delete them then. */
+@layer theme, base, legacy-base, components, legacy, utilities;
+
+@import "@heroui/styles";
+
+@import "./tokens.css" layer(legacy);
+@import "./legacy-base.css" layer(legacy-base);
+@import "./styles.css" layer(legacy);
+@import "./motion.css" layer(legacy);
+
+/* HeroUI theme → Bittodent tokens (design/tokens.json, kanvas "Bittodent / Kasir"). Unlayered: wins over the default theme. */
+:root {
+  --font-sans: "Plus Jakarta Sans", Inter, "Segoe UI", system-ui, sans-serif;
+  --background: #F3F5F9;
+  --foreground: #273445;
+  --surface: #FFFFFF;
+  --surface-foreground: #273445;
+  --surface-secondary: #F2F5F7;
+  --surface-tertiary: #E6EBEF;
+  --overlay: #FFFFFF;
+  --muted: #5F6C77;
+  --default: #F2F5F7;
+  --default-foreground: #273445;
+  --accent: #0B6B62;
+  --accent-foreground: #FFFFFF;
+  --success: #1B6E42;
+  --success-foreground: #FFFFFF;
+  --warning: #E0A526;
+  --warning-foreground: #3B2400;
+  --danger: #B42318;
+  --danger-foreground: #FFFFFF;
+  --border: #EAEDF8;
+  --separator: #EAEDF8;
+  --focus: #14A396;
+  --link: #0B6B62;
+  --field-background: #FFFFFF;
+  --field-border: #D4DBE1;
+  --field-border-width: 1px;
+  --radius: 8px; /* HeroUI scales from this: fields/buttons 12px, cards 16px+ */
+}
+
+body { font-family: var(--font-sans); }

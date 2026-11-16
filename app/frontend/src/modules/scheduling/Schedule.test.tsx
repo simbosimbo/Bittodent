@@ -1,6 +1,8 @@
 import { act, fireEvent, render, renderHook, screen, within } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
-import baseCss from '../../shared/ui/styles.css?raw'
+import stylesCss from '../../shared/ui/styles.css?raw'
+import legacyBaseCss from '../../shared/ui/legacy-base.css?raw'
+const baseCss = legacyBaseCss + stylesCss
 import type { Me } from '../../shared/session'
 import Schedule, { usePendingConfirm } from './Schedule'
 
@@ -322,7 +324,7 @@ test.each([[412, true], [1280, false]])('%ipx: Buat Janji Escape/scroll-lock onl
   expect(!screen.queryByRole('dialog')).toBe(modal)
 })
 
-test.each([[390, '44px', '16px'], [1280, '40px', '']])('%ipx: form fields min-height %s (styles.css)', (w, minH, font) => {
+test.each([[390, '44px', '16px'], [1280, '40px', '']])('%ipx: form fields min-height %s (legacy-base.css + styles.css)', (w, minH, font) => {
   const style = document.head.appendChild(document.createElement('style'))
   style.textContent = baseCss.replace(/@media[^{]+/g, (m) => m.replace(/(\d+)px/g, (_, n) => `${Number(n) - (w - 1024)}px`))
   try {

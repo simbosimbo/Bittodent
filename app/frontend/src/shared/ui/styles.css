@@ -17,22 +17,12 @@
   --info-50: var(--color-info-bg);
   --violet: #7a4fd0;
   --violet-50: #f1ebfc;
-  --radius: var(--shells-a-radius-card);
+  --radius-card: var(--shells-a-radius-card);
   --radius-sm: var(--shells-a-radius-item);
   --shadow: var(--shells-a-shadow-card);
   --space: 8px;
-  font-family: var(--shells-a-font-family);
-  font-size: var(--shells-a-font-size);
-  color: var(--text);
-  background: var(--bg);
 }
 
-* { box-sizing: border-box; }
-body { margin: 0; font-weight: 500; }
-h1 { font-size: var(--shells-a-font-title); margin: var(--space-1) 0; font-weight: 700; }
-h2 { font-size: var(--font-size-lg); margin: 0 0 var(--space-3); font-weight: 700; }
-a { color: var(--accent-600); text-decoration: none; }
-a:hover { text-decoration: underline; }
 .muted { color: var(--muted); }
 .small { font-size: var(--font-size-xs); }
 .strong { font-weight: 600; color: var(--text); }
@@ -42,12 +32,6 @@ a:hover { text-decoration: underline; }
 .center { min-height: 100vh; display: grid; place-items: center; }
 
 /* Controls */
-label { display: flex; flex-direction: column; gap: 6px; font-weight: 550; font-size: var(--font-size-sm); margin-bottom: 14px; }
-input, select {
-  font: inherit; font-weight: 400; color: var(--text); background: var(--surface);
-  border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 12px; min-height: 40px;
-}
-input:focus, select:focus { outline: 2px solid var(--accent-50); border-color: var(--accent); }
 .has-error input, .has-error select { border-color: var(--danger); }
 .field-error { color: var(--danger); font-weight: 500; font-size: var(--font-size-xs); }
 .form-error { color: var(--danger); background: var(--danger-50); padding: 10px 12px; border-radius: var(--radius-sm); }
@@ -143,7 +127,7 @@ html { scroll-padding-top: 160px; } /* scrollIntoView lands below the pinned top
 .menu { position: relative; flex: none; }
 .menu-pop {
   position: absolute; top: calc(100% + var(--space-2)); z-index: 25; min-width: 220px; display: grid; gap: 2px; padding: var(--space-2);
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-lg);
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); box-shadow: var(--shadow-lg);
 }
 .menu-right { right: 0; }
 .menu-left { left: 0; }
@@ -215,7 +199,7 @@ html { scroll-padding-top: 160px; } /* scrollIntoView lands below the pinned top
 .aps { position: relative; display: flex; align-items: center; gap: var(--space-1); flex: none; }
 .aps-pop {
   position: absolute; top: calc(100% + var(--space-2)); right: 0; width: max(100%, 360px); z-index: 20; padding: var(--space-3);
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-lg);
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); box-shadow: var(--shadow-lg);
 }
 .aps-search { display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-3); color: var(--muted); border: 1px solid var(--border); border-radius: var(--radius-sm); }
 .aps-search:focus-within { border-color: var(--accent); }
@@ -285,7 +269,7 @@ html { scroll-padding-top: 160px; } /* scrollIntoView lands below the pinned top
 .dev-quick-list .btn { justify-content: space-between; }
 
 /* Cards */
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: var(--shells-a-space-card); }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); box-shadow: var(--shadow); padding: var(--shells-a-space-card); }
 .state-card { padding: 28px; text-align: center; }
 .state-card.error { color: var(--danger); }
 .empty { padding: 16px 0; }
@@ -376,7 +360,6 @@ html { scroll-padding-top: 160px; } /* scrollIntoView lands below the pinned top
 .version-list li:first-child { border-top: none; }
 .plain li + li { margin-top: 4px; }
 .details.one { grid-template-columns: 1fr; }
-textarea { font: inherit; font-weight: 400; color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 12px; resize: vertical; }
 label.check { flex-direction: row; align-items: center; gap: 8px; }
 label.check input { min-height: 0; }
 
@@ -499,8 +482,6 @@ label.check input { min-height: 0; }
     padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom)); background: var(--surface); border-top: 1px solid var(--border);
   }
   .overlay > .dialog .dialog-actions .btn { flex: 1; }
-  /* 44px fields; 16px text so iOS does not zoom on focus. */
-  input:where(:not([type='checkbox'], [type='radio'], [type='range'])), select, textarea { min-height: 44px; font-size: 16px; }
   label.check { min-height: 44px; }
   .picker-list button { min-height: 44px; align-items: center; }
   label.check:not(.dialog *) input { width: 20px; height: 20px; flex: none; } /* the Selesai dialog row has its own 48px+ target (clinical.css) */
