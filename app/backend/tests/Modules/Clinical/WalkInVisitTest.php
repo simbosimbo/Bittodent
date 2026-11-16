@@ -72,13 +72,27 @@ class WalkInVisitTest extends TestCase
             ->assertJsonPath('dentist_id', $this->user(self::DOC)->id);
     }
 
-    public function test_roles_without_note_write_and_other_tenants_are_refused(): void
+    // Audit P1-6: the desk registers a walk-in as arrived ("Pasien datang") with dentist + complaint, but still cannot read the record.
+    public function test_front_desk_and_kasir_register_arrival_but_cannot_read_the_record(): void
+    {
+        $p = $this->patient();
+        $doc = $this->user(self::DOC)->id;
+        $desk = $this->as('depan@senyum.test');
+        $desk->postJson($this->url($p), ['complaint' => 'Gusi bengkak'])->assertUnprocessable()->assertJsonValidationErrors('dentist_id');
+        $id = $desk->postJson($this->url($p), ['dentist_id' => $doc, 'complaint' => 'Gusi bengkak'])->assertCreated()
+            ->assertJsonMissingPath('complaint')->json('id');
+        $this->assertSame($id, $this->as('kasir@senyum.test')->postJson($this->url($p), ['dentist_id' => $doc])->assertOk()->json('id'));
+        foreach (['depan@senyum.test', 'kasir@senyum.test'] as $email) {
+            $this->as($email)->getJson("/api/patients/$p/chart")->assertForbidden();
+        }
+        $this->assertSame('Gusi bengkak', $this->as(self::DOC)->getJson("/api/patients/$p/chart")->json('visits.0.complaint'));
+        $this->assertFalse($this->inA(fn () => AuditEvent::get()->contains(fn ($e) => str_contains(json_encode($e->detail), 'bengkak'))));
+    }
+
+    public function test_other_tenants_are_refused(): void
     {
         $p = $this->patient();
         $before = $this->inA(fn () => Visit::where('patient_id', $p)->count());
-        foreach (['depan@senyum.test', 'kasir@senyum.test', 'pemilik@senyum.test'] as $email) {
-            $this->as($email)->postJson($this->url($p))->assertForbidden();
-        }
         $this->as('dokter@ceria.test')->postJson($this->url($p))->assertNotFound();
         $this->assertSame($before, $this->inA(fn () => Visit::where('patient_id', $p)->count()));
     }

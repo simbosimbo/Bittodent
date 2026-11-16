@@ -5,6 +5,8 @@ namespace App\Shared\Permissions;
 // The one RBAC matrix. Route guard: ->middleware('perm:<permission>').
 final class Permissions
 {
+    // visit.register (audit P1-6): "Pasien datang" = open today's walk-in visit (no appointment) with dentist + complaint. Every role;
+    // registering is not reading or writing the record (front desk and kasir still have no note.*).
     public const MATRIX = [
         // owner: clinical read-only (never note.write/note.sign/prescription sign); every chart/baseline/medical-history read is audited.
         'owner' => ['patient.read', 'patient.read_nik', 'patient.create', 'appointment.read', 'appointment.create',
@@ -14,21 +16,22 @@ final class Permissions
             'billing.accounts', // unit 5: manage clinic payment accounts; owner ONLY
             'settings.manage', // unit A koreksi: clinic settings (procedure correction window); owner ONLY
             'reporting.read', // unit 6: clinic-wide integrity report per dentist + alerts; owner ONLY (D-039 dentist = own pay only)
-            'appointment.refer'], // DEVIATIONS #68: Rujuk = the only way to change an appointment's dentist (owner: any appointment)
+            'appointment.refer', // DEVIATIONS #68: Rujuk = the only way to change an appointment's dentist (owner: any appointment)
+            'visit.register'],
         'dentist' => ['patient.read', 'patient.read_nik', 'patient.create', 'appointment.read', 'appointment.create',
             'appointment.transition', 'appointment.confirm', 'note.read', 'note.write', 'note.sign', 'patient.update', 'appointment.plan',
-            'appointment.refer'], // DEVIATIONS #68: only their own appointments (checked in AppointmentController::refer)
+            'appointment.refer', 'visit.register'], // DEVIATIONS #68: refer only their own appointments (checked in AppointmentController::refer)
         // procedure.confirm_external: second pair of eyes on an external entry made on a visit with `selesai` work that day (unit 2).
         // Not the dentist (who records it), not kasir; owner is an open decision (DEVIATIONS #48).
         'assistant' => ['patient.read', 'appointment.read', 'appointment.transition', 'note.read', 'note.write', 'appointment.plan',
-            'procedure.confirm_external'],
+            'procedure.confirm_external', 'visit.register'],
         'front_desk' => ['patient.read', 'patient.create', 'appointment.read', 'appointment.create', 'appointment.transition', 'appointment.confirm',
             'patient.update', 'billing.read', 'billing.adjust', 'procedure.confirm_external',
-            'appointment.refer'], // DEVIATIONS #68: move any appointment to another dentist (e.g. dokter berhalangan), reason + audit
+            'appointment.refer', 'visit.register'], // DEVIATIONS #68: move any appointment to another dentist (e.g. dokter berhalangan), reason + audit
         // kasir = kasir + manajemen booking (DEVIATIONS #67): buat/konfirmasi/check-in/ubah jadwal janji dan daftarkan pasien baru.
         // Tetap tanpa klinis (note.*, appointment.plan) dan tanpa patient.update / read_nik.
         'kasir' => ['patient.read', 'patient.create', 'appointment.read', 'appointment.create', 'appointment.transition', 'appointment.confirm',
-            'billing.read', 'billing.adjust', 'appointment.refer'], // #68: kasir = front desk too (Yohanes 15-11-2026)
+            'billing.read', 'billing.adjust', 'appointment.refer', 'visit.register'], // #68: kasir = front desk too (Yohanes 15-11-2026)
     ];
 
     public const LABELS = [

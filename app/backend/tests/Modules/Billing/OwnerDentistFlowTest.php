@@ -35,7 +35,8 @@ class OwnerDentistFlowTest extends TestCase
     public function test_owner_with_a_dentist_membership_runs_walk_in_to_paid_invoice(): void
     {
         $p = $this->inA(fn () => Patient::whereNotIn('id', Visit::where('status', 'berlangsung')->pluck('patient_id'))->orderBy('created_at')->firstOrFail()->id);
-        $this->as(self::OWNER)->postJson("/api/patients/$p/visits/walk-in")->assertForbidden(); // owner only: read-only RM
+        // owner only: may register arrival (visit.register) but is no dentist, so must name one; the RM stays read-only
+        $this->as(self::OWNER)->postJson("/api/patients/$p/visits/walk-in")->assertUnprocessable()->assertJsonValidationErrors('dentist_id');
 
         $owner = $this->user(self::OWNER)->id;
         $this->inA(function () use ($owner) {
