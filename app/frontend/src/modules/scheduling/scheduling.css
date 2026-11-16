@@ -62,12 +62,13 @@ a.tl-block:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px
   .home-board { order: 3; }
   .tl { --tl-label: 132px; }
   .stat .stat-value { font-size: var(--font-size-2xl); }
-  .stat-icon { width: 32px; height: 32px; }
+  .stat-icon { display: none; } /* half-width card: the label gets the room */
+  .stat .stat-label { min-height: 2.5em; line-height: 1.25; } /* 1- and 2-line labels keep the values in one row */
   .seg .btn { min-height: 44px; }
   .home-actions { display: flex; gap: var(--space-2); }
   .home-actions .btn { flex: 1; }
   /* Janji hari ini: the name keeps a readable width; "Buka Rekam Medis" wraps under it instead of squeezing it. */
-  .home-today .queue li .grow { flex: 1 1 140px; }
+  .home-today .queue li .grow, .home-queue .queue li .grow { flex: 1 1 140px; }
   .home-today .queue li > .row-action { margin-left: calc(44px + var(--space-3)); }
 }
 /* Online booking: source badge + confirm/reject on pending requests */
@@ -91,17 +92,17 @@ a.tl-block:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px
     margin: calc(-1 * var(--space-3)) calc(-1 * var(--space-3)) var(--space-3); padding: var(--space-2) var(--space-3) var(--space-1);
     border-bottom: 1px solid var(--border);
   }
-  .sched-bar { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+  .sched-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); min-width: 0; } /* date + 3 icon buttons + "Pasien datang" is ~408px: wrap, never widen the page */
   .sched-bar .btn { flex: none; white-space: nowrap; }
   .sched-bar > .btn[aria-label] { width: 44px; padding: 0; }
-  .sched-bar .date-field { flex: 0 0 auto; width: 140px; }
+  .sched-bar .date-field { flex: 1 1 140px; width: auto; }
   .sched-count { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .week-strip { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; margin-top: var(--space-1); }
   .week-strip button {
     display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 0; min-height: 56px; padding: 4px 0;
     border: 0; border-radius: var(--radius-sm); background: transparent; font: inherit; color: var(--text); cursor: pointer;
   }
-  .week-wd { font-size: 11px; color: var(--muted); }
+  .week-wd { font-size: var(--font-size-xs); color: var(--muted); }
   .week-day { font-size: var(--font-size-base); font-weight: 650; font-variant-numeric: tabular-nums; line-height: 1.4; }
   .week-dots { display: flex; gap: 3px; height: 5px; }
   .week-dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
@@ -127,7 +128,7 @@ a.tl-block:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px
   .sched-times { position: sticky; left: 0; z-index: 3; background: var(--surface); }
   .sched-now { position: absolute; left: 0; right: 0; height: 2px; margin-top: -1px; background: var(--danger); z-index: 1; pointer-events: none; }
   .sched-now::before { content: ''; position: absolute; left: -5px; top: -4px; width: 10px; height: 10px; border-radius: 50%; background: var(--danger); }
-  .sched-now-label { position: absolute; right: 4px; transform: translateY(-50%); padding: 0 2px; font-size: 11px; font-weight: 700; color: var(--danger); background: var(--surface); }
+  .sched-now-label { position: absolute; right: 4px; transform: translateY(-50%); padding: 0 2px; font-size: var(--font-size-xs); font-weight: 700; color: var(--danger); background: var(--surface); }
   .planned-bar { flex-wrap: wrap; width: 100%; }
   .planned-bar select, .planned-bar .btn { flex: 1 1 100%; min-height: 44px; }
 }
@@ -155,7 +156,7 @@ a.tl-block:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px
   .shell-main:has(.sched-top) { padding-left: var(--space-4); padding-right: var(--space-4); }
   .sched-mhead { display: flow-root; margin: calc(-1 * var(--space-3)) calc(-1 * var(--space-4)) 0; padding: var(--space-3) var(--space-4) 0; background: var(--surface); }
   .sched-title { display: flex; align-items: center; gap: var(--space-2); min-width: 0; margin-bottom: var(--space-3); }
-  .sched-title h1 { flex: 1 1 auto; min-width: 0; margin: 0; font-size: 28px; line-height: 1.2; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sched-title h1 { flex: 1 1 auto; min-width: 0; margin: 0; font-size: var(--shells-a-font-title); line-height: 1.2; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .view-seg { flex: none; display: inline-flex; gap: 2px; padding: 3px; border-radius: 14px; background: var(--color-neutral-50); border: 1px solid var(--color-neutral-100); }
   .view-seg button { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 11px; background: transparent; color: var(--color-neutral-700); cursor: pointer; }
   .view-seg button[aria-pressed='true'] { background: var(--color-primary-700); color: #fff; }
@@ -209,7 +210,7 @@ a.tl-block:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px
   .agenda-name { font-weight: 650; font-size: var(--font-size-md); overflow-wrap: anywhere; }
   .agenda-meta { font-size: var(--font-size-base); color: var(--muted); overflow-wrap: anywhere; }
   .agenda-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
-  .agenda-chips .chip { font-size: 13px; padding: 3px 10px; }
+  .agenda-chips .chip { font-size: var(--font-size-sm); padding: 3px 10px; }
   .agenda-more { flex: none; align-self: center; color: var(--muted); }
   .agenda-cta { flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 48px; padding: 0 var(--space-4); border-radius: 12px; white-space: nowrap; font-weight: 600; }
   .agenda-cta-outline { background: var(--surface); border-color: var(--color-primary-200); color: var(--color-primary-700); }
@@ -281,7 +282,7 @@ a.tl-block:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px
   .agenda-av { display: none; }
 }
 /* Jadwal per dokter (DEVIATIONS #68): the chair is a small label on the card, not a column. */
-.appt-chair { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 6px; background: rgba(15, 23, 42, 0.06); color: var(--muted); font-size: 11px; font-weight: 600; line-height: 16px; vertical-align: 1px; }
+.appt-chair { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 6px; background: rgba(15, 23, 42, 0.06); color: var(--muted); font-size: var(--font-size-xs); font-weight: 600; line-height: 16px; vertical-align: 1px; }
 .resched textarea { width: 100%; min-height: 88px; font: inherit; font-size: 16px; } /* 16px: no iOS zoom on focus */
 /* Rujuk: preset reason chip ("Dokter berhalangan"), 44px tap target */
 .refer-presets { display: flex; flex-wrap: wrap; gap: 8px; }

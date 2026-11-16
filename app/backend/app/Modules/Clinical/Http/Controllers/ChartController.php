@@ -34,7 +34,7 @@ class ChartController extends Controller
      * as_of = the chart as it stood at the end of that local day (branch timezone, default Asia/Jakarta); see effectiveAt().
      * A future date is allowed and equals the current chart.
      */
-    public function show(Request $request, string $id, PatientDirectory $patients, UserDirectory $users, TenancyDirectory $tenancy)
+    public function show(Request $request, string $id, PatientDirectory $patients, UserDirectory $users, TenancyDirectory $tenancy, AppointmentDirectory $appointments)
     {
         $asOf = $request->has('as_of') ? $request->validate(['as_of' => ['required', 'date_format:Y-m-d']])['as_of'] : null;
         $cut = $asOf === null ? null : CarbonImmutable::createFromFormat('Y-m-d', $asOf,
@@ -66,9 +66,13 @@ class ChartController extends Controller
             ->merge($requests->pluck('requested_by'))->filter()->unique()->values()->all()))->pluck('name', 'id');
 
         $closer = app(VisitCloser::class);
+        // Complaint: an appointment visit reads it live from the appointment (the desk may check in after the record was opened);
+        // a walk-in keeps its own. shortcut: one lookup per open appointment visit, past visits show only their own column.
+        $complaint = fn (Visit $v) => Crypto::decrypt($v->complaint_enc)
+            ?? ($v->appointment_id !== null && $v->status === 'berlangsung' ? $appointments->complaint($v->appointment_id) : null);
         $out = $visits->map(fn (Visit $v) => [
             'id' => $v->id, 'appointment_id' => $v->appointment_id, 'branch_id' => $v->branch_id, 'started_at' => $v->started_at,
-            'status' => $v->status, 'complaint' => Crypto::decrypt($v->complaint_enc), 'attendance_cancelled_at' => $v->attendance_cancelled_at, 'dentist' => ['id' => $v->dentist_id, 'name' => $names[$v->dentist_id] ?? null],
+            'status' => $v->status, 'complaint' => $complaint($v), 'attendance_cancelled_at' => $v->attendance_cancelled_at, 'dentist' => ['id' => $v->dentist_id, 'name' => $names[$v->dentist_id] ?? null],
             'notes' => $notes->where('visit_id', $v->id)->values()->map(fn ($n) => self::note($n, $names, $requests->get($n->id))),
             'draft_findings' => $findings->where('visit_id', $v->id)->where('state', 'draft')->values()->map(self::finding(...)),
             'draft_procedures' => $procedures->where('visit_id', $v->id)->where('state', 'draft')->values()->map($proc),
@@ -146,8 +150,7 @@ class ChartController extends Controller
         }
         try {
             $v = Visit::create(['patient_id' => $a['patient_id'], 'branch_id' => $a['branch_id'], 'dentist_id' => $a['dentist_id'],
-                'appointment_id' => $id, 'started_at' => now(), 'status' => 'berlangsung', 'created_by' => Ctx::current()->userId,
-                'complaint_enc' => Crypto::encrypt($appointments->complaint($id))]);
+                'appointment_id' => $id, 'started_at' => now(), 'status' => 'berlangsung', 'created_by' => Ctx::current()->userId]);
         } catch (UniqueConstraintViolationException) { // a parallel request won
             return response()->json(self::visit(Visit::where('appointment_id', $id)->firstOrFail()));
         }

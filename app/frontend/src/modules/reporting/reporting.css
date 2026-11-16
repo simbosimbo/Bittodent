@@ -35,7 +35,7 @@
 .rev-chips .chip-method { min-height: 48px; }
 .rev-kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-3); margin-bottom: var(--space-3); }
 .rev-kpi .card { display: flex; flex-direction: column; gap: 4px; }
-.rev-kpi strong { font-size: 22px; font-variant-numeric: tabular-nums; }
+.rev-kpi strong { font-size: var(--font-size-2xl); font-variant-numeric: tabular-nums; }
 .rev-bars { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; height: 140px; align-items: end; }
 .rev-bars li { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; gap: 4px; }
 .rev-bar { width: 100%; min-height: 2px; border-radius: 6px 6px 0 0; background: var(--color-primary-700); }
@@ -63,5 +63,5 @@
 /* ui review */
 .rev { max-width: 960px; }
 .rev-card:focus-visible { outline: 2px solid var(--color-primary-700); outline-offset: 2px; }
-.rev-val { font-size: 11px; color: var(--muted, #555); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rev-val { font-size: var(--font-size-xs); color: var(--muted, #555); font-variant-numeric: tabular-nums; white-space: nowrap; }
 @media (max-width: 520px) { .rev-kpi { grid-template-columns: 1fr 1fr; } .rev-kpi .card:first-child { grid-column: 1 / -1; } }

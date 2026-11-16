@@ -62,7 +62,7 @@
   --font-family-sans: Plus Jakarta Sans, Inter, "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
   --font-family-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-size-xs: 12px;
-  --font-size-sm: 12px;
+  --font-size-sm: 13px;
   --font-size-base: 14px;
   --font-size-md: 16px;
   --font-size-lg: 18px;
@@ -121,11 +121,11 @@
   --shells-a-color-text: #273445;
   --shells-a-color-muted: #5F6C77;
   --shells-a-font-size: 14px;
-  --shells-a-font-title: 28px;
+  --shells-a-font-title: 24px;
   --shells-a-font-family: Plus Jakarta Sans, Inter, "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
   --shells-a-space-page: 24px;
   --shells-a-space-card: 24px;
-  --shells-a-space-gap: 20px;
+  --shells-a-space-gap: 24px;
   --shells-a-radius-card: 20px;
   --shells-a-radius-item: 12px;
   --shells-a-shadow-card: none;

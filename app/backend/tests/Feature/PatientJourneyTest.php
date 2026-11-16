@@ -127,4 +127,20 @@ class PatientJourneyTest extends TestCase
             $this->as('dokter@senyum.test')->getJson('/api/tariffs/stages')->assertOk()->json()['23.70']);
         $this->as($owner)->postJson('/api/tariffs', ['procedure_code' => '23.71', 'name' => 'x', 'price_rp' => 1, 'levels' => [['code' => 'a', 'label' => 'A', 'price_rp' => 1]]])->assertUnprocessable();
     }
+
+    // S5: the dentist may open the record before the desk checks the patient in; the complaint typed at check-in still reaches it.
+    public function test_complaint_typed_at_check_in_after_the_record_was_opened_reaches_the_chart(): void
+    {
+        $desk = 'depan@senyum.test';
+        $doc = 'dokter@senyum.test';
+        $patient = $this->as($desk)->postJson('/api/patients', ['name' => 'Tono Uji Urutan', 'dob' => '1980-01-02', 'sex' => 'laki_laki'])->assertCreated()->json('id');
+        $chair = Ctx::runAs($this->tenantA()->id, fn () => Chair::orderBy('label')->firstOrFail()->id);
+        $at = CarbonImmutable::now('Asia/Jakarta')->setTime(20, 0);
+        $appt = $this->as($desk)->postJson('/api/appointments', ['patient_id' => $patient, 'chair_id' => $chair, 'dentist_id' => $this->user($doc)->id,
+            'starts_at' => $at->toIso8601String(), 'ends_at' => $at->addMinutes(30)->toIso8601String(), 'reason' => 'Periksa'])->assertCreated()->json('id');
+        $this->as($doc)->postJson("/api/appointments/$appt/visit")->assertCreated();
+        $this->as($desk)->postJson("/api/appointments/$appt/transition", ['to' => 'checked_in', 'complaint' => 'Gusi bengkak sejak kemarin'])->assertOk();
+        $visit = collect($this->as($doc)->getJson("/api/patients/$patient/chart")->assertOk()->json('visits'))->firstWhere('status', 'berlangsung');
+        $this->assertSame('Gusi bengkak sejak kemarin', $visit['complaint']);
+    }
 }

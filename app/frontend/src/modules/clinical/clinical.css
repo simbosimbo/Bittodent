@@ -1,7 +1,7 @@
 /* Rekam Medis. Odontogram colours/states from design/odontogram/legend.json + odontogram.css (internal legend). */
 .card-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
 .card-head h2 { margin: 0 8px 0 0; }
-.badge { display: inline-block; font-size: 11px; font-weight: 650; border-radius: 999px; padding: 2px 9px; border: 1px solid transparent; white-space: nowrap; }
+.badge { display: inline-block; font-size: var(--font-size-xs); font-weight: 650; border-radius: 999px; padding: 2px 9px; border: 1px solid transparent; white-space: nowrap; }
 .badge-draft { color: var(--color-draft-fg); background: var(--color-draft-bg); border: 1px solid var(--color-draft-border); }
 .badge-ai { color: #6D28D9; background: #F3EEFF; border: 1px dashed #6D28D9; }
 .badge-ai::before { content: '◆ '; color: #A15C00; }
@@ -289,7 +289,7 @@ label.check { flex-direction: row; gap: 8px; align-items: flex-start; font-weigh
   border: 1px solid var(--shells-a-color-border, #d0d5da); border-radius: 12px; background: var(--color-surface, #fff); }
 .tsheet-list { display: flex; flex-direction: column; gap: 4px; max-height: 320px; overflow-y: auto; }
 .tsheet-list button { min-height: 52px; }
-.tsheet code, .tsheet-card code { font-size: 13px; color: var(--muted, #4b5563); } /* official codes stay lowercase */
+.tsheet code, .tsheet-card code { font-size: var(--font-size-sm); color: var(--muted, #4b5563); } /* official codes stay lowercase */
 .tsheet-roles { display: flex; gap: 6px; flex-wrap: wrap; }
 .tsheet-roles button { display: flex; flex-direction: column; align-items: center; border: 1px solid var(--shells-a-color-border, #d0d5da); border-radius: 10px; background: var(--color-surface, #fff); }
 .tsheet-pick { display: flex; flex-direction: column; gap: 6px; }
