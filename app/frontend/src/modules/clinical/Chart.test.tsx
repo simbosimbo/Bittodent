@@ -6,6 +6,8 @@ import ChartPage, { visitStatusText } from './Chart'
 import { manifest, mockTooth3D } from './tooth3dMock'
 import css from './clinical.css?raw'
 import baseCss from '../../shared/ui/styles.css?raw'
+// jsdom has no Element.getAnimations; React Aria waits on the RM tab panel's exit animation.
+Element.prototype.getAnimations ??= () => []
 
 
 // Synthetic data only.

@@ -9,7 +9,8 @@ const COLLIDING = ['avatar', 'badge', 'card', 'chip', 'menu', 'tabs', 'toast', '
 const tok = `(${COLLIDING.join('|')})`
 const cssSel = new RegExp(`\\.${tok}(?![\\w-])`, 'g')
 // a class token inside a string/template on a line that talks about classes
-const tsxTok = new RegExp(`(?<=["'\`\\s{.])${tok}(?=["'\`\\s}:\\[),.]|$)`, 'g')
+// `.card` counts only after a quote/space (a CSS selector string), never `ICONS.card` (a property)
+const tsxTok = new RegExp(`(?<=["'\`\\s{]|["'\`\\s(]\\.)${tok}(?=["'\`\\s}:\\[),.]|$)`, 'g')
 const classLine = /className|class=|classList|querySelector|closest\(|toHaveClass|getElementsByClassName/
 
 const walk = (d) => readdirSync(d).flatMap((n) => {

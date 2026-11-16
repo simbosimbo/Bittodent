@@ -68,7 +68,8 @@ try {
         const landed = new URL(page.url()).hash.slice(1) || '/'
         if (landed !== route) { report.push({ role, width, route, skipped: `redirected to ${landed}` }); continue }
         if (await page.getByRole('heading', { name: 'Masuk', exact: true }).count()) throw new Error(`session lost on ${route} as ${role}`)
-        const m = await page.evaluate(measure, { phone, width })
+        // a late client-side redirect can destroy the context mid-measure; settle and measure once more
+        const m = await page.evaluate(measure, { phone, width }).catch(async () => { await page.waitForLoadState('networkidle').catch(() => {}); return page.evaluate(measure, { phone, width }) })
         const file = join(out, `${width}-${role}-${route.replace(/\//g, '_') || '_'}.png`)
         await page.screenshot({ path: file, fullPage: true })
         const fail = m.overflowX > 0 || m.offscreen.length > 0 || m.small.length > 0 || m.tiny.length > 0 || m.big.length > 0
