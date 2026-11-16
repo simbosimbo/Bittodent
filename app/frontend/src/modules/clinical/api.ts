@@ -127,8 +127,6 @@ export const changeStatus = (procedureId: string, to: ProcStatus, visitId?: stri
 export const confirmExternal = (procedureId: string, confirm: boolean, reason?: string) =>
   api<Procedure>(`/api/procedures/${procedureId}/confirm-external`, { method: 'POST', body: { confirm, reason: reason || null } })
 export const discardProcedure = (id: string) => api(`/api/procedures/${id}`, { method: 'DELETE' })
-export const saveBaseline = (patientId: string, body: { base_version: number | null; dentition: Baseline['dentition']; teeth: Record<string, ToothPresence> }) =>
-  api<Baseline>(`/api/patients/${patientId}/baseline`, { method: 'PUT', body })
 export const discardFinding = (id: string) => api(`/api/findings/${id}`, { method: 'DELETE' })
 export const saveNote = (visitId: string, body: { revision: number | null; soap: Soap }) =>
   api<{ revision: number }>(`/api/visits/${visitId}/note`, { method: 'PUT', body })

@@ -18,11 +18,11 @@ import { PatientPage } from '../patients'
 import type { PatientFull } from '../patients'
 import {
   approveCorrection, approveDrafts, changeStatus, confirmExternal, correctNote, correctProcedure, discardProcedure, getChart, getDentists,
-  replaceProcedure, saveBaseline, saveNote, saveProcedure, selesaiVisit, getCatalog, getStages, type CatalogRow, startWalkInVisit, visitFromAppointment,
+  replaceProcedure, saveNote, saveProcedure, selesaiVisit, getCatalog, getStages, type CatalogRow, startWalkInVisit, visitFromAppointment,
   type Baseline, type Chart, type ChartVisit, type CorrectionType, type Finding, type Note, type ProcStatus, type Procedure, type ProcedureHistoryRow,
-  type Soap, type Surface, type ToothPresence, type Version,
+  type Soap, type Surface, type Version,
 } from './api'
-import { AI_BADGE, CONDITIONS, conditionOf, CORRECTION_LABEL, findingText, isAnterior, paintCondition, PRESENCE, procedureText, statusOf,
+import { AI_BADGE, CONDITIONS, conditionOf, CORRECTION_LABEL, findingText, isAnterior, paintCondition, procedureText, statusOf,
   surfaceLabel, surfaceName, toothAnatomicalName } from './legend'
 import { Odontogram, type Mark } from './Odontogram'
 import { dentitionFromDob, Odontogram3D } from './Odontogram3D'
@@ -365,38 +365,6 @@ function Seg<T extends string>({ label, value, options, onChange }: { label: str
   )
 }
 
-/** Baseline (first visit): dentition + per-tooth presence. Saving = new version (never overwritten). */
-function BaselineEditor({ value, onSave, onClose }: { value: Baseline | null; onSave: (b: { dentition: Baseline['dentition']; teeth: Record<string, ToothPresence> }) => void; onClose: () => void }) {
-  const [dentition, setDentition] = useState<Baseline['dentition']>(value?.dentition ?? 'tetap')
-  const [teeth, setTeeth] = useState<Record<string, ToothPresence>>(value?.teeth ?? {})
-  const [tooth, setTooth] = useState('')
-  const t = Number(tooth)
-  return (
-    <div className="picker-pop" role="group" aria-label="Keadaan awal gigi">
-      <strong>Keadaan awal gigi (kunjungan pertama){value ? ` · versi ${value.version}` : ''}</strong>
-      <p className="muted small">Bukan temuan klinis: “tidak ada” di sini berbeda dari kondisi “Hilang”. Gigi yang tidak ada tampil pudar.</p>
-      <div className="baseline-row">
-        <label>Gigi geligi <select value={dentition} onChange={(e) => setDentition(e.target.value as Baseline['dentition'])}>
-          <option value="tetap">Tetap</option><option value="sulung">Sulung (susu)</option><option value="campuran">Campuran</option>
-        </select></label>
-        <label>Nomor gigi (FDI) <input className="mono" size={3} value={tooth} onChange={(e) => setTooth(e.target.value.replace(/\D/g, '').slice(0, 2))} /></label>
-        {PRESENCE.map(([k, label]) => (
-          <button key={k} type="button" className="btn btn-xs" disabled={!t} onClick={() => setTeeth({ ...teeth, [t]: k })}>{label}</button>
-        ))}
-      </div>
-      <ul className="items">
-        {Object.entries(teeth).filter(([, v]) => v !== 'ada').map(([k, v]) => (
-          <li key={k}>Gigi {k}: {PRESENCE.find(([p]) => p === v)?.[1]} <button className="btn btn-xs btn-ghost" onClick={() => setTeeth({ ...teeth, [k]: 'ada' })}>Batal</button></li>
-        ))}
-      </ul>
-      <div className="dialog-actions">
-        <button className="btn" onClick={onClose}>Tutup</button>
-        <button className="btn btn-primary" onClick={() => onSave({ dentition, teeth })}>Simpan keadaan awal</button>
-      </div>
-    </div>
-  )
-}
-
 const DENT_HINT: Record<string, string> = { tetap: 'FDI dewasa', sulung: 'FDI sulung' }
 /** Scroll a sideways chart to its middle (the midline) once per dentition; scrollWidth forces layout, so it is ready here. */
 const centre = (el: HTMLDivElement | null, key: string) => {
@@ -415,7 +383,6 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const [billFor, setBillFor] = useState<string | null>(null) // visit just closed by Selesai -> "Lanjut ke tagihan" (#69)
   const [fixing, setFixing] = useState<Note | null>(null)
   const [detailsOpen, setDetailsOpen] = useState(false) // phone: Temuan & tindakan, Tutup kunjungan, Riwayat collapsed (#70)
-  const [baselineOpen, setBaselineOpen] = useState(false)
   const [asOf, setAsOf] = useState('') // '' = today; otherwise the chart as of the end of that day (read-only)
   const [procFix, setProcFix] = useState<{ p: Procedure; mode: 'ganti' | 'koreksi' } | null>(null)
   // Table filter starts on the picked tooth; "Semua gigi" is remembered for that tooth only; no pick = all.
@@ -440,7 +407,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   }, [mobile, tab])
   // 3D needs the vertical space: legends collapse on 3D, reopen on 2D; manual toggle still works in both.
   const changeView = (v: '2d' | '3d') => { setView(v); setLegendOpen(v === '2d') }
-  // View-only dentition override, dropped when the default (baseline or DOB) changes; the baseline editor is what persists.
+  // View-only dentition override, dropped when the default (baseline or DOB) changes; nothing is persisted from here.
   const defDent = chart ? `${chart.patient.id}:${chart.baseline?.dentition ?? dentitionFromDob(chart.patient.dob)}` : ''
   const [dentPick, setDentPick] = useState<{ base: string; v: Baseline['dentition'] } | null>(null)
   const dent = dentPick?.base === defDent ? dentPick.v : defDent.split(':')[1] as Baseline['dentition'] | undefined
@@ -686,12 +653,8 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
             <OfficialLegend />
           </div>
         )}
-        {can('note.write') && (
-          <div className="baseline-row">
-            <span className="muted small">Keadaan awal: {chart.baseline ? `${chart.baseline.dentition} · versi ${chart.baseline.version}` : 'belum diisi (isi di kunjungan pertama)'}</span>
-            <button className="btn btn-xs" aria-pressed={baselineOpen} onClick={() => setBaselineOpen(!baselineOpen)}>{baselineOpen ? 'Tutup keadaan awal' : 'Isi / ubah keadaan awal'}</button>
-          </div>
-        )}
+        {/* legacy baseline (read only): the initial state is now recorded through Pemeriksaan awal */}
+        {chart.baseline && <p className="muted small">Keadaan awal lama: {chart.baseline.dentition} · versi {chart.baseline.version}</p>}
     </>
   )
   return page(
@@ -744,13 +707,11 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
             )}
             {mobile ? (
               <details className="odo-more">
-                <summary>Tampilan, legenda &amp; keadaan awal</summary>
+                <summary>Tampilan &amp; legenda</summary>
                 {odoTools}
                 {odoLegend}
               </details>
             ) : odoLegend}
-            {baselineOpen && <BaselineEditor value={chart.baseline} onClose={() => setBaselineOpen(false)}
-              onSave={(b) => run(async () => { await saveBaseline(p.id, { base_version: chart.baseline?.version ?? null, ...b }); setBaselineOpen(false) }, 'Keadaan awal tersimpan (versi baru).')} />}
             {view === '3d' && (
               <>
                 <Odontogram3D marks={shown} baseline={chart.baseline?.teeth} dentition={dent} selected={pick} onPick={onPick} />

@@ -150,6 +150,9 @@ test('Dentisi: child DOB defaults to Campuran; Sulung / Tetap filter 2D and 3D; 
   await screen.findByRole('radiogroup', { name: 'Dentisi' })
   expect(radio('Dentisi', 'Tetap')).toHaveAttribute('aria-checked', 'true')
   expect(teeth2d()).not.toContain(51)
+  // audit P2-2: one way to record the initial state (Pemeriksaan awal); an old baseline still shows, read only
+  expect(document.body).toHaveTextContent('Keadaan awal lama: tetap · versi 1')
+  expect(screen.queryByRole('button', { name: /keadaan awal/i })).toBeNull()
 })
 
 test('odontogram follows the entries: official symbol per condition, Rencana dashed, Selesai check, a bridge drawn on every tooth of its span', async () => {

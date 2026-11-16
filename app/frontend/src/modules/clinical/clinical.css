@@ -83,7 +83,6 @@ label.check { flex-direction: row; gap: 8px; align-items: flex-start; font-weigh
 .st-cancelled { color: #6B7280; background: #fff; text-decoration: line-through; }
 .st-superseded { color: #6B7280; background: #F3F4F6; }
 .st-tidak_dikerjakan { color: #6B7280; background: #fff; text-decoration: line-through; }
-.baseline-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
 
 /* Chart inside PatientPage */
 .chart-meta { text-align: right; }
