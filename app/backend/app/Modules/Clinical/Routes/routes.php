@@ -53,4 +53,7 @@ Route::middleware(['auth:sanctum', '2fa', 'tenant'])->group(function () {
     // odontogram v2: condition codes <-> clinic procedure codes (a finished tooth entry bills the mapped code)
     Route::get('/procedure-catalog', [CatalogController::class, 'index'])->middleware('perm:note.read');
     Route::put('/procedure-catalog/{code}/conditions', [CatalogController::class, 'update'])->middleware('perm:tariff.manage');
+    // S8: default diagnosis per procedure, set by a dentist (never seeded); the ICD-10 search feeds its picker
+    Route::put('/procedure-catalog/{code}/diagnosis', [CatalogController::class, 'diagnosis'])->middleware('perm:note.sign');
+    Route::get('/icd10', [CatalogController::class, 'icd10'])->middleware('perm:note.write');
 });
