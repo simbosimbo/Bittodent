@@ -18,7 +18,7 @@ import { PatientPage } from '../patients'
 import type { PatientFull } from '../patients'
 import {
   approveCorrection, approveDrafts, changeStatus, confirmExternal, correctNote, correctProcedure, discardProcedure, getChart, getDentists,
-  replaceProcedure, saveBaseline, saveNote, saveProcedure, selesaiVisit, getCatalog, type CatalogRow, startWalkInVisit, visitFromAppointment, appointmentDone,
+  replaceProcedure, saveBaseline, saveNote, saveProcedure, selesaiVisit, getCatalog, type CatalogRow, startWalkInVisit, visitFromAppointment,
   type Baseline, type Chart, type ChartVisit, type CorrectionType, type Finding, type Note, type ProcStatus, type Procedure, type ProcedureHistoryRow,
   type Soap, type Surface, type ToothPresence, type Version,
 } from './api'
@@ -462,8 +462,9 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
       setActivePatient({ id: c.patient.id, name: c.patient.name })
       const open = vid ?? c.visits.find((v) => v.status === 'berlangsung' && !v.notes.some((n) => n.versions.some((x) => x.signed_at)))?.id ?? null
       setVisitId(open)
-      const shown = c.visits.find((v) => v.id === open)?.notes[0]?.versions.find((x) => x.status !== 'digantikan') // draft or current signed
-      setForm(shown ? toForm(shown.soap) : EMPTY)
+      const ov = c.visits.find((v) => v.id === open)
+      const shown = ov?.notes[0]?.versions.find((x) => x.status !== 'digantikan') // draft or current signed
+      setForm(shown ? toForm(shown.soap) : { ...EMPTY, S: ov?.complaint ?? '' }) // no note yet: S starts from the desk's complaint
       setDirty(false)
     } catch (e) {
       if (want.current.patientId !== req.patientId || want.current.appointmentId !== req.appointmentId || want.current.asOf !== req.asOf) return
@@ -595,8 +596,6 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
       const billed = procs.some((x) => x.visit_id === visit.id && x.status === 'selesai' && x.procedure_code)
       setMsg(billed ? 'Selesai: rekam medis terkunci, pasien masuk antrean bayar.' : 'Selesai: rekam medis terkunci. Tidak ada tindakan yang ditagih.')
       setBillFor(visit.id)
-      // The chair is free too: move the appointment to done (best effort; the server checks the transition + permission).
-      if (appointmentId && can('appointment.transition')) await appointmentDone(appointmentId).catch(() => undefined)
       await load()
     } catch (e) {
       if (e instanceof ApiError && e.data?.signed) { // #55: signed, but the invoice guard kept the visit open
@@ -885,8 +884,11 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
         {fixing && <CorrectionDialog note={fixing} solo={chart.solo_practice} onClose={() => setFixing(null)} onDone={async () => { setFixing(null); await load(); setMsg('Koreksi tersimpan.') }} />}
       </Presence>
     </>,
-    visit?.status === 'berlangsung' && !visit.notes.some((n) => n.versions.some((x) => x.signed_at))
-      ? <span className="visit-chip" role="note" aria-label="Status kunjungan">{visitStatusText(visit, mobile)}</span> : null,
+    <>
+      {visit?.status === 'berlangsung' && !visit.notes.some((n) => n.versions.some((x) => x.signed_at))
+        && <span className="visit-chip" role="note" aria-label="Status kunjungan">{visitStatusText(visit, mobile)}</span>}
+      {visit?.complaint && <span className="visit-chip" role="note" aria-label="Keluhan pasien">Keluhan: {visit.complaint}</span>}
+    </>,
   )
 }
 

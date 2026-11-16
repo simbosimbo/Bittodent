@@ -748,7 +748,7 @@ function dokterChart(w: number, appt?: string) {
   return calls
 }
 
-test('#70 RM Selesai from an appointment also frees the chair (appointment -> done), so "Pasien saya" stays current', async () => {
+test('#70 / P1-2 RM Selesai from an appointment: the server frees the chair, the page sends no transition of its own', async () => {
   const calls = dokterChart(412, 'a1')
   await screen.findByRole('region', { name: 'Odontogram' })
   fireEvent.click(screen.getByRole('tab', { name: 'Catatan Klinis' }))
@@ -757,8 +757,23 @@ test('#70 RM Selesai from an appointment also frees the chair (appointment -> do
   const dlg = await screen.findByRole('dialog')
   fireEvent.click(within(dlg).getByRole('checkbox'))
   fireEvent.click(within(dlg).getByRole('button', { name: 'Selesai' }))
-  await waitFor(() => expect(calls.find((c) => c.url.endsWith('/appointments/a1/transition'))?.body).toEqual({ to: 'done' }))
-  expect(calls.findIndex((c) => c.url.endsWith('/selesai'))).toBeLessThan(calls.findIndex((c) => c.url.endsWith('/transition')))
+  await waitFor(() => expect(calls.some((c) => c.url.endsWith('/selesai'))).toBe(true))
+  expect(calls.some((c) => c.url.endsWith('/transition'))).toBe(false)
+})
+
+test('P1-1: the desk\'s complaint shows as Keluhan in the header and starts S only while the visit has no note', async () => {
+  const { unmount } = renderChart({ visits: [{ ...visit, complaint: 'Gigi ngilu kalau minum dingin' }] })
+  expect(await screen.findByRole('note', { name: 'Keluhan pasien' })).toHaveTextContent('Keluhan: Gigi ngilu kalau minum dingin')
+  fireEvent.click(screen.getByRole('tab', { name: 'Catatan Klinis' }))
+  expect(screen.getByLabelText('S')).toHaveValue('Gigi ngilu kalau minum dingin')
+  unmount()
+
+  const note = { id: 'n1', author_id: 'u1', created_at: '', pending_correction: null, versions: [{ id: 'nv1', version: 1, revision: 1, supersedes_id: null,
+    status: 'draf', source: 'manual', signed_by: null, signed_by_name: null, signed_at: null, reason: null, correction_request_id: null, content_hash: 'h',
+    soap: { S: 'Ditulis dokter.', O: '', A: { codes: [], text: '' }, P: { codes: [], text: '' } } }] }
+  renderChart({ visits: [{ ...visit, complaint: 'Gigi ngilu kalau minum dingin', notes: [note] }] })
+  fireEvent.click(await screen.findByRole('tab', { name: 'Catatan Klinis' }))
+  expect(screen.getByLabelText('S')).toHaveValue('Ditulis dokter.') // an existing S is never overwritten
 })
 
 test('tindakan dulu: several clinic codes record "mis" -> the dentist picks one and the entry is sent again with it', async () => {

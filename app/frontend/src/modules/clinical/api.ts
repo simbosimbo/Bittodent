@@ -46,6 +46,8 @@ export type Note = {
 }
 export type ChartVisit = {
   id: string; appointment_id: string | null; branch_id: string; started_at: string; status: string; attendance_cancelled_at?: string | null
+  /** the patient's complaint (keluhan) from check-in, booking or walk-in */
+  complaint?: string | null
   dentist: { id: string; name: string | null }; notes: Note[]; draft_findings: Finding[]; draft_procedures: Procedure[]
   /** open visits only: unsigned clinical work (close through Selesai) / attendance cancelled (may close via /close with a reason) */
   needs_selesai?: boolean; attendance_cancelled?: boolean
@@ -91,11 +93,9 @@ export const closeVisit = (visitId: string, reason?: string) =>
 /** Walk-in only: record that attendance was cancelled (then the visit may close without an invoice, with a reason). */
 export const cancelAttendance = (visitId: string, reason: string) => api(`/api/visits/${visitId}/cancel-attendance`, { method: 'POST', body: { reason } })
 // Walk-in: today's visit without an appointment at the active branch. 201 new, 200 = the open visit already there. dentist_id required for non-dentists.
-export const startWalkInVisit = (patientId: string, body: { dentist_id?: string } = {}) =>
+export const startWalkInVisit = (patientId: string, body: { dentist_id?: string; complaint?: string } = {}) =>
   api<{ id: string }>(`/api/patients/${patientId}/visits/walk-in`, { method: 'POST', body })
 export const getDentists = () => api<{ data: { id: string; name: string }[] }>('/api/dentists')
-// #70: after RM Selesai the doctor's appointment leaves the chair too (in_treatment -> done), so "Pasien saya" stays current.
-export const appointmentDone = (id: string) => api(`/api/appointments/${id}/transition`, { method: 'POST', body: { to: 'done' } })
 export const visitFromAppointment = (appointmentId: string) => api<{ id: string }>(`/api/appointments/${appointmentId}/visit`, { method: 'POST' })
 /** Visual condition only (karies, hilang, ...). Treatments go through saveProcedure. */
 export const saveFinding = (visitId: string, body: { tooth: number; surface: Surface | null; condition: string }) =>
