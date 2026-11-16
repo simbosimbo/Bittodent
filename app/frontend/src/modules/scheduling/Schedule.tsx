@@ -9,6 +9,7 @@ import { Presence, usePresenceClass } from '../../shared/ui/presence'
 import { PageSkeleton } from '../../shared/ui/Skeleton'
 import { useIsMobile } from '../../shared/useIsMobile'
 import { getPatient, PatientPicker } from '../patients'
+import { startWalkInVisit } from '../clinical'
 import './scheduling.css'
 import { changeChair, createAppointment, getPlanned, refer, getSchedule, schedulePlanned, STATUS, transition, undoCheckin, type Appointment, type Planned, type Schedule as Sched } from './api'
 import { Agenda, ApptSheet, ChairSheet, DaySummary, ModeToggle, PayPrompt, ReferSheet, RescheduleSheet, Toast, useInvoiceStatus, useJadwalMode, type Act } from './MobileJadwal'
@@ -157,6 +158,12 @@ export default function Schedule({ me, newFor = null }: { me: Me; newFor?: strin
   const canChart = can('note.read')
   const canVisit = can('note.write') // opening from the card starts/reuses the visit
   const canBill = can('billing.read')
+  const canArrive = can('visit.register') // "Pasien datang": walk-in without appointment
+  const [arriveOpen, setArriveOpen] = useState(false)
+  const [notice, setNotice] = useState('')
+  // Keluhan asked at check-in: starts as the appointment's reason; the desk only edits it (audit P1-1).
+  const [keluhan, setKeluhan] = useState<Record<string, string>>({})
+  const complaintOf = (a: Appointment) => (keluhan[a.id] ?? a.reason ?? '').trim()
   const tz = data?.branch.timezone ?? 'Asia/Jakarta'
   const mobile = useIsMobile()
   // dentist filter; null = Semua (agenda) / auto dentist (grid). Desktop (review-2): remembered per branch for this tab session.
@@ -186,7 +193,7 @@ export default function Schedule({ me, newFor = null }: { me: Me; newFor?: strin
   async function move(a: Appointment, to: string) {
     setActionError('')
     try {
-      await transition(a.id, to)
+      await transition(a.id, to, to === 'checked_in' ? complaintOf(a) : undefined)
       await reload()
       changed()
       return true
@@ -383,6 +390,7 @@ export default function Schedule({ me, newFor = null }: { me: Me; newFor?: strin
   const today = <button className={mobile ? 'btn sched-today' : 'btn'} onClick={() => setDate(todayWib())}>Hari ini</button>
   const dateInput = <DateField aria-label="Tanggal" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} />
   const create = canCreate && <button className="btn btn-primary" onClick={() => setDialog({})}>+ Buat Janji</button>
+  const arrive = canArrive && isToday && <button className="btn" onClick={() => { setNotice(''); setArriveOpen(true) }}>Pasien datang</button>
 
   const dayBody = (
       error ? (mobile
@@ -467,7 +475,10 @@ export default function Schedule({ me, newFor = null }: { me: Me; newFor?: strin
                         </div>
                         <div className="appt-name">{a.patient?.name}{chairLabel(a) && <span className="appt-chair">{chairLabel(a)}</span>}</div>
                         <div className="appt-bottom">
-                          <span className="appt-meta">{a.reason ?? a.dentist?.name}</span>
+                          {canMove && a.status === 'booked' && isToday
+                            ? <input className="appt-keluhan" aria-label={`Keluhan ${a.patient?.name ?? ''}`} placeholder="Keluhan" maxLength={500}
+                                value={keluhan[a.id] ?? a.reason ?? ''} onChange={(e) => setKeluhan({ ...keluhan, [a.id]: e.target.value })} />
+                            : <span className="appt-meta">{a.reason ?? a.dentist?.name}</span>}
                           {actions(a).filter((x) => !x.sheetOnly).map((x) => x.href
                             ? <a key={x.label} className="btn btn-xs" href={x.href}>{x.label}</a>
                             : <button key={x.label} className="btn btn-xs" onClick={x.run}>{x.label}</button>)}
@@ -506,6 +517,7 @@ export default function Schedule({ me, newFor = null }: { me: Me; newFor?: strin
             {dateInput}
             <span className="muted small sched-count">{count} janji</span>
             {!isToday && today}
+            {!dokter && arrive}
             <button className="btn" onClick={() => shift(weekOpen ? -7 : -1)} aria-label={weekOpen ? 'Minggu sebelumnya' : 'Tanggal sebelumnya'}><Icon d={ICONS.left} /></button>
             <button className="btn" onClick={() => shift(weekOpen ? 7 : 1)} aria-label={weekOpen ? 'Minggu berikutnya' : 'Tanggal berikutnya'}><Icon d={ICONS.right} /></button>
             <button className="btn week-toggle" aria-expanded={weekOpen} aria-label="Pilih hari minggu ini" onClick={() => setWeekOpen(!weekOpen)}><Icon d={ICONS.calendar} /></button>
@@ -520,7 +532,7 @@ export default function Schedule({ me, newFor = null }: { me: Me; newFor?: strin
             <h1 className="shell-dup-title">Jadwal</h1>
             <p className="muted">{fmtDate(date)} · {me.active.branch_name} · {count} janji</p>
           </div>
-          <div className="toolbar">{prev}{today}{next}{dateInput}{create}</div>
+          <div className="toolbar">{prev}{today}{next}{dateInput}{arrive}{create}</div>
           {cols.length > 1 && (
             <div className="seg doc-seg" role="group" aria-label="Pilih dokter">
               <button type="button" aria-pressed={!shownCol} onClick={() => setDocPick(null)}>Semua · {count}</button>
@@ -534,6 +546,7 @@ export default function Schedule({ me, newFor = null }: { me: Me; newFor?: strin
         </div>
       )}
       {actionError && <p className="form-error" role="alert">{actionError}</p>}
+      {notice && <p className="notice" role="status">{notice}</p>}
       {!mobile && canConfirm && pending.length > 0 && (
         <div className="card confirm-card">
           <h2>Perlu konfirmasi <span className="muted small">· {pending.length}</span></h2>
@@ -558,7 +571,12 @@ export default function Schedule({ me, newFor = null }: { me: Me; newFor?: strin
         <Presence open={!!sheetAppt} exitMs={200}>
           {sheetAppt && <ApptSheet a={sheetAppt} tz={tz} chair={data.chairs.find((c) => c.id === sheetAppt.chair_id)?.label} acts={sheetActs(sheetAppt)}
             onClose={() => setSheetId(null)} onReschedule={() => { setSheetId(null); setReschedId(sheetAppt.id) }}
-            onForm={(kind) => { setSheetId(null); setForm({ kind, id: sheetAppt.id }) }} />}
+            onForm={(kind) => { setSheetId(null); setForm({ kind, id: sheetAppt.id }) }}>
+            {mode === 'depan' && may.checkin(sheetAppt) && (
+              <label>Keluhan<input value={keluhan[sheetAppt.id] ?? sheetAppt.reason ?? ''} maxLength={500} placeholder="mis. Gigi ngilu"
+                onChange={(e) => setKeluhan({ ...keluhan, [sheetAppt.id]: e.target.value })} /></label>
+            )}
+          </ApptSheet>}
         </Presence>
       )}
       {mobile && data && (
@@ -594,6 +612,12 @@ export default function Schedule({ me, newFor = null }: { me: Me; newFor?: strin
       {gridNow && !nowSeen && <button type="button" className="now-chip" onClick={() => toNow(true)}>Sekarang {dotTime(nowMin + START)}</button>}
       {mobile && canCreate && !dokter && <button type="button" className="fab" aria-label="Buat janji" onClick={() => setDialog({})}><Icon d={ICONS.plus} size={26} /></button>}
       {data && !(mobile && dokter) && <PlannedList sched={data} date={date} canCreate={canCreate} onScheduled={reload} folded={mobile} />}
+      {data && (
+        <Presence open={arriveOpen} exitMs={200}>
+          {arriveOpen && <ArriveDialog sched={data} me={me} onClose={() => setArriveOpen(false)}
+            onSaved={(name) => { setArriveOpen(false); setNotice(`Pasien ${name} terdaftar datang`); reload(); changed() }} />}
+        </Presence>
+      )}
       {data && (
         <Presence open={!!dialog} exitMs={200}>
           {dialog && <BookDialog sched={data} date={date} me={me} initial={dialog} onClose={() => setDialog(null)} onSaved={() => { setDialog(null); reload(); changed() }} />}
@@ -664,6 +688,54 @@ function BookDialog({ sched, date, me, initial, onClose, onSaved }: {
         <div className="dialog-actions">
           <button type="button" className="btn" onClick={onClose}>Batal</button>
           <button className="btn btn-primary" disabled={busy}>{busy ? 'Menyimpan…' : 'Simpan janji'}</button>
+        </div>
+      </form>
+    </div>
+  )
+}
+
+/** "Pasien datang" (audit P1-6): a walk-in without appointment arrives; opens today's visit with dentist + complaint, no time or chair. */
+function ArriveDialog({ sched, me, onClose, onSaved }: { sched: Sched; me: Me; onClose: () => void; onSaved: (name: string) => void }) {
+  const [patient, setPatient] = useState<{ id: string; name: string } | null>(null)
+  const [dentistId, setDentistId] = useState(sched.dentists.find((d) => d.id === me.user.id)?.id ?? (sched.dentists.length === 1 ? sched.dentists[0].id : ''))
+  const [complaint, setComplaint] = useState('')
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  async function submit(ev: FormEvent) {
+    ev.preventDefault()
+    if (!patient) return setError('Pilih pasien terlebih dahulu.')
+    if (!dentistId) return setError('Pilih dokter gigi.')
+    setBusy(true)
+    setError('')
+    try {
+      await startWalkInVisit(patient.id, { dentist_id: dentistId, ...(complaint.trim() ? { complaint: complaint.trim() } : {}) })
+      onSaved(patient.name)
+    } catch (e) {
+      setError(e instanceof ApiError && e.status === 422 ? (e.data?.message ?? 'Data tidak valid.') : errorText(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const dlg = useRef<HTMLFormElement>(null)
+  const phase = usePresenceClass()
+  useDialog(dlg, onClose, useIsMobile())
+  return (
+    <div className={`overlay ${phase}`} onClick={onClose}>
+      <form ref={dlg} className="card dialog" role="dialog" aria-modal="true" aria-labelledby="arrive-title" onClick={(e) => e.stopPropagation()} onSubmit={submit} noValidate>
+        <h2 id="arrive-title">Pasien datang</h2>
+        <p className="muted">Tanpa janji · {sched.branch.name}</p>
+        <PatientPicker value={patient} onChange={setPatient} />
+        <label>Dokter gigi<select value={dentistId} onChange={(e) => setDentistId(e.target.value)}>
+          <option value="">Pilih dokter gigi</option>
+          {sched.dentists.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+        </select></label>
+        <label>Keluhan (opsional)<input value={complaint} maxLength={500} onChange={(e) => setComplaint(e.target.value)} placeholder="mis. Gigi ngilu" /></label>
+        {error && <p className="form-error" role="alert">{error}</p>}
+        <div className="dialog-actions">
+          <button type="button" className="btn" onClick={onClose}>Batal</button>
+          <button className="btn btn-primary" disabled={busy}>{busy ? 'Menyimpan…' : 'Daftarkan datang'}</button>
         </div>
       </form>
     </div>

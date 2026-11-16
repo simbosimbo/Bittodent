@@ -342,6 +342,7 @@ html { scroll-padding-top: 160px; } /* scrollIntoView lands below the pinned top
 .appt-in_treatment .appt-time, .appt-in_treatment .appt-meta { color: var(--color-appointment-merawat-fg); } /* muted is 4.48:1 on this wash */
 .appt-name { font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .appt-meta { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.appt-keluhan { flex: 1; min-width: 0; min-height: 0; padding: 1px 6px; font-size: 12px; } /* check-in: the desk edits the complaint on the card */
 
 /* Dialog */
 .overlay { position: fixed; inset: 0; background: rgba(16, 32, 40, 0.35); display: grid; place-items: center; z-index: 10; }

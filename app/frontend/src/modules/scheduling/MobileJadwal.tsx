@@ -244,8 +244,9 @@ export function Agenda({ mode, list, tz, chairs, nowMin, unpaid, primary, onOpen
 
 // ---- Action sheet ----
 /** Tap a card: status action first, the rest below, Batalkan last behind a confirm step. */
-export function ApptSheet({ a, tz, chair, acts, onClose, onReschedule, onForm }: {
+export function ApptSheet({ a, tz, chair, acts, onClose, onReschedule, onForm, children }: {
   a: Appointment; tz: string; chair?: string; acts: Act[]; onClose: () => void; onReschedule?: () => void; onForm?: (kind: 'chair' | 'refer') => void
+  children?: ReactNode
 }) {
   const [confirmCancel, setConfirmCancel] = useState<Act | null>(null)
   const run = (x: Act) => {
@@ -263,6 +264,7 @@ export function ApptSheet({ a, tz, chair, acts, onClose, onReschedule, onForm }:
         <Chip a={a} />
       </p>
       {(a.reason || a.dentist || chair) && <p className="muted">{[a.reason, a.dentist?.name, chair].filter(Boolean).join(' · ')}</p>}
+      {children}
       {confirmCancel ? (
         <div className="appt-sheet-actions" role="group" aria-label="Batalkan janji?">
           <p><strong>Batalkan janji ini?</strong></p>
