@@ -164,15 +164,44 @@ class EncounterInvoiceGuardTest extends TestCase
         }
     }
 
-    public function test_exam_only_visit_closes_without_invoice(): void
+    // Audit P0-4: a finished visit always ends in billing. No completed work => refused; a check-up bills 89.31 Pemeriksaan gigi.
+    public function test_visit_without_completed_work_is_refused_until_an_examination_is_added(): void
     {
-        [$visit] = $this->visit(); // a draft note = clinical work: Selesai, not /close
+        [$visit, $appt] = $this->visit(); // a draft note = clinical work: Selesai, not /close
         $this->as(self::DESK)->postJson("/api/visits/$visit/close")->assertConflict()->assertJsonPath('error', 'use_selesai');
-        $this->selesai($visit)->assertOk()->assertJsonPath('visit.status', 'selesai')->assertJsonPath('visit.closed_without_invoice', false);
-        $this->assertNotNull($this->row($visit)->ended_at);
+        $this->selesai($visit)->assertConflict()->assertJsonPath('error', 'no_billable_work')
+            ->assertJsonPath('message', 'Belum ada tindakan selesai. Tambahkan Pemeriksaan gigi (Konsultasi atau Kontrol) dari Tindakan seluruh mulut, lalu tekan Selesai lagi.');
+        $this->assertSame('draft', $this->inA(fn () => ClinicalNote::where('visit_id', $visit)->firstOrFail()->versions->first()->state)); // nothing signed
+        $this->assertSame('berlangsung', $this->row($visit)->status);
+        $this->assertTrue($this->inA(fn () => AuditEvent::where('action', 'tanda_tangan_ditolak')->where('detail->error', 'no_billable_work')->exists()));
 
-        [$empty] = $this->visit(note: false); // nothing to sign: /close still works
-        $this->as(self::DESK)->postJson("/api/visits/$empty/close")->assertOk()->assertJsonPath('status', 'selesai');
+        $this->work($visit, ['procedure_code' => '89.31', 'variant' => 'kontrol']);
+        $this->selesai($visit)->assertOk()->assertJsonPath('visit.status', 'selesai')->assertJsonPath('visit.closed_without_invoice', false);
+        $this->assertSame([[0, true]], $this->lines($visit)->map(fn ($l) => [$l->price_rp, (bool) $l->tariff_zero])->all());
+        // Rp0 kontrol: the line waits for the owner (#56) but blocks nothing; there is nothing to pay and a Rp0 invoice never turns lunas
+        $inv = $this->as(self::DESK)->getJson("/api/visits/$visit/invoice")->assertOk()->assertJsonPath('balance_rp', 0)
+            ->assertJsonPath('status', 'terbuka')->assertJsonPath('lines.0.tariff_zero', 'pending')->json();
+        $this->as(self::OWNER)->postJson("/api/invoice-lines/{$inv['lines'][0]['id']}/approve-zero-tariff")->assertOk();
+        $this->assertSame('done', $this->inA(fn () => Appointment::findOrFail($appt)->status));
+
+        [$konsul] = $this->visit();
+        $this->work($konsul, ['procedure_code' => '89.31', 'variant' => 'standar']); // level 1 = Konsultasi
+        $this->selesai($konsul)->assertOk();
+        $this->assertSame([100000], $this->lines($konsul)->pluck('price_rp')->all());
+
+        [$empty, $emptyAppt] = $this->visit(note: false); // nothing to sign: /close and appointment done reach the same refusal
+        $this->as(self::DESK)->postJson("/api/visits/$empty/close")->assertConflict()->assertJsonPath('error', 'no_billable_work');
+        $this->move($emptyAppt, 'checked_in')->assertOk();
+        $this->move($emptyAppt, 'in_treatment')->assertOk();
+        $this->move($emptyAppt, 'done')->assertConflict()->assertJsonPath('error', 'no_billable_work');
+        $this->assertSame(['berlangsung', 'in_treatment'], [$this->row($empty)->status, $this->inA(fn () => Appointment::findOrFail($emptyAppt)->status)]);
+        $this->assertTrue($this->inA(fn () => AuditEvent::where('action', 'tutup_ditolak')->where('entity_id', $empty)
+            ->where('detail->reason', 'no_billable_work')->exists()));
+
+        $walkIn = $this->walkIn(); // cancelled attendance is the one way to close without an invoice
+        $this->as(self::DESK)->postJson("/api/visits/$walkIn/cancel-attendance", ['reason' => 'Pasien pulang sebelum diperiksa'])->assertOk();
+        $this->as(self::DESK)->postJson("/api/visits/$walkIn/close", ['reason' => 'Pasien pulang sebelum diperiksa'])->assertOk()
+            ->assertJsonPath('status', 'selesai');
     }
 
     public function test_walk_in_cancel_attendance_then_close_with_reason(): void
