@@ -28,6 +28,7 @@ const measure = ({ phone, width }) => {
     : []
   const tiny = [...document.querySelectorAll('body *')]
     .filter((e) => [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()) && vis(e) && parseFloat(getComputedStyle(e).fontSize) < 12)
+    .filter((e) => !e.closest('[data-audit-skip], svg')) // text inside drawings scales with the viewBox; the UI label next to it is what is read
     .map((e) => `${label(e)} ${getComputedStyle(e).fontSize}`)
   const big = phone
     ? [...document.querySelectorAll('button,a[href],[role=button]')].filter(vis)

@@ -12,7 +12,9 @@ const proxy = Object.fromEntries(
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  // @heroui-pro/react is a file: symlink to a folder outside the project; keep its node_modules path so its imports resolve here.
+  resolve: { preserveSymlinks: true },
   server: { host: '127.0.0.1', port: 5173, strictPort: true, proxy },
   // css.include: lets the Shell / PatientList / Chart tests load styles.css / patients.css ?raw (vitest blanks CSS by default) to assert computed styles (pill name never ellipsized, 44px surface buttons).
-  test: { environment: 'jsdom', setupFiles: ['./src/test-setup.ts'], css: { include: [/styles\.css/, /legacy-base\.css/, /motion\.css/, /patients\.css/, /clinical\.css/] } },
+  test: { server: { deps: { inline: [/@heroui-pro/] } }, environment: 'jsdom', setupFiles: ['./src/test-setup.ts'], css: { include: [/styles\.css/, /legacy-base\.css/, /motion\.css/, /patients\.css/, /clinical\.css/] } },
 })
