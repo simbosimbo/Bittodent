@@ -51,6 +51,10 @@ final class VisitCloser
         $v->update(['status' => 'selesai', 'ended_at' => now(), 'closed_by' => Ctx::current()->userId,
             'close_reason' => $cancelled ? trim($reason) : null, 'closed_without_invoice' => $event->blocked()]);
         Audit::log('tutup', 'visit', $v->id, ['via' => $via, 'attendance_cancelled' => $cancelled, 'without_invoice' => $event->blocked()]);
+        // janji_selesai runs inside the appointment's own -> done transition
+        if ($v->appointment_id !== null && ! $cancelled && $via !== 'janji_selesai') {
+            $this->appointments->advance($v->appointment_id, 'done');
+        }
         app(PatientCareSync::class)->push($v->patient_id); // patient list: last visit + open visit changed
 
         return null;

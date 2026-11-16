@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Modules\Billing\Models\InvoiceLine;
 use App\Modules\Clinical\Models\ProcedureRecord;
+use App\Modules\Scheduling\Models\Appointment;
 use App\Modules\Scheduling\Models\Chair;
 use App\Shared\Tenancy\Ctx;
 use Carbon\CarbonImmutable;
@@ -31,6 +32,8 @@ class PatientJourneyTest extends TestCase
 
         // 3-4. dentist: open the record, wrong tooth first, fix it (5), then the real work: tambal komposit 36 O, Selesai
         $visit = $this->as($doc)->postJson("/api/appointments/$appt/visit")->assertCreated()->json('id');
+        $status = fn () => Ctx::runAs($this->tenantA()->id, fn () => Appointment::findOrFail($appt)->status);
+        $this->assertSame('in_treatment', $status()); // the schedule shows the chair in use (audit P1-2)
         $wrong = $this->as($doc)->postJson("/api/visits/$visit/tooth-entries", ['tooth' => 37, 'surfaces' => ['O'], 'condition' => 'tambalan_komposit', 'status' => 'selesai'])->assertCreated()->json('id');
         $this->as($doc)->deleteJson("/api/procedures/$wrong")->assertNoContent();
         $entry = $this->as($doc)->postJson("/api/visits/$visit/tooth-entries", ['tooth' => 36, 'surfaces' => ['O'], 'condition' => 'tambalan_komposit', 'status' => 'selesai'])
@@ -39,6 +42,7 @@ class PatientJourneyTest extends TestCase
         $this->assertSame([[36, 'O', 'tambalan_komposit', 'selesai']], collect($chart)->map(fn ($p) => [$p['tooth'], $p['surfaces'], $p['condition'], $p['status']])->all()); // odontogram source
         $this->as($doc)->putJson("/api/visits/$visit/note", ['soap' => ['S' => 'Gigi berlubang, ngilu.', 'O' => 'Karies 36 O.']])->assertOk();
         $this->as($doc)->postJson("/api/visits/$visit/selesai", ['revision' => 1, 'confirm' => true])->assertOk();
+        $this->assertSame('done', $status()); // Selesai frees the chair
         $this->as($doc)->postJson("/api/visits/$visit/tooth-entries", ['tooth' => 35, 'surfaces' => ['O'], 'condition' => 'karies', 'status' => 'ada_sebelumnya'])->assertConflict(); // locked
 
         // 6. kasir: the visit is in the queue with one line per finished procedure, pays in full

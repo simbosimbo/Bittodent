@@ -92,15 +92,17 @@ class EncounterInvoiceGuardTest extends TestCase
         return $this->inA(fn () => InvoiceLine::whereIn('invoice_id', Invoice::where('visit_id', $visit)->select('id'))->get());
     }
 
-    public function test_billed_work_closes_via_selesai_and_appointment_done_is_then_a_no_op(): void
+    public function test_billed_work_closes_via_selesai_and_the_appointment_follows_to_done(): void
     {
         [$visit, $appt] = $this->visit();
         $this->work($visit, self::BILLED);
         $this->selesai($visit)->assertOk()->assertJsonPath('visit.status', 'selesai')->assertJsonPath('visit.closed_without_invoice', false);
         $this->assertCount(1, $this->lines($visit));
-        foreach (['checked_in', 'in_treatment', 'done'] as $to) {
-            $this->move($appt, $to)->assertOk();
-        }
+        $a = $this->inA(fn () => Appointment::findOrFail($appt));
+        $this->assertSame('done', $a->status); // never checked in: Selesai still dismisses it, each stamp set once
+        $this->assertNotNull($a->arrived_at);
+        $this->assertNotNull($a->dismissed_at);
+        $this->move($appt, 'done')->assertConflict();
         $v = $this->row($visit);
         $this->assertSame(['selesai', false], [$v->status, $v->closed_without_invoice]);
         $this->assertNotNull($v->ended_at);
@@ -117,7 +119,7 @@ class EncounterInvoiceGuardTest extends TestCase
         $this->assertSame('in_treatment', $this->inA(fn () => Appointment::findOrFail($appt2)->status));
         $this->assertSame('berlangsung', $this->row($visit2)->status);
         $this->selesai($visit2)->assertOk();
-        $this->move($appt2, 'done')->assertOk();
+        $this->assertSame('done', $this->inA(fn () => Appointment::findOrFail($appt2)->status));
     }
 
     public function test_unbilled_work_signs_but_selesai_cannot_close(): void

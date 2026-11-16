@@ -132,7 +132,12 @@ class ChartController extends Controller
         if (! Ctx::current()->coversBranch($a['branch_id'])) {
             return Audit::denied('branch:'.$a['branch_id']);
         }
+        // Arrived patient: opening the record seats them. A booked one stays booked: a dentist may open the chart ahead of arrival,
+        // and the desk can still mark no-show. Replays repair an appointment left at checked_in.
+        $seat = fn () => $a['status'] === 'checked_in' ? $appointments->advance($id, 'in_treatment') : null;
         if ($v = Visit::where('appointment_id', $id)->first()) {
+            $seat();
+
             return response()->json(self::visit($v));
         }
         if (in_array($a['status'], ['cancelled', 'no_show'], true)) {
@@ -145,6 +150,7 @@ class ChartController extends Controller
             return response()->json(self::visit(Visit::where('appointment_id', $id)->firstOrFail()));
         }
         Audit::log('buat', 'visit', $v->id, ['appointment_id' => $id]);
+        $seat();
         $care->push($v->patient_id);
 
         return response()->json(self::visit($v), 201);
