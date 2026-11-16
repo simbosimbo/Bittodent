@@ -67,25 +67,33 @@ class TariffController extends Controller
     }
 
     /**
-     * POST /api/tariffs {procedure_code, name, price_rp} (owner, perm tariff.manage): first price for a procedure that has none yet
-     * (one "Standar" level from today; more levels via levels()). Rp0 is allowed: the owner decides what is free. 409 when it exists.
+     * POST /api/tariffs {procedure_code, name, price_rp | levels: [{code, label, price_rp}]} (owner, perm tariff.manage): first price for a
+     * procedure that has none yet, from today: one "Standar" level, or its stages (S2) so they apply today, not from tomorrow
+     * (one version per day). Rp0 is allowed: the owner decides what is free. 409 when it exists.
      */
     public function store(Request $request)
     {
         $d = $request->validate([
             'procedure_code' => ['required', 'string', 'max:10'],
             'name' => ['required', 'string', 'max:120'],
-            'price_rp' => ['required', 'integer', 'min:0', 'max:1000000000'],
+            'price_rp' => ['required_without:levels', 'prohibits:levels', 'integer', 'min:0', 'max:1000000000'],
+            'levels' => ['sometimes', 'array', 'min:1', 'max:10'],
+            'levels.*.code' => ['required', 'string', 'regex:/^[a-z0-9_]{1,10}$/', 'distinct'],
+            'levels.*.label' => ['required', 'string', 'max:60'],
+            'levels.*.price_rp' => ['required', 'integer', 'min:0', 'max:1000000000'],
         ]);
+        $levels = $d['levels'] ?? [['code' => 'standar', 'label' => 'Standar', 'price_rp' => $d['price_rp']]];
 
-        return DB::transaction(function () use ($d) {
+        return DB::transaction(function () use ($d, $levels) {
             if (Tariff::where('procedure_code', $d['procedure_code'])->lockForUpdate()->exists()) {
                 return response()->json(['error' => 'exists', 'message' => 'Tindakan ini sudah punya harga. Ubah lewat daftar harga.'], 409);
             }
-            $t = Tariff::create($d + ['variant' => 'standar', 'level_label' => 'Standar', 'level_rank' => 1, 'valid_from' => now()->toDateString()]);
-            Audit::log('tarif_dibuat', 'tariff', $t->id, ['procedure_code' => $t->procedure_code, 'price_rp' => $t->price_rp]);
+            $rows = collect($levels)->values()->map(fn ($l, $i) => Tariff::create(['procedure_code' => $d['procedure_code'], 'name' => $d['name'],
+                'variant' => $l['code'], 'level_label' => $l['label'], 'level_rank' => $i + 1, 'price_rp' => $l['price_rp'], 'valid_from' => now()->toDateString()]));
+            Audit::log('tarif_dibuat', 'tariff', $rows[0]->id, ['procedure_code' => $d['procedure_code'], 'levels' => $rows->count()]);
 
-            return response()->json($t->only(['id', 'procedure_code', 'name', 'variant', 'price_rp', 'valid_from']), 201);
+            return response()->json(['id' => $rows[0]->id, 'procedure_code' => $d['procedure_code'], 'name' => $d['name'],
+                'levels' => $rows->map->only(['variant', 'level_label', 'price_rp'])->all()], 201);
         });
     }
 

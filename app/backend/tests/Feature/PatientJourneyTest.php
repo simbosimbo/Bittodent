@@ -93,4 +93,15 @@ class PatientJourneyTest extends TestCase
         $this->assertStringContainsString('('.$stages[1]['label'].')', $row['items'][0]);
         $this->assertSame(350000, $row['balance_rp']);
     }
+
+    // S2: an unpriced procedure can get its stages at creation, so they apply today (not from tomorrow).
+    public function test_owner_prices_a_new_procedure_with_stages_today(): void
+    {
+        $owner = 'pemilik@senyum.test';
+        $this->as($owner)->postJson('/api/tariffs', ['procedure_code' => '23.70', 'name' => 'PSA (uji)', 'levels' => [
+            ['code' => 'k1', 'label' => 'Kunjungan 1', 'price_rp' => 400000], ['code' => 'k2', 'label' => 'Lanjutan', 'price_rp' => 0]]])->assertCreated();
+        $this->assertSame([['variant' => 'k1', 'label' => 'Kunjungan 1'], ['variant' => 'k2', 'label' => 'Lanjutan']],
+            $this->as('dokter@senyum.test')->getJson('/api/tariffs/stages')->assertOk()->json()['23.70']);
+        $this->as($owner)->postJson('/api/tariffs', ['procedure_code' => '23.71', 'name' => 'x', 'price_rp' => 1, 'levels' => [['code' => 'a', 'label' => 'A', 'price_rp' => 1]]])->assertUnprocessable();
+    }
 }

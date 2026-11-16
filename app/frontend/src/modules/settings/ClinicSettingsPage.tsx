@@ -6,7 +6,7 @@ import { getCatalog, ODONTOGRAM_TAXONOMY, setCatalogConditions, SymbolIcon, type
 import type { Me } from '../../shared/session'
 import { DateField } from '../../shared/ui/DateField'
 import { addAccount, addTariff, bulkTariffs, getAccounts, getProfile, getTariffs, saveBranch, saveCategory, saveLevels, saveProfile, updateAccount, uploadLogo, uploadQris,
-  type Account, type AccountKind, type BulkRow, type ClinicProfile, type Level, type TariffItem } from './api'
+  type Account, type AccountKind, type BulkRow, type ClinicProfile, type TariffItem } from './api'
 import './settings.css'
 
 // Pengaturan Klinik (DEVIATIONS #71). Each tab follows its own permission (owner only today: settings.manage / tariff.manage /
@@ -201,7 +201,8 @@ function PriceTab() {
                     </label>
                   )
                 })}
-                <StageEditor item={it} levels={levels} onSaved={(m) => { setMsg(m); load() }} onError={setError} />
+                <StageEditor name={it.name} initial={levels.map((l) => ({ code: l.variant, label: l.label, price_rp: l.price_rp }))} onError={setError}
+                  submit={async (ls) => { await saveLevels(it.id, it.editable_from, ls); setMsg(`Tahap ${it.name} tersimpan, berlaku ${fmtYmdShort(it.editable_from)}.`); load() }} />
                 {(later(it) || it.next) && <p className="muted small set-when">
                   {it.next ? `Harga baru berlaku ${fmtYmdShort(it.next.valid_from)}.` : ''}
                   {later(it) && edits[it.procedure_code] && Object.keys(edits[it.procedure_code]).length ? ` Perubahan berlaku ${fmtYmdShort(it.editable_from)} (hari ini sudah diubah).` : ''}
@@ -222,31 +223,30 @@ function PriceTab() {
 }
 
 // S2: stages / levels of one procedure (PSA kunjungan 1 / lanjutan, mahkota preparasi / pemasangan). The dentist picks the label done
-// today (never sees prices); the kasir bills that level per visit. Saved as a new version of the level set (editable_from).
-function StageEditor({ item, levels, onSaved, onError }: { item: TariffItem; levels: Level[]; onSaved: (m: string) => void; onError: (m: string) => void }) {
+// today (never sees prices); the kasir bills that level per visit.
+type StageRow = { code: string; label: string; price_rp: number }
+function StageEditor({ name, initial, submit, onError, open = 'Atur tahap' }: {
+  name: string; initial: StageRow[]; submit: (levels: StageRow[]) => Promise<void>; onError: (m: string) => void; open?: string
+}) {
   const [rows, setRows] = useState<{ code: string; label: string; price: string }[] | null>(null)
   const [busy, setBusy] = useState(false)
-  if (!rows) return <button type="button" className="btn btn-ghost small" onClick={() => setRows(levels.map((l) => ({ code: l.variant, label: l.label, price: String(l.price_rp) })))}>
-    Atur tahap{levels.length > 1 ? ` (${levels.length})` : ''}</button>
+  if (!rows) return <button type="button" className="btn btn-ghost small" onClick={() => setRows(initial.map((l) => ({ code: l.code, label: l.label, price: l.price_rp ? String(l.price_rp) : initial.length > 1 ? '0' : '' })))}>
+    {open}{initial.length > 1 ? ` (${initial.length})` : ''}</button>
   const set = (i: number, k: 'label' | 'price', v: string) => setRows(rows.map((r, j) => (j === i ? { ...r, [k]: k === 'price' ? v.replace(/\D/g, '') : v } : r)))
   const fresh = () => { let n = rows.length + 1; while (rows.some((r) => r.code === `t${n}`)) n++; return `t${n}` }
   const bad = rows.some((r) => !r.label.trim() || r.price === '')
   async function save() {
     setBusy(true)
-    try {
-      await saveLevels(item.id, item.editable_from, rows!.map((r) => ({ code: r.code, label: r.label.trim(), price_rp: digits(r.price) })))
-      setRows(null)
-      onSaved(`Tahap ${item.name} tersimpan, berlaku ${fmtYmdShort(item.editable_from)}.`)
-    } catch (e) { onError(msgOf(e)) } finally { setBusy(false) }
+    try { await submit(rows!.map((r) => ({ code: r.code, label: r.label.trim(), price_rp: digits(r.price) }))); setRows(null) } catch (e) { onError(msgOf(e)) } finally { setBusy(false) }
   }
   return (
     <fieldset className="set-stages">
-      <legend className="small">Tahap {item.name} (urut dari tahap pertama). Dokter memilih tahap yang dikerjakan; kasir menagih per kunjungan. Isi 0 bila tahap itu gratis.</legend>
+      <legend className="small">Tahap {name}, urut dari tahap pertama. Dokter memilih tahap yang dikerjakan; kasir menagih per kunjungan. Isi 0 bila gratis.</legend>
       {rows.map((r, i) => (
-        <div key={r.code} className="set-price">
-          <input aria-label={`Nama tahap ${i + 1}`} maxLength={60} value={r.label} onChange={(e) => set(i, 'label', e.target.value)} />
+        <div key={r.code} className="set-stage-row">
+          <input aria-label={`Nama tahap ${i + 1}`} placeholder={`Tahap ${i + 1}`} maxLength={60} value={r.label} onChange={(e) => set(i, 'label', e.target.value)} />
           <span className="set-rp"><span aria-hidden="true">Rp</span>
-            <input inputMode="numeric" aria-label={`Harga tahap ${i + 1}`} value={r.price} onChange={(e) => set(i, 'price', e.target.value)} /></span>
+            <input inputMode="numeric" aria-label={`Harga tahap ${i + 1}`} value={r.price === '' ? '' : num(digits(r.price))} onChange={(e) => set(i, 'price', e.target.value)} /></span>
           {rows.length > 1 && <button type="button" className="btn btn-ghost" aria-label={`Hapus tahap ${i + 1}`} onClick={() => setRows(rows.filter((_, j) => j !== i))}>Hapus</button>}
         </div>
       ))}
@@ -431,6 +431,7 @@ function AddAccount({ me, onDone, onCancel }: { me: Me; onDone: (a: Account) => 
  * mapping holds cof (several items -> the dentist picks one). Unmapped conditions cannot be finished, so the owner maps them here.
  */
 // S1: procedures the dentist can record that have no price yet. Until the owner sets one, a visit with that work cannot be closed.
+// One price, or "Bertahap" (S2) to create its stages at once so they apply today.
 function Unpriced({ rows, onSaved, onError }: { rows: CatalogRow[]; onSaved: (name: string) => void; onError: (m: string) => void }) {
   const [price, setPrice] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState('')
@@ -444,12 +445,14 @@ function Unpriced({ rows, onSaved, onError }: { rows: CatalogRow[]; onSaved: (na
       <strong>Tindakan tanpa harga ({rows.length})</strong>
       <p className="muted small">Dokter bisa mengisi tindakan ini, tetapi kunjungan tidak bisa ditutup dan dibayar sebelum harganya diisi. Isi 0 bila memang gratis.</p>
       {rows.map((r) => (
-        <div key={r.procedure_code} className="set-price">
-          <span>{r.name} <span className="muted small">{r.procedure_code}</span></span>
+        <div key={r.procedure_code} className="set-unpriced">
+          <span className="set-unpriced-name">{r.name} <span className="muted small">{r.procedure_code}</span></span>
           <span className="set-rp"><span aria-hidden="true">Rp</span>
-            <input inputMode="numeric" aria-label={`Harga ${r.name}`} value={price[r.procedure_code] ?? ''}
-              onChange={(e) => setPrice({ ...price, [r.procedure_code]: e.target.value.replace(/\D/g, '') })} />
-            <button type="button" className="btn" disabled={busy === r.procedure_code || !(price[r.procedure_code] ?? '')} onClick={() => save(r)}>Simpan</button></span>
+            <input inputMode="numeric" aria-label={`Harga ${r.name}`} value={price[r.procedure_code] ? num(digits(price[r.procedure_code])) : ''}
+              onChange={(e) => setPrice({ ...price, [r.procedure_code]: e.target.value.replace(/\D/g, '') })} /></span>
+          <button type="button" className="btn" disabled={busy === r.procedure_code || !(price[r.procedure_code] ?? '')} onClick={() => save(r)}>Simpan</button>
+          <StageEditor name={r.name} open="Bertahap" onError={onError} initial={[{ code: 'k1', label: 'Kunjungan 1', price_rp: digits(price[r.procedure_code] ?? '') }]}
+            submit={async (ls) => { await addTariff(r.procedure_code, r.name, ls); onSaved(r.name) }} />
         </div>
       ))}
     </section>
