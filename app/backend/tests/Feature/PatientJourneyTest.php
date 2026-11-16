@@ -185,6 +185,8 @@ class PatientJourneyTest extends TestCase
         $this->as($doc)->postJson("/api/visits/$visit/selesai", ['revision' => 1, 'confirm' => true, 'accept_warnings' => true, 'reason' => 'Diagnosis ditulis di catatan.'])->assertOk();
         $row = collect($this->as('kasir@senyum.test')->getJson('/api/billing/invoices')->assertOk()->json('invoices'))->firstWhere('visit_id', $visit);
         $this->assertSame(300000, $row['balance_rp']);
+        // the complaint typed at check-in stays on the visit after Selesai (no longer read live from the appointment)
+        $this->assertSame('Gigi bungsu sakit', collect($this->as($doc)->getJson("/api/patients/$patient/chart")->json('visits'))->firstWhere('id', $visit)['complaint']);
         $this->assertReconciled();
     }
 

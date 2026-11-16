@@ -12,6 +12,7 @@ use App\Modules\Clinical\Models\ToothFinding;
 use App\Modules\Clinical\Models\Visit;
 use App\Modules\Scheduling\Contracts\AppointmentDirectory;
 use App\Shared\Audit\Audit;
+use App\Shared\Crypto\Crypto;
 use App\Shared\Tenancy\Ctx;
 use Illuminate\Http\JsonResponse;
 
@@ -56,7 +57,10 @@ final class VisitCloser
                 'message' => 'Kunjungan dengan tindakan selesai tidak bisa ditutup tanpa tagihan. Ada tindakan yang belum punya harga. Minta pemilik mengisi harganya di Pengaturan Klinik > Harga, lalu tutup kunjungan lagi.'], 409);
         }
         $v->update(['status' => 'selesai', 'ended_at' => now(), 'closed_by' => Ctx::current()->userId,
-            'close_reason' => $cancelled ? trim($reason) : null, 'closed_without_invoice' => $event->blocked()]);
+            'close_reason' => $cancelled ? trim($reason) : null, 'closed_without_invoice' => $event->blocked(),
+            // the chart reads an open appointment visit's complaint live from the appointment; keep it on the visit once closed
+            ...($v->complaint_enc === null && $v->appointment_id !== null
+                ? ['complaint_enc' => Crypto::encrypt($this->appointments->complaint($v->appointment_id))] : [])]);
         Audit::log('tutup', 'visit', $v->id, ['via' => $via, 'attendance_cancelled' => $cancelled, 'without_invoice' => $event->blocked()]);
         // janji_selesai runs inside the appointment's own -> done transition
         if ($v->appointment_id !== null && ! $cancelled && $via !== 'janji_selesai') {

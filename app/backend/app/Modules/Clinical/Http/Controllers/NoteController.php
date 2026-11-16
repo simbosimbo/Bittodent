@@ -164,6 +164,9 @@ class NoteController extends Controller
     public function selesaiCheck(string $id, VisitCloser $closer)
     {
         $visit = Visit::findOrFail($id);
+        if (! Ctx::current()->coversBranch($visit->branch_id)) { // same branch rule as save() and selesai(), before any clinical data is read
+            return Audit::denied('branch:'.$visit->branch_id);
+        }
         $note = ClinicalNote::where('visit_id', $id)->orderBy('created_at')->first();
         $draft = $note?->versions->firstWhere('state', 'draft');
         $item = fn (string $level, string $rule, string $message) => compact('level', 'rule', 'message');
