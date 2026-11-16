@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Button, buttonVariants, Card } from '@heroui/react'
 import { ApiError, errorText } from '../../shared/api/http'
 import { cancelAttendance, closeVisit } from './api'
+import { Note } from '../../shared/ui/Note'
 
 // Unit 4: close the active visit. Completed work needs an invoice line (server says invoice_required). Only when attendance was
 // cancelled (appointment batal/tidak datang, or walk-in "Batalkan kehadiran") may it close without one, with a reason.
@@ -34,7 +35,7 @@ export function CloseVisit({ visit, needsSelesai = false, canBilling, onDone }: 
         <textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} aria-invalid={!!error} />
       </label>
       {needsSelesai && <p className="muted small">Catatan/tindakan belum Selesai: dokter penanggung jawab menekan Selesai (menutup kunjungan sekaligus).</p>}
-      {error && <p className="form-error" role="alert">{error}</p>}
+      {error && <Note status="danger" role="alert">{error}</Note>}
       <div className="flex flex-wrap items-center gap-2">
         {walkIn && !visit.attendance_cancelled_at && (
           <Button variant="outline" isDisabled={busy} onPress={() => reason.trim().length < 10 ? setError('Isi alasan minimal 10 huruf.') : run(() => cancelAttendance(visit.id, reason.trim()))}>

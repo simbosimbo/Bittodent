@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { Button, buttonVariants, Card } from '@heroui/react'
 import { ApiError } from '../../shared/api/http'
 import { cancelBooking, getBooking, rescheduleBooking, type Manage, type Slot } from './api'
-import { apiMessage, longDate, Notice, Page, Problem, SlotPicker, StatusChip, Summary, timeRange } from './parts'
+import { Note } from '../../shared/ui/Note'
+import { apiMessage, longDate, Page, SlotPicker, StatusChip, Summary, timeRange } from './parts'
 
 export default function ManagePage({ slug, token }: { slug: string; token: string }) {
   const [data, setData] = useState<Manage | null>(null)
@@ -50,8 +51,8 @@ export default function ManagePage({ slug, token }: { slug: string; token: strin
     }>
       <div className="bk-head"><h1>Kelola booking</h1></div>
       <div aria-live="polite">
-        {error && <Problem>{error}</Problem>}
-        {notice && <Notice>{notice}</Notice>}
+        {error && <Note status="danger" role="alert">{error}</Note>}
+        {notice && <Note status="success" role="status">{notice}</Note>}
       </div>
       {!data.can_change ? <Card className="bk-card"><p className="bk-muted">Booking ini tidak bisa diubah.</p></Card>
         : mode === 'cancel' ? (

@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
-import { Avatar, buttonVariants, Card, Chip, ToggleButton } from '@heroui/react'
+import { RowLink } from '../../shared/ui/RowLink'
+import { FilterChips } from '../../shared/ui/FilterChips'
+import { Stat } from '../../shared/ui/Stat'
+import { StateCard } from '../../shared/ui/StateCard'
+import { Avatar, buttonVariants, Card, Chip } from '@heroui/react'
 import { fmtDate, fmtTime, initials, todayWib, TZ } from '../../shared/format'
 import type { Me } from '../../shared/session'
 import { RevenueCard } from '../billing'
@@ -62,10 +66,6 @@ function DeskHome({ me }: { me: Me }) {
   const time = (a: Appointment) => fmtTime(a.starts_at, tz)
   const span = (a: Appointment) => `${time(a)}–${fmtTime(a.ends_at, tz)}`
   const href = (a: Appointment) => canChart && a.patient ? `#/rekam-medis/${a.patient.id}${canVisit ? `/janji/${a.id}` : ''}` : null
-  const open = (a: Appointment) => {
-    const h = href(a)
-    return h && <a className={'home-open ' + buttonVariants({ variant: 'outline', size: 'sm' })} href={h} aria-label={`Buka Rekam Medis ${a.patient!.name}`}>Buka Rekam Medis</a>
-  }
 
   const nowMin = minutesOfDay(now.toISOString(), tz)
   const greeting = nowMin < 11 * 60 ? 'Selamat pagi' : nowMin < 15 * 60 ? 'Selamat siang' : 'Selamat sore'
@@ -105,14 +105,10 @@ function DeskHome({ me }: { me: Me }) {
         </div>
         {!mobile && ctas}
       </div>
-      {error ? <Card className="state-card error">{error}</Card> : loading && !data ? <PageSkeleton variant="home" /> : (
+      {error ? <StateCard error={error} /> : loading && !data ? <PageSkeleton variant="home" /> : (
         <div className="grid-12">
           {kpis.map((k) => (
-            <Card key={k.label} className="stat span-3" role="region" aria-label={k.label}>
-              <div className="stat-head"><span className="stat-label">{k.label}</span><span className="stat-icon"><Icon d={k.icon} /></span></div>
-              <div className="stat-value">{k.value}</div>
-              <div className="muted">{k.note}</div>
-            </Card>
+            <Stat key={k.label} className="span-3" label={k.label} value={k.value} note={k.note} icon={<Icon d={k.icon} />} />
           ))}
           <RevenueCard canRead={can('billing.read')} branchId={me.active.branch_id} />
           {mobile && ctas && <div className="span-12 home-actions-row">{ctas}</div>}
@@ -175,24 +171,18 @@ function DeskHome({ me }: { me: Me }) {
                 <h2 id="home-today">Janji hari ini</h2>
                 <p className="muted small" aria-live="polite">{shown.length} janji ditampilkan · urut berdasarkan jam</p>
               </div>
-              <div className="seg" role="group" aria-label="Saring janji">
-                <ToggleButton size="sm" variant="ghost" isSelected={filter === 'open'} onChange={() => setFilter('open')}>Belum selesai</ToggleButton>
-                <ToggleButton size="sm" variant="ghost" isSelected={filter === 'all'} onChange={() => setFilter('all')}>Semua</ToggleButton>
-              </div>
+              <FilterChips label="Saring janji" value={filter} onChange={setFilter} options={[['open', 'Belum selesai'], ['all', 'Semua']]} />
             </div>
             {shown.length === 0 ? <p className="muted empty">Belum ada janji aktif hari ini.</p> : (
               <ul className="queue">
-                {shown.map((a) => (
-                  <li key={a.id}>
-                    <span className="queue-time">{time(a)}</span>
-                    <div className="grow">
-                      <div className="strong">{a.patient?.name ?? '—'}</div>
-                      <div className="muted small">{[a.chair, a.dentist?.name, a.reason].filter(Boolean).join(' · ')}</div>
-                    </div>
-                    <StatusChip status={a.status} />
-                    {open(a)}
-                  </li>
-                ))}
+                {shown.map((a) => {
+                  const h = href(a), name = a.patient?.name ?? '—', meta = [a.chair, a.dentist?.name, a.reason].filter(Boolean).join(' · ')
+                  // Opening the chart is the row's only action: the whole row is the link (chevron), no separate button.
+                  return h
+                    ? <li key={a.id}><RowLink className="queue-link" href={h} aria-label={`Buka Rekam Medis ${name}`} media={<span className="queue-time">{time(a)}</span>}
+                        title={name} sub={meta} aside={<StatusChip status={a.status} />} /></li>
+                    : <li key={a.id}><span className="queue-time">{time(a)}</span><div className="grow"><div className="strong">{name}</div><div className="muted small">{meta}</div></div><StatusChip status={a.status} /></li>
+                })}
               </ul>
             )}
           </Card>

@@ -3,7 +3,7 @@ import { Button, Card } from '@heroui/react'
 import { ApiError, errorText } from '../../shared/api/http'
 import { fmtDateTime, rp } from '../../shared/format'
 import { decideCreditNote, decideRefund, decideVoid, pendingReversals, type PendingReversals } from './api'
-import { Note } from './ui'
+import { Note } from '../../shared/ui/Note'
 
 /** Owner (billing.approve_reversal): full credit notes, voids and refunds waiting for approval. Minimal; UI unit polishes. */
 export function ReversalApprovals() {

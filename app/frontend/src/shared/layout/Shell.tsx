@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { Avatar, Button } from '@heroui/react'
+import { Select } from '../ui/Select'
+import { Avatar, Button, buttonVariants } from '@heroui/react'
 import { useActivePatient } from '../activePatient'
 import { initials } from '../format'
 import { ROLE_LABELS, type Me } from '../session'
@@ -36,9 +37,9 @@ function Branch({ me, onSwitchBranch }: { me: Me; onSwitchBranch: (id: string) =
   return me.branches.length < 2
     ? <p className="menu-branch"><small>Cabang</small> <strong>{me.active.branch_name}</strong></p>
     : <label className="menu-branch"><small>Cabang aktif</small>
-        <select value={me.active.branch_id ?? ''} onChange={(e) => onSwitchBranch(e.target.value)}>
+        <Select value={me.active.branch_id ?? ''} onChange={(e) => onSwitchBranch(e.target.value)}>
           {me.branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-        </select>
+        </Select>
       </label>
 }
 
@@ -86,7 +87,7 @@ export function Shell({ me, nav, active, title = '', ribbon, badges, queue, queu
     setQ('')
   }
   const quick = (can('patient.create') || can('appointment.create')) && (
-    <Menu label="Aksi cepat" className="icon-btn icon-btn-primary" trigger={<Icon d={ICONS.plus} />}>
+    <Menu label="Aksi cepat" variant="primary" isIconOnly className="shell-quick shell-icon" trigger={<Icon d={ICONS.plus} />}>
       {(close) => <>
         {can('patient.create') && <a href="#/pasien/baru" onClick={close}>Daftarkan pasien</a>}
         {can('appointment.create') && <a href="#/jadwal" onClick={close}>Buat janji</a>}
@@ -95,12 +96,12 @@ export function Shell({ me, nav, active, title = '', ribbon, badges, queue, queu
   )
   const queueBtn = queue && !wide && (
     // phone: icon only, so the clinic name keeps its room
-    <Button variant="ghost" className={mobile ? 'icon-btn' : 'btn queue-toggle'} aria-label={mobile ? 'Antrean hari ini' : undefined}
+    <Button variant="ghost" isIconOnly={mobile} className={mobile ? 'shell-icon' : 'queue-toggle'} aria-label={mobile ? 'Antrean hari ini' : undefined}
       aria-haspopup="dialog" aria-expanded={queueOpen} onPress={() => setQueueOpen(true)}>
       <Icon d={ICONS.queue} size={mobile ? undefined : 18} />{!mobile && 'Antrean'}
     </Button>
   )
-  const bell = <Button variant="ghost" isIconOnly className="icon-btn" isDisabled aria-label="Notifikasi (segera hadir)"><Icon d={ICONS.bell} /></Button>
+  const bell = <Button variant="ghost" isIconOnly className="shell-icon" isDisabled aria-label="Notifikasi (segera hadir)"><Icon d={ICONS.bell} /></Button>
   // App re-renders on hashchange, so reading the hash here stays current.
   const route = location.hash.slice(1).split('?')[0] || '/'
   useEffect(() => setQueueOpen(false), [route]) // the queue sheet never follows the user to another page
@@ -148,7 +149,7 @@ export function Shell({ me, nav, active, title = '', ribbon, badges, queue, queu
           // Mobile header per screen (sketch): Rekam Medis = back + title; patient list = "Pasien" (+ is a FAB there); else clinic + bell + avatar.
           route.startsWith('/rekam-medis/') ? (
             <header className="shell-top">
-              <a className="icon-btn" href="#/pasien" aria-label="Kembali ke daftar pasien"><Icon d={ICONS.left} /></a>
+              <a className={buttonVariants({ variant: 'ghost', isIconOnly: true }) + ' shell-icon'} href="#/pasien" aria-label="Kembali ke daftar pasien"><Icon d={ICONS.left} /></a>
               <strong className="shell-top-title">Rekam Medis</strong>
               <span className="badge-synthetic shell-top-synthetic">DATA SINTETIS</span>
             </header>
@@ -232,7 +233,7 @@ function LainnyaSheet({ rest, link, me, onSwitchBranch, onLogout, onClose }: {
     <Sheet title="Menu lainnya" className="more-sheet" onClose={onClose}>
       {rest.map((n) => link(n, <><Icon d={n.icon} /> {n.label}</>))}
       <Branch me={me} onSwitchBranch={onSwitchBranch} />
-      <Button variant="secondary" fullWidth className="btn" onPress={onLogout}>Keluar</Button>
+      <Button variant="secondary" fullWidth onPress={onLogout}>Keluar</Button>
     </Sheet>
   )
 }

@@ -49,12 +49,7 @@
 .swatch-tambalan { background: #1E40AF; }
 .swatch-draft { border: 2px dashed #6D28D9; background: #F3EEFF; }
 .swatch-signed { border-color: #111827; }
-
-.picker-pop { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; margin-top: 8px; display: grid; gap: 6px; }
-.cond-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .cond { border-left: 4px solid currentColor; }
-.cond-sehat { color: #0B7A45; } .cond-karies { color: #BE123C; } .cond-tambalan { color: #1E40AF; } .cond-mahkota { color: #6D28D9; }
-.cond-hilang { color: #3F3F46; } .cond-sisa_akar { color: #9A3412; } .cond-perlu_dicabut { color: #A15C00; } .cond-implan { color: #0F5F63; }
 
 .soap-panel { display: grid; gap: 8px; padding-top: 10px; }
 .soap-panel textarea, .dialog textarea { width: 100%; font: inherit; font-size: var(--font-size-note); line-height: var(--font-line-height-normal); }
@@ -90,9 +85,6 @@ label.check { flex-direction: row; gap: 8px; align-items: flex-start; font-weigh
 .st-cancelled { color: #6B7280; background: #fff; text-decoration: line-through; }
 .st-superseded { color: #6B7280; background: #F3F4F6; }
 .st-tidak_dikerjakan { color: #6B7280; background: #fff; text-decoration: line-through; }
-
-/* Chart inside PatientPage */
-.chart-meta { text-align: right; }
 .chart-cta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); margin: var(--space-3) 0 0; color: var(--text); }
 .chart-cta p { margin: 0; }
 .walk-in { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-2); margin: var(--space-2) 0; }
@@ -116,9 +108,6 @@ label.check { flex-direction: row; gap: 8px; align-items: flex-start; font-weigh
 .odo3d .t3-sel { position: absolute; inset: 0; display: none; background: var(--color-primary-700); opacity: .35; mix-blend-mode: multiply;
   -webkit-mask: var(--mask) calc(var(--i) * 100% / 6) 0 / 700% 100% no-repeat; mask: var(--mask) calc(var(--i) * 100% / 6) 0 / 700% 100% no-repeat; }
 .odo3d .t3-sel.is-sel { display: block; }
-/* Draft wash stays a light cue; lock sits in the corner (positioned in JS) and must not hide the crown. */
-.odo3d .t3[data-state="draft"] .state-frame { fill-opacity: .06; stroke-width: 1; stroke-opacity: .6; }
-.odo3d .t3[data-state="signed"] .state-frame { stroke-width: 1; stroke-opacity: .5; }
 .odo3d-note { margin: var(--space-1) 0 0; line-height: 1.3; }
 .odo-legend-toggle { margin: 0 0 var(--space-1); }
 .odo-legends { display: flex; flex-wrap: wrap; gap: 2px var(--space-4); margin: 0 0 var(--space-2); }
@@ -126,8 +115,6 @@ label.check { flex-direction: row; gap: 8px; align-items: flex-start; font-weigh
 
 /* Rekam Medis: Tampilan 2D/3D + Dentisi segmented controls (HeroUI ToggleButtonGroup). */
 .card-head-tools { margin-left: auto; display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); align-items: center; }
-.seg-field { display: flex; align-items: center; gap: var(--space-2); }
-.seg-label { font-size: var(--font-size-xs); font-weight: 600; color: var(--muted); }
 .odo2d-wrap { overflow-x: auto; max-width: 100%; }
 .odontogram.is-compact { max-width: 760px; max-height: 300px; min-width: 640px; }
 .findings-wrap { overflow-x: auto; margin: var(--space-3) 0; }
@@ -157,7 +144,6 @@ label.check { flex-direction: row; gap: 8px; align-items: flex-start; font-weigh
 .tooth-panel { display: grid; gap: var(--space-3); align-content: start; }
 .tooth-panel h2 { margin: 0; }
 .tooth-panel p { margin: 0; }
-.tooth-panel .picker-pop { margin: 0; }
 .tooth-empty { padding: var(--space-6) 0; text-align: center; }
 .tooth-panel-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
 .tooth-name { font-weight: 700; color: var(--text); }
@@ -204,7 +190,7 @@ label.check { flex-direction: row; gap: 8px; align-items: flex-start; font-weigh
   .alert-sheet-list .alert-chip { display: flex; border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); font-size: var(--font-size-base); white-space: normal; }
   .patient-head:has(.patient-alerts) { flex-wrap: nowrap; }
   .patient-head:has(.patient-alerts) .patient-head-main { flex: 1 1 0; } /* ⋯ menu stays beside the name */
-  .patient-head:has(.patient-alerts) .avatar-lg, .patient-head .chart-actions { display: none; } /* Buat janji: Jadwal tab */
+  .patient-head .chart-actions { display: none; } /* Buat janji: Jadwal tab */
   .card-head-tools { margin-left: 0; }
   /* 2D keeps ~1:1 scale (44px teeth); one sideways scroller for both arches (renderer draws one SVG). */
   .odo2d-wrap { overscroll-behavior-x: contain; }
@@ -224,12 +210,7 @@ label.check { flex-direction: row; gap: 8px; align-items: flex-start; font-weigh
   .odo3d .jaw-block { overflow-x: auto; align-items: flex-start; }
   .odo3d .arch-grid { margin: 0 auto; }
   /* Tall enough to record a finding; the patient strip (name, No. RM, allergies) stays pinned at its top while it scrolls. */
-  .tooth-sheet { display: grid; gap: var(--space-3); max-height: 80vh; padding-top: 0; border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
-  .sheet-strip { position: sticky; top: 0; z-index: 1; display: grid; gap: 4px; margin: 0 calc(-1 * var(--space-4)); padding: var(--space-3) var(--space-4) var(--space-2);
-    background: var(--surface); border-bottom: 1px solid var(--border); }
-  .sheet-strip p { margin: 0; }
-  .sheet-strip .alert-ribbon.is-compact { padding: 0; background: none; border: 0; flex-wrap: wrap; overflow: visible; }
-  .sheet-strip .alert-ribbon.is-compact .alert-chip { white-space: normal; } /* allergies wrap, never scroll out of sight */
+  .tooth-sheet { display: grid; gap: var(--space-3); max-height: 80vh; padding-top: 0; border-radius: var(--radius-lg) var(--radius-lg) 0 0; } /* allergies wrap, never scroll out of sight */
   .tooth-sheet select, .tooth-sheet input { min-height: 44px; }
   /* Walk-in "Mulai kunjungan" pinned just above the bottom nav (65px + safe area); the page pads for it. */
   .walk-in-bar {
@@ -248,7 +229,6 @@ label.check { flex-direction: row; gap: 8px; align-items: flex-start; font-weigh
 .cond[aria-pressed='true'] { background: var(--color-primary-50); outline: 2px solid currentColor; outline-offset: -2px; }
 .temuan-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
 .temuan-head h2 { margin: 0; }
-.tooth-save { width: 100%; min-height: var(--shells-a-size-touch); }
 
 /* RM > Billing (#69): one row per visit, opening its Tagihan */
 .bill-visits { list-style: none; margin: 0; padding: 0; }
@@ -258,7 +238,7 @@ label.check { flex-direction: row; gap: 8px; align-items: flex-start; font-weigh
 .bill-visits .button { min-height: var(--size-touch); white-space: nowrap; }
 
 /* #70 Dokter mode: one-tap procedures, SOAP templates, reason chips (chips = 40px desktop, 48px phone). */
-.quick-procs, .soap-quick { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; margin: 0 0 var(--space-3); }
+.soap-quick { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; margin: 0 0 var(--space-3); }
 .chip-quick { min-height: 40px; border-radius: var(--radius-pill); border: 1px solid var(--color-primary-200); background: var(--surface);
   color: var(--color-primary-800); font-weight: 600; padding: 0 var(--space-4); }
 .chip-quick[aria-pressed='true'] { background: var(--color-primary-50); border-color: var(--color-primary-700); }

@@ -1,9 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { StateCard } from '../../shared/ui/StateCard'
 import { Button, buttonVariants, Card, Input } from '@heroui/react'
 import { ApiError, errorText } from '../../shared/api/http'
 import { fmtTime, rp } from '../../shared/format'
 import { closeShift, currentShift, openShift, type Shift, type ShiftMethod } from './api'
-import { Note } from './ui'
+import { Note } from '../../shared/ui/Note'
 import './billing.css'
 
 const KIND: Record<ShiftMethod['kind'], string> = { tunai: 'Tunai', qris: 'QRIS', edc: 'Debit', transfer: 'Transfer', bpjs: 'BPJS', asuransi: 'Asuransi' }
@@ -44,7 +45,7 @@ export default function ShiftPage() {
       <a className={buttonVariants({ variant: 'primary', fullWidth: true })} href="#/kasir">Selesai</a>
     </Card>
   )
-  if (shift === undefined) return error ? <Card className="state-card" role="alert">{error}</Card> : <Card className="state-card text-muted">Memuat shift…</Card>
+  if (shift === undefined) return error ? <StateCard error={error} /> : <StateCard>Memuat shift…</StateCard>
   if (shift === null) return (
     <form className="billing shift" onSubmit={(e: FormEvent) => { e.preventDefault(); act(() => openShift(Number(opening)), setShift) }}>
       <Card className="gap-3">

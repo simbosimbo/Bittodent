@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Avatar, Button, Card, ToggleButton, ToggleButtonGroup } from '@heroui/react'
+import { Stat } from '../../shared/ui/Stat'
+import { StateCard } from '../../shared/ui/StateCard'
+import { Avatar, Button, Card } from '@heroui/react'
+import { FilterChips } from '../../shared/ui/FilterChips'
+import { RowLink } from '../../shared/ui/RowLink'
 import { errorText } from '../../shared/api/http'
 import { fmtDateTime, fmtYmdShort, initials, rp } from '../../shared/format'
 import { Kop, useLetterhead } from '../../shared/letterhead'
@@ -67,17 +71,12 @@ export default function RevenuePage({ me }: { me: Me }) {
           <Button variant="secondary" onPress={() => setSheet(true)} isDisabled={!r}>Unduh</Button>
         </span>
       </div>
-      <ToggleButtonGroup aria-label="Periode" selectionMode="single" disallowEmptySelection isDetached className="mb-3 flex-wrap gap-2"
-        selectedKeys={[period]} onSelectionChange={(k) => { const p = [...k][0]; if (p) setPeriod(p as Period) }}>
-        {(Object.keys(PERIODS) as Period[]).map((p) => <ToggleButton key={p} id={p} className="pick">{PERIODS[p]}</ToggleButton>)}
-      </ToggleButtonGroup>
-      {error ? <Card className="state-card" role="alert">{error}</Card> : !r ? <Card className="state-card text-muted">Memuat laporan…</Card> : view === 'ringkasan' ? <>
+      <FilterChips label="Periode" className="mb-3" value={period} onChange={setPeriod} options={Object.entries(PERIODS) as [Period, string][]} />
+      {error ? <StateCard error={error} /> : !r ? <StateCard>Memuat laporan…</StateCard> : view === 'ringkasan' ? <>
         <div className="rev-kpi">
-          <Card className="gap-1"><span className="text-sm text-muted">Pendapatan</span><strong>{jt(r.revenue_rp)}</strong>
-            {delta !== null && <span className="text-sm text-muted">{delta >= 0 ? '+' : ''}{delta}% vs periode sebelumnya</span>}</Card>
-          <Card className="gap-1"><span className="text-sm text-muted">Transaksi</span><strong>{r.transactions}</strong></Card>
-          <Card className="gap-1"><span className="text-sm text-muted">Piutang</span><strong>{jt(r.receivable_rp)}</strong>
-            <span className="text-sm text-muted">{r.receivable_patients} pasien</span></Card>
+          <Stat label="Pendapatan" value={jt(r.revenue_rp)} note={delta !== null && <>{delta >= 0 ? '+' : ''}{delta}% vs periode sebelumnya</>} />
+          <Stat label="Transaksi" value={r.transactions} />
+          <Stat label="Piutang" value={jt(r.receivable_rp)} note={`${r.receivable_patients} pasien`} />
         </div>
         <Card role="region" aria-labelledby="rev-7">
           <h2 id="rev-7">Pendapatan 7 hari</h2>
@@ -103,9 +102,9 @@ export default function RevenuePage({ me }: { me: Me }) {
           {([['metode', 'Pendapatan', 'Per metode dan bank'], ['dokter', 'Per dokter', r.by_doctor.slice(0, 3).map((d) => d.name).join(', ') || 'Belum ada'],
             ['tindakan', 'Per tindakan', r.by_procedure.slice(0, 3).map((p) => p.name).join(', ') || 'Belum ada'],
             ['piutang', 'Piutang', `${r.receivable_patients} pasien, ${jt(r.receivable_rp)}`]] as [View, string, string][]).map(([v, name, sub]) => (
-            <li key={v}><Button className="rev-card" onPress={() => setView(v)}><strong>{name}</strong><span className="text-sm text-muted">{sub}</span></Button></li>
+            <li key={v}><RowLink onPress={() => setView(v)} title={name} sub={sub} /></li>
           ))}
-          <li><a className="rev-card" href="#/laporan/integritas"><strong>Integritas</strong><span className="text-sm text-muted">Per dokter: koreksi, diskon, tanpa tagihan</span></a></li>
+          <li><RowLink href="#/laporan/integritas" title="Integritas" sub="Per dokter: koreksi, diskon, tanpa tagihan" /></li>
         </ul>
       ) : (
         <ul className="rev-cards">

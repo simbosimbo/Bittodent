@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Select } from '../../../shared/ui/Select'
 import { Button } from '@heroui/react'
 import { ApiError, errorText } from '../../../shared/api/http'
 import { getCatalog, getStages, saveToothEntry, type CatalogRow } from '../api'
 import { SymbolDefs, SymbolIcon } from './symbols'
 import { conditionByKey, conditionsIn, defaultRoles, padLabel, padsFor, spanEnds, spanTeeth, TAXONOMY, type Condition, type EntryStatus,
   type Material, type SpanRole, type SurfaceKey } from './taxonomy'
+import { Note } from '../../../shared/ui/Note'
 
 // Boards OVv2-01..03 + AL06 ("tindakan dulu"): tooth -> Permukaan | Seluruh gigi | Rentang -> condition (official symbol + code) -> status
 // (Ada / Lain / Rencana / Selesai) -> one primary "Simpan 26 O cof". A Selesai entry IS today's procedure: the server bills the clinic code
@@ -200,9 +202,9 @@ export function ToothSheet({ tooth, visitId, initialSurface, onSaved }: {
           {conditionsIn('span').map((c) => <CondCard key={c.key} c={c} on={cond === c.key} onPick={() => choose(c.key)} />)}
         </div>
         <label>Gigi akhir rentang
-          <select value={spanTo ?? ''} onChange={(e) => { const to = Number(e.target.value) || null; setSpanTo(to); setRoles(to ? defaultRoles(spanTeeth(tooth, to)) : {}) }}>
+          <Select value={spanTo ?? ''} onChange={(e) => { const to = Number(e.target.value) || null; setSpanTo(to); setRoles(to ? defaultRoles(spanTeeth(tooth, to)) : {}) }}>
             <option value="">Pilih gigi</option>{spanEndsHere.map((t) => <option key={t} value={t}>{t}</option>)}
-          </select></label>
+          </Select></label>
         {span.length > 0 && (
           <div className="tsheet-roles" role="group" aria-label="Peran per gigi, ketuk untuk ganti">
             {span.map((t) => (
@@ -213,8 +215,8 @@ export function ToothSheet({ tooth, visitId, initialSurface, onSaved }: {
           </div>
         )}
         {cond && ['prd', 'fld'].includes(conditionByKey(cond)?.code ?? '') && (
-          <label>Bahan (opsional)<select value={material} onChange={(e) => setMaterial(e.target.value as Material | '')}>
-            <option value="">—</option>{TAXONOMY.span_materials.map((m) => <option key={m.key} value={m.key}>{m.label} ({m.key})</option>)}</select></label>
+          <label>Bahan (opsional)<Select value={material} onChange={(e) => setMaterial(e.target.value as Material | '')}>
+            <option value="">—</option>{TAXONOMY.span_materials.map((m) => <option key={m.key} value={m.key}>{m.label} ({m.key})</option>)}</Select></label>
         )}
       </>}
 
@@ -258,7 +260,7 @@ export function ToothSheet({ tooth, visitId, initialSurface, onSaved }: {
           </div>
         </div>
       )}
-      {error && <p className="form-error" role="alert">{error}</p>}
+      {error && <Note status="danger" role="alert">{error}</Note>}
       {missing && !pick && <p className="muted small" id="tsheet-why">{missing}</p>}
       <Button fullWidth isDisabled={busy || !!missing || !!pick || !!dup} aria-describedby={missing ? 'tsheet-why' : undefined}
         onPress={() => save()}>{busy ? 'Menyimpan…' : `Simpan ${where}${codes ? ' ' + codes : ''}`}</Button>

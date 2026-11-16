@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { StateCard } from '../../shared/ui/StateCard'
 import { Avatar, Button, Card, Chip } from '@heroui/react'
 import { ApiError, errorText } from '../../shared/api/http'
 import { setActivePatient } from '../../shared/activePatient'
@@ -10,6 +11,7 @@ import { useIsMobile } from '../../shared/useIsMobile'
 import { ALERTS_CHANGED, AlertRibbon, AlertSheet, AlertStrip } from './AlertRibbon'
 import { getFamily, getMedicalHistory, getPatient, saveMedicalHistory, type Family, type MedicalHistory, type PatientFull } from './api'
 import { age, ageTahun, dob, SEX } from './Patients'
+import { Note } from '../../shared/ui/Note'
 
 const TABS = [['pasien', 'Profil'], ['rekam-medis', 'Rekam Medis'], ['keluarga', 'Keluarga'], ['riwayat-medis', 'Riwayat Medis']] as const
 
@@ -29,7 +31,7 @@ export function PatientPage({ id, tab, canChart, actions, alerts, status, childr
     getPatient(id).then((x) => { if (!live) return; setP(x); setActivePatient({ id: x.id, name: x.name }) }, (e) => { if (live) setError(e?.status === 404 ? 'Pasien tidak ditemukan.' : errorText(e)) })
     return () => { live = false }
   }, [id])
-  if (error) return <Card className="state-card error">{error} <a href="#/pasien">Kembali</a></Card>
+  if (error) return <StateCard error={error}><a href="#/pasien">Kembali</a></StateCard>
   if (!p) return <PageSkeleton variant="record" />
   return (
     <>
@@ -52,7 +54,7 @@ export function PatientPage({ id, tab, canChart, actions, alerts, status, childr
         <div className="patient-head-actions">
           {actions}
           {/* Profil / Keluarga / Riwayat Medis live here (no outer tab bar, no sidebar items). */}
-          <Menu label="Menu pasien" className="icon-btn icon-btn-outline" trigger={<Icon d={ICONS.more} />}>
+          <Menu label="Menu pasien" variant="outline" isIconOnly className="shell-icon" trigger={<Icon d={ICONS.more} />}>
             {(close) => TABS.filter(([k]) => k !== 'rekam-medis' || canChart).map(([k, label]) => (
               <a key={k} href={`#/${k}/${p.id}`} aria-current={k === tab ? 'page' : undefined} onClick={close}>{label}</a>
             ))}
@@ -98,7 +100,7 @@ export function FamilyPage({ id, canChart }: { id: string; canChart: boolean }) 
     return () => { live = false }
   }, [id])
   return (
-    <PatientPage id={id} tab="keluarga" canChart={canChart}>{() => error ? <Card className="state-card error">{error}</Card> : !f ? <PageSkeleton variant="record" /> : (
+    <PatientPage id={id} tab="keluarga" canChart={canChart}>{() => error ? <StateCard error={error} /> : !f ? <PageSkeleton variant="record" /> : (
       <div className="grid-2 gap">
         <Card className="pt-card">
           <h2>Anggota keluarga {f.household?.name && <span className="muted">· {f.household.name}</span>}</h2>
@@ -174,7 +176,7 @@ export function MedicalHistoryPage({ id, canChart, canEdit }: { id: string; canC
   return (
     <PatientPage id={id} tab="riwayat-medis" canChart={canChart}
       actions={canEdit && h && !edit ? <Button onPress={start}>{c ? 'Perbarui riwayat medis' : 'Isi riwayat medis'}</Button> : undefined}>
-      {() => error ? <Card className="state-card error">{error}</Card> : !h ? <PageSkeleton variant="record" /> : (
+      {() => error ? <StateCard error={error} /> : !h ? <PageSkeleton variant="record" /> : (
         <div className="grid-2 gap">
           {edit ? (
             <Card className="pt-card"><form onSubmit={save}>
@@ -186,7 +188,7 @@ export function MedicalHistoryPage({ id, canChart, canEdit }: { id: string; canC
               ))}
               <label>Catatan penting<textarea rows={2} maxLength={500} value={edit.urgent_note} onChange={(e) => setEdit({ ...edit, urgent_note: e.target.value })} /></label>
               <label className="check"><input type="checkbox" checked={edit.premed} onChange={(e) => setEdit({ ...edit, premed: e.target.checked })} /> Perlu premedikasi sebelum tindakan</label>
-              {msg && <p className="form-error">{msg}</p>}
+              {msg && <Note status="danger" role="alert">{msg}</Note>}
               <div className="dialog-actions"><Button variant="secondary" className="pt-btn" onPress={() => setEdit(null)}>Batal</Button><Button type="submit" className="pt-btn">Simpan versi baru</Button></div>
             </form></Card>
           ) : (

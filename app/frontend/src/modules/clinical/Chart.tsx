@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type KeyboardEvent, type ReactNode, useRef } from 'react'
-import { Button, buttonVariants, Card, Chip, Tabs, ToggleButton, ToggleButtonGroup } from '@heroui/react'
+import { Segmented } from '../../shared/ui/Segmented'
+import { Select } from '../../shared/ui/Select'
+import { StateCard } from '../../shared/ui/StateCard'
+import { Button, buttonVariants, Card, Chip, Tabs } from '@heroui/react'
 import { DateField } from '../../shared/ui/DateField'
 import { useDialog } from '../../shared/ui/Sheet'
 import { Presence, usePresenceClass } from '../../shared/ui/presence'
@@ -31,6 +34,7 @@ import { SelesaiDialog } from './SelesaiDialog'
 import { CloseVisit } from './CloseVisit'
 import { fillEmpty, SOAP_TEMPLATES } from './quick'
 import './clinical.css'
+import { Note as Notice } from '../../shared/ui/Note'
 
 type Form = { S: string; O: string; A: { codes: string; text: string }; P: { codes: string; text: string } }
 const EMPTY: Form = { S: '', O: '', A: { codes: '', text: '' }, P: { codes: '', text: '' } }
@@ -165,11 +169,11 @@ function CorrectionDialog({ note, solo, onDone, onClose }: { note: Note; solo: b
     <div className={`overlay ${phase}`} onClick={onClose}>
       <Card<'form'> render={(p) => <form {...p} />} ref={dlg} className="dialog dialog-wide" role="dialog" aria-modal="true" aria-labelledby="fix-title" onClick={(e) => e.stopPropagation()} onSubmit={submit} noValidate>
         <h2 id="fix-title">Koreksi catatan (versi {current.version} → {Math.max(...note.versions.map((v) => v.version)) + 1})</h2>
-        <p className={late ? 'notice notice-warn' : 'notice'}>{info}</p>
+        <Notice status={late ? 'warning' : 'accent'} role="note">{info}</Notice>
         <label>Alasan koreksi *<textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} aria-invalid={!!error} /></label>
         <SoapFields form={form} onChange={setForm} />
         <p className="muted small">Versi {current.version} tetap tersimpan dan ditandai “Digantikan”.</p>
-        {error && <p className="form-error" role="alert">{error}</p>}
+        {error && <Notice status="danger" role="alert">{error}</Notice>}
         <div className="dialog-actions">
           <Button variant="outline" onPress={onClose}>Batal</Button>
           <Button type="submit" isDisabled={busy}>{busy ? 'Menyimpan…' : late && !solo ? 'Ajukan koreksi' : 'Simpan koreksi'}</Button>
@@ -192,12 +196,12 @@ function History({ visits, me, onFix, onApprove }: { visits: ChartVisit[]; me: M
           {v.notes.map((n) => (
             <div key={n.id}>
               {n.pending_correction && (
-                <div className="notice notice-warn">
+                <Notice status="warning" role="status">
                   Koreksi menunggu persetujuan pemilik ({n.pending_correction.requested_by_name}): “{n.pending_correction.reason}”
                   {can('correction.approve') && n.pending_correction.requested_by !== me.user.id && (
                     <Button size="sm" variant="outline" onPress={() => onApprove(n.pending_correction!.id)}>Setujui</Button>
                   )}
-                </div>
+                </Notice>
               )}
               {[...n.versions].reverse().map((x) => (
                 <div key={x.id} className={`version version-${x.status}`}>
@@ -262,19 +266,19 @@ export function ProcedureFixDialog({ p, mode, visitId, onDone, onClose }: { p: P
     <div className={`overlay ${phase}`} onClick={onClose}>
       <Card<'form'> render={(p) => <form {...p} />} ref={dlg} className="dialog" role="dialog" aria-modal="true" aria-labelledby="pfix-title" onClick={(e) => e.stopPropagation()} onSubmit={submit} noValidate>
         <h2 id="pfix-title">{mode === 'ganti' ? 'Ganti tindakan' : 'Koreksi tindakan'}: {procedureText(p)}</h2>
-        {mode === 'koreksi' && <label>Jenis koreksi * <select value={type} onChange={(e) => setType(e.target.value as CorrectionType)}>
+        {mode === 'koreksi' && <label>Jenis koreksi * <Select value={type} onChange={(e) => setType(e.target.value as CorrectionType)}>
           <option value="">Pilih…</option>
           {(Object.keys(CORRECTION_LABEL) as CorrectionType[]).filter((k) => k !== 'tidak_dikerjakan' || p.status === 'selesai')
-            .map((k) => <option key={k} value={k}>{CORRECTION_LABEL[k]}</option>)}</select></label>}
+            .map((k) => <option key={k} value={k}>{CORRECTION_LABEL[k]}</option>)}</Select></label>}
         <label>Alasan *<textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} aria-invalid={!!error} /></label>
         {!notDone && <>
           <label>Kode ICD-9-CM{mode === 'ganti' ? ' pengganti *' : ''} <input className="mono" size={6} value={code} placeholder="23.41" onChange={(e) => setCode(e.target.value)} /></label>
           <label>Permukaan (kosong = seluruh gigi) <input className="mono" size={6} value={surfaces} onChange={(e) => setSurfaces(e.target.value)} /></label>
         </>}
-        {mode === 'ganti' && <label>Status <select value={to} onChange={(e) => setTo(e.target.value as 'direncanakan' | 'selesai')}>
-          <option value="direncanakan">Direncanakan</option><option value="selesai">Selesai (ditagih)</option></select></label>}
+        {mode === 'ganti' && <label>Status <Select value={to} onChange={(e) => setTo(e.target.value as 'direncanakan' | 'selesai')}>
+          <option value="direncanakan">Direncanakan</option><option value="selesai">Selesai (ditagih)</option></Select></label>}
         <p className="muted small">{mode === 'ganti' ? 'Tindakan lama tetap tersimpan sebagai “Digantikan”; tagihannya tidak berubah.' : 'Koreksi tidak menambah tagihan. Lewat tenggat klinik, koreksi menunggu persetujuan pemilik. Pekerjaan ulang yang sungguh dikerjakan: pakai Ganti.'}</p>
-        {error && <p className="form-error" role="alert">{error}</p>}
+        {error && <Notice status="danger" role="alert">{error}</Notice>}
         <div className="dialog-actions">
           <Button variant="outline" onPress={onClose}>Batal</Button>
           <Button type="submit" isDisabled={busy}>{busy ? 'Menyimpan…' : 'Simpan'}</Button>
@@ -357,24 +361,6 @@ function Items({ findings, procedures, visits, canMove, onMove, onDiscard, onFix
   )
 }
 
-/** Single-choice segmented control: React Aria gives it radiogroup / radio semantics; 44px targets (clinical.css). */
-function SegGroup({ value, onChange, children, ...aria }: { value: string; onChange: (k: string) => void; children: ReactNode; 'aria-label'?: string; 'aria-labelledby'?: string }) {
-  return (
-    <ToggleButtonGroup className="clin-seg" selectionMode="single" disallowEmptySelection selectedKeys={[value]} {...aria}
-      onSelectionChange={(keys) => { const k = [...keys][0]; if (k != null) onChange(String(k)) }}>{children}</ToggleButtonGroup>
-  )
-}
-/** Labelled segmented control. */
-function Seg<T extends string>({ label, value, options, onChange }: { label: string; value: T; options: [T, string][]; onChange: (v: T) => void }) {
-  return (
-    <div className="seg-field">
-      <span className="seg-label" id={`seg-${label.replace(/\s+/g, '-')}`}>{label}</span>
-      <SegGroup aria-labelledby={`seg-${label.replace(/\s+/g, '-')}`} value={value} onChange={(k) => onChange(k as T)}>
-        {options.map(([k, text]) => <ToggleButton key={k} id={k}>{text}</ToggleButton>)}
-      </SegGroup>
-    </div>
-  )
-}
 
 const DENT_HINT: Record<string, string> = { tetap: 'FDI dewasa', sulung: 'FDI sulung' }
 /** Scroll a sideways chart to its middle (the midline) once per dentition; scrollWidth forces layout, so it is ready here. */
@@ -514,7 +500,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   </>
   const page = (actions: ReactNode, body: ReactNode | ((pp: PatientFull) => ReactNode), status?: ReactNode) =>
     <PatientPage id={patientId} tab="rekam-medis" canChart alerts actions={actions} status={status}>{(pp) => <div className="clin">{typeof body === 'function' ? body(pp) : body}</div>}</PatientPage>
-  if (error) return page(null, <Card className="state-card error">{error} <a href="#/pasien">Kembali</a></Card>)
+  if (error) return page(null, <StateCard error={error}><a href="#/pasien">Kembali</a></StateCard>)
   if (!chart) return page(null, <PageSkeleton variant="record" label="Memuat rekam medis…" />)
   const p = chart.patient
 
@@ -546,10 +532,10 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const startCtl = !visit && can('note.write') && (
     <div className="walk-in">
       {pickDentist && (
-        <label className="small">Dokter gigi * <select required value={walkInDentist} onChange={(e) => setWalkInDentist(e.target.value)}>
+        <label className="small">Dokter gigi * <Select required value={walkInDentist} onChange={(e) => setWalkInDentist(e.target.value)}>
           <option value="">Pilih dokter gigi</option>
           {dentists.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-        </select></label>
+        </Select></label>
       )}
       <Button isDisabled={starting || (pickDentist && !walkInDentist)} onPress={startVisit}>
         {starting ? 'Memulai…' : 'Mulai kunjungan'}</Button>
@@ -682,7 +668,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
       {can('appointment.create') && <a className={buttonVariants({ variant: 'primary' })} href={`#/jadwal?baru=${encodeURIComponent(patientId)}`}>Buat janji</a>}
     </div>,
     (pp: PatientFull) => <>
-      {msg && <p className="notice" role="status">{msg}</p>}
+      {msg && <Notice status="success" role="status">{msg}</Notice>}
       {billFor && !mobile && <p className="rm-done flex flex-wrap items-center gap-2">{afterSelesai}</p>}
 
       <Tabs variant="secondary" className="chart-tabs" selectedKey={tab} onSelectionChange={(k) => setTab(k as typeof tab)}>
@@ -701,10 +687,10 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
             </div>
             {/* OVv2-05: 2D | 3D (and the entry mode) always visible under the title, never folded away on the phone */}
             <div className="odo-switches">
-              <Seg label="Tampilan" value={view} onChange={changeView} options={[['2d', '2D'], ['3d', '3D']]} />
-              {editable && view === '2d' && me.odontogram_exam_enabled !== false && <Seg label="Mode isi" value={mode} onChange={(m) => { setMode(m); setPick(null) }} options={[['perawatan', 'Perawatan'], ['periksa', 'Pemeriksaan awal']]} />}
+              <Segmented showLabel label="Tampilan" value={view} onChange={changeView} options={[['2d', '2D'], ['3d', '3D']]} />
+              {editable && view === '2d' && me.odontogram_exam_enabled !== false && <Segmented showLabel label="Mode isi" value={mode} onChange={(m) => { setMode(m); setPick(null) }} options={[['perawatan', 'Perawatan'], ['periksa', 'Pemeriksaan awal']]} />}
             </div>
-            {chart.as_of && <p className="notice notice-warn small" role="status">Tampilan riwayat: keadaan pada akhir {chart.as_of} (WIB). Hanya baca.</p>}
+            {chart.as_of && <Notice status="warning" role="status">Tampilan riwayat: keadaan pada akhir {chart.as_of} (WIB). Hanya baca.</Notice>}
             <p className={summary ? 'odo-summary' : 'odo-summary muted'} role="note" aria-label="Ringkasan temuan">{summary || 'Belum ada temuan.'}</p>
             {editable && mouthProcs.length > 0 && (
               // work without a tooth (Scaling ...): done today = Selesai, billed like a tooth entry
@@ -756,7 +742,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
             )}
             {/* OVv2-07: dentition under the chart, always visible (48px); default from age, the dentist can change it */}
             <div className="dent-toggle">
-              <Seg label="Dentisi" value={dent ?? 'tetap'} onChange={(v) => setDentPick({ base: defDent, v })} options={[['tetap', 'Tetap'], ['sulung', 'Sulung'], ['campuran', 'Campuran']]} />
+              <Segmented showLabel label="Dentisi" value={dent ?? 'tetap'} onChange={(v) => setDentPick({ base: defDent, v })} options={[['tetap', 'Tetap'], ['sulung', 'Sulung'], ['campuran', 'Campuran']]} />
             </div>
             {!editable && (visit ? <p className="muted small">{readOnlyWhy}</p> : (
               <div className="chart-cta small">
@@ -781,14 +767,12 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
               <h2 id="temuan-title">Temuan &amp; tindakan</h2>
               {mobile && <Button variant="ghost" aria-expanded={detailsOpen} aria-controls="temuan-body" onPress={() => setDetailsOpen(!detailsOpen)}>
                 {detailsOpen ? 'Sembunyikan' : `Lihat (${items.length + procs.length})`}</Button>}
-              {(!mobile || detailsOpen) && <SegGroup aria-label="Saring temuan" value={only ? 'one' : 'all'} onChange={(k) => setAllFor(k === 'all' ? pick?.tooth ?? null : null)}>
-                <ToggleButton id="all">Semua gigi</ToggleButton>
-                {pick && <ToggleButton id="one">Gigi {pick.tooth}</ToggleButton>}
-              </SegGroup>}
+              {(!mobile || detailsOpen) && <Segmented label="Saring temuan" value={only ? 'one' : 'all'} onChange={(k) => setAllFor(k === 'all' ? pick?.tooth ?? null : null)}
+                options={[['all', 'Semua gigi'], ...(pick ? [['one', `Gigi ${pick.tooth}`] as const] : [])]} />}
             </div>
             {(!mobile || detailsOpen) && <div id="temuan-body">
             {chart.pending_externals.length > 0 && (
-              <div className="notice notice-warn" role="status">
+              <Notice status="warning" role="status">
                 <strong>Tindakan klinik lain menunggu konfirmasi</strong> (dicatat pada hari dengan tindakan selesai; belum masuk riwayat, tidak ditagih)
                 <ul>
                   {chart.pending_externals.map((x) => (
@@ -803,7 +787,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
                     </li>
                   ))}
                 </ul>
-              </div>
+              </Notice>
             )}
             {shownItems.length + shownProcs.length ? <Items findings={shownItems} procedures={shownProcs} visits={chart.visits} canMove={can('note.sign') && !asOf}
               onDiscard={(x) => run(() => discardProcedure(x.id))} onFix={(x, mode) => setProcFix({ p: x, mode })}

@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useState, type FormEvent, type MouseEvent, type PointerEvent, useRef } from 'react'
+import { SectionTitle } from '../../shared/ui/SectionTitle'
+import { FilterChips } from '../../shared/ui/FilterChips'
+import { Select } from '../../shared/ui/Select'
+import { StateCard } from '../../shared/ui/StateCard'
 import { Button, buttonVariants, Card, Chip, ToggleButton } from '@heroui/react'
 import { DateField } from '../../shared/ui/DateField'
 import { ApiError, errorText } from '../../shared/api/http'
@@ -15,6 +19,7 @@ import './scheduling.css'
 import { changeChair, createAppointment, getPlanned, refer, getSchedule, schedulePlanned, STATUS, transition, undoCheckin, type Appointment, type Planned, type Schedule as Sched } from './api'
 import { Agenda, ApptSheet, ChairSheet, DaySummary, ModeToggle, PayPrompt, ReferSheet, RescheduleSheet, Toast, useInvoiceStatus, useJadwalMode, type Act } from './MobileJadwal'
 import { addDays, dotTime, END, hhmm, minutesOfDay, ROW, SLOTS, START, StatusChip, STEP } from './parts'
+import { Note } from '../../shared/ui/Note'
 
 export { minutesOfDay, StatusChip } from './parts'
 
@@ -384,7 +389,7 @@ export default function Schedule({ me, newFor = null }: { me: Me; newFor?: strin
     onClickCapture: (e: MouseEvent) => { if (swiped.current) { swiped.current = false; e.preventDefault(); e.stopPropagation() } },
   }
 
-  if (!me.active.branch_id) return <Card className="state-card">Belum ada cabang aktif.</Card>
+  if (!me.active.branch_id) return <StateCard>Belum ada cabang aktif.</StateCard>
 
   const prev = <Button variant="outline" isIconOnly onPress={() => shift(-1)} aria-label="Hari sebelumnya">‹</Button>
   const next = <Button variant="outline" isIconOnly onPress={() => shift(1)} aria-label="Hari berikutnya">›</Button>
@@ -397,21 +402,15 @@ export default function Schedule({ me, newFor = null }: { me: Me; newFor?: strin
       error ? (mobile
           ? <div className="sched-empty" role="alert"><Icon d={ICONS.cloudOff} size={40} /><p>Gagal memuat.</p>
               <Button variant="outline" className="sched-empty-btn" onPress={reload}><Icon d={ICONS.refresh} size={18} />Coba lagi</Button></div>
-          : <Card className="state-card error"><span>{error} <Button variant="outline" onPress={reload}>Coba lagi</Button></span></Card>)
+          : <StateCard error={error} onRetry={reload} />)
         : !data || (mobile && loading && data.date !== date) ? <PageSkeleton variant="schedule" label="Memuat jadwal…" />
-        : data.chairs.length === 0 ? <Card className="state-card muted">Cabang ini belum punya kursi aktif.</Card> : (
+        : data.chairs.length === 0 ? <StateCard>Cabang ini belum punya kursi aktif.</StateCard> : (
           <>
           {mobile && !dokter && cols.length > 1 && (
             // Agenda: "Semua" + one pill per dentist. Grid shows one dentist column, so it has no "Semua" (see docPick).
-            <div className="chair-pills" role="group" aria-label="Pilih dokter">
-              {!gridOn && <ToggleButton isSelected={!docPick} onChange={() => setDocPick(null)}>Semua <span className="muted small">· {count}</span></ToggleButton>}
-              {cols.map((c) => (
-                <ToggleButton key={c.id} isSelected={gridOn ? c === shownCol : c.id === docPick} onChange={() => setDocPick(c.id)}
-                  aria-label={`${c.label} · ${c.appointments.length}`}>
-                  {shortName(c.label)} <span className="muted small">· {c.appointments.length}</span>
-                </ToggleButton>
-              ))}
-            </div>
+            <FilterChips label="Pilih dokter" className="chair-pills" value={(gridOn ? shownCol?.id : docPick) ?? ''} onChange={(k) => setDocPick(k || null)}
+              options={[...(gridOn ? [] : [['', <>Semua <span className="muted small">· {count}</span></>] as const]),
+                ...cols.map((c) => [c.id, <>{shortName(c.label)} <span className="muted small">· {c.appointments.length}</span></>, `${c.label} · ${c.appointments.length}`] as const)]} />
           )}
           {mobile && inv.error && <p className="week-error small" role="alert">Status bayar gagal dimuat. <Button variant="ghost" size="sm" onPress={inv.retry}>Coba lagi</Button></p>}
           {mobile && (
@@ -535,22 +534,16 @@ export default function Schedule({ me, newFor = null }: { me: Me; newFor?: strin
           </div>
           <div className="sched-toolbar">{prev}{today}{next}{dateInput}{arrive}{create}</div>
           {cols.length > 1 && (
-            <div className="seg doc-seg" role="group" aria-label="Pilih dokter">
-              <ToggleButton size="sm" variant="ghost" isSelected={!shownCol} onChange={() => setDocPick(null)}>Semua · {count}</ToggleButton>
-              {cols.map((c) => (
-                <ToggleButton key={c.id} size="sm" variant="ghost" isSelected={c === shownCol} onChange={() => setDocPick(c.id)} aria-label={`${c.label} · ${c.appointments.length}`}>
-                  {shortName(c.label)} · {c.appointments.length}
-                </ToggleButton>
-              ))}
-            </div>
+            <FilterChips label="Pilih dokter" className="doc-seg" value={shownCol?.id ?? ''} onChange={(k) => setDocPick(k || null)}
+              options={[['', `Semua · ${count}`], ...cols.map((c) => [c.id, `${shortName(c.label)} · ${c.appointments.length}`, `${c.label} · ${c.appointments.length}`] as const)]} />
           )}
         </div>
       )}
-      {actionError && <p className="form-error" role="alert">{actionError}</p>}
-      {notice && <p className="notice" role="status">{notice}</p>}
+      {actionError && <Note status="danger" role="alert">{actionError}</Note>}
+      {notice && <Note status="success" role="status">{notice}</Note>}
       {!mobile && canConfirm && pending.length > 0 && (
         <Card className="confirm-card">
-          <h2>Perlu konfirmasi <span className="muted small">· {pending.length}</span></h2>
+          <SectionTitle count={pending.length}>Perlu konfirmasi</SectionTitle>
           <ul className="confirm-list">
             {pending.map((a) => (
               <li key={a.id} className="confirm-row">
@@ -680,13 +673,13 @@ function BookDialog({ sched, date, me, initial, onClose, onSaved }: {
         <p className="muted">{fmtDate(date)} · {sched.branch.name}</p>
         <PatientPicker value={patient} onChange={setPatient} />
         <div className="grid-2">
-          <label>Kursi<select value={chairId} onChange={(e) => setChairId(e.target.value)}>{sched.chairs.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}</select></label>
-          <label>Dokter gigi<select value={dentistId} onChange={(e) => setDentistId(e.target.value)}>{sched.dentists.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></label>
-          <label>Jam mulai<select value={minute} onChange={(e) => setMinute(Number(e.target.value))}>{SLOTS.map((m) => <option key={m} value={m}>{hhmm(m)}</option>)}</select></label>
-          <label>Durasi<select value={duration} onChange={(e) => setDuration(Number(e.target.value))}>{[30, 45, 60, 90].map((d) => <option key={d} value={d}>{d} menit</option>)}</select></label>
+          <label>Kursi<Select value={chairId} onChange={(e) => setChairId(e.target.value)}>{sched.chairs.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}</Select></label>
+          <label>Dokter gigi<Select value={dentistId} onChange={(e) => setDentistId(e.target.value)}>{sched.dentists.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</Select></label>
+          <label>Jam mulai<Select value={minute} onChange={(e) => setMinute(Number(e.target.value))}>{SLOTS.map((m) => <option key={m} value={m}>{hhmm(m)}</option>)}</Select></label>
+          <label>Durasi<Select value={duration} onChange={(e) => setDuration(Number(e.target.value))}>{[30, 45, 60, 90].map((d) => <option key={d} value={d}>{d} menit</option>)}</Select></label>
         </div>
         <label>Keperluan (opsional)<input value={reason} maxLength={300} onChange={(e) => setReason(e.target.value)} placeholder="mis. Kontrol, scaling" /></label>
-        {error && <p className="form-error" role="alert">{error}</p>}
+        {error && <Note status="danger" role="alert">{error}</Note>}
         <div className="dialog-actions">
           <Button variant="outline" onPress={onClose}>Batal</Button>
           <Button type="submit" variant="primary" isDisabled={busy}>{busy ? 'Menyimpan…' : 'Simpan janji'}</Button>
@@ -730,12 +723,12 @@ function ArriveDialog({ sched, me, onClose, onSaved }: { sched: Sched; me: Me; o
         <h2 id="arrive-title">Pasien datang</h2>
         <p className="muted">Tanpa janji · {sched.branch.name}</p>
         <PatientPicker value={patient} onChange={setPatient} />
-        <label>Dokter gigi<select value={dentistId} onChange={(e) => setDentistId(e.target.value)}>
+        <label>Dokter gigi<Select value={dentistId} onChange={(e) => setDentistId(e.target.value)}>
           <option value="">Pilih dokter gigi</option>
           {sched.dentists.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-        </select></label>
+        </Select></label>
         <label>Keluhan (opsional)<input value={complaint} maxLength={500} onChange={(e) => setComplaint(e.target.value)} placeholder="mis. Gigi ngilu" /></label>
-        {error && <p className="form-error" role="alert">{error}</p>}
+        {error && <Note status="danger" role="alert">{error}</Note>}
         <div className="dialog-actions">
           <Button variant="outline" onPress={onClose}>Batal</Button>
           <Button type="submit" variant="primary" isDisabled={busy}>{busy ? 'Menyimpan…' : 'Daftarkan datang'}</Button>
@@ -770,7 +763,7 @@ function PlannedList({ sched, date, canCreate, onScheduled, folded }: { sched: S
   const title = <h2>Perlu dijadwalkan <span className="muted small">· {items?.length ?? '…'}</span></h2>
   const body = (
     <>
-      {msg && <p className="notice" role="status">{msg}</p>}
+      {msg && <Note status="success" role="status">{msg}</Note>}
       {items?.length === 0 && <p className="muted">Tidak ada rencana kunjungan yang menunggu.</p>}
       <ul className="planned">
         {items?.map((p) => (
@@ -782,12 +775,12 @@ function PlannedList({ sched, date, canCreate, onScheduled, folded }: { sched: S
             </div>
             {canCreate && (
               <div className={mobile ? 'sched-toolbar planned-bar' : 'sched-toolbar'}>
-                <select aria-label="Kursi" value={sel(p).chair} onChange={(e) => setPick({ ...pick, [p.id]: { ...sel(p), chair: e.target.value } })}>
+                <Select aria-label="Kursi" value={sel(p).chair} onChange={(e) => setPick({ ...pick, [p.id]: { ...sel(p), chair: e.target.value } })}>
                   {sched.chairs.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
-                </select>
-                <select aria-label="Jam mulai" value={sel(p).minute} onChange={(e) => setPick({ ...pick, [p.id]: { ...sel(p), minute: Number(e.target.value) } })}>
+                </Select>
+                <Select aria-label="Jam mulai" value={sel(p).minute} onChange={(e) => setPick({ ...pick, [p.id]: { ...sel(p), minute: Number(e.target.value) } })}>
                   {SLOTS.filter((m) => m + p.est_minutes <= END).map((m) => <option key={m} value={m}>{hhmm(m)}</option>)}
-                </select>
+                </Select>
                 {mobile
                   ? <Button variant="primary" onPress={() => book(p)} aria-label={`Jadwalkan ${p.patient_name ?? 'pasien'} ${fmtDate(date)}`}>Jadwalkan</Button>
                   : <Button variant="primary" size="sm" onPress={() => book(p)}>Jadwalkan {fmtDate(date)}</Button>}

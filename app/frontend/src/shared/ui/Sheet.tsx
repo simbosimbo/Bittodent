@@ -52,7 +52,7 @@ export function Sheet({ title, onClose, className = '', children }: { title: Rea
             <HSheet.Handle />
             <HSheet.Header className="sheet-head">
               <HSheet.Heading level={2}>{title}</HSheet.Heading>
-              <Button slot="close" variant="ghost" className="btn btn-ghost sheet-close">Tutup</Button>
+              <Button slot="close" variant="ghost" className="sheet-close">Tutup</Button>
             </HSheet.Header>
             <HSheet.Body>{children}</HSheet.Body>
           </HSheet.Dialog>

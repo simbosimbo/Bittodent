@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { Alert, Card, Chip, ToggleButton } from '@heroui/react'
+import { Card, Chip, ToggleButton } from '@heroui/react'
 import { ApiError } from '../../shared/api/http'
 import { fmtTime, todayWib } from '../../shared/format'
 import { markScroll } from '../../shared/ui/scrollHint'
+import { Note } from '../../shared/ui/Note'
 import { getSlots, type Slot } from './api'
 import './booking.css'
 
@@ -82,7 +83,7 @@ export function SlotPicker({ slug, dentistId, serviceId, value, onChange, near }
         ))}
       </div>
       <div aria-live="polite">
-        {error ? <Problem>{error}</Problem>
+        {error ? <Note status="danger" role="alert">{error}</Note>
           : slots === null ? <p className="bk-muted">Memuat jam…</p>
           : slots.length === 0 ? <p className="bk-muted">Tidak ada jam kosong.</p>
           : (
@@ -105,10 +106,3 @@ export const StatusChip = ({ status }: { status: string }) => (
   <Chip variant="soft" color={CHIP[status]?.[0] ?? 'default'}>{CHIP[status]?.[1] ?? status}</Chip>
 )
 
-/** Error or notice block (HeroUI Alert); errors are announced. */
-export const Problem = ({ children }: { children: ReactNode }) => (
-  <Alert status="danger" role="alert"><Alert.Indicator /><Alert.Content><Alert.Description>{children}</Alert.Description></Alert.Content></Alert>
-)
-export const Notice = ({ children }: { children: ReactNode }) => (
-  <Alert status="success"><Alert.Indicator /><Alert.Content><Alert.Description>{children}</Alert.Description></Alert.Content></Alert>
-)

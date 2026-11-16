@@ -4,6 +4,7 @@ import './clinical.css'
 import { ApiError, errorText } from '../../shared/api/http'
 import type { Me } from '../../shared/session'
 import { getCatalog, getClinicSettings, saveClinicSettings, searchIcd10, setCatalogDiagnosis, setSelesaiPin, type CatalogRow } from './api'
+import { Note } from '../../shared/ui/Note'
 
 // Pengaturan RM (#55): the one place for the owner's clinic settings (GET/PUT /api/settings/clinic, settings.manage): tenggat koreksi
 // (jam) + "Wajibkan PIN saat Selesai" + "Mode Pemeriksaan awal". Whoever may press Selesai sets / changes their own PIN here too (no reporting.read needed).
@@ -50,8 +51,8 @@ function DefaultDiagnoses() {
     <Card render={(p) => <section {...p} />}>
       <h2>Diagnosis bawaan per tindakan</h2>
       <p className="muted small">Dipakai saat tindakan diisi tanpa diagnosis. Ditetapkan dokter gigi; dicatat di audit.</p>
-      {error && <p className="form-error" role="alert">{error}</p>}
-      {msg && <p className="notice" role="status">{msg}</p>}
+      {error && <Note status="danger" role="alert">{error}</Note>}
+      {msg && <Note status="success" role="status">{msg}</Note>}
       {!rows ? <p className="muted">Memuat…</p> : (
         <div className="stack">
           {rows.map((r) => (
@@ -110,8 +111,8 @@ function ClinicSettingsForm({ onChanged }: { onChanged: () => void }) {
       <p className="muted small">Bawaan: mati. Bila nyala, dokter memasukkan PIN 6 angka miliknya setiap menekan Selesai.</p>
       <Check label="Tampilkan mode Pemeriksaan awal di odontogram" disabled={!loaded} checked={exam} onChange={setExam} />
       <p className="muted small">Bawaan: nyala, tidak wajib. Bila mati, odontogram hanya diisi dari tindakan (mode Perawatan).</p>
-      {error && <p className="form-error" role="alert">{error}</p>}
-      {msg && <p className="notice" role="status">{msg}</p>}
+      {error && <Note status="danger" role="alert">{error}</Note>}
+      {msg && <Note status="success" role="status">{msg}</Note>}
       <div className="flex flex-wrap gap-2"><Button type="submit" isDisabled={!loaded}>Simpan pengaturan</Button></div>
     </Card>
   )
@@ -143,8 +144,8 @@ function OwnPin({ hasPin, required, onChanged }: { hasPin: boolean; required: bo
       <p className="muted small">{hasPin ? 'PIN sudah diatur.' : 'Belum ada PIN.'} {required ? 'Klinik ini mewajibkan PIN saat Selesai.' : 'Klinik ini belum mewajibkan PIN.'}</p>
       {hasPin && <label>PIN lama <input type="password" inputMode="numeric" autoComplete="off" value={current} onChange={(e) => setCurrent(digits(e.target.value))} /></label>}
       <label>PIN baru (6 angka) <input type="password" inputMode="numeric" autoComplete="off" value={pin} onChange={(e) => setPin(digits(e.target.value))} /></label>
-      {error && <p className="form-error" role="alert">{error}</p>}
-      {msg && <p className="notice" role="status">{msg}</p>}
+      {error && <Note status="danger" role="alert">{error}</Note>}
+      {msg && <Note status="success" role="status">{msg}</Note>}
       <div className="flex flex-wrap gap-2"><Button type="submit" isDisabled={pin.length !== 6 || (hasPin && current.length !== 6)}>{hasPin ? 'Ubah PIN' : 'Simpan PIN'}</Button></div>
     </Card>
   )

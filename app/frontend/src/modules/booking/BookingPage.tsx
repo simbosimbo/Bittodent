@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Avatar, Button, buttonVariants, Card, Input, TextArea, ToggleButton } from '@heroui/react'
 import { ApiError } from '../../shared/api/http'
 import { getInfo, resendOtp, startBooking, verifyOtp, type Booked, type Challenge, type Info, type Slot } from './api'
-import { apiMessage, longDate, Page, Problem, SlotPicker, StatusChip, Summary, timeRange } from './parts'
+import { Note } from '../../shared/ui/Note'
+import { apiMessage, longDate, Page, SlotPicker, StatusChip, Summary, timeRange } from './parts'
 
 type Step = 'dokter' | 'layanan' | 'jadwal' | 'data' | 'otp' | 'selesai'
 const STEPS: Step[] = ['dokter', 'layanan', 'jadwal', 'data', 'otp']
@@ -32,7 +33,7 @@ export default function BookingPage({ slug }: { slug: string }) {
     return () => clearTimeout(t)
   }, [wait])
 
-  if (loadError) return <Page clinic="Bittodent"><Problem>{loadError}</Problem></Page>
+  if (loadError) return <Page clinic="Bittodent"><Note status="danger" role="alert">{loadError}</Note></Page>
   if (!info) return <Page clinic="Bittodent"><p className="bk-muted">Memuat…</p></Page>
   if (!info.clinic.online_booking_enabled)
     return <Page clinic={info.clinic.name}><Card className="bk-card bk-state"><h1>Booking online belum dibuka</h1><p className="bk-muted">Hubungi klinik.</p></Card></Page>
@@ -120,7 +121,7 @@ export default function BookingPage({ slug }: { slug: string }) {
         <p className="bk-step">Langkah {index + 1} dari {STEPS.length}</p>
         <h1 ref={heading} tabIndex={-1}>{TITLE[step]}</h1>
       </div>
-      <div aria-live="assertive">{error && <Problem>{error}</Problem>}</div>
+      <div aria-live="assertive">{error && <Note status="danger" role="alert">{error}</Note>}</div>
 
       {step === 'dokter' && (
         <div className="bk-list">

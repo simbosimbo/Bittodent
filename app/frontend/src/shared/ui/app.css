@@ -51,4 +51,58 @@ body { font-family: var(--font-sans); }
    Below `legacy` and `utilities`, so a className such as rounded-full or the legacy round .icon-btn still wins. */
 @layer bittodent {
   .button { border-radius: 12px; }
+
+  /* Shared blocks (shared/ui/*.tsx). Phone: 44px targets, row buttons 14px/600, card radius 16, chip radius 12. */
+  .bt-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .bt-chip {
+    --toggle-button-bg: var(--surface); --toggle-button-bg-selected: var(--accent); --toggle-button-bg-selected-hover: var(--color-primary-800);
+    --toggle-button-bg-selected-pressed: var(--color-primary-800); --toggle-button-fg-selected: var(--accent-foreground);
+    flex: none; height: 36px; padding: 0 14px; border: 1px solid var(--field-border); border-radius: 12px; font-size: 14px; font-weight: 600;
+  }
+  .bt-chip[data-selected='true'] { border-color: var(--accent); }
+
+  .bt-seg-field { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+  .bt-seg-label { font-size: 13px; font-weight: 600; color: var(--muted); }
+
+  .bt-stat { gap: 4px; min-width: 0; }
+  .bt-stat-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+  .bt-stat-label { font-size: 14px; font-weight: 500; color: var(--muted); }
+  .bt-stat-icon { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--accent-50); color: var(--accent); }
+  .bt-stat-value { font-size: 24px; font-weight: 700; line-height: 1.25; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .bt-stat-note { font-size: 13px; color: var(--muted); }
+
+  .bt-row {
+    display: flex; align-items: center; gap: var(--space-3); width: 100%; min-height: 64px; padding: var(--space-3); border: 1px solid var(--border);
+    border-radius: 16px; background: var(--surface); color: var(--foreground); font: inherit; text-align: left; text-decoration: none; cursor: pointer;
+  }
+  .bt-row:hover { border-color: var(--accent); text-decoration: none; }
+  .bt-row:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .bt-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .bt-row-main > strong { font-weight: 650; overflow-wrap: anywhere; }
+  .bt-row-sub { font-size: 14px; color: var(--muted); }
+  .bt-row-aside { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; text-align: right; font-variant-numeric: tabular-nums; }
+  .bt-row-chev { flex: none; display: flex; color: var(--muted); }
+
+  .bt-state { align-items: center; gap: var(--space-3); padding: 28px; text-align: center; color: var(--muted); }
+  .bt-state.is-error { color: var(--foreground); }
+  .bt-state.is-error > p { margin: 0; color: var(--danger); }
+
+  .bt-section { margin: var(--space-3) 0 var(--space-2); font-size: 16px; font-weight: 600; color: var(--color-neutral-700); }
+  .bt-count { font-weight: 500; color: var(--muted); }
+
+  @media (max-width: 720px) {
+    /* Tombol HP: row buttons 44px, 14px/600, content width (a page's main button sets 48px itself). */
+    .button, .toggle-button { min-height: 44px; font-weight: 600; }
+    .button--icon-only, .toggle-button--icon-only { min-width: 44px; }
+    .bt-chip { height: 44px; }
+    .bt-seg .toggle-button { min-height: 44px; }
+    .bt-stat-icon { display: none; }
+    .bt-stat-value { font-size: 22px; }
+  }
 }
+
+/* Pro NativeSelect (shared/ui/Select.tsx) is unlayered: same field height as the HeroUI inputs; 16px on a phone so iOS does not zoom. */
+.native-select__select { min-height: 40px; }
+@media (max-width: 720px) { .native-select__select { min-height: 44px; font-size: 16px; } }
+/* Unlayered: beats the legacy .muted on a count inside a picked chip (white on teal). */
+.bt-chip[data-selected='true'] .muted { color: inherit; }

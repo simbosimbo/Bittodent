@@ -33,29 +33,11 @@
 
 /* Controls */
 .has-error input, .has-error select { border-color: var(--danger); }
-.field-error { color: var(--danger); font-weight: 500; font-size: var(--font-size-xs); }
-.form-error { color: var(--danger); background: var(--danger-50); padding: 10px 12px; border-radius: var(--radius-sm); }
-.btn {
-  font: inherit; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  padding: 9px 16px; min-height: 40px; border-radius: var(--radius-sm); border: 1px solid var(--border);
-  background: var(--surface); color: var(--text); cursor: pointer; text-decoration: none;
-}
-.btn:hover { background: var(--bg); text-decoration: none; }
-.btn:disabled { opacity: 0.55; cursor: default; }
-.btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-.btn-primary:hover { background: var(--color-primary-800); border-color: var(--color-primary-800); }
-.btn-ghost { border-color: transparent; background: transparent; color: var(--muted); }
-.btn-link { border: none; background: none; color: var(--accent-600); padding: 6px 0; min-height: 0; }
-.btn-block { width: 100%; margin-top: 8px; }
-.btn-xs { min-height: 0; padding: 2px 10px; font-size: var(--font-size-xs); border-radius: 7px; flex-shrink: 0; }
 
 .badge-synthetic {
   display: inline-block; font-size: var(--font-size-xs); font-weight: 700; letter-spacing: 0.04em; white-space: nowrap;
   color: var(--warn); background: var(--warn-50); border: 1px solid #f2dcb0; border-radius: 999px; padding: 3px 10px;
 }
-
-/* Status chips */
-.chip { display: inline-block; font-size: var(--font-size-xs); font-weight: 600; border-radius: 999px; padding: 2px 9px; white-space: nowrap; }
 .chip-booked { background: var(--color-appointment-terjadwal-bg); color: var(--color-appointment-terjadwal-fg); }
 .chip-checked_in { background: var(--color-appointment-checkin-bg); color: var(--color-appointment-checkin-fg); }
 .chip-in_treatment { background: var(--color-appointment-merawat-bg); color: var(--color-appointment-merawat-fg); }
@@ -66,9 +48,6 @@
 
 /* Login */
 .login-page { min-height: 100vh; display: grid; place-items: center; background: linear-gradient(160deg, var(--accent-50), var(--bg) 60%); }
-.login-card { width: 400px; background: var(--surface); border-radius: 20px; box-shadow: var(--shadow); padding: 36px; }
-.login-card h1 { margin-top: 24px; }
-.login-card .muted { margin: 0 0 20px; }
 .otp { font-size: 24px; letter-spacing: 0.5em; text-align: center; font-family: ui-monospace, Menlo, monospace; }
 
 /* Shell A (design/prototype/src/styles/shells.css): sidebar, top bar with "Pasien aktif" pill, white cards on tinted bg */
@@ -113,17 +92,10 @@ html { scroll-padding-top: 160px; } /* scrollIntoView lands below the pinned top
 .shell-title svg { color: var(--color-primary-700); flex: none; }
 /* Page h1 that repeats the top bar title: screen-reader only on desktop (the visible title is in the top bar), visible on mobile. */
 @media (min-width: 721px) { .shell-dup-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } }
-/* Round icon buttons (+ quick actions, bell, patient menu) and disclosure menus (shared/ui/Menu.tsx, HeroUI Popover). */
-.icon-btn {
-  display: grid; place-items: center; width: var(--shells-a-size-touch); height: var(--shells-a-size-touch); flex: none; padding: 0;
-  border: 0; border-radius: 50%; background: none; color: var(--muted); cursor: pointer;
-}
-.icon-btn:hover:not(:disabled) { background: var(--color-neutral-50); color: var(--text); }
-.icon-btn:disabled { cursor: default; opacity: 0.6; }
-.icon-btn-primary, .icon-btn-primary:hover:not(:disabled) { background: var(--accent); color: #fff; }
-.icon-btn-primary:hover:not(:disabled) { background: var(--color-primary-800); }
-.icon-btn-outline { border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
-.icon-btn:focus-visible, .shell-user:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Round 44px icon buttons in the top bar and patient header (HeroUI Button isIconOnly). */
+.shell-icon { width: 44px; min-width: 44px; height: 44px; border-radius: 50%; }
+.shell-quick { padding: 4px; background-clip: content-box; } /* kanvas PD01/MP02: 36px solid circle inside the 44px target */
+.shell-user:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .menu-pop { min-width: 220px; display: grid; gap: 2px; padding: var(--space-2); }
 .menu-pop > a, .menu-pop > button {
   display: flex; align-items: center; min-height: var(--shells-a-size-touch); padding: 0 var(--space-3); border: 0; background: none;
@@ -147,16 +119,14 @@ html { scroll-padding-top: 160px; } /* scrollIntoView lands below the pinned top
 .aps-text strong { white-space: nowrap; } /* never ellipsis: the full name must be readable (wrong-patient risk) */
 .aps-action { flex: none; font-size: var(--font-size-xs); font-weight: 600; color: var(--color-primary-700); background: var(--color-primary-100); border-radius: var(--radius-pill); padding: var(--space-1) var(--space-3); }
 .shell-user {
-  display: flex; align-items: center; gap: var(--space-2); min-width: 0; min-height: var(--shells-a-size-touch); padding: 0 var(--space-2) 0 0;
+  display: flex; align-items: center; gap: var(--space-2); min-width: var(--shells-a-size-touch); min-height: var(--shells-a-size-touch); padding: 0 var(--space-2) 0 0;
   border: 0; border-radius: var(--radius-pill); background: none; font: inherit; color: var(--text); text-align: left; cursor: pointer;
 }
 .shell-user:hover { background: var(--color-neutral-50); }
 .shell-user-text strong { font-size: var(--font-size-sm); }
 .shell-user-text { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
 .shell-user-text > * { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.shell-user .avatar { flex: none; display: flex; } /* HeroUI Avatar: legacy .avatar grid would shrink its fallback */
 .shell-user-text small { color: var(--muted); font-size: var(--font-size-xs); }
-.avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--accent-50); color: var(--accent-600); display: grid; place-items: center; font-weight: 700; }
 .shell-main { flex: 1; min-width: 0; padding: var(--shells-a-space-page); }
 .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-4); margin-bottom: var(--shells-a-space-gap); }
 .page-head p { margin: 0; }
@@ -178,11 +148,9 @@ html { scroll-padding-top: 160px; } /* scrollIntoView lands below the pinned top
 .visit-note { flex: 1 1 100%; min-width: 0; font-size: var(--font-size-sm); line-height: 1.4; color: var(--text); overflow-wrap: anywhere; }
 .visit-note strong { color: var(--muted); font-weight: 600; }
 .visit-chip::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
-.avatar-lg { width: 48px; height: 48px; flex: none; }
 .patient-head-actions { display: flex; align-items: center; gap: var(--space-2); flex: none; }
 /* Header chips wrap (never scroll away): allergies stay visible. */
 .alert-ribbon.patient-alerts, .alert-ribbon.patient-alerts.is-compact { padding: 0; border: 0; background: none; flex-wrap: wrap; overflow: visible; }
-.toolbar { display: flex; gap: var(--space-2); align-items: center; }
 /* Top bar search + active patient pill (clear button) */
 .shell-search {
   display: flex; align-items: center; gap: var(--space-2); flex: 1 1 240px; min-width: 160px; max-width: 420px; margin-left: auto; padding: 0 var(--space-3); color: var(--muted);
@@ -259,27 +227,14 @@ html { scroll-padding-top: 160px; } /* scrollIntoView lands below the pinned top
 .dev-quick { margin-top: 24px; padding-top: 16px; border-top: 1px dashed var(--border); }
 .dev-quick h2 { margin: 0 0 4px; }
 .dev-quick p { margin: 0 0 10px; }
-.dev-quick-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.dev-quick-list .btn { justify-content: space-between; }
-
-/* Cards */
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); box-shadow: var(--shadow); padding: var(--shells-a-space-card); }
-.state-card { padding: 28px; text-align: center; }
-.state-card.error { color: var(--danger); }
 .empty { padding: 16px 0; }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 var(--shells-a-space-gap); }
 .shell-main > .grid-2 { gap: var(--shells-a-space-gap); }
-.stat-label { color: var(--muted); font-weight: 550; }
-.stat-value { font-size: var(--font-size-kpi); font-weight: 700; color: var(--accent-600); margin: 6px 0; }
 .queue { list-style: none; margin: 0; padding: 0; }
 .queue li { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; padding: var(--space-3) 0; border-top: 1px solid var(--border); }
 .queue li .grow { min-width: 0; }
 .queue-time { width: 44px; flex: none; font-weight: 600; font-variant-numeric: tabular-nums; }
-.stat .queue { margin-top: var(--space-3); }
-/* Row actions: explicit label, 44px target, never a dead row. */
-.row-action { min-height: var(--shells-a-size-touch); white-space: nowrap; }
-.btn-link.row-action { display: inline-flex; align-items: center; min-height: 40px; padding: 0 var(--space-1); font-weight: 600; border-radius: 6px; }
-.row-action:focus-visible, .queue a:focus-visible, .table a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.queue a:focus-visible, .table a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .table td.cell-action { padding-block: var(--space-1); text-align: right; }
 .queue-no { width: 28px; height: 28px; border-radius: 50%; background: var(--warn-50); color: var(--warn); display: grid; place-items: center; font-weight: 700; }
 .is-loading { opacity: 0.6; }
@@ -338,13 +293,6 @@ html { scroll-padding-top: 160px; } /* scrollIntoView lands below the pinned top
 .picker-list button { width: 100%; text-align: left; background: none; border: none; font: inherit; padding: 10px 12px; cursor: pointer; display: flex; justify-content: space-between; }
 .picker-list button:hover { background: var(--accent-50); }
 .picked { display: flex; justify-content: space-between; align-items: center; background: var(--accent-50); border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 14px; }
-
-/* Patient tabs + record screens */
-.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin: -4px 0 18px; flex-wrap: wrap; }
-.tabs a { display: inline-flex; align-items: center; min-height: var(--shells-a-size-touch); padding: 0 16px; color: var(--muted); font-weight: 600; border-bottom: 2px solid transparent; margin-bottom: -1px; }
-.tabs a:hover { color: var(--text); text-decoration: none; }
-.tabs a:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
-.tabs a.on { color: var(--color-primary-700); border-bottom-color: var(--color-primary-700); }
 .grid-2.gap { gap: var(--shells-a-space-gap); align-items: start; }
 .stack { display: flex; flex-direction: column; gap: var(--shells-a-space-gap); }
 .member-list, .version-list, .plain { list-style: none; margin: 0; padding: 0; }
@@ -400,7 +348,6 @@ label.check input { min-height: 0; }
 .shell-top-clinic { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; line-height: 1.25; }
 .shell-top-clinic strong { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .shell-top-title { flex: 1; min-width: 0; font-size: var(--font-size-lg); font-weight: 700; color: var(--text); }
-.shell-top > a.icon-btn { color: var(--text); }
 /* Mobile FAB (Pasien baru): above the bottom nav, 56px. */
 .fab {
   position: fixed; right: var(--space-4); bottom: calc(72px + env(safe-area-inset-bottom)); z-index: 19; display: grid; place-items: center;
@@ -408,7 +355,6 @@ label.check input { min-height: 0; }
 }
 .fab:hover { background: var(--color-primary-800); text-decoration: none; }
 .fab:focus-visible { outline: 3px solid var(--color-primary-200); outline-offset: 2px; }
-.shell-search-icon { display: grid; place-items: center; width: 44px; height: 44px; flex: none; border-radius: 50%; color: var(--text); background: var(--color-neutral-50); }
 
 @media (max-width: 720px) {
   /* Phone type scale: body 15, secondary 14, captions 13; one gap (12) and one page gutter (16). */
@@ -417,9 +363,6 @@ label.check input { min-height: 0; }
   .shell-top-clinic strong { font-size: 16px; font-weight: 700; }
   .shell-top-title { font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .shell-top .badge-synthetic { font-size: 12px; line-height: 16px; padding: 0 6px; }
-  /* + is a 36px circle inside the full touch target (44–48px) */
-  .shell-top .icon-btn-primary { background: radial-gradient(circle 18px, var(--accent) 17.5px, transparent 18px); }
-  .shell-top .icon-btn-primary:hover:not(:disabled) { background: radial-gradient(circle 18px, var(--color-primary-800) 17.5px, transparent 18px); }
   .shell-top .aps { flex: 1 1 auto; min-width: 0; }
   .shell-top .aps-trigger { flex: 1; min-width: 0; }
   .shell-top .aps-text small, .shell-top .aps-action { display: none; }
@@ -427,18 +370,11 @@ label.check input { min-height: 0; }
   .aps-pop { position: fixed; left: var(--space-2); right: var(--space-2); width: auto; top: auto; }
   .shell-main { padding: var(--space-4) var(--space-4) calc(80px + env(safe-area-inset-bottom)); }
   html { scroll-padding-bottom: 80px; }
-  .btn, .btn-link.row-action, .btn-xs { min-height: 44px; }
   .page-head { flex-wrap: wrap; align-items: flex-start; }
-  .page-head .toolbar { width: 100%; }
   /* KPI cards 2×2 (more specific than `.grid-12 > *`) */
   .grid-12 > .span-3 { grid-column: span 6; }
   .grid-12 { gap: var(--space-3); }
-  .card { padding: var(--space-4); }
-  /* Patient-level and inner tabs: one sideways-scrolling row, never a tall wrapped stack. */
-  .tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; }
-  .tabs a, .tabs button { flex: none; white-space: nowrap; }
   .grid-2, .details { grid-template-columns: 1fr; }
-  .patient-head .avatar-lg { width: 40px; height: 40px; }
   .crumbs { display: none; } /* bottom nav + tabs cover it; saves header height */
 }
 /* Shared bottom sheet (shared/ui/Sheet.tsx): title + 44px "Tutup". */
@@ -448,7 +384,7 @@ label.check input { min-height: 0; }
 
 /* Phone: horizontal scrollers (shared/ui/scrollHint.ts SCROLL_HINT) fade at an edge while more content is there; thin scrollbar. */
 @media (max-width: 720px) {
-  .pl-filters, .tabs, .chair-pills, .odo2d-wrap, .table-scroll, .tl-scroll { scrollbar-width: thin; }
+  .pl-filters, .chair-pills, .odo2d-wrap, .table-scroll, .tl-scroll { scrollbar-width: thin; }
   [data-more='end'] { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); }
   [data-more='start'] { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 32px), transparent); }
   [data-more='both'] {
@@ -461,13 +397,13 @@ label.check input { min-height: 0; }
 }
 
 /* DateField on a phone: Indonesian label over the native date input (picker icon stays visible and tappable). */
-.date-field { position: relative; display: inline-grid; min-width: 0; }
-.date-field input { width: 100%; min-width: 0; color: transparent; }
-.date-field input::-webkit-datetime-edit { color: transparent; }
-.date-field input:focus { color: transparent; }
-.date-field-desk:focus-within input, .date-field-desk:focus-within input::-webkit-datetime-edit { color: var(--text); }
-.date-field-desk:focus-within .date-field-text { display: none; }
-.date-field-text {
+.bt-date-field { position: relative; display: inline-grid; min-width: 0; }
+.bt-date-field input { width: 100%; min-width: 0; color: transparent; }
+.bt-date-field input::-webkit-datetime-edit { color: transparent; }
+.bt-date-field input:focus { color: transparent; }
+.bt-date-field-desk:focus-within input, .bt-date-field-desk:focus-within input::-webkit-datetime-edit { color: var(--text); }
+.bt-date-field-desk:focus-within .bt-date-field-text { display: none; }
+.bt-date-field-text {
   position: absolute; inset: 0 40px 0 0; display: flex; align-items: center; padding-left: 13px; pointer-events: none;
   font-weight: 400; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
@@ -484,7 +420,6 @@ label.check input { min-height: 0; }
     position: sticky; bottom: 0; z-index: 1; margin: var(--space-2) calc(-1 * var(--space-4)) 0;
     padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom)); background: var(--surface); border-top: 1px solid var(--border);
   }
-  .overlay > .dialog .dialog-actions .btn { flex: 1; }
   label.check { min-height: 44px; }
   .picker-list button { min-height: 44px; align-items: center; }
   label.check:not(.dialog *) input { width: 20px; height: 20px; flex: none; } /* the Selesai dialog row has its own 48px+ target (clinical.css) */
@@ -516,9 +451,6 @@ label.check input { min-height: 0; }
 }
 
 /* #70 gloved hands: on a phone every primary action is at least 48px tall (desktop unchanged). */
-@media (max-width: 720px) {
-  .btn-primary:not(.btn-xs) { min-height: 48px; }
-}
 
 /* #70 status chips use the status tokens (colour + the chip's text label; border keeps them apart in grey-scale too). */
 .chip-booked { background: var(--status-booked-bg); color: var(--status-booked-fg); box-shadow: inset 0 0 0 1px var(--status-booked-border); }
@@ -528,9 +460,6 @@ label.check input { min-height: 0; }
 .chip-pending_confirmation { background: var(--status-confirm-bg); color: var(--status-confirm-fg); box-shadow: inset 0 0 0 1px var(--status-confirm-border); }
 .chip-urgent { background: var(--status-confirm-bg); color: var(--status-confirm-fg); box-shadow: inset 0 0 0 2px var(--status-confirm-fg); }
 .chip-unpaid { background: var(--status-unpaid-bg); color: var(--status-unpaid-fg); box-shadow: inset 0 0 0 1px var(--status-unpaid-border); }
-@media (max-width: 720px) { /* #70: the follow-up buttons after Selesai / on the Tagihan are thumb targets too */
-  .rm-done .btn, .kwitansi-actions .btn { min-height: 48px; display: inline-flex; align-items: center; }
-}
 
 /* Kop (shared/letterhead.tsx): logo 1:1 + clinic name, branch address, contact. */
 .kop { display: flex; gap: 12px; align-items: center; }

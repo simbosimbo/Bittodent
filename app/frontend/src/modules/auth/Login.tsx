@@ -4,6 +4,7 @@ import { ApiError } from '../../shared/api/http'
 import { Icon, ICONS } from '../../shared/ui/Icon'
 import { devQuickLogin, devStatus, login, twoFactorChallenge, type DevAccount } from './api'
 import './login.css'
+import { Note } from '../../shared/ui/Note'
 
 // Dev picker labels for the seeded synthetic accounts (email local part -> role in the UI).
 const DEV_ROLE: Record<string, string> = { dokter: 'Dokter', depan: 'Resepsionis', pemilik: 'Pemilik', asisten: 'Asisten', kasir: 'Kasir' }
@@ -85,7 +86,7 @@ export default function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
               <Label>Email</Label><Input /></TextField>
             <TextField className="au-field" type="password" autoComplete="current-password" value={password} onChange={setPassword} isRequired>
               <Label>Kata sandi</Label><Input /></TextField>
-            {error && <p className="form-error" role="alert">{error}</p>}
+            {error && <Note status="danger" role="alert">{error}</Note>}
             <Button type="submit" fullWidth className="au-submit" isDisabled={busy || !email || !password}>{busy ? 'Memproses…' : 'Masuk'}</Button>
           </form>
         ) : (
@@ -95,7 +96,7 @@ export default function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
             <TextField className="au-field" inputMode="numeric" autoComplete="one-time-code" maxLength={6} autoFocus
               value={code} onChange={(v) => setCode(v.replace(/\D/g, ''))}>
               <Label>Kode 6 angka</Label><Input className="otp" /></TextField>
-            {error && <p className="form-error" role="alert">{error}</p>}
+            {error && <Note status="danger" role="alert">{error}</Note>}
             <Button type="submit" fullWidth className="au-submit" isDisabled={busy}>{busy ? 'Memeriksa…' : 'Verifikasi'}</Button>
             <Button variant="ghost" fullWidth className="au-back" onPress={() => { setStep('password'); setError('') }}>Kembali</Button>
           </form>

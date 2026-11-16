@@ -6,16 +6,8 @@
 .pl-label { margin: 0; font-size: var(--font-size-xs); font-weight: 600; color: var(--muted); }
 .pl-dentist { display: grid; gap: var(--space-1); min-width: 200px; }
 .pl-search .pl-field, .pl-dentist .pl-field { min-height: 40px; }
-.pl-select { width: 100%; padding: 0 12px; border: 1px solid var(--field-border); border-radius: calc(var(--radius) * 1.5); background: var(--field-background);
-  color: var(--foreground); font: inherit; font-size: 14px; }
-.pl-select:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
 
 .pl-filters { display: flex; flex-wrap: wrap; gap: var(--space-2); }
-/* PD08: selected chip is solid accent, the rest outlined. */
-.pl-filt { --toggle-button-bg: var(--surface); --toggle-button-bg-selected: var(--accent); --toggle-button-bg-selected-hover: var(--color-primary-800);
-  --toggle-button-bg-selected-pressed: var(--color-primary-800); --toggle-button-fg-selected: var(--accent-foreground);
-  border: 1px solid var(--field-border); font-weight: 600; }
-.pl-filt[data-selected='true'] { border-color: var(--accent); }
 
 .pl-table th { text-transform: uppercase; letter-spacing: 0.04em; }
 .pl-table .pl-col-name { width: 38%; }
@@ -46,8 +38,7 @@
   .pl-toolbar { display: grid; gap: var(--space-3); }
   .pl-search { max-width: none; }
   .pl-search .pl-field, .pl-dentist .pl-field { min-height: 44px; }
-  .pl-search input, .pl-dentist select { font-size: 16px; } /* iOS does not zoom on focus */
-  .pl-filt { height: 44px; padding: 0 14px; font-size: 14px; }
+  .pl-search input, .pl-dentist select { font-size: 16px; }
   .pl-sum { margin: 0; font-size: 13px; font-weight: 600; color: var(--muted); }
   .pl-cards { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
   .pl-hit { padding: var(--space-3); gap: var(--space-2); border-radius: 16px; box-shadow: none; }

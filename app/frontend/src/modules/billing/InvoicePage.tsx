@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ComponentProps, type FormEvent } from 'react'
-import { Button, buttonVariants, Card, Chip, Input, inputVariants, ToggleButton, ToggleButtonGroup } from '@heroui/react'
+import { Select as NSelect } from '../../shared/ui/Select'
+import { StateCard } from '../../shared/ui/StateCard'
+import { Button, buttonVariants, Card, Chip, Input, ToggleButton, ToggleButtonGroup } from '@heroui/react'
 import { ApiError, errorText } from '../../shared/api/http'
 import { fmtDateTime, rp } from '../../shared/format'
 import { PageSkeleton } from '../../shared/ui/Skeleton'
@@ -7,7 +9,7 @@ import { Kop, useLetterhead } from '../../shared/letterhead'
 import type { Me } from '../../shared/session'
 import { addAdjustment, addCreditNote, addPayment, addRefund, approveZeroTariff, billFromCorrection, decideAdjustment, decideCreditNote, decideRefund, decideVoid, invoiceForVisit,
   paymentAccounts, reviewCorrection, voidInvoice, type Adjustment, type Invoice, type InvoiceLine, type PaymentAccount } from './api'
-import { Note } from './ui'
+import { Note } from '../../shared/ui/Note'
 import './billing.css'
 
 const KIND: Record<PaymentAccount['kind'], string> = { tunai: 'Tunai', qris: 'QRIS', edc: 'Debit', transfer: 'Transfer', bpjs: 'BPJS', asuransi: 'Asuransi' }
@@ -183,7 +185,7 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
   const amt = rp(split ? rows.reduce((t, r) => t + Number(r.amount || 0), 0) : Number(rows[0].amount || 0))
   const payLabel = split || !sel ? `Terima ${amt}` : sel.kind === 'qris' ? 'Sudah dibayar'
     : ['edc', 'transfer'].includes(sel.kind) ? `Terima ${KIND[sel.kind].toLowerCase()} ${sel.bank_name ?? sel.name} ${amt}` : `Terima ${amt}`
-  if (!inv) return error ? <Card className="state-card">{error}</Card> : <PageSkeleton variant="invoice" label="Memuat tagihan…" />
+  if (!inv) return error ? <StateCard error={error} /> : <PageSkeleton variant="invoice" label="Memuat tagihan…" />
   const owe = (yes: () => Promise<Invoice>, no: () => Promise<Invoice>, okYes: string, okNo: string) =>
     <Decide yes={() => run(yes, () => okYes)} no={() => run(no, () => okNo)} />
   return (
@@ -421,7 +423,7 @@ const ROW = 'flex flex-wrap items-center gap-2'
 const FIELD = 'min-w-0 max-w-full flex-[1_1_140px]'
 
 /** Native select (keeps the phone's own picker) in the HeroUI field look. shortcut: Pro NativeSelect does not resolve from its symlinked folder yet, switch when it does. */
-const Select = (p: ComponentProps<'select'>) => <select {...p} className={`${inputVariants()} ${FIELD}`} />
+const Select = (p: ComponentProps<typeof NSelect>) => <NSelect {...p} wrapClassName={FIELD} />
 
 /** Owner decision: Setujui / Tolak side by side. */
 const Decide = ({ yes, no }: { yes: () => void; no: () => void }) => (

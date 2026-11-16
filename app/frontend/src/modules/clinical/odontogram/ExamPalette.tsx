@@ -5,6 +5,7 @@ import { saveToothEntries } from '../api'
 import type { Mark } from '../Odontogram'
 import { SymbolDefs, SymbolIcon } from './symbols'
 import { conditionByKey, padLabel, padsFor, storedSurface, TAXONOMY, type EntryStatus, type SurfaceKey, type ToothEntry } from './taxonomy'
+import { Note } from '../../../shared/ui/Note'
 
 // Board OVv2-06 Pemeriksaan awal (PDGI: every tooth examined and written at the first visit). Pick a tool once, tap many teeth,
 // "Tandai sisa sou", ONE Simpan. Whole-tooth tool: tap = record, tap again = remove. Surface tool: tap opens a small MODVL pad.
@@ -89,7 +90,7 @@ export function ExamPalette({ exam, visitId, emptyTeeth, onSaved }: { exam: Exam
           })}
         </div>
       )}
-      {error && <p className="form-error" role="alert">{error}</p>}
+      {error && <Note status="danger" role="alert">{error}</Note>}
       <div className="exam-dock">
         {emptyTeeth.length || exam.teeth.size ? <Button variant="outline" isDisabled={!rest.length} onPress={() => exam.markRest(emptyTeeth)}>Tandai sisa sou ({rest.length})</Button>
           : <span className="muted small">Campuran: tandai sou per gigi (tidak semua gigi tetap dan sulung ada).</span>}

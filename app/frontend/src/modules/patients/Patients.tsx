@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Avatar, Button, buttonVariants, Card, Chip, Label, SearchField, ToggleButton } from '@heroui/react'
+import { StateCard } from '../../shared/ui/StateCard'
+import { Avatar, Button, buttonVariants, Card, Chip, Label, SearchField } from '@heroui/react'
+import { FilterChips } from '../../shared/ui/FilterChips'
+import { Select } from '../../shared/ui/Select'
 import { PageSkeleton } from '../../shared/ui/Skeleton'
 import { errorText } from '../../shared/api/http'
 import { initials, TZ } from '../../shared/format'
@@ -89,11 +92,8 @@ export function PatientList({ canCreate, canChart = false, initialQ = '', meId }
   // Filters run on the server (whole list, not just the loaded page): no counts, the API has no totals.
   const filters: [string, string][] = [['', 'Semua'], ...Object.entries(CARE).map(([k, [label]]): [string, string] => [k, label])]
   const filtered = !!(care || dentist)
-  const chips = (label: string, items: [string, string][], value: string, set: (k: string) => void) => (
-    <div className="pl-filters" role="group" aria-label={label}>
-      {items.map(([k, text]) => <ToggleButton key={k} className="pl-filt" isSelected={value === k} onChange={() => set(k)}>{text}</ToggleButton>)}
-    </div>
-  )
+  const chips = (label: string, items: [string, string][], value: string, set: (k: string) => void) =>
+    <FilterChips label={label} value={value} onChange={set} options={items} />
   const body = (
     <>
       <div className="pl-toolbar">
@@ -105,11 +105,10 @@ export function PatientList({ canCreate, canChart = false, initialQ = '', meId }
         {!(mobile && mine) && (
           <div className="pl-dentist">
             <Label htmlFor="pl-dentist" className="pl-label">Dokter</Label>
-            {/* shortcut: native select styled as a HeroUI field; Pro NativeSelect does not resolve under vitest/vite from the linked install (see report). */}
-            <select id="pl-dentist" className="pl-field pl-select" value={dentist} onChange={(e) => setDentist(e.target.value)}>
+            <Select id="pl-dentist" value={dentist} onChange={(e) => setDentist(e.target.value)}>
               <option value="">Semua dokter</option>
               {dentists.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-            </select>
+            </Select>
           </div>
         )}
         {canCreate && (mobile
@@ -120,9 +119,9 @@ export function PatientList({ canCreate, canChart = false, initialQ = '', meId }
       {chips('Saring status perawatan', filters, care, setCare)}
       {/* Loaded rows only (the API has no total): "+" when more pages exist. */}
       {mobile && rows && rows.length > 0 && <p className="pl-sum" aria-live="polite">{rows.length}{next ? '+' : ''} pasien</p>}
-      {error ? <p className="state-card error">{error}</p>
+      {error ? <StateCard error={error} />
         : !rows ? <PageSkeleton variant="list" />
-        : rows.length === 0 ? <p className="state-card muted">{q ? `Tidak ada pasien yang cocok dengan “${q}”.` : filtered ? 'Tidak ada pasien dengan saringan ini.' : 'Belum ada pasien.'}</p>
+        : rows.length === 0 ? <StateCard>{q ? `Tidak ada pasien yang cocok dengan “${q}”.` : filtered ? 'Tidak ada pasien dengan saringan ini.' : 'Belum ada pasien.'}</StateCard>
         : mobile ? (
           // Phone (PD08): one card per patient; the whole card body is one link (≥44px), Rekam Medis is its own button below.
           <ul className={'pl-cards' + (loading ? ' is-loading' : '')} aria-label="Daftar pasien">
@@ -166,7 +165,7 @@ export function PatientList({ canCreate, canChart = false, initialQ = '', meId }
                   <td className={p.last_dentist_name ? undefined : 'muted'}>{p.last_dentist_name ?? <Missing />}</td>
                   <td>{p.care_status ? <Care s={p.care_status} /> : <Missing />}</td>
                   <td className="cell-action">
-                    {canChart && <a className="btn-link row-action" href={'#/rekam-medis/' + p.id}
+                    {canChart && <a className={buttonVariants({ variant: 'tertiary', size: 'sm' })} href={'#/rekam-medis/' + p.id}
                       aria-label={'Rekam Medis ' + p.name} onClick={(e) => e.stopPropagation()}>Rekam Medis</a>}
                     <span className="pl-chevron" aria-hidden="true"><Icon d={ICONS.right} size={18} /></span>
                   </td>
@@ -214,7 +213,7 @@ export function PatientPicker({ value, onChange }: { value: { id: string; name: 
   const [q, setQ] = useState('')
   const { rows, loading } = usePatientSearch(q)
   if (value) return (
-    <div className="picked"><span>Pasien: <b>{value.name}</b></span><button type="button" className="btn btn-link" onClick={() => onChange(null)}>Ganti</button></div>
+    <div className="picked"><span>Pasien: <b>{value.name}</b></span><Button variant="ghost" size="sm" onPress={() => onChange(null)}>Ganti</Button></div>
   )
   return (
     <div className="picker">

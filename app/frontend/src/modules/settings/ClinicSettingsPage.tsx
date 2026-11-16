@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { Button, Card, Checkbox, Input, ToggleButton, ToggleButtonGroup } from '@heroui/react'
+import { Select } from '../../shared/ui/Select'
+import { Button, Card, Checkbox, Input } from '@heroui/react'
+import { FilterChips } from '../../shared/ui/FilterChips'
+import { Segmented } from '../../shared/ui/Segmented'
 import { ApiError, errorText } from '../../shared/api/http'
 import { fmtYmdShort, num, rp, todayWib } from '../../shared/format'
 import { Kop, loadLetterhead, type Letterhead } from '../../shared/letterhead'
@@ -9,6 +12,7 @@ import { DateField } from '../../shared/ui/DateField'
 import { addAccount, addTariff, bulkTariffs, getAccounts, getProfile, getTariffs, saveBranch, saveCategory, saveLevels, saveProfile, updateAccount, uploadLogo, uploadQris,
   type Account, type AccountKind, type BulkRow, type ClinicProfile, type TariffItem } from './api'
 import './settings.css'
+import { Note } from '../../shared/ui/Note'
 
 // Pengaturan Klinik (DEVIATIONS #71). Each tab follows its own permission (owner only today: settings.manage / tariff.manage /
 // billing.accounts in Permissions::MATRIX); the server checks every write, scopes it to the clinic and audits it.
@@ -47,18 +51,6 @@ function FilePick({ children, onPick }: { children: ReactNode; onPick: (f: File 
   </>
 }
 
-/** One-of-n choice as a HeroUI ToggleButtonGroup (radiogroup + radios). */
-function Seg<K extends string | number>({ label, value, options, onChange, className }: {
-  label: string; value: K; options: [K, string][]; onChange: (k: K) => void; className?: string
-}) {
-  return (
-    <ToggleButtonGroup aria-label={label} selectionMode="single" disallowEmptySelection className={'set-seg ' + (className ?? '')}
-      selectedKeys={[String(value)]} onSelectionChange={(keys) => { const k = options.find(([o]) => keys.has(String(o))); if (k) onChange(k[0]) }}>
-      {options.map(([k, text], i) => <ToggleButton key={String(k)} id={String(k)}>{i > 0 && <ToggleButtonGroup.Separator />}{text}</ToggleButton>)}
-    </ToggleButtonGroup>
-  )
-}
-
 const FIELDS: [keyof Omit<ClinicProfile, 'branches'>, string, string][] = [
   ['name', 'Nama klinik', 'text'], ['address', 'Alamat', 'text'], ['phone', 'Telepon', 'tel'], ['email', 'Email', 'email'],
   ['license_no', 'Nomor izin klinik (tampil di kop)', 'text'], ['license_valid_until', 'Izin berlaku sampai', 'date'], ['npwp', 'NPWP', 'text'],
@@ -72,7 +64,7 @@ function ProfileTab({ onChanged }: { onChanged: () => void }) {
   const [busy, setBusy] = useState(false)
   const [logoV, setLogoV] = useState(0)
   useEffect(() => { getProfile().then(setP, (e) => setError(errorText(e))) }, [])
-  if (!p) return error ? <p className="form-error" role="alert">{error}</p> : <p className="muted">Memuat…</p>
+  if (!p) return error ? <Note status="danger" role="alert">{error}</Note> : <p className="muted">Memuat…</p>
   const set = (k: string, v: string) => setP({ ...p, [k]: v })
   async function save(e: FormEvent) {
     e.preventDefault()
@@ -120,14 +112,14 @@ function ProfileTab({ onChanged }: { onChanged: () => void }) {
         </fieldset>
       ))}
       <h2 className="set-sub">Struk dan printer</h2>
-      <Seg label="Lebar kertas struk" value={p.receipt_paper_mm} options={[[58, '58 mm'], [80, '80 mm']]} onChange={(mm) => setP({ ...p, receipt_paper_mm: mm })} />
+      <Segmented label="Lebar kertas struk" value={p.receipt_paper_mm} options={[[58, '58 mm'], [80, '80 mm']]} onChange={(mm) => setP({ ...p, receipt_paper_mm: mm })} />
       <p className="muted small">Struk dicetak lewat dialog cetak perangkat: pilih printer thermal atau printer sistem (A4) di sana.</p>
       {kop.branches.length > 0 && <h2 className="set-sub">Pratinjau kop</h2>}
       <div className="set-kops">
         {kop.branches.map((b) => <Card key={b.id} className="set-kop" aria-label={`Pratinjau kop ${b.name}`}><Kop l={kop} branchId={b.id} logoVersion={logoV} /></Card>)}
       </div>
-      {error && <p className="form-error" role="alert">{error}</p>}
-      {msg && <p className="notice" role="status">{msg}</p>}
+      {error && <Note status="danger" role="alert">{error}</Note>}
+      {msg && <Note status="success" role="status">{msg}</Note>}
       <div className="set-dock"><Button type="submit" isDisabled={busy}>{busy ? 'Menyimpan…' : 'Simpan profil'}</Button></div>
     </form></Card>
   )
@@ -181,14 +173,12 @@ function PriceTab() {
       <div className="set-filter">
         <Input type="search" aria-label="Cari tindakan" placeholder="Cari tindakan atau kode" value={q} onChange={(e) => setQ(e.target.value)} />
         {data && data.categories.length > 0 && (
-          <div className="set-chips" role="group" aria-label="Kategori">
-            {['', ...data.categories].map((c) => <ToggleButton key={c || 'semua'} className="set-chip" isSelected={cat === c}
-              onChange={() => setCat(c)}>{c ? c.replace(/_/g, ' ') : 'Semua'}</ToggleButton>)}
-          </div>
+          <FilterChips label="Kategori" className="set-chips" value={cat} onChange={setCat}
+            options={['', ...data.categories].map((c) => [c, c ? c.replace(/_/g, ' ') : 'Semua'] as const)} />
         )}
       </div>
-      {error && <p className="form-error" role="alert">{error}</p>}
-      {msg && <p className="notice" role="status">{msg}</p>}
+      {error && <Note status="danger" role="alert">{error}</Note>}
+      {msg && <Note status="success" role="status">{msg}</Note>}
       {sel.length > 0 && data && <BulkPanel codes={sel} items={data.items} onDone={(t) => { setSel([]); setMsg(t); load() }} onCancel={() => setSel([])} />}
       {data && !q.trim() && !cat && <Unpriced rows={catalog.filter((c) => !data.items.some((it) => it.procedure_code === c.procedure_code))}
         onSaved={(name) => { setMsg(`Harga ${name} tersimpan. Kunjungan yang menunggu harga bisa ditutup sekarang.`); load() }} onError={setError} />}
@@ -319,18 +309,18 @@ function BulkPanel({ codes, items, onDone, onCancel }: { codes: string[]; items:
     <Card className="set-bulk" role="region" aria-label="Ubah massal">
       <p><strong>{codes.length} tindakan dipilih</strong> <span className="muted small">· berlaku {fmtYmdShort(from)}</span></p>
       <div className="set-bulk-row">
-        <Seg label="Arah" value={down ? 'turun' : 'naik'} options={[['naik', 'Naik'], ['turun', 'Turun']]} onChange={(k) => { setDown(k === 'turun'); setPreview(null) }} />
+        <Segmented label="Arah" value={down ? 'turun' : 'naik'} options={[['naik', 'Naik'], ['turun', 'Turun']]} onChange={(k) => { setDown(k === 'turun'); setPreview(null) }} />
         <Input inputMode="numeric" aria-label="Besar perubahan" value={value} onChange={(e) => { setValue(e.target.value.replace(/\D/g, '')); setPreview(null) }} />
-        <Seg label="Satuan" value={kind} options={[['percent', '%'], ['amount', 'Rp']]} onChange={(k) => { setKind(k); setPreview(null) }} />
-        <select className="set-select" aria-label="Pembulatan" value={rounding} onChange={(e) => { setRounding(e.target.value); setPreview(null) }}>
+        <Segmented label="Satuan" value={kind} options={[['percent', '%'], ['amount', 'Rp']]} onChange={(k) => { setKind(k); setPreview(null) }} />
+        <Select aria-label="Pembulatan" value={rounding} onChange={(e) => { setRounding(e.target.value); setPreview(null) }}>
           {ROUNDING.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-        </select>
+        </Select>
       </div>
       {preview && <ul className="set-preview small">{preview.slice(0, 6).map((r) => (
         <li key={r.procedure_code + r.variant}>{items.find((i) => i.procedure_code === r.procedure_code)?.name ?? r.procedure_code}
           {r.variant !== 'standar' ? ` (${r.variant})` : ''}: {rp(r.old_rp)} → <strong>{rp(r.new_rp)}</strong></li>))}
         {preview.length > 6 && <li className="muted">+{preview.length - 6} harga lain</li>}</ul>}
-      {error && <p className="form-error" role="alert">{error}</p>}
+      {error && <Note status="danger" role="alert">{error}</Note>}
       <div className="set-actions">
         <Button variant="secondary" onPress={onCancel}>Batal</Button>
         {preview ? <Button isDisabled={busy} onPress={() => go(false)}>Terapkan {preview.length} harga</Button>
@@ -367,8 +357,8 @@ function PaymentTab({ me }: { me: Me }) {
   return (
     <section aria-label="Metode pembayaran">
       <p className="muted small">Pembayaran hanya masuk ke akun milik klinik. Nomor rekening tidak disimpan, hanya 4 angka terakhir.</p>
-      {error && <p className="form-error" role="alert">{error}</p>}
-      {msg && <p className="notice" role="status">{msg}</p>}
+      {error && <Note status="danger" role="alert">{error}</Note>}
+      {msg && <Note status="success" role="status">{msg}</Note>}
       {!list ? <p className="muted">Memuat…</p> : (
         <ul className="set-list">
           {KINDS.map((k) => {
@@ -420,14 +410,14 @@ function AddAccount({ me, onDone, onCancel }: { me: Me; onDone: (a: Account) => 
   }
   return (
     <Card className="set-card"><form className="set-form" onSubmit={submit} noValidate aria-label="Tambah metode pembayaran">
-      <Seg label="Jenis" className="set-kinds" value={kind} options={KINDS.map((k): [AccountKind, string] => [k.key, k.label])} onChange={setKind} />
+      <Segmented label="Jenis" className="set-kinds" value={kind} options={KINDS.map((k): [AccountKind, string] => [k.key, k.label])} onChange={setKind} />
       {needsBank && <label>Bank<Input value={bank} onChange={(e) => setBank(e.target.value)} placeholder="mis. BCA" /></label>}
       {kind === 'transfer' && <label>4 angka terakhir rekening<Input inputMode="numeric" maxLength={4} value={last4}
         onChange={(e) => setLast4(e.target.value.replace(/\D/g, '').slice(0, 4))} /></label>}
       <label>Nama (opsional)<Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nama yang tampil di kasir" /></label>
-      {me.branches.length > 1 && <label>Cabang<select className="set-select" value={branch} onChange={(e) => setBranch(e.target.value)}>
-        <option value="">Semua cabang</option>{me.branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select></label>}
-      {error && <p className="form-error" role="alert">{error}</p>}
+      {me.branches.length > 1 && <label>Cabang<Select value={branch} onChange={(e) => setBranch(e.target.value)}>
+        <option value="">Semua cabang</option>{me.branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</Select></label>}
+      {error && <Note status="danger" role="alert">{error}</Note>}
       <div className="set-actions">
         <Button variant="secondary" onPress={onCancel}>Batal</Button>
         <Button type="submit" isDisabled={busy || (kind === 'transfer' && (!bank.trim() || last4.length !== 4))}>Simpan</Button>

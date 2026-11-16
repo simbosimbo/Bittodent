@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Select } from '../../shared/ui/Select'
 import { Button, buttonVariants } from '@heroui/react'
 import { fmtTime, todayWib, TZ } from '../../shared/format'
 import type { Me } from '../../shared/session'
@@ -53,10 +54,10 @@ export function QueuePanel({ me, where = 'rail' }: { me: Me; where?: 'rail' | 's
         </div>}
         {(data?.dentists.length ?? 0) > 1 && (
           <label className="queue-panel-filter"><span className="sr-only">Saring dokter</span>
-            <select value={dentist} onChange={(e) => setDentist(e.target.value)}>
+            <Select value={dentist} onChange={(e) => setDentist(e.target.value)}>
               <option value="">Semua dokter</option>
               {data!.dentists.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-            </select>
+            </Select>
           </label>
         )}
         <div className="queue-panel-sum">

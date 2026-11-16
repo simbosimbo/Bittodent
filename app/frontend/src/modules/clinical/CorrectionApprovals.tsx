@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Button, Card } from '@heroui/react'
+import { Note } from '../../shared/ui/Note'
 import { errorText } from '../../shared/api/http'
 import { fmtDateTime } from '../../shared/format'
 import { decideCorrection, pendingCorrections, type PendingCorrection } from './api'
@@ -21,7 +22,7 @@ export function CorrectionApprovals() {
     <Card>
       <h2>Koreksi tindakan menunggu persetujuan</h2>
       <p className="muted small">Koreksi lewat tenggat bebas menunggu di sini. Tenggat diatur di <a href="#/pengaturan-rm">Pengaturan RM</a>.</p>
-      {error && <p className="form-error" role="alert">{error}{!rows && <> <Button variant="outline" size="sm" className="max-[720px]:min-h-11" onPress={() => { setError(''); load() }}>Coba lagi</Button></>}</p>}
+      {error && <Note status="danger" role="alert">{error}{!rows && <> <Button variant="outline" size="sm" className="max-[720px]:min-h-11" onPress={() => { setError(''); load() }}>Coba lagi</Button></>}</Note>}
       {!rows && !error && <p className="muted">Memuat…</p>}
       {msg && <p className="small" role="status">{msg}</p>}
       {rows && rows.length === 0 && <p className="muted">Tidak ada koreksi yang menunggu.</p>}

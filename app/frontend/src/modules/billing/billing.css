@@ -1,10 +1,6 @@
 /* Kasir, Tagihan, Shift, Kwitansi (KL01-KL06) on HeroUI. Layout is Tailwind utilities; this file holds what utilities cannot say. */
 .kasir { max-width: 960px; }
 .kasir-h { font-size: var(--font-size-md); margin: var(--space-3) 0 var(--space-2); }
-.kasir-card { display: flex; align-items: center; gap: var(--space-3); min-height: 72px; padding: var(--space-3); border: 1px solid var(--border);
-  border-radius: 16px; background: var(--surface); color: inherit; text-decoration: none; }
-.kasir-card:hover { border-color: var(--accent); }
-.kasir-card:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 /* Choice chips (filter, bank): the picked one is solid teal, as on KL01/KL04. */
 .billing .pick[data-selected='true'] { background: var(--accent); color: var(--accent-foreground); }
 

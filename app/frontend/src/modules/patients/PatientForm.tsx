@@ -1,8 +1,10 @@
 import { cloneElement, useState, type FormEvent, type InputHTMLAttributes, type ReactElement, type ReactNode } from 'react'
+import { Select } from '../../shared/ui/Select'
 import { Button, buttonVariants, Card } from '@heroui/react'
 import { DateField } from '../../shared/ui/DateField'
 import { ApiError, errorText } from '../../shared/api/http'
 import { createPatient } from './api'
+import { Note } from '../../shared/ui/Note'
 
 type Form = Record<'name' | 'dob' | 'sex' | 'nik' | 'phone' | 'address' | 'payer_type' | 'payer_name' | 'payer_member_no', string>
 const EMPTY: Form = { name: '', dob: '', sex: '', nik: '', phone: '', address: '', payer_type: 'umum', payer_name: '', payer_member_no: '' }
@@ -66,7 +68,7 @@ export default function PatientForm() {
           {field('name', 'Nama lengkap *', <input value={f.name} onChange={set('name')} maxLength={200} />)}
           {field('dob', 'Tanggal lahir', <DateField value={f.dob} onChange={set('dob')} />)}
           {field('sex', 'Jenis kelamin', (
-            <select value={f.sex} onChange={set('sex')}><option value="">— Pilih —</option><option value="laki_laki">Laki-laki</option><option value="perempuan">Perempuan</option></select>
+            <Select value={f.sex} onChange={set('sex')}><option value="">— Pilih —</option><option value="laki_laki">Laki-laki</option><option value="perempuan">Perempuan</option></Select>
           ))}
           {field('nik', 'NIK', <input inputMode="numeric" value={f.nik} onChange={set('nik')} placeholder="16 angka" />)}
           {field('phone', 'No. HP', <input inputMode="tel" value={f.phone} onChange={set('phone')} placeholder="08xx…" />)}
@@ -75,12 +77,12 @@ export default function PatientForm() {
         <h2>Penjamin</h2>
         <div className="grid-2">
           {field('payer_type', 'Jenis penjamin', (
-            <select value={f.payer_type} onChange={set('payer_type')}><option value="umum">Umum (bayar sendiri)</option><option value="asuransi">Asuransi swasta</option></select>
+            <Select value={f.payer_type} onChange={set('payer_type')}><option value="umum">Umum (bayar sendiri)</option><option value="asuransi">Asuransi swasta</option></Select>
           ))}
           {f.payer_type === 'asuransi' && field('payer_name', 'Nama asuransi *', <input value={f.payer_name} onChange={set('payer_name')} />)}
           {f.payer_type === 'asuransi' && field('payer_member_no', 'No. peserta', <input value={f.payer_member_no} onChange={set('payer_member_no')} />)}
         </div>
-        {error && <p className="form-error" role="alert">{error}</p>}
+        {error && <Note status="danger" role="alert">{error}</Note>}
         <div className="dialog-actions">
           <a className={buttonVariants({ variant: 'secondary' }) + ' pt-btn'} href="#/pasien">Batal</a>
           <Button type="submit" className="pt-btn" isDisabled={busy}>{busy ? 'Menyimpan…' : 'Simpan pasien'}</Button>

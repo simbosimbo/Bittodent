@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { Alert as HAlert, Button, Card } from '@heroui/react'
+import { Button, Card } from '@heroui/react'
+import { Note } from '../../shared/ui/Note'
 import { errorText } from '../../shared/api/http'
 import { fmtDateTime, num, rp, todayWib } from '../../shared/format'
 import { DateField } from '../../shared/ui/DateField'
@@ -36,7 +37,7 @@ const cell = (k: Key, v: number) => (k.endsWith('_rp') ? rp(Math.round(v)) : num
 
 /** Section error with a retry (each section loads on its own; one failure never blanks the page). */
 const Retry = ({ msg, onRetry }: { msg: string; onRetry: () => void }) => (
-  <HAlert status="danger" role="alert"><HAlert.Indicator /><HAlert.Content><HAlert.Description className="report-error">{msg} <Button size="sm" variant="secondary" onPress={onRetry}>Coba lagi</Button></HAlert.Description></HAlert.Content></HAlert>
+  <Note status="danger" role="alert">{msg} <Button size="sm" variant="secondary" onPress={onRetry}>Coba lagi</Button></Note>
 )
 
 /** Phone card: name + one key figure, the rest as label:value pairs. */

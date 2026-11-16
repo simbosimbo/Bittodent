@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { buttonVariants } from '@heroui/react'
 import { Sheet } from '../../shared/ui/Sheet'
 import { getAlerts, type Alerts } from './api'
 
@@ -104,7 +105,7 @@ export function AlertSheet({ patientId, onClose }: { patientId: string; onClose:
           {alertChips(a).map((c, i) => <li key={i} className={'alert-chip alert-' + c.type}>{ICON[c.type] && <span aria-hidden="true">{ICON[c.type]}</span>}{c.text}</li>)}
         </ul>
       )}
-      {a?.full && <a className="btn btn-block" href={'#/riwayat-medis/' + patientId} onClick={onClose}>Riwayat medis lengkap →</a>}
+      {a?.full && <a className={buttonVariants({ variant: 'secondary', fullWidth: true }) + ' mt-2'} href={'#/riwayat-medis/' + patientId} onClick={onClose}>Riwayat medis lengkap →</a>}
     </Sheet>
   )
 }

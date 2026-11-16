@@ -24,7 +24,7 @@ test('KL07: KPI with delta, 7 bars, cash difference; period chips reload', async
   expect(bars.querySelectorAll('li')).toHaveLength(7)
   expect(bars).toHaveTextContent('Rp600.000') // sr-only exact value per day (direct labels show the short form)
   expect(screen.getByRole('region', { name: 'Selisih kas' })).toHaveTextContent('- Rp10.000')
-  fireEvent.click(screen.getByRole('radio', { name: '7 hari' }))
+  fireEvent.click(screen.getByRole('button', { name: '7 hari' }))
   expect(revenueReport).toHaveBeenLastCalledWith('7d')
 })
 

@@ -15,9 +15,9 @@ export function DateField({ value, className, placeholder = 'Pilih tanggal', ...
   // so typing a date with the keyboard still works. An empty desktop field stays the plain input.
   if (!mobile && !value) return <input type="date" value={value} className={className} {...props} />
   return (
-    <span className={'date-field' + (mobile ? '' : ' date-field-desk') + (className ? ' ' + className : '')}>
+    <span className={'bt-date-field' + (mobile ? '' : ' bt-date-field-desk') + (className ? ' ' + className : '')}>
       <input type="date" value={value} {...props} />
-      <span className="date-field-text" aria-hidden="true">{value ? fmtYmdShort(value) : placeholder}</span>
+      <span className="bt-date-field-text" aria-hidden="true">{value ? fmtYmdShort(value) : placeholder}</span>
     </span>
   )
 }

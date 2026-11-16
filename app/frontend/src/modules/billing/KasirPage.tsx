@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Avatar, Button, buttonVariants, Card, Chip, EmptyState, ToggleButton, ToggleButtonGroup } from '@heroui/react'
+import { Stat } from '../../shared/ui/Stat'
+import { StateCard } from '../../shared/ui/StateCard'
+import { Avatar, Button, buttonVariants, Card, Chip, EmptyState } from '@heroui/react'
+import { FilterChips } from '../../shared/ui/FilterChips'
+import { RowLink } from '../../shared/ui/RowLink'
+import { SectionTitle } from '../../shared/ui/SectionTitle'
 import { errorText } from '../../shared/api/http'
 import { fmtTime, rp } from '../../shared/format'
 import { getDailyRevenue, kasirList, type DailyRevenue, type KasirList, type KasirRow } from './api'
@@ -19,17 +24,10 @@ function Row({ r, today }: { r: KasirRow; today: string }) {
   const meta = [old ? 'Tempo' : fmtTime(r.created_at), (r.items ?? []).join(', '), r.payer_type === 'bpjs' ? 'BPJS' : r.payer_type === 'asuransi' ? 'Asuransi' : '']
   return (
     <li>
-      <a className="kasir-card" href={`#/tagihan/${r.visit_id}`} aria-label={`${r.patient_name ?? 'Pasien'}, ${open ? 'belum bayar' : r.status}, ${rp(open ? r.balance_rp : total(r))}`}>
-        <Avatar size="sm" color="accent" variant="soft" className="flex shrink-0" aria-hidden="true"><Avatar.Fallback>{initials(r.patient_name)}</Avatar.Fallback></Avatar>
-        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <strong className="[overflow-wrap:anywhere]">{r.patient_name ?? 'Pasien'}</strong>
-          <span className="text-sm text-muted">{meta.filter(Boolean).join(' · ')}</span>
-        </span>
-        <span className="flex flex-col items-end gap-1 text-right tabular-nums">
-          <strong>{rp(open ? r.balance_rp : total(r))}</strong>
-          <Chip size="sm" variant="soft" color={open ? 'warning' : r.status === 'lunas' ? 'success' : 'danger'}>{open ? 'Belum bayar' : r.status === 'lunas' ? 'Lunas' : 'Void'}</Chip>
-        </span>
-      </a>
+      <RowLink href={`#/tagihan/${r.visit_id}`} aria-label={`${r.patient_name ?? 'Pasien'}, ${open ? 'belum bayar' : r.status}, ${rp(open ? r.balance_rp : total(r))}`}
+        media={<Avatar size="sm" color="accent" variant="soft" className="flex shrink-0" aria-hidden="true"><Avatar.Fallback>{initials(r.patient_name)}</Avatar.Fallback></Avatar>}
+        title={r.patient_name ?? 'Pasien'} sub={meta.filter(Boolean).join(' · ')}
+        aside={<><strong>{rp(open ? r.balance_rp : total(r))}</strong><Chip size="sm" variant="soft" color={open ? 'warning' : r.status === 'lunas' ? 'success' : 'danger'}>{open ? 'Belum bayar' : r.status === 'lunas' ? 'Lunas' : 'Void'}</Chip></>} />
     </li>
   )
 }
@@ -46,8 +44,8 @@ export default function KasirPage() {
   }, [])
   useEffect(() => { load() }, [load])
 
-  if (error) return <Card className="billing state-card items-center"><p role="alert">{error}</p><Button variant="secondary" onPress={load}>Coba lagi</Button></Card>
-  if (!data) return <Card className="state-card text-muted">Memuat tagihan…</Card>
+  if (error) return <StateCard error={error} onRetry={load} />
+  if (!data) return <StateCard>Memuat tagihan…</StateCard>
   const open = data.invoices.filter((r) => r.status === 'terbuka')
   const done = data.invoices.filter((r) => r.status !== 'terbuka')
   const shown = filter === 'semua' ? data.invoices : filter === 'belum' ? open
@@ -63,21 +61,18 @@ export default function KasirPage() {
         </span>
       </div>
       <div className="mb-3 grid grid-cols-2 gap-3">
-        <Card className="gap-1"><span className="text-sm text-muted">Belum bayar</span><strong className="text-2xl tabular-nums">{open.length}</strong></Card>
-        <Card className="gap-1"><span className="text-sm text-muted">Diterima hari ini</span><strong className="text-2xl tabular-nums">{rev ? rp(rev.amount_rp) : '–'}</strong></Card>
+        <Stat label="Belum bayar" value={open.length} />
+        <Stat label="Diterima hari ini" value={rev ? rp(rev.amount_rp) : '–'} />
       </div>
-      <ToggleButtonGroup aria-label="Saring tagihan" selectionMode="single" disallowEmptySelection isDetached className="mb-3 flex-wrap gap-2"
-        selectedKeys={[filter]} onSelectionChange={(k) => { const f = [...k][0]; if (f) setFilter(f as Filter) }}>
-        {(Object.keys(FILTERS) as Filter[]).map((f) => <ToggleButton key={f} id={f} className="pick">{FILTERS[f]}</ToggleButton>)}
-      </ToggleButtonGroup>
+      <FilterChips label="Saring tagihan" className="mb-3" value={filter} onChange={setFilter} options={Object.entries(FILTERS) as [Filter, string][]} />
       {data.invoices.length === 0
         ? <Card><EmptyState><strong>Tidak ada tagihan terbuka.</strong>
           <p className="text-sm text-muted">Tagihan muncul setelah dokter menekan Selesai pada kunjungan yang punya tindakan.</p></EmptyState></Card>
         : filter === 'semua' ? <>
-          <section aria-labelledby="kasir-open"><h2 id="kasir-open" className="kasir-h">Belum bayar ({open.length})</h2>
+          <section aria-labelledby="kasir-open"><SectionTitle id="kasir-open" count={open.length}>Belum bayar</SectionTitle>
             {open.length ? list(open) : <p className="text-muted">Semua sudah lunas.</p>}
           </section>
-          {done.length > 0 && <section aria-labelledby="kasir-done"><h2 id="kasir-done" className="kasir-h">Lunas / void hari ini ({done.length})</h2>
+          {done.length > 0 && <section aria-labelledby="kasir-done"><SectionTitle id="kasir-done" count={done.length}>Lunas / void hari ini</SectionTitle>
             {list(done)}
           </section>}
         </> : shown.length ? list(shown)

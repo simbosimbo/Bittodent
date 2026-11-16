@@ -2,8 +2,10 @@ import { useState, type ReactNode } from 'react'
 import { Button, Popover } from '@heroui/react'
 
 /** Disclosure menu (HeroUI Popover: button + popover of links/buttons). Closes on Escape (focus back to the button), click outside, or `close()`. */
-export function Menu({ label, trigger, className, align = 'right', children }: {
+export function Menu({ label, trigger, className, align = 'right', variant = 'ghost', isIconOnly, children }: {
   label: string
+  variant?: 'ghost' | 'primary' | 'outline'
+  isIconOnly?: boolean
   trigger: ReactNode
   className?: string
   align?: 'left' | 'right'
@@ -12,7 +14,7 @@ export function Menu({ label, trigger, className, align = 'right', children }: {
   const [open, setOpen] = useState(false)
   return (
     <Popover isOpen={open} onOpenChange={setOpen}>
-      <Button variant="ghost" className={className} aria-label={label}>{trigger}</Button>
+      <Button variant={variant} isIconOnly={isIconOnly} className={className} aria-label={label}>{trigger}</Button>
       <Popover.Content placement={align === 'right' ? 'bottom end' : 'bottom start'}>
         <Popover.Dialog aria-label={label} className="menu-pop">{children(() => setOpen(false))}</Popover.Dialog>
       </Popover.Content>

@@ -15,15 +15,15 @@ test('Kasir (KL01): cards with KPI; open ones first, each card opens its tagihan
     row('h', 'terbuka', 400000, 'Hendra Contoh', { payer_type: 'bpjs', items: ['Scaling'] }),
     row('t', 'terbuka', 250000, 'Budi Contoh', { created_at: '2026-11-10T03:00:00Z' }), row('b', 'lunas', 0, 'Dewi Contoh')] })
   render(<KasirPage />)
-  const open = await screen.findByRole('region', { name: 'Belum bayar (3)' })
+  const open = await screen.findByRole('region', { name: 'Belum bayar · 3' })
   expect(await screen.findByText('Rp2.150.000')).toBeInTheDocument() // diterima hari ini
   const sari = within(open).getByRole('link', { name: /Sari Contoh, belum bayar, Rp150.000/ })
   expect(sari).toHaveAttribute('href', '#/tagihan/v-a')
   expect(sari).toHaveTextContent('Tumpatan 26')
-  expect(within(screen.getByRole('region', { name: 'Lunas / void hari ini (1)' })).getByRole('link', { name: /Dewi Contoh/ })).toHaveAttribute('href', '#/tagihan/v-b')
-  fireEvent.click(screen.getByRole('radio', { name: 'BPJS' }))
+  expect(within(screen.getByRole('region', { name: 'Lunas / void hari ini · 1' })).getByRole('link', { name: /Dewi Contoh/ })).toHaveAttribute('href', '#/tagihan/v-b')
+  fireEvent.click(screen.getByRole('button', { name: 'BPJS' }))
   expect(screen.getAllByRole('listitem').map((l) => l.textContent)).toEqual([expect.stringContaining('Hendra Contoh')])
-  fireEvent.click(screen.getByRole('radio', { name: 'Tempo' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Tempo' }))
   expect(screen.getAllByRole('listitem').map((l) => l.textContent)).toEqual([expect.stringContaining('Budi Contoh')])
 })
 

@@ -879,6 +879,6 @@ test('Pasien datang (audit P1-6): the desk registers a walk-in with dentist + ke
   fireEvent.change(within(dlg).getByLabelText('Keluhan (opsional)'), { target: { value: 'Gusi bengkak' } })
   fireEvent.click(within(dlg).getByRole('button', { name: 'Daftarkan datang' }))
   await vi.waitFor(() => expect(posts).toEqual([{ url: '/api/patients/p7/visits/walk-in', body: { dentist_id: 'd1', complaint: 'Gusi bengkak' } }]))
-  expect(await screen.findByText('Pasien Rina Contoh terdaftar datang')).toHaveAttribute('role', 'status')
+  expect((await screen.findByText('Pasien Rina Contoh terdaftar datang')).closest('[role="status"]')).not.toBeNull()
   await vi.waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
 })

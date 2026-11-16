@@ -310,15 +310,15 @@ test.each(['/pasien/p2', '/keluarga/p2', '/riwayat-medis/p2'])('ribbon on %s is 
 test('HP bottom nav: kasir / front desk / pemilik (no chart writing) -> Kasir in one tap; a chart writer keeps Rekam Medis (#71)', () => {
   viewport(412)
   const kasir: Me = { ...me, roles: ['kasir'], permissions: ['patient.read', 'appointment.read', 'billing.read', 'billing.adjust'] }
-  const tabs = () => [...screen.getByRole('navigation', { name: 'Navigasi utama' }).querySelectorAll('a')].map(tabLabel)
+  const navTabs = () => [...screen.getByRole('navigation', { name: 'Navigasi utama' }).querySelectorAll('a')].map(tabLabel)
   const k = shell(kasir)
-  expect(tabs()).toEqual(['Beranda', 'Jadwal', 'Pasien', 'Kasir'])
+  expect(navTabs()).toEqual(['Beranda', 'Jadwal', 'Pasien', 'Kasir'])
   k.unmount()
   const p = shell(me)
-  expect(tabs()).toEqual(['Beranda', 'Jadwal', 'Pasien', 'Kasir'])
+  expect(navTabs()).toEqual(['Beranda', 'Jadwal', 'Pasien', 'Kasir'])
   p.unmount()
   shell(clin)
-  expect(tabs()).toEqual(['Beranda', 'Jadwal', 'Pasien', 'RM'])
+  expect(navTabs()).toEqual(['Beranda', 'Jadwal', 'Pasien', 'RM'])
 })
 
 test('HP bottom nav: badge jumlah di Jadwal (dengan label pembaca layar); tanpa badge saat 0; desktop tanpa badge', () => {

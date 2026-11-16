@@ -1,6 +1,8 @@
 // Jadwal on a phone (≤720px): role mode (Meja depan | Dokter), sectioned agenda, cards with one primary action, toast, Bayar prompt,
 // reschedule form and the owner's day summary. Schedule.tsx owns the data and the actions; this file only renders.
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { SectionTitle } from '../../shared/ui/SectionTitle'
+import { Select } from '../../shared/ui/Select'
 import { Button, buttonVariants, Chip as HChip, Spinner, ToggleButton } from '@heroui/react'
 import { ApiError, errorText } from '../../shared/api/http'
 import { fmtTime } from '../../shared/format'
@@ -12,6 +14,7 @@ import { Sheet } from '../../shared/ui/Sheet'
 import { getDailyRevenue, invoiceStatuses } from '../billing'
 import { reschedule, type Appointment, type Schedule as Sched } from './api'
 import { END, hhmm, minutesOfDay, SLOTS } from './parts'
+import { Note } from '../../shared/ui/Note'
 
 // ---- Role mode ----
 export type Mode = 'depan' | 'dokter'
@@ -170,7 +173,7 @@ function Fold({ title, count, open, children }: { title: string; count: number; 
   const id = 'sec-' + title.toLowerCase().replace(/\s+/g, '-')
   return (
     <details className="agenda-sec" open={open}>
-      <summary><h2 id={id}>{title} <span>· {count}</span></h2><Icon d={ICONS.up} size={18} /></summary>
+      <summary><SectionTitle id={id} count={count}>{title}</SectionTitle><Icon d={ICONS.up} size={18} /></summary>
       <ul className="agenda" aria-labelledby={id}>{children}</ul>
     </details>
   )
@@ -319,9 +322,9 @@ export function RescheduleSheet({ a, tz, date, chairs, onClose, onSaved }: {
       <form className="resched" onSubmit={submit} noValidate>
         <p className="muted">{a.patient?.name} · {mins} menit</p>
         <label>Tanggal<DateField className="resched-date" value={day} onChange={(e) => e.target.value && setDay(e.target.value)} /></label>
-        <label>Jam mulai<select value={minute} onChange={(e) => setMinute(Number(e.target.value))}>{SLOTS.map((m) => <option key={m} value={m}>{hhmm(m)}</option>)}</select></label>
-        <label>Kursi<select value={chair} onChange={(e) => setChair(e.target.value)}>{chairs.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}</select></label>
-        {error && <p className="form-error" role="alert">{error}</p>}
+        <label>Jam mulai<Select value={minute} onChange={(e) => setMinute(Number(e.target.value))}>{SLOTS.map((m) => <option key={m} value={m}>{hhmm(m)}</option>)}</Select></label>
+        <label>Kursi<Select value={chair} onChange={(e) => setChair(e.target.value)}>{chairs.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}</Select></label>
+        {error && <Note status="danger" role="alert">{error}</Note>}
         <div className="appt-sheet-actions">
           <Button type="submit" variant="primary" isDisabled={busy}>{busy ? 'Menyimpan…' : 'Simpan'}</Button>
         </div>
@@ -357,10 +360,10 @@ export function ChairSheet({ a, chairs, save, onClose, onSaved }: {
     <Sheet title="Ganti kursi" onClose={onClose} className="appt-sheet">
       <form className="resched" onSubmit={submit} noValidate>
         <p className="muted">{a.patient?.name} · {a.dentist?.name} · dokter tetap</p>
-        <label>Kursi<select value={chair} onChange={(e) => setChair(e.target.value)}>
+        <label>Kursi<Select value={chair} onChange={(e) => setChair(e.target.value)}>
           {chairs.map((c) => <option key={c.id} value={c.id}>{c.label}{c.id === a.chair_id ? ' (sekarang)' : ''}</option>)}
-        </select></label>
-        {error && <p className="form-error" role="alert">{error}</p>}
+        </Select></label>
+        {error && <Note status="danger" role="alert">{error}</Note>}
         <div className="appt-sheet-actions">
           <Button type="submit" variant="primary" isDisabled={busy || chair === a.chair_id}>{busy ? 'Menyimpan…' : 'Simpan'}</Button>
         </div>
@@ -405,15 +408,15 @@ export function ReferSheet({ a, dentists, save, unavailable = false, onClose, on
     <Sheet title="Rujuk ke dokter lain" onClose={onClose} className="appt-sheet">
       <form className="resched" onSubmit={submit} noValidate>
         <p className="muted">{a.patient?.name} · dari {a.dentist?.name ?? 'dokter'} · jam dan kursi tetap</p>
-        <label>Dokter gigi tujuan<select value={dentist} onChange={(e) => setDentist(e.target.value)}>
+        <label>Dokter gigi tujuan<Select value={dentist} onChange={(e) => setDentist(e.target.value)}>
           {others.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-        </select></label>
+        </Select></label>
         <div className="refer-presets" role="group" aria-label="Alasan cepat">
           <ToggleButton className="refer-preset" isSelected={preset} onChange={(on) => { setPreset(on); setError('') }}>{UNAVAILABLE}</ToggleButton>
         </div>
         <label>{preset ? 'Keterangan (opsional)' : 'Alasan rujukan'}<textarea value={note} maxLength={450} rows={3}
           onChange={(e) => { setNote(e.target.value); setError('') }} placeholder={preset ? 'mis. sakit, cuti' : 'mis. Perlu penanganan bedah mulut'} /></label>
-        {error && <p className="form-error" role="alert">{error}</p>}
+        {error && <Note status="danger" role="alert">{error}</Note>}
         <div className="appt-sheet-actions">
           <Button type="submit" variant="primary" isDisabled={busy || !dentist}>{busy ? 'Menyimpan…' : 'Rujuk'}</Button>
         </div>

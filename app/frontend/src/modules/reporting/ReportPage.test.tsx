@@ -68,7 +68,7 @@ test('1280px: tables, no cards', async () => {
   await screen.findByText('konfirmasi_tindakan_luar')
   expect(container.querySelectorAll('table.table')).toHaveLength(3)
   expect(container.querySelector('.report-cards, .report-kpis')).toBeNull()
-  expect(container.querySelector('.date-field-desk')).not.toBeNull() // review-3: "15 Nov 2026" on desktop too
+  expect(container.querySelector('.bt-date-field-desk')).not.toBeNull() // review-3: "15 Nov 2026" on desktop too
 })
 
 test('390px: KPIs, per-dentist cards (key figure first), audit cards, 44px pager; no tables', async () => {
@@ -88,7 +88,7 @@ test('390px: KPIs, per-dentist cards (key figure first), audit cards, 44px pager
   expect(screen.getByRole('button', { name: 'Berikutnya' })).not.toHaveClass('btn-xs')
   // date range in Indonesian format over the native input
   expect(screen.getByLabelText(/^Dari/)).toHaveAttribute('type', 'date')
-  expect(container.querySelector('.date-field-text')).toHaveTextContent(/^1 Nov 2026$|^\d{1,2} \w{3} \d{4}$/)
+  expect(container.querySelector('.bt-date-field-text')).toHaveTextContent(/^1 Nov 2026$|^\d{1,2} \w{3} \d{4}$/)
 })
 
 test('section errors show a retry; retry reloads only that section', async () => {
