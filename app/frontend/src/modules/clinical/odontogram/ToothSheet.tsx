@@ -36,11 +36,12 @@ export function ToothSheet({ tooth, visitId, initialSurface, onSaved }: {
   const [codeFor, setCodeFor] = useState<Record<string, string>>({})
   const [pick, setPick] = useState<Pick | null>(null)
   // 409 duplicate_procedure: the same billable procedure is already on this site in this visit; ask before billing it twice
-  const [dup, setDup] = useState<{ key: string; message: string } | null>(null)
-  // S2: stage/level per procedure (PSA kunjungan 1 / lanjutan, mahkota preparasi / pasang). Labels only; the owner sets them in Harga.
+  const [dup, setDup] = useState<{ key: string; message: string } | null>(null)  // S2: stage/level per procedure (PSA kunjungan 1 / lanjutan, mahkota preparasi / pasang). Labels only; the owner sets them in Harga.
   const [stages, setStages] = useState<Record<string, { variant: string; label: string }[]>>({})
   const [catalog, setCatalog] = useState<CatalogRow[]>([])
   const [variantFor, setVariantFor] = useState<Record<string, string>>({})
+  // any edit makes the duplicate question stale: "Tambah lagi" must confirm exactly the entry the server asked about
+  useEffect(() => setDup(null), [pads, status, spanTo, roles, material, ext, variantFor])
   useEffect(() => {
     getStages().then((s) => setStages(s && typeof s === 'object' && !Array.isArray(s) ? s : {}), () => setStages({}))
     getCatalog().then((c) => setCatalog(Array.isArray(c) ? c : []), () => setCatalog([]))

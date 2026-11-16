@@ -94,6 +94,17 @@ test('duplicate: a 409 asks in the sheet; Tambah lagi resends the same entry wit
   expect(screen.queryByRole('alertdialog')).toBeNull()
 })
 
+test('duplicate: editing the entry while asked drops the question, so Tambah lagi never confirms an unseen entry', async () => {
+  vi.mocked(saveToothEntry).mockRejectedValueOnce(dupError())
+  render(<ToothSheet tooth={46} visitId="v1" onSaved={() => undefined} />)
+  fireEvent.click(await screen.findByRole('radio', { name: /Pencabutan gigi/ }))
+  fireEvent.click(simpan())
+  await screen.findByRole('alertdialog')
+  fireEvent.click(screen.getByRole('radio', { name: 'Rencana' }))
+  expect(screen.queryByRole('alertdialog')).toBeNull()
+  expect(saveToothEntry).toHaveBeenCalledTimes(1)
+})
+
 test('duplicate: Batal closes the question and sends nothing', async () => {
   vi.mocked(saveToothEntry).mockRejectedValueOnce(dupError())
   render(<ToothSheet tooth={46} visitId="v1" onSaved={() => undefined} />)
