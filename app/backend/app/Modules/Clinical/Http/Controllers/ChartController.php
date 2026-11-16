@@ -18,6 +18,7 @@ use App\Modules\Patients\Contracts\PatientDirectory;
 use App\Modules\Scheduling\Contracts\AppointmentDirectory;
 use App\Modules\Tenancy\Contracts\TenancyDirectory;
 use App\Shared\Audit\Audit;
+use App\Shared\Crypto\Crypto;
 use App\Shared\Http\Controller;
 use App\Shared\Tenancy\Ctx;
 use Carbon\CarbonImmutable;
@@ -67,7 +68,7 @@ class ChartController extends Controller
         $closer = app(VisitCloser::class);
         $out = $visits->map(fn (Visit $v) => [
             'id' => $v->id, 'appointment_id' => $v->appointment_id, 'branch_id' => $v->branch_id, 'started_at' => $v->started_at,
-            'status' => $v->status, 'attendance_cancelled_at' => $v->attendance_cancelled_at, 'dentist' => ['id' => $v->dentist_id, 'name' => $names[$v->dentist_id] ?? null],
+            'status' => $v->status, 'complaint' => Crypto::decrypt($v->complaint_enc), 'attendance_cancelled_at' => $v->attendance_cancelled_at, 'dentist' => ['id' => $v->dentist_id, 'name' => $names[$v->dentist_id] ?? null],
             'notes' => $notes->where('visit_id', $v->id)->values()->map(fn ($n) => self::note($n, $names, $requests->get($n->id))),
             'draft_findings' => $findings->where('visit_id', $v->id)->where('state', 'draft')->values()->map(self::finding(...)),
             'draft_procedures' => $procedures->where('visit_id', $v->id)->where('state', 'draft')->values()->map($proc),
@@ -145,7 +146,8 @@ class ChartController extends Controller
         }
         try {
             $v = Visit::create(['patient_id' => $a['patient_id'], 'branch_id' => $a['branch_id'], 'dentist_id' => $a['dentist_id'],
-                'appointment_id' => $id, 'started_at' => now(), 'status' => 'berlangsung', 'created_by' => Ctx::current()->userId]);
+                'appointment_id' => $id, 'started_at' => now(), 'status' => 'berlangsung', 'created_by' => Ctx::current()->userId,
+                'complaint_enc' => Crypto::encrypt($appointments->complaint($id))]);
         } catch (UniqueConstraintViolationException) { // a parallel request won
             return response()->json(self::visit(Visit::where('appointment_id', $id)->firstOrFail()));
         }
@@ -175,14 +177,16 @@ class ChartController extends Controller
             throw ValidationException::withMessages(['dentist_id' => 'Dokter gigi tidak aktif di cabang ini.']);
         }
 
-        [$v, $created] = DB::transaction(function () use ($id, $patients, $ctx, $dentist) {
+        $complaint = $request->validated('complaint');
+        [$v, $created] = DB::transaction(function () use ($id, $patients, $ctx, $dentist, $complaint) {
             $patients->lock($id); // 404 for other tenants; serializes parallel walk-ins (appointment_id NULL has no unique guard)
             if ($open = Visit::where('patient_id', $id)->where('branch_id', $ctx->branchId)->where('status', 'berlangsung')
                 ->orderByDesc('started_at')->first()) {
                 return [$open, false];
             }
             $v = Visit::create(['patient_id' => $id, 'branch_id' => $ctx->branchId, 'dentist_id' => $dentist,
-                'appointment_id' => null, 'started_at' => now(), 'status' => 'berlangsung', 'created_by' => $ctx->userId]);
+                'appointment_id' => null, 'started_at' => now(), 'status' => 'berlangsung', 'created_by' => $ctx->userId,
+                'complaint_enc' => Crypto::encrypt($complaint)]);
             Audit::log('buat', 'visit', $v->id, ['walk_in' => true, 'patient_id' => $id, 'dentist_id' => $dentist, 'branch_id' => $ctx->branchId]);
 
             return [$v, true];

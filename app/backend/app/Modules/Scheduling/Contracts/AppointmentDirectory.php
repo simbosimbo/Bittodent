@@ -14,6 +14,9 @@ interface AppointmentDirectory
      * @return list<array{id: string, patient_id: string, dentist_id: string, status: string, starts_at: string}> */
     public function cancelledStartingBetween(\DateTimeInterface $from, \DateTimeInterface $to, ?array $branchIds): array;
 
+    /** The complaint for the medical record: the encrypted complaint (online booking, check-in), else the plain `reason`. */
+    public function complaint(string $appointmentId): ?string;
+
     /**
      * The appointment follows its visit: walk booked -> checked_in -> in_treatment -> done up to $to ('in_treatment' | 'done'),
      * stamping and auditing each step. No-op when already there or past it, or off that path (pending, cancelled, no_show, rejected).

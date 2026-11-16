@@ -6,6 +6,7 @@ use App\Modules\Scheduling\Contracts\AppointmentDirectory;
 use App\Modules\Scheduling\Domain\AppointmentStatus;
 use App\Modules\Scheduling\Models\Appointment;
 use App\Shared\Audit\Audit;
+use App\Shared\Crypto\Crypto;
 use Illuminate\Support\Facades\DB;
 
 final class AppointmentDirectoryService implements AppointmentDirectory
@@ -31,6 +32,13 @@ final class AppointmentDirectoryService implements AppointmentDirectory
             ->when($branchIds !== null, fn ($q) => $q->whereIn('branch_id', $branchIds))->get()
             ->map(fn ($a) => ['id' => $a->id, 'patient_id' => $a->patient_id, 'dentist_id' => $a->dentist_id, 'status' => $a->status,
                 'starts_at' => $a->starts_at->toIso8601ZuluString()])->all();
+    }
+
+    public function complaint(string $appointmentId): ?string
+    {
+        $a = Appointment::findOrFail($appointmentId);
+
+        return Crypto::decrypt($a->complaint_enc) ?? $a->reason;
     }
 
     public function advance(string $appointmentId, string $to): void

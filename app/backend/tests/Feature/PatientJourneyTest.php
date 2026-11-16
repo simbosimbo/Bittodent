@@ -6,6 +6,7 @@ use App\Modules\Billing\Models\InvoiceLine;
 use App\Modules\Clinical\Models\ProcedureRecord;
 use App\Modules\Scheduling\Models\Appointment;
 use App\Modules\Scheduling\Models\Chair;
+use App\Shared\Audit\AuditEvent;
 use App\Shared\Tenancy\Ctx;
 use Carbon\CarbonImmutable;
 use Tests\TestCase;
@@ -26,14 +27,15 @@ class PatientJourneyTest extends TestCase
         $chair = Ctx::runAs($this->tenantA()->id, fn () => Chair::orderBy('label')->firstOrFail()->id);
         $at = CarbonImmutable::now('Asia/Jakarta')->setTime(19, 0);
         $appt = $this->as($desk)->postJson('/api/appointments', ['patient_id' => $patient, 'chair_id' => $chair, 'dentist_id' => $this->user($doc)->id,
-            'starts_at' => $at->toIso8601String(), 'ends_at' => $at->addMinutes(30)->toIso8601String(), 'reason' => 'Gigi berlubang, ngilu'])->assertCreated()->json('id');
-        $this->as($desk)->postJson("/api/appointments/$appt/transition", ['to' => 'checked_in'])->assertOk();
+            'starts_at' => $at->toIso8601String(), 'ends_at' => $at->addMinutes(30)->toIso8601String(), 'reason' => 'Periksa gigi'])->assertCreated()->json('id');
+        $this->as($desk)->postJson("/api/appointments/$appt/transition", ['to' => 'checked_in', 'complaint' => 'Gigi berlubang, ngilu'])->assertOk();
         $this->as($desk)->postJson("/api/appointments/$appt/visit")->assertForbidden(); // only clinical roles open the visit
 
         // 3-4. dentist: open the record, wrong tooth first, fix it (5), then the real work: tambal komposit 36 O, Selesai
         $visit = $this->as($doc)->postJson("/api/appointments/$appt/visit")->assertCreated()->json('id');
         $status = fn () => Ctx::runAs($this->tenantA()->id, fn () => Appointment::findOrFail($appt)->status);
         $this->assertSame('in_treatment', $status()); // the schedule shows the chair in use (audit P1-2)
+        $this->assertSame('Gigi berlubang, ngilu', $this->as($doc)->getJson("/api/patients/$patient/chart")->json('visits.0.complaint')); // P1-1
         $wrong = $this->as($doc)->postJson("/api/visits/$visit/tooth-entries", ['tooth' => 37, 'surfaces' => ['O'], 'condition' => 'tambalan_komposit', 'status' => 'selesai'])->assertCreated()->json('id');
         $this->as($doc)->deleteJson("/api/procedures/$wrong")->assertNoContent();
         $entry = $this->as($doc)->postJson("/api/visits/$visit/tooth-entries", ['tooth' => 36, 'surfaces' => ['O'], 'condition' => 'tambalan_komposit', 'status' => 'selesai'])
@@ -56,6 +58,7 @@ class PatientJourneyTest extends TestCase
             $done = ProcedureRecord::where('visit_id', $visit)->where('state', 'final')->where('status', 'selesai')->whereNotNull('procedure_code')->pluck('id')->all(); // the discarded draft (37) stays as 'discarded', never billed
             $this->assertSame([$entry], $done);
             $this->assertSame(1, InvoiceLine::whereIn('procedure_id', $done)->count());
+            $this->assertFalse(AuditEvent::get()->contains(fn ($e) => str_contains(json_encode($e->detail), 'ngilu'))); // never logged
         });
     }
 
