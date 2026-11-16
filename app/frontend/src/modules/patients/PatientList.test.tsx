@@ -182,7 +182,7 @@ test('390px, dentist: "Pasien saya" chip is the default dentist filter; "Semua d
   expect(await screen.findByText('Budi Contoh')).toBeInTheDocument()
 })
 
-test('390px: title "Pasien" with a loaded count, short placeholder, FAB only with patient.create', async () => {
+test('390px: title "Pasien" with a loaded count, short placeholder; Pasien baru lives in the top bar "+" (no FAB)', async () => {
   viewport(390)
   serve()
   const { unmount } = render(<PatientList canCreate />)
@@ -190,14 +190,12 @@ test('390px: title "Pasien" with a loaded count, short placeholder, FAB only wit
   expect(screen.getByRole('heading', { level: 1, name: 'Pasien' })).toBeInTheDocument()
   expect(screen.getByText('3 pasien')).toBeInTheDocument()
   expect(screen.getByRole('searchbox')).toHaveAttribute('placeholder', 'Cari nama atau No. RM')
-  const fab = screen.getByRole('link', { name: 'Pasien baru' })
-  expect(fab).toHaveClass('fab')
-  expect(fab).toHaveAttribute('href', '#/pasien/baru')
-  expect(screen.getAllByRole('link', { name: 'Pasien baru' })).toHaveLength(1) // FAB only, no toolbar button
+  expect(screen.queryByRole('link', { name: 'Pasien baru' })).toBeNull() // "+" menu → Daftarkan pasien (Shell)
+  expect(document.querySelector('.fab')).toBeNull()
   unmount()
-  render(<PatientList canCreate={false} />)
-  await screen.findByRole('list', { name: 'Daftar pasien' })
-  expect(screen.queryByRole('link', { name: 'Pasien baru' })).toBeNull()
+  viewport(1280)
+  render(<PatientList canCreate />)
+  expect(await screen.findByRole('link', { name: 'Pasien baru' })).toHaveAttribute('href', '#/pasien/baru') // desktop keeps its button
 })
 
 test('1280px: still the table', async () => {

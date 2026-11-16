@@ -260,10 +260,10 @@ test('HP: ketuk kartu membuka sheet aksi; aksi memanggil transisi yang sama; Esc
   const posts = mockOne(() => [appt('a2', 'booked', 'staff', 'Budi Contoh', '10:00'), appt('a1', 'pending_confirmation', 'online', 'Sinta Contoh', '09:00')])
   render(<Schedule me={ME_CHART} />)
   const card = await screen.findByRole('button', { name: /^10\.00.*Budi Contoh/ })
-  // Gaya ringkas HP: the card has no buttons; name + status dot, then "10.00 › 10.30" + meta
+  // Gaya ringkas HP: the card has no buttons; who + status dot, then what (service), then "10.00 › 10.30" + where
   expect(card.closest('li')!.querySelectorAll('button, a')).toHaveLength(1)
   expect(within(card).getByText('Terjadwal').closest('[data-status]')).toHaveAttribute('data-status', 'booked')
-  expect(card).toHaveTextContent('10.00 › 10.30 · Konsultasi')
+  expect(card).toHaveTextContent(/^Budi ContohTerjadwalKonsultasi10\.00 › 10\.30/)
 
   card.focus()
   fireEvent.click(card)
@@ -273,7 +273,9 @@ test('HP: ketuk kartu membuka sheet aksi; aksi memanggil transisi yang sama; Esc
   expect(document.documentElement.style.overflow).toBe('hidden') // React Aria locks scroll on <html>
   expect(within(dialog).getByRole('link', { name: 'Buka RM' })).toHaveAttribute('href', '#/rekam-medis/p-a2/janji/a2')
   expect(within(dialog).getByRole('button', { name: 'Check-in' })).toHaveClass('button--primary') // the one full-width main action
-  expect(dialog).toHaveTextContent('Keluhan / tindakanKonsultasi')
+  expect(dialog).toHaveTextContent('Waktu10.00 › 10.30')
+  expect(dialog).not.toHaveTextContent('Keluhan / tindakan') // the desk can still edit it: one Keluhan input, not text + input
+  expect(within(dialog).getByLabelText('Keluhan')).toHaveValue('Konsultasi')
   fireEvent.keyDown(document.activeElement!, { key: 'Escape' })
   expect(screen.queryByRole('dialog')).toBeNull()
   await vi.waitFor(() => expect(document.activeElement).toBe(card)) // focus back to the card (React Aria restores it a frame later)
@@ -639,7 +641,7 @@ test('HP Meja depan: Perlu tindakan sekarang (Check-in jatuh tempo, Bayar, Konfi
   tutup()
   await screen.findByRole('button', { name: /^09\.30.*Pasien c/ })
   // dentist chip filter (DEVIATIONS #68); the chair stays on the card
-  expect(screen.getByRole('button', { name: /^09\.30.*Pasien c/ })).toHaveTextContent('Konsultasi · drg. Lain Contoh · Kursi 2')
+  expect(screen.getByRole('button', { name: /^09\.30.*Pasien c/ })).toHaveTextContent('Kursi 2 · drg. Lain Contoh')
   fireEvent.click(within(screen.getByRole('group', { name: 'Pilih dokter' })).getByRole('button', { name: /drg\. Lain/ }))
   expect(screen.queryByText('Pasien b')).toBeNull()
   expect(screen.getByText('Pasien c')).toBeInTheDocument()

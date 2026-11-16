@@ -1,9 +1,9 @@
 // Jadwal on a phone (≤720px): role mode (Meja depan | Dokter), sectioned agenda, button-free cards (tap → detail sheet), toast, Bayar prompt,
 // reschedule form and the owner's day summary. Schedule.tsx owns the data and the actions; this file only renders.
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { SectionTitle } from '../../shared/ui/SectionTitle'
 import { Select } from '../../shared/ui/Select'
-import { Button, buttonVariants, Chip as HChip, ToggleButton } from '@heroui/react'
+import { Button, buttonVariants, ToggleButton } from '@heroui/react'
 import { ApiError, errorText } from '../../shared/api/http'
 import { fmtTime } from '../../shared/format'
 import type { Me } from '../../shared/session'
@@ -138,16 +138,18 @@ function Card({ a, tz, chair, dentist, owe, onOpen, busy, arrived }: {
   /** just moved into this section (200 ms slide-in) */ arrived?: boolean
 }) {
   const who = a.patient?.name ?? 'Pasien'
-  // Gaya ringkas HP: the whole card is one button (no action buttons); actions live in the detail sheet. The service (reason) is
-  // never cut off; dentist and chair are secondary.
-  const meta = [a.reason, dentist ? a.dentist?.name : null, chair, a.source === 'online' && a.status !== 'pending_confirmation' ? 'Online' : null].filter(Boolean).join(' · ')
+  // Gaya ringkas HP: the whole card is one button (no action buttons); actions live in the detail sheet. Row 1 who + status,
+  // row 2 what (the service, never cut off), row 3 when/where: time · chair · dentist (desk) · Online.
+  const where = [chair, dentist ? a.dentist?.name : null, a.source === 'online' && a.status !== 'pending_confirmation' ? 'Online' : null].filter(Boolean).join(' · ')
+  const meta = [a.reason, where].filter(Boolean).join(', ')
   const label = busy ? 'Memproses' : statusLabel(a, owe)
   return (
     <li className={`agenda-item appt-${a.status}${arrived ? ' agenda-arrive' : ''}`}>
       <button type="button" className="agenda-open" aria-haspopup="dialog" onClick={onOpen} disabled={busy} aria-busy={busy || undefined}
         aria-label={busy ? `Memproses ${who}` : `${fmtTime(a.starts_at, tz)}–${fmtTime(a.ends_at, tz)} ${who}, ${label}${meta ? ', ' + meta : ''}`}>
         <span className="agenda-row"><span className="agenda-name">{who}</span>{busy ? <StatusDot status="busy">Memproses</StatusDot> : <Status a={a} owe={owe} />}</span>
-        <span className="agenda-meta"><span className="agenda-time">{span(a, tz)}</span>{meta && ` · ${meta}`}</span>
+        {a.reason && <span className="agenda-what">{a.reason}</span>}
+        <span className="agenda-meta"><span className="agenda-time">{span(a, tz)}</span>{where && ` · ${where}`}</span>
       </button>
     </li>
   )
@@ -241,11 +243,14 @@ export function Agenda({ mode, list, tz, chairs, nowMin, unpaid, onOpen, confirm
  * Tap a card (agenda, grid, Beranda dokter): who, status, time, keluhan, chair, dentist; one full-width main action (`main`, by mode +
  * status, else the first primary-toned act), the rest below as rows, Batalkan last behind a confirm step.
  */
-export function ApptSheet({ a, tz, chair, acts, main, owe, onClose, onReschedule, onForm, children }: {
+export function ApptSheet({ a, tz, chair, acts, main, owe, onClose, onReschedule, onForm, reasonEdit }: {
   a: Appointment; tz: string; chair?: string; acts: Act[]; main?: Act | null; owe?: boolean; onClose: () => void; onReschedule?: () => void
-  onForm?: (kind: 'chair' | 'refer') => void; children?: ReactNode
+  onForm?: (kind: 'chair' | 'refer') => void
+  /** the desk may still edit the keluhan (before check-in): one input instead of the read-only row */
+  reasonEdit?: { value: string; onChange: (v: string) => void }
 }) {
   const [confirmCancel, setConfirmCancel] = useState<Act | null>(null)
+  const reasonId = useId()
   const run = (x: Act) => {
     if (x.key === 'cancel') return setConfirmCancel(x)
     if (x.key === 'reschedule') return onReschedule?.()
@@ -255,16 +260,16 @@ export function ApptSheet({ a, tz, chair, acts, main, owe, onClose, onReschedule
   }
   const top = main ?? acts.find((x) => x.tone === 'primary') ?? null
   const rest = acts.filter((x) => x.key !== top?.key)
-  const info: [string, ReactNode][] = ([['Keluhan / tindakan', a.reason], ['Kursi', chair], ['Dokter', a.dentist?.name]] as [string, ReactNode][]).filter(([, v]) => v)
+  const online = a.source === 'online' && a.status !== 'pending_confirmation'
+  const info: [ReactNode, ReactNode][] = ([
+    ['Waktu', <span className="tabular-nums">{span(a, tz)}{online && ' · daftar online'}</span>],
+    reasonEdit ? [<label htmlFor={reasonId}>Keluhan</label>, <input id={reasonId} value={reasonEdit.value} maxLength={500} placeholder="mis. Gigi ngilu"
+      onChange={(e) => reasonEdit.onChange(e.target.value)} />] : ['Keluhan / tindakan', a.reason],
+    ['Kursi', chair], ['Dokter', a.dentist?.name],
+  ] as [ReactNode, ReactNode][]).filter(([, v]) => v)
   return (
-    <Sheet title={a.patient?.name ?? 'Janji'} onClose={onClose} className="appt-sheet">
-      <p className="appt-sheet-meta">
-        <span>{span(a, tz)}</span>
-        {a.source === 'online' && a.status !== 'pending_confirmation' && <HChip size="sm" className="chip-online">Online</HChip>}
-        <Status a={a} owe={owe} />
-      </p>
-      {info.length > 0 && <dl className="appt-sheet-info">{info.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>}
-      {children}
+    <Sheet title={a.patient?.name ?? 'Janji'} aside={<Status a={a} owe={owe} />} onClose={onClose} className="appt-sheet">
+      <dl className="appt-sheet-info">{info.map(([k, v], i) => <div key={i}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
       {confirmCancel ? (
         <div className="appt-sheet-actions" role="group" aria-label="Batalkan janji?">
           <p><strong>Batalkan janji ini?</strong></p>

@@ -57,7 +57,7 @@ function DefaultDiagnoses() {
         <div className="stack">
           {rows.map((r) => (
             <div key={r.procedure_code}>
-              <strong>{r.name}</strong> <span className="muted small">{r.procedure_code}</span>
+              <span className="font-medium">{r.name}</span> <span className="muted small">{r.procedure_code}</span>{/* field label of the ICD-10 search below: 500 */}
               <p className="small">
                 {r.default_icd10 ? `${r.default_icd10} ${r.default_icd10_display ?? ''}` : <span className="muted">Belum ada</span>}
                 {r.default_icd10 && <> <Button size="sm" variant="ghost" aria-label={`Hapus diagnosis bawaan ${r.name}`} onPress={() => pick(r.procedure_code, null)}>Hapus</Button></>}

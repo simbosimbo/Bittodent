@@ -2,17 +2,17 @@
    Unlayered: wins over HeroUI component sizes and the legacy layer. */
 .set-page .button, .set-page .toggle-button, .set-page .input { min-height: 48px; }
 .set-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin: -4px 0 18px; flex-wrap: nowrap; overflow-x: auto; }
-.set-tabs a { display: inline-flex; flex: none; align-items: center; min-height: 48px; padding: 0 16px; color: var(--muted); font-weight: 600; white-space: nowrap;
+.set-tabs a { display: inline-flex; flex: none; align-items: center; min-height: 48px; padding: 0 16px; color: var(--muted); font-weight: 400; white-space: nowrap;
   border-bottom: 2px solid transparent; margin-bottom: -1px; }
 .set-tabs a:hover { color: var(--text); text-decoration: none; }
 .set-tabs a:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; border-radius: 8px 8px 0 0; }
-.set-tabs a.on { color: var(--color-primary-700); border-bottom-color: var(--color-primary-700); }
+.set-tabs a.on { font-weight: 500; color: var(--color-primary-700); border-bottom-color: var(--color-primary-700); }
 .set-card { max-width: 640px; padding: var(--space-4); }
 .set-form { display: grid; gap: 0; }
 .set-form label { margin-bottom: 12px; }
 .set-sub { font-size: var(--font-size-md, 16px); margin: var(--space-2) 0 0; }
 .set-branch { border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-3); display: grid; gap: var(--space-3); margin: 0; }
-.set-branch legend { font-weight: 700; padding: 0 4px; }
+.set-branch legend { font-weight: 600; padding: 0 4px; }
 .set-dock, .set-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); justify-content: flex-end; align-items: center; }
 .set-filter { display: grid; gap: var(--space-2); margin-bottom: var(--space-3); }
 .set-filter .input { width: 100%; }
@@ -28,7 +28,7 @@
 .set-cat:focus { outline: 2px solid var(--focus); border-radius: 4px; color: var(--text); }
 label.set-price { flex-direction: row; margin: 0; display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); min-height: 52px; padding-left: 36px; }
 .set-rp { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); }
-.set-rp .input { width: 9.5em; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--text); }
+.set-rp .input { width: 9.5em; text-align: right; font-variant-numeric: tabular-nums; font-weight: 400; color: var(--text); }
 .set-when { margin: 0 0 4px 36px; }
 .set-link { color: var(--accent); }
 .set-dock-fixed { position: sticky; bottom: 8px; z-index: 5; background: var(--surface); padding: var(--space-2);

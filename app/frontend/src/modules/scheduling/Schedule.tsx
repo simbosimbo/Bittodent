@@ -566,12 +566,9 @@ export default function Schedule({ me, newFor = null }: { me: Me; newFor?: strin
           {sheetAppt && <ApptSheet a={sheetAppt} tz={tz} chair={data.chairs.find((c) => c.id === sheetAppt.chair_id)?.label} acts={sheetActs(sheetAppt)}
             main={primary(sheetAppt)} owe={sheetAppt.status === 'done' && inv.unpaid(sheetAppt)}
             onClose={() => setSheetId(null)} onReschedule={() => { setSheetId(null); setReschedId(sheetAppt.id) }}
-            onForm={(kind) => { setSheetId(null); setForm({ kind, id: sheetAppt.id }) }}>
-            {mode === 'depan' && may.checkin(sheetAppt) && (
-              <label>Keluhan<input value={keluhan[sheetAppt.id] ?? sheetAppt.reason ?? ''} maxLength={500} placeholder="mis. Gigi ngilu"
-                onChange={(e) => setKeluhan({ ...keluhan, [sheetAppt.id]: e.target.value })} /></label>
-            )}
-          </ApptSheet>}
+            onForm={(kind) => { setSheetId(null); setForm({ kind, id: sheetAppt.id }) }}
+            reasonEdit={mode === 'depan' && may.checkin(sheetAppt)
+              ? { value: keluhan[sheetAppt.id] ?? sheetAppt.reason ?? '', onChange: (v) => setKeluhan({ ...keluhan, [sheetAppt.id]: v }) } : undefined} />}
         </Presence>
       )}
       {mobile && data && (
@@ -761,7 +758,7 @@ function PlannedList({ sched, date, canCreate, onScheduled, folded }: { sched: S
       setMsg(e instanceof ApiError && [409, 422].includes(e.status) ? e.data?.message ?? 'Tidak bisa dijadwalkan.' : errorText(e))
     }
   }
-  const title = <h2>Perlu dijadwalkan <span className="muted small">· {items?.length ?? '…'}</span></h2>
+  const title = <h2>Perlu dijadwalkan <span className="bt-count">· {items?.length ?? '…'}</span></h2>
   const body = (
     <>
       {msg && <Note status="success" role="status">{msg}</Note>}

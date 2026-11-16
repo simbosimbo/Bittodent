@@ -3,7 +3,8 @@ import { RowLink } from '../../shared/ui/RowLink'
 import { FilterChips } from '../../shared/ui/FilterChips'
 import { Stat } from '../../shared/ui/Stat'
 import { StateCard } from '../../shared/ui/StateCard'
-import { Avatar, buttonVariants, Card, Chip } from '@heroui/react'
+import { Avatar, buttonVariants, Card } from '@heroui/react'
+import { StatusDot } from '../../shared/ui/StatusDot'
 import { fmtDate, fmtTime, initials, todayWib, TZ } from '../../shared/format'
 import type { Me } from '../../shared/session'
 import { RevenueCard } from '../billing'
@@ -120,7 +121,7 @@ function DeskHome({ me }: { me: Me }) {
                 <p className="muted small">Klik blok untuk membuka rekam medis pasien</p>
               </div>
               <div className="tl-legend" aria-label="Keterangan status">
-                {LEGEND.map(([s, l]) => <Chip key={s} size="sm" className={`chip-${s}`}>{l}</Chip>)}
+                {LEGEND.map(([s, l]) => <StatusDot key={s} status={s}>{l}</StatusDot>)}
               </div>
             </div>
             {lanes.length === 0 ? <p className="muted empty">Belum ada janji aktif hari ini.</p> : (
@@ -176,12 +177,13 @@ function DeskHome({ me }: { me: Me }) {
             {shown.length === 0 ? <p className="muted empty">Belum ada janji aktif hari ini.</p> : (
               <ul className="queue">
                 {shown.map((a) => {
-                  const h = href(a), name = a.patient?.name ?? '—', meta = [a.chair, a.dentist?.name, a.reason].filter(Boolean).join(' · ')
-                  // Opening the chart is the row's only action: the whole row is the link (chevron), no separate button.
+                  // Who → what (service) → when/where; opening the chart is the row's only action: the whole row is the link (chevron).
+                  const h = href(a), name = a.patient?.name ?? '—'
+                  const where = <span className="tabular-nums">{[span(a), a.chair, a.dentist?.name].filter(Boolean).join(' · ')}</span>
                   return h
-                    ? <li key={a.id}><RowLink className="queue-link" href={h} aria-label={`Buka Rekam Medis ${name}`} media={<span className="queue-time">{time(a)}</span>}
-                        title={name} sub={meta} aside={<StatusChip status={a.status} />} /></li>
-                    : <li key={a.id}><span className="queue-time">{time(a)}</span><div className="grow"><div className="strong">{name}</div><div className="muted small">{meta}</div></div><StatusChip status={a.status} /></li>
+                    ? <li key={a.id}><RowLink className="queue-link" href={h} aria-label={`Buka Rekam Medis ${name}`}
+                        title={name} what={a.reason || undefined} sub={where} aside={<StatusChip status={a.status} />} /></li>
+                    : <li key={a.id}><div className="grow"><div className="strong">{name}</div>{a.reason && <div className="small">{a.reason}</div>}<div className="muted small">{where}</div></div><StatusChip status={a.status} /></li>
                 })}
               </ul>
             )}

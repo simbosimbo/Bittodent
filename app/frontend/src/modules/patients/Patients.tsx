@@ -108,9 +108,8 @@ export function PatientList({ canCreate, canChart = false, initialQ = '', meId }
             </Select>
           </div>
         )}
-        {canCreate && (mobile
-          ? <a className="fab" href="#/pasien/baru" aria-label="Pasien baru"><Icon d={ICONS.plus} size={26} /></a>
-          : <a className={buttonVariants({ variant: 'primary' }) + ' pl-new'} href="#/pasien/baru">Pasien baru</a>)}
+        {/* Phone: Pasien baru is "Daftarkan pasien" in the top bar "+" menu (no FAB repeating it). */}
+        {canCreate && !mobile && <a className={buttonVariants({ variant: 'primary' }) + ' pl-new'} href="#/pasien/baru">Pasien baru</a>}
       </div>
       {mobile && mine && chips('Saring dokter', [[meId!, 'Pasien saya'], ['', 'Semua dokter']], dentist, setDentist)}
       {chips('Saring status perawatan', filters, care, setCare)}
@@ -129,7 +128,7 @@ export function PatientList({ canCreate, canChart = false, initialQ = '', meId }
                     <span className="pl-card-body">
                       <span className="pl-card-top"><span id={'pl-n-' + p.id} className="pl-name-text">{p.name}</span><Care s={p.care_status} /></span>
                       <span id={'pl-m-' + p.id} className="pl-meta">
-                        <span><span className="pl-mrn">{p.mrn ? <>No. RM <strong>{p.mrn}</strong></> : 'No. RM belum ada'}</span>
+                        <span><span className="pl-mrn">{p.mrn ? `No. RM ${p.mrn}` : 'No. RM belum ada'}</span>
                           {[age(p.dob), p.sex && (SEX[p.sex] ?? p.sex), PAYER[p.payer_type] ?? p.payer_type].filter(Boolean).map((x) => ' · ' + x)}</span>
                         <span>{p.last_visit_at ? `Terakhir: ${day(p.last_visit_at)}${p.last_dentist_name ? ' · ' + p.last_dentist_name : ''}` : 'Belum ada kunjungan'}</span>
                       </span>

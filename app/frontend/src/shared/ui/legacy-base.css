@@ -2,9 +2,10 @@
 /* Base text on body, not :root: 1rem stays 16px for HeroUI/Tailwind sizing. */
 body { font-family: var(--shells-a-font-family); font-size: var(--shells-a-font-size); color: var(--text); background: var(--bg); }
 * { box-sizing: border-box; }
-body { margin: 0; font-weight: 500; }
+body { margin: 0; font-weight: 400; }
+b, strong { font-weight: 600; }
 h1 { font-size: var(--shells-a-font-title); margin: var(--space-1) 0; font-weight: 700; }
-h2 { font-size: var(--font-size-lg); margin: 0 0 var(--space-3); font-weight: 700; }
+h2 { font-size: var(--font-size-lg); margin: 0 0 var(--space-3); font-weight: 600; }
 a { color: var(--accent-600); text-decoration: none; }
 a:hover { text-decoration: underline; }
 label:not(.label) { display: flex; flex-direction: column; gap: 6px; font-weight: 500; font-size: var(--font-size-sm); margin-bottom: 14px; }

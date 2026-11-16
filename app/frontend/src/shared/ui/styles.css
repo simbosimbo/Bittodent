@@ -70,7 +70,7 @@
 .shell-clinic strong { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
 .shell-clinic .badge-synthetic { white-space: normal; } /* narrow sidebar: wrap rather than overflow */
 .shell-clinic-sub { margin-top: calc(-1 * var(--space-1)); font-size: var(--font-size-sm); color: var(--muted); line-height: 1.35; }
-.shell-nav-caption { font-size: var(--font-size-xs); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.shell-nav-caption { font-size: var(--font-size-xs); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
 .shell-nav { display: flex; flex-direction: column; gap: var(--space-1); }
 .shell-nav a {
   display: flex; align-items: center; gap: var(--space-3); min-height: var(--shells-a-size-touch); padding: 0 var(--space-3);
@@ -146,7 +146,7 @@ html { scroll-padding-top: 160px; } /* scrollIntoView lands below the pinned top
   border-radius: var(--radius-pill); padding: 2px 12px; background: var(--color-primary-50); color: var(--color-primary-700); }
 /* Complaint: the patient's words, read as text (not a status pill); full row under the chips. */
 .visit-note { flex: 1 1 100%; min-width: 0; font-size: var(--font-size-sm); line-height: 1.4; color: var(--text); overflow-wrap: anywhere; }
-.visit-note strong { color: var(--muted); font-weight: 600; }
+.visit-note strong { color: var(--muted); font-weight: 500; }
 .visit-chip::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
 .patient-head-actions { display: flex; align-items: center; gap: var(--space-2); flex: none; }
 /* Header chips wrap (never scroll away): allergies stay visible. */
@@ -166,7 +166,7 @@ html { scroll-padding-top: 160px; } /* scrollIntoView lands below the pinned top
 .aps-search { display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-3); color: var(--muted); border: 1px solid var(--border); border-radius: var(--radius-sm); }
 .aps-search:focus-within { border-color: var(--accent); }
 .aps-search input { flex: 1; min-width: 0; border: none; padding: 0; min-height: var(--shells-a-size-touch); outline: none; }
-.aps-caption { font-size: var(--font-size-xs); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); margin: var(--space-3) var(--space-2) var(--space-1); }
+.aps-caption { font-size: var(--font-size-xs); font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); margin: var(--space-3) var(--space-2) var(--space-1); }
 .aps-pop ul { list-style: none; margin: 0; padding: 0; max-height: 320px; overflow: auto; }
 .aps-pop li button {
   width: 100%; display: flex; flex-direction: column; align-items: flex-start; min-height: var(--shells-a-size-touch);
@@ -233,7 +233,6 @@ html { scroll-padding-top: 160px; } /* scrollIntoView lands below the pinned top
 .queue { list-style: none; margin: 0; padding: 0; }
 .queue li { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; padding: var(--space-3) 0; border-top: 1px solid var(--border); }
 .queue li .grow { min-width: 0; }
-.queue-time { width: 44px; flex: none; font-weight: 600; font-variant-numeric: tabular-nums; }
 .queue a:focus-visible, .table a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .table td.cell-action { padding-block: var(--space-1); text-align: right; }
 .queue-no { width: 28px; height: 28px; border-radius: 50%; background: var(--warn-50); color: var(--warn); display: grid; place-items: center; font-weight: 700; }
@@ -242,13 +241,13 @@ html { scroll-padding-top: 160px; } /* scrollIntoView lands below the pinned top
 /* Patients */
 .search { width: 100%; margin-bottom: 14px; }
 .table { width: 100%; border-collapse: collapse; }
-.table th { text-align: left; font-size: var(--font-size-xs); color: var(--muted); font-weight: 600; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.table th { text-align: left; font-size: var(--font-size-xs); color: var(--muted); font-weight: 500; padding: 10px 12px; border-bottom: 1px solid var(--border); }
 .table td { padding: 12px; font-size: var(--font-size-base); border-bottom: 1px solid var(--border); }
 /* Row height on <tr> acts as a min-height: single-line rows are 48px, multi-line rows grow. */
 .table tbody tr { cursor: pointer; height: var(--size-row); }
 .table tbody tr:hover { background: var(--bg); }
 .details { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 28px; margin: 0; }
-.details dt { color: var(--muted); font-size: var(--font-size-xs); font-weight: 600; }
+.details dt { color: var(--muted); font-size: var(--font-size-xs); font-weight: 500; }
 .details dd { margin: 4px 0 0; font-size: var(--font-size-base); }
 .form { max-width: 860px; }
 .form h2 { margin-top: 6px; }
@@ -276,7 +275,7 @@ html { scroll-padding-top: 160px; } /* scrollIntoView lands below the pinned top
 .appt > * { flex-shrink: 0; }
 .appt-bottom { display: flex; justify-content: space-between; align-items: center; gap: 6px; min-width: 0; }
 .appt-top { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
-.appt-time { font-size: var(--font-size-xs); color: var(--muted); font-weight: 600; }
+.appt-time { font-size: var(--font-size-xs); color: var(--muted); font-weight: 400; font-variant-numeric: tabular-nums; }
 .appt-in_treatment .appt-time, .appt-in_treatment .appt-meta { color: var(--color-appointment-merawat-fg); } /* muted is 4.48:1 on this wash */
 .appt-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .appt-meta { font-size: var(--font-size-xs); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -336,7 +335,7 @@ label.check input { min-height: 0; }
 /* shared/ui/Sheet.tsx (HeroUI Sheet): white panel, 16px gutter, scrolls inside, clears the home indicator. */
 .shell-sheet { background: var(--surface); border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
 .shell-sheet .sheet__dialog { padding: var(--space-2) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom)); max-height: 85dvh; overflow-y: auto; }
-.shell-sheet .sheet__body { padding: 0; }
+.shell-sheet .sheet__header, .shell-sheet .sheet__body { padding: 0; }
 .sheet {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 31; max-height: 70vh; overflow-y: auto;
   background: var(--surface); border-radius: var(--radius-lg) var(--radius-lg) 0 0; box-shadow: var(--shadow-lg);
@@ -379,7 +378,7 @@ label.check input { min-height: 0; }
 }
 /* Shared bottom sheet (shared/ui/Sheet.tsx): title + 44px "Tutup". */
 .sheet-head { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-2); text-align: left; }
-.sheet-head h2 { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.sheet-head h2 { flex: 1; margin: 0; min-width: 0; overflow-wrap: anywhere; font-size: 18px; font-weight: 600; }
 .sheet-close { flex: none; min-height: 44px; }
 
 /* Phone: horizontal scrollers (shared/ui/scrollHint.ts SCROLL_HINT) fade at an edge while more content is there; thin scrollbar. */

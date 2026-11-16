@@ -38,8 +38,8 @@ export function useDialog(ref: RefObject<HTMLElement | null>, onClose: () => voi
   }, [ref, on])
 }
 
-/** Mobile bottom sheet (HeroUI Sheet): modal dialog, title + 44px "Tutup"; Escape, backdrop tap or swipe down close it. Mounted = open. */
-export function Sheet({ title, onClose, className = '', children }: { title: ReactNode; onClose: () => void; className?: string; children: ReactNode }) {
+/** Mobile bottom sheet (HeroUI Sheet): modal dialog, title (+ `aside`, e.g. a status) + 44px "Tutup"; Escape, backdrop tap or swipe down close it. Mounted = open. */
+export function Sheet({ title, aside, onClose, className = '', children }: { title: ReactNode; aside?: ReactNode; onClose: () => void; className?: string; children: ReactNode }) {
   // Inside <Presence>: open on mount, slide out while Presence holds the node for its exit.
   const phase = usePresenceClass()
   const shown = useRef(false)
@@ -52,6 +52,7 @@ export function Sheet({ title, onClose, className = '', children }: { title: Rea
             <HSheet.Handle />
             <HSheet.Header className="sheet-head">
               <HSheet.Heading level={2}>{title}</HSheet.Heading>
+              {aside}
               <Button slot="close" variant="ghost" className="sheet-close">Tutup</Button>
             </HSheet.Header>
             <HSheet.Body>{children}</HSheet.Body>

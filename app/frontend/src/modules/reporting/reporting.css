@@ -6,14 +6,14 @@
   .report-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-2); margin-bottom: var(--space-4); }
   .report-kpi { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg); }
   .report-kpi-value { font-size: var(--font-size-xl, 20px); font-weight: 700; color: var(--accent-600); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-  .report-kpi-label { font-size: var(--font-size-xs); font-weight: 600; color: var(--muted); }
+  .report-kpi-label { font-size: var(--font-size-xs); font-weight: 500; color: var(--muted); }
   .report-cards { list-style: none; margin: 0 0 var(--space-3); padding: 0; display: grid; gap: var(--space-2); }
   .report-card { display: grid; gap: var(--space-2); min-width: 0; padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-sm); }
   .report-card.is-avg { background: var(--bg); }
   .report-card-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-1) var(--space-3); }
   .report-card-head strong { min-width: 0; overflow-wrap: anywhere; }
   .report-card-main { display: flex; flex-direction: column; align-items: flex-end; font-size: var(--font-size-lg); font-weight: 700; font-variant-numeric: tabular-nums; }
-  .report-card-main small { font-size: var(--font-size-xs); font-weight: 600; color: var(--muted); }
+  .report-card-main small { font-size: var(--font-size-xs); font-weight: 400; color: var(--muted); }
   .report-pairs { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: var(--space-1) var(--space-3); margin: 0; }
   .report-pairs > div { display: flex; justify-content: space-between; gap: var(--space-2); min-width: 0; padding: 2px 0; border-bottom: 1px dashed var(--border); }
   .report-pairs dt { min-width: 0; color: var(--muted); font-size: var(--font-size-sm); }
