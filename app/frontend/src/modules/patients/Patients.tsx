@@ -8,6 +8,7 @@ import { errorText } from '../../shared/api/http'
 import { initials, TZ } from '../../shared/format'
 import { Icon, ICONS } from '../../shared/ui/Icon'
 import { useIsMobile } from '../../shared/useIsMobile'
+import { StatusDot } from '../../shared/ui/StatusDot'
 import { getDentists, searchPatients, type ListFilter, type PatientRow } from './api'
 import { PatientPage } from './Records'
 import './patients.css'
@@ -61,15 +62,11 @@ export function usePatientSearch(q: string, delay = 300, filter: ListFilter = {}
 }
 
 // Care status (derived server-side by Patients\Domain\CareStatus); admin patient.status is not shown on the list.
-const CARE: Record<string, [string, ChipColor]> = {
-  dalam_perawatan: ['Dalam perawatan', 'accent'], perlu_kontrol: ['Perlu kontrol', 'warning'], tidak_aktif: ['Tidak aktif', 'default'],
-}
-type ChipColor = 'default' | 'accent' | 'success' | 'warning' | 'danger'
+const CARE: Record<string, string> = { dalam_perawatan: 'Dalam perawatan', perlu_kontrol: 'Perlu kontrol', tidak_aktif: 'Tidak aktif' }
 // Value not in the API (no visit yet; mrn on old draft rows): say so instead of inventing values.
 const Missing = () => <><span aria-hidden="true">—</span><span className="sr-only">Belum ada</span></>
 const day = (iso: string) => new Intl.DateTimeFormat('id-ID', { timeZone: TZ, day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(iso))
-const Care = ({ s }: { s?: string }) => s
-  ? <Chip size="sm" variant="soft" color={CARE[s]?.[1] ?? 'default'} className="pl-chip" data-care={s}>{CARE[s]?.[0] ?? s}</Chip> : null
+const Care = ({ s }: { s?: string }) => s ? <StatusDot status={s}>{CARE[s] ?? s}</StatusDot> : null
 const Allergies = ({ a }: { a?: string[] }) => a?.length
   ? <span className="pl-allergies"><span className="sr-only">Alergi: </span>{a.map((x) => <Chip key={x} size="sm" variant="soft" color="danger" className="pl-chip pl-alergi">{x}</Chip>)}</span>
   : null
@@ -90,7 +87,7 @@ export function PatientList({ canCreate, canChart = false, initialQ = '', meId }
   const { rows, next, error, loading, more } = usePatientSearch(q, 300, { care_status: care, dentist_id: dentist })
   useEffect(() => { getDentists().then((r) => setDentists(r.data), () => setDentists([])) }, [])
   // Filters run on the server (whole list, not just the loaded page): no counts, the API has no totals.
-  const filters: [string, string][] = [['', 'Semua'], ...Object.entries(CARE).map(([k, [label]]): [string, string] => [k, label])]
+  const filters: [string, string][] = [['', 'Semua'], ...Object.entries(CARE)]
   const filtered = !!(care || dentist)
   const chips = (label: string, items: [string, string][], value: string, set: (k: string) => void) =>
     <FilterChips label={label} value={value} onChange={set} options={items} />
@@ -123,26 +120,23 @@ export function PatientList({ canCreate, canChart = false, initialQ = '', meId }
         : !rows ? <PageSkeleton variant="list" />
         : rows.length === 0 ? <StateCard>{q ? `Tidak ada pasien yang cocok dengan “${q}”.` : filtered ? 'Tidak ada pasien dengan saringan ini.' : 'Belum ada pasien.'}</StateCard>
         : mobile ? (
-          // Phone (PD08): one card per patient; the whole card body is one link (≥44px), Rekam Medis is its own button below.
+          // Phone (Gaya ringkas HP): one card per patient = one link to the patient page (Rekam Medis is one more tap from there).
           <ul className={'pl-cards' + (loading ? ' is-loading' : '')} aria-label="Daftar pasien">
             {rows.map((p) => (
               <li key={p.id} onClick={() => (location.hash = '/pasien/' + p.id)}>
                 <Card className="pl-hit">
                   <a href={'#/pasien/' + p.id} className="pl-hit-main" aria-labelledby={'pl-n-' + p.id} aria-describedby={'pl-m-' + p.id}>
-                    <Initials name={p.name} />
                     <span className="pl-card-body">
-                      <span id={'pl-n-' + p.id} className="pl-name-text">{p.name}</span>
+                      <span className="pl-card-top"><span id={'pl-n-' + p.id} className="pl-name-text">{p.name}</span><Care s={p.care_status} /></span>
                       <span id={'pl-m-' + p.id} className="pl-meta">
                         <span><span className="pl-mrn">{p.mrn ? <>No. RM <strong>{p.mrn}</strong></> : 'No. RM belum ada'}</span>
                           {[age(p.dob), p.sex && (SEX[p.sex] ?? p.sex), PAYER[p.payer_type] ?? p.payer_type].filter(Boolean).map((x) => ' · ' + x)}</span>
                         <span>{p.last_visit_at ? `Terakhir: ${day(p.last_visit_at)}${p.last_dentist_name ? ' · ' + p.last_dentist_name : ''}` : 'Belum ada kunjungan'}</span>
                       </span>
-                      {(p.care_status || !!p.allergies?.length) && <span className="pl-chips"><Care s={p.care_status} /><Allergies a={p.allergies} /></span>}
+                      {!!p.allergies?.length && <span className="pl-chips"><Allergies a={p.allergies} /></span>}
                     </span>
                     <span className="pl-chevron" aria-hidden="true"><Icon d={ICONS.right} size={18} /></span>
                   </a>
-                  {canChart && <a className={buttonVariants({ variant: 'tertiary' }) + ' pl-rm'} href={'#/rekam-medis/' + p.id}
-                    aria-label={'Rekam Medis ' + p.name} onClick={(e) => e.stopPropagation()}>Rekam Medis</a>}
                 </Card>
               </li>
             ))}

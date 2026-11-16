@@ -227,13 +227,13 @@ export default function Schedule({ me, newFor = null }: { me: Me; newFor?: strin
   const sheetAppt = sheetId ? all.find((a) => a.id === sheetId) : undefined
   const inv = useInvoiceStatus(all, mobile && canBill)
 
-  // ---- Phone actions: one primary per card (by mode + status), the full list in the sheet ----
+  // ---- Phone actions: card -> detail sheet; one main action (by mode + status) on top, the full list below ----
   const chartHref = (a: Appointment) => `#/rekam-medis/${a.patient!.id}${canVisit ? `/janji/${a.id}` : ''}`
   const online = (a: Appointment) => a.status === 'pending_confirmation' && a.source === 'online'
   async function confirm(a: Appointment) {
     if (await move(a, 'booked')) say('Dikonfirmasi', () => { move(a, 'pending_confirmation') }) // booked -> pending is a real API move
   }
-  // Check-in feedback (board 08): "Memproses" on the button (no double tap), then the row moves to Menunggu with a "Hadir" chip and
+  // Check-in feedback (board 08): "Memproses" on the card (no double tap), then the row moves to Menunggu with a "Hadir" chip and
   // a 5 s toast "{nama} hadir" whose Batalkan really undoes it (POST undo-checkin: server-checked window, audited).
   async function checkIn(a: Appointment) {
     if (busyId) return
@@ -250,7 +250,7 @@ export default function Schedule({ me, newFor = null }: { me: Me; newFor?: strin
       }
     }, 'Batalkan')
   }
-  // Mulai kunjungan = one tap (#70): check in first when the patient is still "Terjadwal" today (the server checks the permission
+  // Mulai kunjungan from the sheet (card -> sheet -> Mulai): check in first when the patient is still "Terjadwal" today (the server checks the permission
   // and the transition), then merawat, then straight into the RM.
   async function startVisit(a: Appointment) {
     if (a.status === 'booked' && !(await move(a, 'checked_in'))) return
@@ -283,7 +283,7 @@ export default function Schedule({ me, newFor = null }: { me: Me; newFor?: strin
     chart: (a: Appointment) => canChart && !!a.patient && !['cancelled', 'no_show', 'rejected', 'pending_confirmation'].includes(a.status),
   }
   const primary = (a: Appointment): Act | null => mode === 'dokter'
-    ? may.start(a) ? A.start(a) : may.chart(a) ? A.chart(a) : null // Dokter: every own card has one primary
+    ? may.start(a) ? A.start(a) : may.chart(a) ? A.chart(a) : null // Dokter: every own card's sheet leads with one main action
     : may.confirm(a) ? A.confirm(a) : may.checkin(a) ? A.checkin(a) : may.pay(a) ? A.pay(a) : null
   const sheetActs = (a: Appointment): Act[] => ([
     mode === 'depan' && may.confirm(a) && A.confirm(a),
@@ -415,7 +415,7 @@ export default function Schedule({ me, newFor = null }: { me: Me; newFor?: strin
           {mobile && inv.error && <p className="week-error small" role="alert">Status bayar gagal dimuat. <Button variant="ghost" size="sm" onPress={inv.retry}>Coba lagi</Button></p>}
           {mobile && (
             <Agenda mode={mode} list={agendaList} tz={tz} chairs={data.chairs} nowMin={isToday ? minutesOfDay(new Date(now).toISOString(), tz) : null}
-              unpaid={inv.unpaid} primary={primary} onOpen={(a) => setSheetId(a.id)} confirmOnly={gridOn} busyId={busyId} arrivedId={arrivedId}
+              unpaid={inv.unpaid} onOpen={(a) => setSheetId(a.id)} confirmOnly={gridOn} busyId={busyId} arrivedId={arrivedId}
               empty={dokter ? (
                 <div className="sched-empty" role="status">
                   <Icon d={ICONS.people} size={40} />
@@ -564,6 +564,7 @@ export default function Schedule({ me, newFor = null }: { me: Me; newFor?: strin
       {mobile && data && (
         <Presence open={!!sheetAppt} exitMs={200}>
           {sheetAppt && <ApptSheet a={sheetAppt} tz={tz} chair={data.chairs.find((c) => c.id === sheetAppt.chair_id)?.label} acts={sheetActs(sheetAppt)}
+            main={primary(sheetAppt)} owe={sheetAppt.status === 'done' && inv.unpaid(sheetAppt)}
             onClose={() => setSheetId(null)} onReschedule={() => { setSheetId(null); setReschedId(sheetAppt.id) }}
             onForm={(kind) => { setSheetId(null); setForm({ kind, id: sheetAppt.id }) }}>
             {mode === 'depan' && may.checkin(sheetAppt) && (

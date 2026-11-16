@@ -1,9 +1,9 @@
-// Jadwal on a phone (≤720px): role mode (Meja depan | Dokter), sectioned agenda, cards with one primary action, toast, Bayar prompt,
+// Jadwal on a phone (≤720px): role mode (Meja depan | Dokter), sectioned agenda, button-free cards (tap → detail sheet), toast, Bayar prompt,
 // reschedule form and the owner's day summary. Schedule.tsx owns the data and the actions; this file only renders.
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { SectionTitle } from '../../shared/ui/SectionTitle'
 import { Select } from '../../shared/ui/Select'
-import { Button, buttonVariants, Chip as HChip, Spinner, ToggleButton } from '@heroui/react'
+import { Button, buttonVariants, Chip as HChip, ToggleButton } from '@heroui/react'
 import { ApiError, errorText } from '../../shared/api/http'
 import { fmtTime } from '../../shared/format'
 import type { Me } from '../../shared/session'
@@ -15,6 +15,7 @@ import { getDailyRevenue, invoiceStatuses } from '../billing'
 import { reschedule, type Appointment, type Schedule as Sched } from './api'
 import { END, hhmm, minutesOfDay, SLOTS } from './parts'
 import { Note } from '../../shared/ui/Note'
+import { StatusDot } from '../../shared/ui/StatusDot'
 
 // ---- Role mode ----
 export type Mode = 'depan' | 'dokter'
@@ -75,8 +76,9 @@ const CHIP: Record<string, string> = {
   pending_confirmation: 'Perlu konfirmasi', booked: 'Terjadwal', checked_in: 'Hadir', in_treatment: 'Merawat', done: 'Selesai',
   cancelled: 'Batal', no_show: 'No-show', rejected: 'Ditolak',
 }
-const Chip = ({ a, owe }: { a: Appointment; owe?: boolean }) =>
-  <HChip size="sm" className={owe ? 'chip-unpaid' : `chip-${a.status}`}>{owe ? 'Belum bayar' : CHIP[a.status] ?? a.status}</HChip>
+const statusLabel = (a: Appointment, owe?: boolean) => owe ? 'Belum bayar' : CHIP[a.status] ?? a.status
+const Status = ({ a, owe }: { a: Appointment; owe?: boolean }) => <StatusDot status={owe ? 'unpaid' : a.status}>{statusLabel(a, owe)}</StatusDot>
+const span = (a: Appointment, tz: string) => `${fmtTime(a.starts_at, tz)} › ${fmtTime(a.ends_at, tz)}`
 
 // ---- Payment status of finished visits ("Belum bayar") ----
 /**
@@ -130,35 +132,23 @@ const CLOSED = ['done', 'cancelled', 'no_show', 'rejected']
 const DUE_SOON = 30 // minutes: a booking this close (or late) counts as "check in now"
 const isOnlineRequest = (a: Appointment) => a.status === 'pending_confirmation' && a.source === 'online'
 
-function Card({ a, tz, chair, dentist, owe, primary, onOpen, busy, arrived }: {
-  a: Appointment; tz: string; chair?: string; dentist: boolean; owe: boolean; primary: Act | null; onOpen: () => void
-  /** this card's primary action is running ("Memproses", not tappable again) */ busy?: boolean
+function Card({ a, tz, chair, dentist, owe, onOpen, busy, arrived }: {
+  a: Appointment; tz: string; chair?: string; dentist: boolean; owe: boolean; onOpen: () => void
+  /** this card's check-in is running ("Memproses", not tappable again) */ busy?: boolean
   /** just moved into this section (200 ms slide-in) */ arrived?: boolean
 }) {
   const who = a.patient?.name ?? 'Pasien'
-  // Buka RM is the one outlined primary (board): opening a chart is not a state change.
-  // native <button>/<a> with HeroUI button styles: the busy state needs a real `disabled` + aria-busy (board 08)
-  const cls = 'agenda-cta ' + buttonVariants({ variant: primary?.key === 'chart' ? 'outline' : 'primary' })
-  const label = busy ? <><Spinner size="sm" color="current" aria-hidden="true" />Memproses</>
-    : primary && <>{ACT_ICON[primary.key] && primary.key !== 'checkin' && primary.key !== 'confirm' && <Icon d={ACT_ICON[primary.key]} size={18} />}{primary.label}</>
-  // Board 01: a Check-in row says its status through the button; no "Terjadwal" chip. The service (reason) is never cut off;
-  // dentist and chair are secondary and may truncate.
-  const showChip = primary?.key !== 'checkin'
-  const extra = [dentist ? a.dentist?.name : null, chair].filter(Boolean).join(' · ')
+  // Gaya ringkas HP: the whole card is one button (no action buttons); actions live in the detail sheet. The service (reason) is
+  // never cut off; dentist and chair are secondary.
+  const meta = [a.reason, dentist ? a.dentist?.name : null, chair, a.source === 'online' && a.status !== 'pending_confirmation' ? 'Online' : null].filter(Boolean).join(' · ')
+  const label = busy ? 'Memproses' : statusLabel(a, owe)
   return (
     <li className={`agenda-item appt-${a.status}${arrived ? ' agenda-arrive' : ''}`}>
-      <button type="button" className="agenda-open" aria-haspopup="dialog" onClick={onOpen}>
-        <span className="agenda-time">{fmtTime(a.starts_at, tz)}</span>
-        <span className="agenda-main">
-          <span className="agenda-name">{who}</span>
-          {(a.reason || extra) && <span className="agenda-meta">{[a.reason, extra].filter(Boolean).join(' · ')}</span>}
-          {(showChip || a.source === 'online') && <span className="agenda-chips">{a.source === 'online' && a.status !== 'pending_confirmation' && <HChip size="sm" className="chip-online">Online</HChip>}{showChip && <Chip a={a} owe={owe} />}</span>}
-        </span>
-        {!primary && <span className="agenda-more" aria-hidden="true"><Icon d={ICONS.more} /></span>}
+      <button type="button" className="agenda-open" aria-haspopup="dialog" onClick={onOpen} disabled={busy} aria-busy={busy || undefined}
+        aria-label={busy ? `Memproses ${who}` : `${fmtTime(a.starts_at, tz)}–${fmtTime(a.ends_at, tz)} ${who}, ${label}${meta ? ', ' + meta : ''}`}>
+        <span className="agenda-row"><span className="agenda-name">{who}</span>{busy ? <StatusDot status="busy">Memproses</StatusDot> : <Status a={a} owe={owe} />}</span>
+        <span className="agenda-meta"><span className="agenda-time">{span(a, tz)}</span>{meta && ` · ${meta}`}</span>
       </button>
-      {primary && (primary.href
-        ? <a className={cls} href={primary.href} aria-label={`${primary.label} ${who}`}>{label}</a>
-        : <button type="button" className={cls} aria-label={busy ? `Memproses ${who}` : `${primary.label} ${who}`} aria-busy={busy || undefined} disabled={busy} onClick={primary.run}>{label}</button>)}
     </li>
   )
 }
@@ -181,10 +171,10 @@ function Fold({ title, count, open, children }: { title: string; count: number; 
 
 export type AgendaProps = {
   mode: Mode; list: Appointment[]; tz: string; chairs: Sched['chairs']; nowMin: number | null
-  unpaid: (a: Appointment) => boolean; primary: (a: Appointment) => Act | null; onOpen: (a: Appointment) => void
+  unpaid: (a: Appointment) => boolean; onOpen: (a: Appointment) => void
   /** grid view: only the "Perlu konfirmasi" section above the grid */
   confirmOnly?: boolean; empty: ReactNode
-  /** appointment whose primary action is running / that just moved (check-in feedback, board 08) */
+  /** appointment whose check-in is running / that just moved (check-in feedback, board 08) */
   busyId?: string | null; arrivedId?: string | null
 }
 
@@ -192,10 +182,10 @@ export type AgendaProps = {
  * Meja depan: Perlu tindakan sekarang (Check-in due · Bayar · Konfirmasi) → Berikutnya (Sekarang divider on today) → Selesai (collapsed).
  * Dokter (own appointments only, filtered by the caller): Sedang dirawat → Berikutnya → Selesai.
  */
-export function Agenda({ mode, list, tz, chairs, nowMin, unpaid, primary, onOpen, confirmOnly, empty, busyId, arrivedId }: AgendaProps) {
+export function Agenda({ mode, list, tz, chairs, nowMin, unpaid, onOpen, confirmOnly, empty, busyId, arrivedId }: AgendaProps) {
   const label = Object.fromEntries(chairs.map((c) => [c.id, c.label]))
   const card = (a: Appointment) => <Card key={a.id} a={a} tz={tz} chair={label[a.chair_id]} dentist={mode === 'depan'} owe={a.status === 'done' && unpaid(a)}
-    primary={primary(a)} onOpen={() => onOpen(a)} busy={busyId === a.id} arrived={arrivedId === a.id} />
+    onOpen={() => onOpen(a)} busy={busyId === a.id} arrived={arrivedId === a.id} />
   const nowRow = () => <li key="now" className="agenda-now-row"><span className="agenda-now">Sekarang</span></li>
   const withNow = (a: Appointment, i: number, all: Appointment[]) => {
     const at = minutesOfDay(a.starts_at, tz)
@@ -246,11 +236,14 @@ export function Agenda({ mode, list, tz, chairs, nowMin, unpaid, primary, onOpen
   )
 }
 
-// ---- Action sheet ----
-/** Tap a card: status action first, the rest below, Batalkan last behind a confirm step. */
-export function ApptSheet({ a, tz, chair, acts, onClose, onReschedule, onForm, children }: {
-  a: Appointment; tz: string; chair?: string; acts: Act[]; onClose: () => void; onReschedule?: () => void; onForm?: (kind: 'chair' | 'refer') => void
-  children?: ReactNode
+// ---- Detail sheet ----
+/**
+ * Tap a card (agenda, grid, Beranda dokter): who, status, time, keluhan, chair, dentist; one full-width main action (`main`, by mode +
+ * status, else the first primary-toned act), the rest below as rows, Batalkan last behind a confirm step.
+ */
+export function ApptSheet({ a, tz, chair, acts, main, owe, onClose, onReschedule, onForm, children }: {
+  a: Appointment; tz: string; chair?: string; acts: Act[]; main?: Act | null; owe?: boolean; onClose: () => void; onReschedule?: () => void
+  onForm?: (kind: 'chair' | 'refer') => void; children?: ReactNode
 }) {
   const [confirmCancel, setConfirmCancel] = useState<Act | null>(null)
   const run = (x: Act) => {
@@ -260,14 +253,17 @@ export function ApptSheet({ a, tz, chair, acts, onClose, onReschedule, onForm, c
     onClose()
     x.run?.()
   }
+  const top = main ?? acts.find((x) => x.tone === 'primary') ?? null
+  const rest = acts.filter((x) => x.key !== top?.key)
+  const info: [string, ReactNode][] = ([['Keluhan / tindakan', a.reason], ['Kursi', chair], ['Dokter', a.dentist?.name]] as [string, ReactNode][]).filter(([, v]) => v)
   return (
     <Sheet title={a.patient?.name ?? 'Janji'} onClose={onClose} className="appt-sheet">
       <p className="appt-sheet-meta">
-        <span>{fmtTime(a.starts_at, tz)}–{fmtTime(a.ends_at, tz)}</span>
+        <span>{span(a, tz)}</span>
         {a.source === 'online' && a.status !== 'pending_confirmation' && <HChip size="sm" className="chip-online">Online</HChip>}
-        <Chip a={a} />
+        <Status a={a} owe={owe} />
       </p>
-      {(a.reason || a.dentist || chair) && <p className="muted">{[a.reason, a.dentist?.name, chair].filter(Boolean).join(' · ')}</p>}
+      {info.length > 0 && <dl className="appt-sheet-info">{info.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>}
       {children}
       {confirmCancel ? (
         <div className="appt-sheet-actions" role="group" aria-label="Batalkan janji?">
@@ -276,16 +272,21 @@ export function ApptSheet({ a, tz, chair, acts, onClose, onReschedule, onForm, c
           <Button variant="outline" onPress={() => setConfirmCancel(null)}>Tidak</Button>
         </div>
       ) : (
-        <div className="appt-sheet-actions sheet-rows">
-          {acts.map((x) => {
-            const body = <>{ACT_ICON[x.key] && <Icon d={ACT_ICON[x.key]} />}{x.label}</>
-            const cls = 'sheet-row' + (x.tone ? ` sheet-row-${x.tone}` : '')
-            return x.href
-              ? <a key={x.key} className={cls} href={x.href} onClick={onClose}>{body}</a>
-              : <button key={x.key} type="button" className={cls} onClick={() => run(x)}>{body}</button>
-          })}
-          {acts.length === 0 && <p className="muted">Tidak ada aksi untuk janji ini.</p>}
-        </div>
+        <>
+          {top && <div className="appt-sheet-actions">{top.href
+            ? <a className={buttonVariants({ variant: 'primary' })} href={top.href} onClick={onClose}>{top.label}</a>
+            : <Button variant="primary" onPress={() => run(top)}>{top.label}</Button>}</div>}
+          <div className="appt-sheet-actions sheet-rows">
+            {rest.map((x) => {
+              const body = <>{ACT_ICON[x.key] && <Icon d={ACT_ICON[x.key]} />}{x.label}</>
+              const cls = 'sheet-row' + (x.tone === 'danger' ? ' sheet-row-danger' : '')
+              return x.href
+                ? <a key={x.key} className={cls} href={x.href} onClick={onClose}>{body}</a>
+                : <button key={x.key} type="button" className={cls} onClick={() => run(x)}>{body}</button>
+            })}
+            {acts.length === 0 && <p className="muted">Tidak ada aksi untuk janji ini.</p>}
+          </div>
+        </>
       )}
     </Sheet>
   )

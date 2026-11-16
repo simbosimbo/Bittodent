@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import css from './patients.css?raw'
 import { afterEach, expect, test, vi } from 'vitest'
-import { PatientList } from './Patients'
+import { PatientDetail, PatientList } from './Patients'
 
 // Synthetic rows. p3 never visited: no date, no dentist, no allergies (nothing invented).
 const rows = [{ id: 'p1', mrn: 'BT-000214', name: 'Sari Sintetis', dob: '1990-02-03', sex: 'perempuan', payer_type: 'umum', status: 'aktif',
@@ -69,7 +69,7 @@ test('table: last visit in Asia/Jakarta, dentist, care status chip; honest dashe
   const r1 = rowOf('Sari Sintetis').querySelectorAll('td')
   expect(r1[3]).toHaveTextContent('14 Nov 2026') // 17:30 UTC on the 13th = 00:30 WIB on the 14th
   expect(r1[4]).toHaveTextContent('drg. Andi Contoh')
-  const care = (el: HTMLElement, text: string) => within(el).getByText(text).closest('[data-care]')!.getAttribute('data-care')
+  const care = (el: HTMLElement, text: string) => within(el).getByText(text).closest('[data-status]')!.getAttribute('data-status')
   expect(care(r1[5] as HTMLElement, 'Dalam perawatan')).toBe('dalam_perawatan')
   expect(care(rowOf('Budi Contoh'), 'Perlu kontrol')).toBe('perlu_kontrol')
   const r3 = rowOf('Nadia Anak Contoh Wijaya Utama').querySelectorAll('td')
@@ -130,12 +130,12 @@ test('rows without care fields (older API) show dashes and do not crash', async 
   const cells = rowOf('Tanpa Status').querySelectorAll('td')
   expect(cells[3]).toHaveTextContent('Belum ada')
   expect(cells[5]).toHaveTextContent('Belum ada')
-  expect(document.querySelector('[data-care]')).toBeNull()
+  expect(document.querySelector('.bt-status')).toBeNull()
 })
 
 const viewport = (w: number) => vi.stubGlobal('matchMedia', (q: string) => ({ media: q, matches: w <= 720, addEventListener() {}, removeEventListener() {} }))
 
-test('390px: cards instead of the table; Rekam Medis link works without opening the profile', async () => {
+test('390px: cards instead of the table; the card is the only link (no Rekam Medis button), status as a dot', async () => {
   viewport(390)
   list(true)
   const cards = await screen.findByRole('list', { name: 'Daftar pasien' })
@@ -144,18 +144,16 @@ test('390px: cards instead of the table; Rekam Medis link works without opening 
   const item = within(cards).getByText('Sari Sintetis').closest('li')!
   expect(item).toHaveTextContent('Perempuan')
   expect(item).toHaveTextContent('BT-000214')
-  expect(within(item).getByText('Dalam perawatan').closest('[data-care]')).toHaveAttribute('data-care', 'dalam_perawatan')
+  expect(within(item).getByText('Dalam perawatan').closest('[data-status]')).toHaveAttribute('data-status', 'dalam_perawatan')
   expect(item).toHaveTextContent('Terakhir: 14 Nov 2026 · drg. Andi Contoh')
   expect(item).toHaveTextContent(/No\. RM BT-000214 · \d+ th · Perempuan/)
   expect(within(item).getByText('Alergi:').parentElement).toContainElement(within(item).getByText('Penisilin'))
   const never = within(cards).getByText('Nadia Anak Contoh Wijaya Utama').closest('li')!
   expect(never).toHaveTextContent('Belum ada kunjungan')
-  expect(within(never).getByText('Tidak aktif').closest('[data-care]')).toHaveAttribute('data-care', 'tidak_aktif')
+  expect(within(never).getByText('Tidak aktif').closest('[data-status]')).toHaveAttribute('data-status', 'tidak_aktif')
   expect(within(item).getByRole('link', { name: 'Sari Sintetis' })).toHaveAttribute('href', '#/pasien/p1')
-  const rm = within(item).getByRole('link', { name: 'Rekam Medis Sari Sintetis' })
-  expect(rm).toHaveAttribute('href', '#/rekam-medis/p1')
-  fireEvent.click(rm)
-  expect(location.hash).not.toBe('#/pasien/p1')
+  expect(within(item).getAllByRole('link')).toHaveLength(1) // Gaya ringkas HP: no separate Rekam Medis button on the card
+  expect(within(item).queryByRole('link', { name: /Rekam Medis/ })).toBeNull()
   fireEvent.click(within(cards).getByText('Budi Contoh').closest('li')!)
   expect(location.hash).toBe('#/pasien/p2')
 })
@@ -166,7 +164,7 @@ test('390px: the whole card body is one link named by the patient (PD08 touch ta
   const cards = await screen.findByRole('list', { name: 'Daftar pasien' })
   const link = within(cards).getByRole('link', { name: 'Sari Sintetis' })
   expect(link).toHaveAccessibleDescription(/No\. RM BT-000214/)
-  expect(link).toContainElement(within(cards).getByText('SS'))
+  expect(within(cards).queryByText('SS')).toBeNull() // no initials avatar on the phone card
   expect(link).toContainElement(within(cards).getAllByText('Dalam perawatan')[0])
 })
 
@@ -224,4 +222,15 @@ test.each([[390, true], [1280, false]])('%ipx: duplicate "Pasien" h1 hidden visu
     const h1 = screen.getByRole('heading', { level: 1 })
     expect(getComputedStyle(h1).position === 'absolute' && getComputedStyle(h1).width === '1px').toBe(hidden)
   } finally { style.remove() }
+})
+
+test('Rekam Medis stays 2 taps away on a phone: card -> patient page "Rekam Medis" (only with note.read)', async () => {
+  viewport(390)
+  vi.stubGlobal('fetch', vi.fn(async () => ok({ ...rows[0], nik: null, phone: null, address: null })))
+  const { unmount } = render(<PatientDetail id="p1" canChart />)
+  expect(await screen.findByRole('link', { name: 'Rekam Medis' })).toHaveAttribute('href', '#/rekam-medis/p1')
+  unmount()
+  render(<PatientDetail id="p1" />)
+  await screen.findByRole('heading', { name: 'Sari Sintetis' })
+  expect(screen.queryByRole('link', { name: 'Rekam Medis' })).toBeNull()
 })

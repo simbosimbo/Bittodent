@@ -1,4 +1,4 @@
-import { Chip } from '@heroui/react'
+import { StatusDot } from '../../shared/ui/StatusDot'
 import { STATUS } from './api'
 
 // Shared by the desktop grid (Schedule.tsx) and the phone agenda (MobileJadwal.tsx).
@@ -19,4 +19,4 @@ export function minutesOfDay(iso: string, tz: string) {
   return Number(p.find((x) => x.type === 'hour')!.value) * 60 + Number(p.find((x) => x.type === 'minute')!.value)
 }
 
-export const StatusChip = ({ status }: { status: string }) => <Chip size="sm" className={`sched-chip chip-${status}`}>{STATUS[status] ?? status}</Chip>
+export const StatusChip = ({ status }: { status: string }) => <StatusDot status={status}>{STATUS[status] ?? status}</StatusDot>

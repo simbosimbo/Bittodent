@@ -78,10 +78,26 @@ body { font-family: var(--font-sans); }
   .bt-row:hover { border-color: var(--accent); text-decoration: none; }
   .bt-row:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   .bt-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-  .bt-row-main > strong { font-weight: 650; overflow-wrap: anywhere; }
+  .bt-row-main > strong { font-weight: 600; overflow-wrap: anywhere; }
   .bt-row-sub { font-size: 14px; color: var(--muted); }
   .bt-row-aside { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; text-align: right; font-variant-numeric: tabular-nums; }
   .bt-row-chev { flex: none; display: flex; color: var(--muted); }
+
+  /* StatusDot: dot in the status colour, neutral text, soft neutral ground, no border (Gaya ringkas HP). */
+  .bt-status {
+    --dot: var(--color-appointment-batal-border);
+    display: inline-flex; align-items: center; gap: 6px; flex: none; padding: 2px 8px; border-radius: 12px;
+    background: var(--surface-secondary); color: var(--color-neutral-700); font-size: 12px; font-weight: 500; line-height: 18px; white-space: nowrap;
+  }
+  .bt-status > i { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--dot); }
+  .bt-status[data-status='booked'] { --dot: var(--status-booked-border); }
+  .bt-status[data-status='checked_in'] { --dot: var(--status-wait-border); }
+  .bt-status[data-status='in_treatment'], .bt-status[data-status='dalam_perawatan'] { --dot: var(--status-treat-border); }
+  .bt-status[data-status='done'], .bt-status[data-status='lunas'] { --dot: var(--status-done-border); }
+  .bt-status[data-status='pending_confirmation'], .bt-status[data-status='perlu_kontrol'] { --dot: var(--status-confirm-border); }
+  .bt-status[data-status='unpaid'], .bt-status[data-status='terbuka'] { --dot: var(--status-unpaid-border); }
+  .bt-status[data-status='void'] { --dot: var(--status-alert-border); }
+  .bt-status[data-status='busy'] { --dot: var(--accent); }
 
   .bt-state { align-items: center; gap: var(--space-3); padding: 28px; text-align: center; color: var(--muted); }
   .bt-state.is-error { color: var(--foreground); }
@@ -98,6 +114,7 @@ body { font-family: var(--font-sans); }
     .bt-seg .toggle-button { min-height: 44px; }
     .bt-stat-icon { display: none; }
     .bt-stat-value { font-size: 22px; }
+    .bt-row-sub { font-size: 13px; }
   }
 }
 

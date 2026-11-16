@@ -1,7 +1,7 @@
 /* Rekam Medis. Odontogram colours/states from design/odontogram/legend.json + odontogram.css (internal legend). */
 .card-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
 .card-head h2 { margin: 0 8px 0 0; }
-.clin-tag { font-weight: 650; border: 1px solid transparent; white-space: nowrap; }
+.clin-tag { font-weight: 600; border: 1px solid transparent; white-space: nowrap; }
 .clin-draft { color: var(--color-draft-fg); background: var(--color-draft-bg); border-color: var(--color-draft-border); }
 .clin-ai { color: #6D28D9; background: #F3EEFF; border: 1px dashed #6D28D9; }
 .clin-ai::before { content: '◆ '; color: #A15C00; }

@@ -28,7 +28,7 @@ function useNow() {
   return now
 }
 
-// Phone in Dokter mode (#70): Beranda IS "Pasien saya" (same agenda + one-tap Mulai as Jadwal), no KPI/revenue/desk CTAs to scroll past.
+// Phone in Dokter mode (#70): Beranda IS "Pasien saya" (same agenda + detail sheet as Jadwal), no KPI/revenue/desk CTAs to scroll past.
 export default function Home({ me }: { me: Me }) {
   const mobile = useIsMobile()
   const { mode } = useJadwalMode(me)

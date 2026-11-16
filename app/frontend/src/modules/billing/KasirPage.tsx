@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Stat } from '../../shared/ui/Stat'
 import { StateCard } from '../../shared/ui/StateCard'
-import { Avatar, Button, buttonVariants, Card, Chip, EmptyState } from '@heroui/react'
+import { Button, buttonVariants, Card, EmptyState } from '@heroui/react'
 import { FilterChips } from '../../shared/ui/FilterChips'
 import { RowLink } from '../../shared/ui/RowLink'
 import { SectionTitle } from '../../shared/ui/SectionTitle'
+import { StatusDot } from '../../shared/ui/StatusDot'
 import { errorText } from '../../shared/api/http'
 import { fmtTime, rp } from '../../shared/format'
 import { getDailyRevenue, kasirList, type DailyRevenue, type KasirList, type KasirRow } from './api'
@@ -16,7 +17,6 @@ const total = (r: KasirRow) => r.lines_rp - r.adjustments_rp - r.credit_notes_rp
 const FILTERS = { semua: 'Semua', belum: 'Belum', bpjs: 'BPJS', tempo: 'Tempo' } as const
 type Filter = keyof typeof FILTERS
 const wibDay = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date(iso))
-const initials = (n: string | null) => (n ?? 'P').split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase()
 
 function Row({ r, today }: { r: KasirRow; today: string }) {
   const open = r.status === 'terbuka'
@@ -25,9 +25,8 @@ function Row({ r, today }: { r: KasirRow; today: string }) {
   return (
     <li>
       <RowLink href={`#/tagihan/${r.visit_id}`} aria-label={`${r.patient_name ?? 'Pasien'}, ${open ? 'belum bayar' : r.status}, ${rp(open ? r.balance_rp : total(r))}`}
-        media={<Avatar size="sm" color="accent" variant="soft" className="flex shrink-0" aria-hidden="true"><Avatar.Fallback>{initials(r.patient_name)}</Avatar.Fallback></Avatar>}
         title={r.patient_name ?? 'Pasien'} sub={meta.filter(Boolean).join(' · ')}
-        aside={<><strong>{rp(open ? r.balance_rp : total(r))}</strong><Chip size="sm" variant="soft" color={open ? 'warning' : r.status === 'lunas' ? 'success' : 'danger'}>{open ? 'Belum bayar' : r.status === 'lunas' ? 'Lunas' : 'Void'}</Chip></>} />
+        aside={<><StatusDot status={r.status}>{open ? 'Belum bayar' : r.status === 'lunas' ? 'Lunas' : 'Void'}</StatusDot><strong className="tabular-nums">{rp(open ? r.balance_rp : total(r))}</strong></>} />
     </li>
   )
 }
