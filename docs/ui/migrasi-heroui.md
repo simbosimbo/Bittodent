@@ -64,6 +64,27 @@ Referensi gaya Zendenta: ambil prinsipnya saja, jangan salin tata letak atau war
 - Garis/bingkai tipis (`--border`), latar kartu putih di atas latar abu muda, ruang kosong lega (padding kartu 12–16, jarak antarkartu 8–12).
 - Info keselamatan tetap terlihat di kartu bila relevan (alergi/peringatan, sisa tagihan).
 
+## Tipografi dan alur informasi kartu
+
+Hanya 4 berat huruf, masing-masing satu peran. Kalau semuanya tebal, tidak ada yang menonjol.
+
+| Berat | Dipakai untuk |
+| --- | --- |
+| 700 | judul halaman, angka utama (KPI, total tagihan) |
+| 600 | nama di kartu, judul seksi, label tombol, nama di sheet |
+| 500 | label field, teks status, tab/chip terpilih |
+| 400 | isi, meta, keterangan, nilai di sheet detail |
+
+Dilarang 550, 650, 750, 800. Meta tidak pernah tebal; bedakan dengan warna `--muted`, bukan berat.
+
+**Alur kartu daftar (atas → bawah, maks 3 baris):**
+1. **Siapa** nama (14/600) · status titik di kanan.
+2. **Apa** tindakan atau keluhan (13/400, warna teks biasa).
+3. **Kapan/di mana** "10.40 › 11.00 · Kursi 1 · drg. Andi" (13/400 muted, `tabular-nums` untuk jam).
+Angka uang di kanan baris 1 (14/600, `tabular-nums`). Info keselamatan (alergi/peringatan) sebagai baris tambahan berwarna, bukan disembunyikan.
+
+**Sheet detail:** judul = nama (18/600) + status; lalu pasangan label–nilai (label 12/500 muted di atas, nilai 14/400), urut: waktu, tindakan/keluhan, kursi, dokter, catatan; aksi di bawah.
+
 ## Radius (jangan terlalu bulat)
 
 Skala rumah di `app.css`: field 10px, tombol 12px, kartu/popover/modal 16px, chip 12px. Jangan menambah `rounded-full`, `rounded-3xl`, atau radius di atas 16px, kecuali tombol ikon bulat yang memang bulat di kanvas (tombol "+", avatar). Jangan menimpa radius per komponen; ubah skala di `app.css` (milik koordinator) bila perlu.

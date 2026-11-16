@@ -1,5 +1,5 @@
 // Per-role UI audit for the HeroUI migration. Starts nothing itself. Expects backend :8000 with DEV_QUICK_LOGIN=true and `npm run dev` on :5173.
-// For each role × route × width: horizontal overflow, controls past the right edge, touch targets < 44px and button text > 15px (phone only), text < 12px, and a screenshot.
+// For each role × route × width: horizontal overflow, controls past the right edge, touch targets < 44px and button text > 15px (phone only), font weights outside 400/500/600/700, text < 12px, and a screenshot.
 // Usage: node scripts/ui-audit.mjs [--roles dokter,depan] [--routes /,/pasien] [--widths 390,1440] [--out ../../screenshots/ui-audit]
 // Exit 1 when any page fails a check. Report: <out>/report.json
 import { mkdirSync, writeFileSync } from 'node:fs'
@@ -36,10 +36,14 @@ const measure = ({ phone, width }) => {
         .filter((e) => e.textContent.trim() && parseFloat(getComputedStyle(e).fontSize) > 15)
         .map((e) => `${label(e)} ${getComputedStyle(e).fontSize}`)
     : []
+  const texts = [...document.querySelectorAll('main *, [role=dialog] *')].filter((e) => [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()) && vis(e))
+  const weights = [...new Set(texts.map((e) => getComputedStyle(e).fontWeight))]
+  const heavyShare = texts.length ? Math.round((100 * texts.filter((e) => Number(getComputedStyle(e).fontWeight) >= 600).length) / texts.length) : 0
+  const oddWeight = weights.filter((w) => !['400', '500', '600', '700'].includes(w))
   const offscreen = [...document.querySelectorAll('a[href],button,input:not([type=hidden]),select,textarea,[role=button],[role=tab]')]
     .filter(vis).filter((e) => e.getBoundingClientRect().right > width + 1 && !e.closest('[data-audit-skip],[data-more]'))
     .map((e) => `${label(e)} right=${Math.round(e.getBoundingClientRect().right)}`)
-  return { big, offscreen, overflowX: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) - width, small, tiny }
+  return { heavyShare, oddWeight, big, offscreen, overflowX: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) - width, small, tiny }
 }
 
 mkdirSync(out, { recursive: true })
@@ -73,9 +77,9 @@ try {
         const m = await page.evaluate(measure, { phone, width }).catch(async () => { await page.waitForLoadState('networkidle').catch(() => {}); return page.evaluate(measure, { phone, width }) })
         const file = join(out, `${width}-${role}-${route.replace(/\//g, '_') || '_'}.png`)
         await page.screenshot({ path: file, fullPage: true })
-        const fail = m.overflowX > 0 || m.offscreen.length > 0 || m.small.length > 0 || m.tiny.length > 0 || m.big.length > 0
+        const fail = m.overflowX > 0 || m.offscreen.length > 0 || m.small.length > 0 || m.tiny.length > 0 || m.big.length > 0 || m.oddWeight.length > 0
         report.push({ role, width, route, fail, ...m, file })
-        console.log(`${fail ? 'FAIL' : 'ok  '} ${width} ${role.padEnd(8)} ${route.padEnd(20)} overflow=${m.overflowX} offscreen=${m.offscreen.length} small=${m.small.length} tiny=${m.tiny.length} big=${m.big.length}`)
+        console.log(`${fail ? 'FAIL' : 'ok  '} ${width} ${role.padEnd(8)} ${route.padEnd(20)} overflow=${m.overflowX} offscreen=${m.offscreen.length} small=${m.small.length} tiny=${m.tiny.length} big=${m.big.length} weight=${m.oddWeight.join('/') || 'ok'} heavy=${m.heavyShare}%`)
       }
       await ctx.close()
     }
