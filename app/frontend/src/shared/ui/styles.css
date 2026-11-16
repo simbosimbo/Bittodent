@@ -217,6 +217,15 @@ html { scroll-padding-top: 160px; } /* scrollIntoView lands below the pinned top
   .shell-nav a { justify-content: center; padding: 0; }
   .shell-main { padding: 16px; }
 }
+/* Rel ikon yang sama di layar lebar selama halaman memintanya (useShellRail: kunjungan dokter gaya kasir). */
+@media (min-width: 1281px) {
+  :root[data-shell-rail] .shell-nav-group { display: none; }
+  :root[data-shell-rail] .shell-side { width: var(--shells-a-size-sidebar-compact); padding: 12px 8px; }
+  :root[data-shell-rail] :is(.shell-brand span:last-child, .shell-nav-label, .shell-clinic) { display: none; }
+  :root[data-shell-rail] .shell-top-synthetic { display: inline-block; }
+  :root[data-shell-rail] .shell-nav a { justify-content: center; padding: 0; }
+  :root[data-shell-rail] .shell-main { padding: 16px; }
+}
 /* ≤1100px: pencarian pindah ke baris kedua top bar. */
 @media (max-width: 1100px) {
   .shell-search { order: 5; max-width: none; }

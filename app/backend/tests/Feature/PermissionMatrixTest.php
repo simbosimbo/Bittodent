@@ -34,6 +34,11 @@ class PermissionMatrixTest extends TestCase
         return $rows;
     }
 
+    public function test_price_view_is_dentist_only(): void // D-045: the assistant does not see prices until the owner decides
+    {
+        $this->assertSame(['dentist'], array_keys(array_filter(\App\Shared\Permissions\Permissions::MATRIX, fn ($p) => in_array('price.view', $p, true))));
+    }
+
     #[DataProvider('matrix')]
     public function test_permission_matrix(string $email, string $route, bool $allowed): void
     {

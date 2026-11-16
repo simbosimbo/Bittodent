@@ -329,3 +329,36 @@ rect.sym-surface { fill: none; }
 /* OVv2-05: view + entry mode switches, always visible, 48px */
 .odo-switches { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin: 4px 0 8px; }
 .odo-switches .toggle-button { min-height: 48px; }
+
+/* T1 gaya kasir (TK01-TK03): katalog | odontogram | keranjang. ≤1365px: katalog full width on top; ≤720px: one column, cart = bottom sheet (TK05). */
+/* Side columns stay narrow (the Shell sidebar is an icon rail here, useShellRail) so the teeth get the width. */
+.kasir-grid { display: grid; grid-template-columns: minmax(200px, 260px) minmax(0, 1fr) minmax(260px, 280px); gap: 16px; }
+.kasir-grid > .span-12 { grid-column: 1 / -1; }
+@media (max-width: 1365px) { .kasir-grid { grid-template-columns: minmax(0, 1fr) minmax(260px, 340px); } .kasir-grid > .kasir-catalog { grid-column: 1 / -1; } }
+@media (max-width: 720px) { .kasir-grid { grid-template-columns: minmax(0, 1fr); } }
+.kasir-catalog { display: grid; gap: var(--space-2); align-content: start; }
+.kasir-list, .kasir-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+@media (min-width: 1366px) { .kasir-list { max-height: 70vh; overflow-y: auto; } }
+.kasir-item { display: grid; gap: 2px; width: 100%; min-height: 52px; padding: 8px 10px; text-align: left; cursor: pointer;
+  border: 1px solid var(--color-neutral-200); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); }
+/* name wraps to two lines (similar names must stay tellable apart) + price on the right */
+.kasir-item-top { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.kasir-name { flex: 1; min-width: 0; font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.kasir-item[aria-pressed='true'] { border-color: var(--color-primary-700); box-shadow: inset 0 0 0 1px var(--color-primary-700); }
+.kasir-item:disabled { cursor: not-allowed; opacity: .7; }
+.kasir-item:focus-visible { outline: 2px solid var(--accent-600); outline-offset: 2px; }
+.kasir-price { font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+/* teeth that can take the armed tindakan: a thick ring around each (shape, not only colour); gone on Batal / in the cart */
+.tooth-ring { fill: none; stroke: var(--color-primary-700, #0a6b63); stroke-width: 3; pointer-events: none; }
+.kasir-step { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; }
+.kasir-step p { margin: 0; flex: 1; }
+.kasir-cart { display: grid; gap: var(--space-2); }
+.kasir-row { display: flex; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--color-neutral-200); }
+.kasir-row .grow { flex: 1; display: grid; gap: 4px; }
+.kasir-row-end { display: grid; justify-items: end; align-content: start; gap: 4px; }
+.kasir-empty { padding: var(--space-4) 0; text-align: center; }
+.kasir-empty-title { font-weight: 600; }
+.kasir-total { display: flex; justify-content: space-between; font-size: var(--font-size-lg, 1.125rem); }
+.kasir-total strong { font-variant-numeric: tabular-nums; }
+.kasir-pick { border-top: 1px solid var(--color-neutral-200); padding-top: var(--space-3); display: grid; gap: var(--space-3); }
+.tsheet-fixed, .tsheet-price { display: flex; justify-content: space-between; gap: 8px; margin: 0; }

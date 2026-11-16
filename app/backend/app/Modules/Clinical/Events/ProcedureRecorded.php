@@ -3,7 +3,8 @@
 namespace App\Modules\Clinical\Events;
 
 // Dispatched inside the signing/status transaction when a final procedure_record reaches `selesai` (the ONLY billing trigger); Billing listens and generates the
-// invoice line with a price snapshot from Tariffs. Deliberately carries NO price: the dentist never sees or sets prices.
+// invoice line with a price snapshot from Tariffs. Deliberately carries NO price: the dentist never SETS prices (D-045: the SPA shows a
+// read-only preview from GET /api/tariffs/price-list; Clinical itself never reads Tariffs).
 // Who + category/field travel with it so Billing picks the price band without depending on Tenancy.
 final class ProcedureRecorded
 {

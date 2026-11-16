@@ -9,8 +9,9 @@ import { Presence, usePresenceClass } from '../../shared/ui/presence'
 import { PageSkeleton } from '../../shared/ui/Skeleton'
 import { ApiError, errorText } from '../../shared/api/http'
 import { setActivePatient } from '../../shared/activePatient'
-import { fmtDateTime, fmtDay, fmtTime } from '../../shared/format'
+import { fmtDateTime, fmtDay, fmtTime, rp } from '../../shared/format'
 import type { Me } from '../../shared/session'
+import { useShellRail } from '../../shared/layout/Shell'
 import { ToothSheet as EntrySheet } from './odontogram/ToothSheet'
 import { OfficialLegend } from './odontogram/OfficialLegend'
 import { ExamPalette, useExam } from './odontogram/ExamPalette'
@@ -23,6 +24,7 @@ import type { PatientFull } from '../patients'
 import {
   approveCorrection, approveDrafts, changeStatus, confirmExternal, correctNote, correctProcedure, discardProcedure, getChart, getDentists,
   replaceProcedure, saveNote, saveProcedure, selesaiVisit, selesaiCheck, getCatalog, getStages, type CatalogRow, startWalkInVisit, visitFromAppointment,
+  getPriceList, updateProcedure, type PriceLevel,
   type Baseline, type Chart, type ChartVisit, type CorrectionType, type Finding, type Note, type ProcStatus, type Procedure, type ProcedureHistoryRow,
   type Soap, type Surface, type Version,
 } from './api'
@@ -32,6 +34,8 @@ import { Odontogram, type Mark } from './Odontogram'
 import { dentitionFromDob, Odontogram3D } from './Odontogram3D'
 import { SelesaiDialog } from './SelesaiDialog'
 import { CloseVisit } from './CloseVisit'
+import { CatalogPanel } from './kasir/CatalogPanel'
+import { CartPanel } from './kasir/CartPanel'
 import { fillEmpty, SOAP_TEMPLATES } from './quick'
 import './clinical.css'
 import { Note as Notice } from '../../shared/ui/Note'
@@ -389,11 +393,16 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const [mode, setMode] = useState<'perawatan' | 'periksa'>('perawatan')
   const exam = useExam()
   const mobile = useIsMobile()
-  const [mouthProcs, setMouthProcs] = useState<CatalogRow[]>([]) // e.g. Scaling: billed work without a tooth
+  const [cat, setCat] = useState<CatalogRow[]>([]) // clinic procedure catalog
+  const mouthProcs = cat.filter((x) => x.treat_area === 'mouth') // e.g. Scaling: billed work without a tooth
+  // T1 / D-045: today's prices for the logged-in dentist (price.view only); null = not loaded / not allowed -> old layout, no prices
+  const [prices, setPrices] = useState<Record<string, PriceLevel[]> | null>(null)
+  const [armed, setArmed] = useState<CatalogRow | null>(null) // tindakan picked in the catalog, waiting for its tooth
+  const [cartOpen, setCartOpen] = useState(false) // phone (TK05): the cart is a bottom sheet
   const [stages, setStages] = useState<Record<string, { variant: string; label: string }[]>>({}) // S2 price levels, as in ToothSheet
   const [mouthPick, setMouthPick] = useState<CatalogRow | null>(null) // mouth procedure waiting for its stage (Konsultasi / Kontrol)
   const phone = useMedia(PHONE_QUERY)
-  const [legendOpen, setLegendOpen] = useState(!mobile) // phone: chart first, legend on demand
+  const [legendPick, setLegendOpen] = useState<boolean | null>(null) // null = default: see legendOpen below
   const [tab, setTab] = useState<(typeof INNER)[number][0]>('odo')
   // Phone: the tab row scrolls sideways; keep the active tab in view.
   const tabRow = useRef<HTMLDivElement>(null)
@@ -453,7 +462,8 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   useEffect(() => { load() }, [load])
   useEffect(() => {
     if (!can('note.write')) return
-    getCatalog().then((c) => setMouthProcs(Array.isArray(c) ? c.filter((x) => x.treat_area === 'mouth') : []), () => setMouthProcs([]))
+    getCatalog().then((c) => setCat(Array.isArray(c) ? c : []), () => setCat([]))
+    if (can('price.view')) getPriceList().then((r) => setPrices(Object.fromEntries((r?.items ?? []).map((i) => [i.procedure_code, i.levels]))), () => setPrices(null))
     getStages().then((s) => setStages(s && typeof s === 'object' && !Array.isArray(s) ? s : {}), () => setStages({}))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -461,6 +471,15 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const note = visit?.notes[0] ?? null
   const draft = note?.versions.find((x) => x.status === 'draf') ?? null
   const editable = !asOf && !!visit && can('note.write') && !note?.versions.some((x) => x.signed_at)
+  // chart first while filling (and on a phone): the legend would push the teeth below the fold; one tap opens it
+  const legendOpen = legendPick ?? (!mobile && !editable)
+  // T1 gaya kasir (TK01-TK03): catalog | odontogram | cart, only while filling with prices; everyone else keeps the old screen
+  const kasir = editable && prices !== null && mode === 'perawatan'
+  useShellRail(kasir) // the odontogram needs the width: sidebar = icon rail while kasir mode is on
+  const priceOf = (code: string, variant?: string) => {
+    const lv = prices?.[code] ?? []
+    return (variant ? lv.find((l) => l.variant === variant) : lv.length === 1 ? lv[0] : undefined)?.price_rp ?? null
+  }
   // "Ulangi kunjungan terakhir": the latest signed SOAP of an earlier visit (cheap: already in the chart payload).
   const lastSoap = chart?.visits.filter((v) => v.id !== visitId).sort((a, b) => b.started_at.localeCompare(a.started_at))
     .flatMap((v) => v.notes.flatMap((n) => n.versions.filter((x) => x.status === 'berlaku' && x.soap)))[0]?.soap ?? null
@@ -603,7 +622,18 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const shownItems = only ? items.filter((f) => f.tooth === only) : items
   const shownProcs = only ? procs.filter((x) => x.tooth === only) : procs
   const center: Surface | null = pick && (isAnterior(pick.tooth) ? 'I' : 'O')
-  const panel = !pick ? <p className="muted tooth-empty">Pilih gigi untuk melihat detail.</p> : (
+  // the cart = this visit's drafts that Selesai will bill (status selesai with a code); prices are a preview
+  const cartRows = myProcs.filter((x) => isWork(x) && x.status === 'selesai' && x.procedure_code)
+  const cartTotal = cartRows.reduce((t, x) => t + (priceOf(x.procedure_code!, x.variant) ?? 0), 0)
+  const pickCatalog = (r: CatalogRow) => {
+    setPick(null)
+    if (r.treat_area !== 'mouth') return setArmed(r)
+    setArmed(null)
+    return (stages[r.procedure_code]?.length ?? 0) > 1 ? setMouthPick(r) : saveMouth(r)
+  }
+  const cart = prices && <CartPanel rows={cartRows} prices={prices} me={me.user.id}
+    onVariant={(x, v) => run(() => updateProcedure(x.id, { variant: v }), 'Tingkat diubah.')} onDiscard={(x) => run(() => discardProcedure(x.id), 'Draf dihapus.')} />
+  const panel = !pick ? <p className="muted tooth-empty">{editable ? 'Pilih gigi di odontogram untuk mengisi tindakan atau temuan. Odontogram langsung berubah.' : 'Pilih gigi untuk melihat detail.'}</p> : (
     <>
       <div className="tooth-panel-head">
         <div><h2>Gigi {pick.tooth}</h2><p className="tooth-name">{toothAnatomicalName(pick.tooth)}</p></div>
@@ -635,8 +665,9 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
       ) : <p className="muted small">Belum ada temuan di gigi ini.</p>}
       {editable ? (
         // OVv2 "tindakan dulu": one sheet records condition + status; Selesai = today's procedure, billed via the clinic mapping
-        <EntrySheet key={pick.tooth} tooth={pick.tooth} visitId={visit!.id} initialSurface={pick.surface === 'B' ? 'V' : pick.surface as SurfaceKey}
-          onSaved={(m) => { setMsg(m); load(); if (mobile) setPick(null) }} />
+        <EntrySheet key={`${pick.tooth}:${kasir ? armed?.procedure_code ?? '' : ''}`} tooth={pick.tooth} visitId={visit!.id} initialSurface={pick.surface === 'B' ? 'V' : pick.surface as SurfaceKey}
+          fixed={kasir ? armed ?? undefined : undefined} priceOf={kasir ? priceOf : undefined}
+          onSaved={(m) => { setMsg(m); load(); if (mobile || (kasir && armed)) setPick(null); if (kasir) setArmed(null) }} />
       ) : <p className="muted small">{visit ? readOnlyWhy : 'Hanya lihat: kondisi dan tindakan diisi dari kunjungan aktif yang belum Selesai.'}</p>}
       {startCtl}
     </>
@@ -665,7 +696,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   )
   return page(
     <div className="chart-actions">
-      {can('appointment.create') && <a className={buttonVariants({ variant: 'primary' })} href={`#/jadwal?baru=${encodeURIComponent(patientId)}`}>Buat janji</a>}
+      {can('appointment.create') && <a className={buttonVariants({ variant: kasir ? 'secondary' : 'primary' })} href={`#/jadwal?baru=${encodeURIComponent(patientId)}`}>Buat janji</a>}
     </div>,
     (pp: PatientFull) => <>
       {msg && <Notice status="success" role="status">{msg}</Notice>}
@@ -677,8 +708,9 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
         </Tabs.List></Tabs.ListContainer>
       <Tabs.Panel id={tab}>
       {tab === 'odo' && (
-        <div className="grid-12 chart-grid">
-          <Card render={(p) => <section {...p} />} className="span-8 odo-card" aria-label="Odontogram">
+        <div className={kasir ? 'kasir-grid chart-grid' : 'grid-12 chart-grid'}>
+          {kasir && <CatalogPanel rows={cat} prices={prices!} armed={armed?.procedure_code ?? null} onPick={pickCatalog} />}
+          <Card render={(p) => <section {...p} />} className={kasir ? 'odo-card' : 'span-8 odo-card'} aria-label="Odontogram">
             <div className="card-head">
               <h2>Odontogram</h2>
               {mine.length + myProcs.filter(isWork).length > 0 && <Tag k="draft">Draf: {mine.length} temuan, {myProcs.filter(isWork).length} tindakan</Tag>}
@@ -692,7 +724,14 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
             </div>
             {chart.as_of && <Notice status="warning" role="status">Tampilan riwayat: keadaan pada akhir {chart.as_of} (WIB). Hanya baca.</Notice>}
             <p className={summary ? 'odo-summary' : 'odo-summary muted'} role="note" aria-label="Ringkasan temuan">{summary || 'Belum ada temuan.'}</p>
-            {editable && mouthProcs.length > 0 && (
+            {kasir && (
+              <div className="kasir-step">
+                <p role="status" aria-label="Langkah">{armed ? `${armed.name}: pilih gigi di odontogram.` : 'Pilih tindakan di katalog. Tindakan tanpa gigi langsung masuk keranjang.'}</p>
+                {armed && <Button size="sm" variant="ghost" onPress={() => { setArmed(null); setPick(null) }}>Batal</Button>}
+                {mobile && <Button size="sm" variant="outline" onPress={() => setCartOpen(true)}>Keranjang {cartRows.length} · {rp(cartTotal)}</Button>}
+              </div>
+            )}
+            {editable && !kasir && mouthProcs.length > 0 && (
               // work without a tooth (Scaling ...): done today = Selesai, billed like a tooth entry
               <div className="mouth-procs" role="group" aria-label="Tindakan seluruh mulut">
                 <span className="muted small">Tindakan seluruh mulut:</span>
@@ -730,14 +769,14 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
                 <div key={arch} className="odo-jaw">
                   <p className="odo-jaw-head"><span id={`jaw-${arch}`}>{arch === 'upper' ? 'Rahang atas' : 'Rahang bawah'}</span> <span className="muted">kanan ← kiri pasien</span></p>
                   <div className="odo2d-wrap odo-jaw-scroll" data-audit-skip role="group" aria-labelledby={`jaw-${arch}`} ref={(el) => centre(el, String(dent))}>
-                    <Odontogram arch={arch} wholeTooth marks={shown} baseline={chart.baseline?.teeth} dentition={dent} compact={view === '3d'} selected={pick ? `t${pick.tooth}-${pick.surface}` : null} onPick={onPick} />
+                    <Odontogram arch={arch} wholeTooth marks={shown} baseline={chart.baseline?.teeth} dentition={dent} compact={view === '3d'} selected={pick ? `t${pick.tooth}-${pick.surface}` : null} picking={kasir && !!armed} onPick={onPick} />
                   </div>
                 </div>
               ))}
             </> : (
             // ≤720px: the chart keeps its size and scrolls sideways; opens centred on the midline (11|21).
             <div className="odo2d-wrap" data-audit-skip ref={(el) => { if (mobile) centre(el, String(dent)) }}>
-              <Odontogram marks={shown} baseline={chart.baseline?.teeth} dentition={dent} compact={view === '3d'} selected={pick ? `t${pick.tooth}-${pick.surface}` : null} onPick={onPick} />
+              <Odontogram marks={shown} baseline={chart.baseline?.teeth} dentition={dent} compact={view === '3d'} selected={pick ? `t${pick.tooth}-${pick.surface}` : null} picking={kasir && !!armed} onPick={onPick} />
             </div>
             )}
             {/* OVv2-07: dentition under the chart, always visible (48px); default from age, the dentist can change it */}
@@ -757,10 +796,17 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
             <Card render={(p) => <aside {...p} />} className="span-4 tooth-panel exam-panel" aria-label="Pemeriksaan awal">
               <ExamPalette exam={exam} visitId={visit!.id} emptyTeeth={emptyTeeth} onSaved={(m) => { setMsg(m); load() }} />
             </Card>
-          ) : !mobile ? <Card render={(p) => <aside {...p} />} className="span-4 tooth-panel" aria-label="Detail gigi">{panel}</Card> : (
-            <Presence open={!!pick} exitMs={200}>
-              {pick && <ToothSheet tooth={pick.tooth} panel={panel} onClose={() => setPick(null)} trapTab={trapTab} />}
-            </Presence>
+          ) : !mobile ? (kasir
+            ? <Card render={(p) => <aside {...p} />} className="tooth-panel kasir-side" aria-label="Keranjang kunjungan ini">{cart}{pick && <div className="kasir-pick">{panel}</div>}</Card>
+            : <Card render={(p) => <aside {...p} />} className="span-4 tooth-panel" aria-label="Detail gigi">{panel}</Card>) : (
+            <>
+              <Presence open={!!pick} exitMs={200}>
+                {pick && <ToothSheet label={`Detail gigi ${pick.tooth}`} panel={panel} onClose={() => setPick(null)} trapTab={trapTab} />}
+              </Presence>
+              <Presence open={kasir && cartOpen && !pick} exitMs={200}>
+                {kasir && cartOpen && !pick && <ToothSheet label="Keranjang kunjungan ini" panel={cart} onClose={() => setCartOpen(false)} trapTab={trapTab} />}
+              </Presence>
+            </>
           )}
           <Card render={(p) => <section {...p} />} className="span-12" aria-labelledby="temuan-title">
             <div className="temuan-head">
@@ -792,7 +838,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
             {shownItems.length + shownProcs.length ? <Items findings={shownItems} procedures={shownProcs} visits={chart.visits} canMove={can('note.sign') && !asOf}
               onDiscard={(x) => run(() => discardProcedure(x.id))} onFix={(x, mode) => setProcFix({ p: x, mode })}
               onMove={(x, to) => run(() => changeStatus(x.id, to, visit?.id), `Status ${procedureText(x)} diubah (baris baru; versi lama tetap).`)} />
-              : <p className="muted">{only ? 'Tidak ada temuan pada gigi ini.' : 'Belum ada temuan.'}</p>}
+              : <p className="muted">{only ? 'Tidak ada temuan pada gigi ini.' : editable ? 'Belum ada temuan. Pilih gigi di odontogram untuk menambah tindakan.' : 'Belum ada temuan.'}</p>}
             <ProcedureHistory rows={chart.procedure_history} />
             </div>}
           </Card>
@@ -902,14 +948,14 @@ function BillingTab({ visits }: { visits: ChartVisit[] }) {
   )
 }
 
-function ToothSheet({ tooth, panel, onClose, trapTab }: {
-  tooth: number; panel: ReactNode; onClose: () => void; trapTab: (e: KeyboardEvent<HTMLElement>) => void
+function ToothSheet({ label, panel, onClose, trapTab }: {
+  label: string; panel: ReactNode; onClose: () => void; trapTab: (e: KeyboardEvent<HTMLElement>) => void
 }) {
   const phase = usePresenceClass()
   return (
     <>
       <div className={`sheet-backdrop ${phase}`} onClick={onClose} />
-      <Card render={(p) => <aside {...p} />} className={`tooth-panel sheet tooth-sheet ${phase}`} role="dialog" aria-modal="true" aria-label={`Detail gigi ${tooth}`}
+      <Card render={(p) => <aside {...p} />} className={`tooth-panel sheet tooth-sheet ${phase}`} role="dialog" aria-modal="true" aria-label={label}
         onKeyDown={(e) => { if (e.key === 'Escape') onClose(); else trapTab(e) }}>
         {/* review-3 (board 02): no patient identity strip; the page header above names the patient and its pinned alert ribbon stays visible */}
         <div className="sheet-handle" aria-hidden="true" />

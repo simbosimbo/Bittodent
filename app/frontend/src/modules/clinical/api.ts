@@ -149,3 +149,8 @@ export const approveDrafts = (visitId: string, ids?: string[]) => api(`/api/visi
 export const correctNote = (noteId: string, body: { reason: string; soap: Soap }) =>
   api<{ approval: 'not_needed' | 'self' | 'pending' }>(`/api/notes/${noteId}/corrections`, { method: 'POST', body })
 export const approveCorrection = (id: string) => api(`/api/correction-requests/${id}/approve`, { method: 'POST' })
+/** D-045 (perm price.view, dentist): today's price per level for the logged-in dentist. A preview; the invoice line is the record. Codes without a price are absent. */
+export type PriceLevel = { variant: string; label: string; price_rp: number }
+export const getPriceList = () => api<{ items: { procedure_code: string; name: string; levels: PriceLevel[] }[] }>('/api/tariffs/price-list')
+/** Change one of my own drafts (e.g. its tingkat); the server re-checks it like a new entry. */
+export const updateProcedure = (id: string, body: { variant: string }) => api<Procedure>(`/api/procedures/${id}`, { method: 'PATCH', body })

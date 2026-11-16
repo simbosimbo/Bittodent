@@ -104,7 +104,8 @@ Aturan harga (ditegakkan struktur, dicek `ModuleBoundaryTest`):
 - Baris tagihan **dibuat otomatis** dari tindakan yang dicatat dokter (`Clinical\Events\ProcedureRecorded` / `Clinical\Contracts`),
   dengan harga **snapshot** dari `Tariffs\Contracts\PriceLookup` saat baris dibuat (perubahan tarif kemudian tidak mengubah tagihan lama).
 - Tidak ada API yang membiarkan dokter gigi mengetik harga. Penyesuaian (diskon, dll.) kelak = baris terpisah oleh peran keuangan + alasan + audit.
-- Clinical tidak bergantung pada Billing/Tariffs: dokter tidak melihat atau menentukan harga.
+- Clinical tidak bergantung pada Billing/Tariffs: dokter tidak menentukan harga. Sejak D-045 dokter **melihat** pratinjau harga di layar
+  kunjungan (dari `GET /api/tariffs/price-list`, bukan dari Billing); harga sah tetap snapshot di `invoice_line` saat Selesai.
 - Tagihan final tidak diubah; pendapatan final dibaca modul lain (Compensation) lewat `Billing\Contracts\FinalizedRevenue`.
 
 Bergantung pada: Clinical, Tariffs, Patients, Tenancy (Contracts/Events; Tenancy = hitung pemilik aktif, unit 4). Unit B: `Clinical\Events\ProcedureCorrected` (edge lama).

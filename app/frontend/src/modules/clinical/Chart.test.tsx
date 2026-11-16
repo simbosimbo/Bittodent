@@ -953,3 +953,154 @@ test('audit: a role that cannot start a visit (no note.write) is not told to sta
   expect(screen.queryByText(/Mulai kunjungan hari ini/)).toBeNull()
   expect(screen.getByText('Buka janji hari ini')).toHaveAttribute('href', '#/jadwal')
 })
+
+test('audit: during an active visit the chart comes first and says where a tindakan is entered', async () => {
+  renderChart({ findings: [], visits: [visit] })
+  await screen.findByRole('region', { name: 'Odontogram' })
+  // the empty side panel is the entry point, not a "detail" viewer
+  expect(screen.getByRole('complementary', { name: 'Detail gigi' })).toHaveTextContent('Pilih gigi di odontogram untuk mengisi tindakan atau temuan. Odontogram langsung berubah.')
+  // legend folded while filling, so the teeth are not pushed below the fold; one tap opens it
+  expect(screen.getByRole('button', { name: 'Tampilkan legenda' })).toHaveAttribute('aria-expanded', 'false')
+  expect(screen.getByRole('region', { name: 'Temuan & tindakan' })).toHaveTextContent('Belum ada temuan. Pilih gigi di odontogram untuk menambah tindakan.')
+})
+
+// --- T1 / D-045 gaya kasir: katalog (kiri), odontogram (tengah), keranjang draf kunjungan ini dengan harga (kanan). Synthetic data only. ---
+const KCAT = [
+  { procedure_code: '89.31', name: 'Konsultasi dan pemeriksaan', treat_area: 'mouth', paint_type: 'Text', conditions: [], default_icd10: null, default_icd10_display: null },
+  { procedure_code: '23.2', name: 'Tumpatan komposit', treat_area: 'surface', paint_type: 'Text', conditions: ['cof'], default_icd10: null, default_icd10_display: null },
+  { procedure_code: '99.97', name: 'Pemutihan gigi', treat_area: 'tooth', paint_type: 'Text', conditions: [], default_icd10: null, default_icd10_display: null },
+]
+const KPRICES = { items: [
+  { procedure_code: '89.31', name: 'Konsultasi', levels: [{ variant: 'standar', label: 'Standar', price_rp: 150000 }] },
+  { procedure_code: '23.2', name: 'Tumpatan', levels: [{ variant: 'standar', label: '1 permukaan', price_rp: 450000 }, { variant: 'p2', label: '2 permukaan', price_rp: 550000 }] },
+] }
+const KSTAGES = { '23.2': [{ variant: 'standar', label: '1 permukaan' }, { variant: 'p2', label: '2 permukaan' }] }
+const dokterKasir: Me = { ...me, permissions: [...me.permissions, 'price.view'] }
+type KRow = Omit<ReturnType<typeof draftRow>, 'surfaces'> & { surfaces: string | null }
+function kasirChart(start: KRow[] = [], m: Me = dokterKasir) {
+  const drafts: KRow[] = [...start]
+  vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+    const method = init?.method ?? 'GET'
+    const body = init?.body ? JSON.parse(init.body as string) : null
+    if (method === 'POST' && url.endsWith('/procedures')) drafts.push({ ...draftRow(`m${drafts.length}`, 0, '', 'selesai', body.procedure_code, 'Konsultasi dan pemeriksaan'),
+      tooth: null as unknown as number, treat_area: 'mouth', condition: null as unknown as string, variant: body.variant ?? 'standar' })
+    if (method === 'POST' && url.endsWith('/tooth-entries')) drafts.push({ ...draftRow(`t${drafts.length}`, body.tooth, 'tambalan_komposit', 'selesai', body.procedure_code, 'Tumpatan komposit'),
+      treat_area: 'surface', surfaces: body.surfaces.join(''), variant: body.variant ?? 'standar' })
+    if (method === 'PATCH') { const d = drafts.find((x) => url.endsWith(`/procedures/${x.id}`))!; d.variant = body.variant }
+    if (method !== 'GET') return new Response(JSON.stringify({ id: 'ok' }), { status: 201 })
+    const c = { ...chart, findings: [], procedure_drafts: drafts, visits: [{ ...visit, draft_procedures: drafts }] }
+    return new Response(JSON.stringify(url.endsWith('manifest.json') ? manifest : url.endsWith('/chart') ? c : url.endsWith('/procedure-catalog') ? KCAT
+      : url.endsWith('/tariffs/price-list') ? KPRICES : url.endsWith('/tariffs/stages') ? KSTAGES : url.endsWith('/alerts') ? alerts : full), { status: 200 })
+  }))
+  window.Tooth3D = mockTooth3D
+  return render(<ChartPage patientId="p1" me={m} />)
+}
+const cart = () => within(screen.getByRole('complementary', { name: 'Keranjang kunjungan ini' }))
+const catalog = () => within(screen.getByRole('region', { name: 'Katalog tindakan' }))
+
+test('kasir: a tindakan without a tooth goes straight into the cart with its price and the total; the doctor has no price field', async () => {
+  kasirChart()
+  await screen.findByRole('region', { name: 'Katalog tindakan' })
+  await catalog().findByRole('button', { name: /Konsultasi dan pemeriksaan/ })
+  expect(cart().getByText('Belum ada tindakan')).toBeInTheDocument()
+  expect(cart().getByRole('status', { name: 'Total' })).toHaveTextContent('Rp0')
+  fireEvent.click(catalog().getByRole('button', { name: /Konsultasi dan pemeriksaan/ }))
+  await waitFor(() => expect(postsTo('/procedures').map(([, i]) => JSON.parse((i as RequestInit).body as string)))
+    .toEqual([{ tooth: null, surfaces: null, status: 'selesai', procedure_code: '89.31' }]))
+  const row = within(await cart().findByRole('listitem'))
+  expect(row.getByText('Konsultasi dan pemeriksaan')).toBeInTheDocument()
+  expect(row.getByText('Rp150.000')).toBeInTheDocument()
+  expect(row.getByText('Draf')).toBeInTheDocument() // stays a draft until the dentist signs
+  expect(cart().getByRole('status', { name: 'Total' })).toHaveTextContent('Rp150.000')
+  expect(cart().getByText('Harga final mengikuti tagihan.')).toBeInTheDocument()
+  expect(screen.queryAllByRole('textbox', { name: /harga/i })).toHaveLength(0)
+  expect(screen.queryAllByRole('spinbutton')).toHaveLength(0)
+})
+
+test('kasir: pick a tindakan, then a tooth and surface -> the row enters the cart and the odontogram is filled', async () => {
+  kasirChart()
+  await screen.findByRole('region', { name: 'Katalog tindakan' })
+  expect(document.querySelectorAll('.tooth-ring')).toHaveLength(0)
+  fireEvent.click(await catalog().findByRole('button', { name: /Tumpatan komposit/ }))
+  expect(screen.getByRole('status', { name: 'Langkah' })).toHaveTextContent('Tumpatan komposit: pilih gigi di odontogram.')
+  expect(document.querySelector('#t26 .tooth-ring')).not.toBeNull() // pickable teeth get a ring, not only a colour
+  fireEvent.click(document.getElementById('t26-O')!)
+  const pick = within(screen.getByRole('region', { name: 'Isi gigi 26' }))
+  expect(pick.queryByRole('tab')).toBeNull() // the tindakan is already chosen: no Cara isi tabs, no list
+  const tingkat = await pick.findByRole('radiogroup', { name: 'Tingkat Tumpatan komposit' }) // D-035 term, not "Tahap"
+  expect(tingkat).toHaveTextContent(/^Tingkat/)
+  expect(tingkat).not.toHaveTextContent('Tahap')
+  fireEvent.click(within(tingkat).getByRole('radio', { name: '1 permukaan' }))
+  expect(pick.getByRole('status', { name: 'Harga' })).toHaveTextContent('Rp450.000')
+  fireEvent.click(pick.getByRole('button', { name: 'Masukkan 26 O' }))
+  await waitFor(() => expect(postsTo('/tooth-entries')).toHaveLength(1))
+  expect(JSON.parse(postsTo('/tooth-entries')[0][1]!.body as string)).toEqual({ tooth: 26, status: 'selesai', procedure_code: '23.2', variant: 'standar', surfaces: ['O'] })
+  const row = within(await cart().findByRole('listitem'))
+  expect(row.getByText(/Gigi 26 · O/)).toBeInTheDocument()
+  expect(row.getByText('Rp450.000')).toBeInTheDocument()
+  await waitFor(() => expect(document.getElementById('t26-O')).toHaveAttribute('data-entry', 'selesai'))
+  expect(document.querySelectorAll('.tooth-ring')).toHaveLength(0) // in the cart: the highlight is gone
+})
+
+test('kasir: Batal drops the pickable-teeth highlight', async () => {
+  kasirChart()
+  await screen.findByRole('region', { name: 'Katalog tindakan' })
+  fireEvent.click(await catalog().findByRole('button', { name: /Tumpatan komposit/ }))
+  expect(document.querySelectorAll('.tooth-ring').length).toBeGreaterThan(0)
+  fireEvent.click(screen.getByRole('button', { name: 'Batal' }))
+  expect(document.querySelectorAll('.tooth-ring')).toHaveLength(0)
+})
+
+test('kasir: catalog card = name on one line with the price on the right, then "Per gigi · code" small', async () => {
+  kasirChart()
+  await screen.findByRole('region', { name: 'Katalog tindakan' })
+  const btn = await catalog().findByRole('button', { name: /Tumpatan komposit/ })
+  const [top, sub] = Array.from(btn.children)
+  expect(top).toHaveClass('kasir-item-top')
+  expect(top.querySelector('.kasir-name')).toHaveTextContent('Tumpatan komposit')
+  expect(top.querySelector('.kasir-price')).toHaveTextContent('mulai Rp450.000')
+  expect(sub).toHaveTextContent('Per gigi dan permukaan · 23.2')
+  const none = Array.from(catalog().getByRole('button', { name: /Pemutihan gigi/ }).children)
+  expect(none[0].querySelector('.kasir-price')).toBeNull()
+  expect(none[1]).toHaveTextContent('Harga menunggu diisi pemilik')
+})
+
+test('kasir: the Shell sidebar becomes the icon rail only while kasir mode is on; one primary action (Buat janji is secondary)', async () => {
+  const { unmount } = kasirChart([], { ...dokterKasir, permissions: [...dokterKasir.permissions, 'appointment.create'] })
+  await screen.findByRole('region', { name: 'Katalog tindakan' })
+  expect(document.documentElement).toHaveAttribute('data-shell-rail')
+  expect(screen.getByRole('link', { name: 'Buat janji' })).not.toHaveClass('button--primary')
+  unmount()
+  expect(document.documentElement).not.toHaveAttribute('data-shell-rail')
+})
+
+test('kasir: a tindakan without a price reads "Harga menunggu diisi pemilik" and cannot be added', async () => {
+  kasirChart()
+  await screen.findByRole('region', { name: 'Katalog tindakan' })
+  const btn = await catalog().findByRole('button', { name: /Pemutihan gigi/ })
+  expect(btn).toBeDisabled()
+  expect(btn).toHaveTextContent('Harga menunggu diisi pemilik')
+})
+
+test('kasir: changing a row\'s tingkat changes its price and the total', async () => {
+  kasirChart([{ ...draftRow('d1', 26, 'tambalan_komposit', 'selesai', '23.2', 'Tumpatan komposit'), treat_area: 'surface', surfaces: 'O' }])
+  await screen.findByRole('complementary', { name: 'Keranjang kunjungan ini' })
+  const row = within(await cart().findByRole('listitem'))
+  expect(row.getByText('Rp450.000')).toBeInTheDocument()
+  fireEvent.change(row.getByRole('combobox', { name: 'Tingkat Tumpatan komposit' }), { target: { value: 'p2' } })
+  await waitFor(() => expect(vi.mocked(fetch).mock.calls.filter(([, i]) => (i as RequestInit | undefined)?.method === 'PATCH')
+    .map(([u, i]) => [u, JSON.parse((i as RequestInit).body as string)])).toEqual([['/api/procedures/d1', { variant: 'p2' }]]))
+  expect(await row.findByText('Rp550.000')).toBeInTheDocument()
+  expect(cart().getByRole('status', { name: 'Total' })).toHaveTextContent('Rp550.000')
+})
+
+test('kasir: without price.view (assistant) the visit screen keeps its old layout and never asks for prices', async () => {
+  kasirChart([], { ...me, roles: ['assistant'], permissions: ['patient.read', 'note.read', 'note.write'] })
+  await screen.findByRole('region', { name: 'Odontogram' })
+  expect(screen.queryByRole('region', { name: 'Katalog tindakan' })).toBeNull()
+  expect(screen.queryByRole('complementary', { name: 'Keranjang kunjungan ini' })).toBeNull()
+  expect(screen.getByRole('complementary', { name: 'Detail gigi' })).toBeInTheDocument()
+  expect(document.documentElement).not.toHaveAttribute('data-shell-rail') // full sidebar as before
+  expect(vi.mocked(fetch).mock.calls.some(([u]) => String(u).includes('price-list'))).toBe(false)
+  expect(document.body).not.toHaveTextContent(/Rp\d/)
+})

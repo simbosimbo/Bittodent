@@ -20,7 +20,11 @@ lewat `PriceLookup`) menandai/menolak tingkat tertinggi tanpa alasan. Lihat DEVI
 Invarian:
 - Harga berlaku menurut tanggal: periode lewat tidak diubah (hanya `valid_to` baris terbuka diisi saat versi baru).
 - Modul lain membaca harga hanya lewat `Tariffs\Contracts\PriceLookup` (kode tindakan + tingkat + tanggal → harga).
-- Diubah hanya oleh pemilik. Clinical tidak bergantung pada Tariffs (dokter memilih tingkat, tidak melihat/menentukan harga).
+- Diubah hanya oleh pemilik. Clinical tidak bergantung pada Tariffs (dokter memilih tingkat dan tidak menentukan harga).
+- **D-045 (mengganti "dokter tidak melihat harga"):** dokter gigi (izin `price.view`) **melihat** harga lewat `GET /api/tariffs/price-list` →
+  `{items: [{procedure_code, name, levels: [{variant, label, price_rp}]}]}`: harga hari ini untuk dokter yang login (jalur `PriceLookup::quote` yang sama
+  dengan tagihan, termasuk override per dokter dan Spesialis/bidang). Kode tanpa harga hari ini tidak muncul (SPA: "Harga menunggu diisi pemilik").
+  Baca saja, pratinjau; tagihan yang sah tetap baris `invoice_line`. Tidak ada rute tulis yang bisa dipakai dokter (dites `PriceListTest`).
 
 **Tarif bertingkat (unit A).** Tiga tingkat harga per tenant, semuanya **sel eksplisit** (tidak ada harga hitungan otomatis):
 1. **Umum** = `tariff.price_rp` (wajib; templat seed hanya Umum).
@@ -71,6 +75,6 @@ API (hanya pemilik, `tariff.manage`):
 
 Ditunda (unit C): impor/ekspor CSV, berkas templat tarif tenant baru. Belum ada `GET` daftar sel.
 
-Bergantung pada: Tenancy (`TenancyDirectory`: `dentist_id` override harus dokter aktif tenant ini). Dipakai Billing.
+Bergantung pada: Tenancy (`TenancyDirectory`: `dentist_id` override harus dokter aktif tenant ini; `DentistProfileDirectory`: kategori/bidang dokter yang login untuk `price-list`). Dipakai Billing; SPA dokter membaca `price-list`.
 
 Aturan: kode baru diletakkan di sini (`Models/`, `Http/`, `Services/`, `Domain/`, `Routes/routes.php`, `Contracts/`, `Events/`). Modul lain hanya boleh memakai `Contracts/` atau `Events/` modul ini, dan hanya jika sisi (edge) tercantum di `config/modules.php`.

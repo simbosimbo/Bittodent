@@ -16,7 +16,9 @@ type Props = { marks: Record<string, Mark>; selected?: string | null; onPick?: (
   /** Phone: draw one jaw only (tight viewBox). Omitted = both jaws in one SVG, as on desktop. */
   arch?: 'upper' | 'lower'
   /** Phone (review-2): a tap anywhere on the tooth (48px+ box) picks the tooth with its centre surface; surfaces are chosen on the sheet's 56px pad. */
-  wholeTooth?: boolean }
+  wholeTooth?: boolean
+  /** T1 gaya kasir: a tindakan is waiting for its tooth; every present tooth gets a ring (a line, not only a colour). */
+  picking?: boolean }
 const DENTITION: Record<string, string> = { tetap: 'permanent', sulung: 'primary', campuran: 'mixed' }
 
 const S = 44
@@ -37,7 +39,7 @@ function Glyph({ cond }: { cond: string }) {
   }
 }
 
-function Tooth({ t, x, y, marks, selected, onPick, baseline, arch, wholeTooth }: Props & { t: number; x: number; y: number }) {
+function Tooth({ t, x, y, marks, selected, onPick, baseline, arch, wholeTooth, picking }: Props & { t: number; x: number; y: number }) {
   const K = arch ? K_PHONE : K_DESK
   const upper = isUpper(t)
   const q = Math.floor(t / 10)
@@ -64,6 +66,7 @@ function Tooth({ t, x, y, marks, selected, onPick, baseline, arch, wholeTooth }:
       data-baseline={baseline?.[t] && baseline[t] !== 'ada' ? 'missing' : undefined} transform={`translate(${x},${y})`}>
       {wholeTooth && onPick && <rect className="tooth-hit" x={-4} y={-4} width={S + 8} height={S + 8} fill="transparent" onClick={() => onPick(t, center)} />}
       {state === 'draft' && <rect className="tooth-wash" x={-4} y={-4} width={S + 8} height={S + 8} rx={6} />}
+      {picking && !(baseline?.[t] && baseline[t] !== 'ada') && <rect className="tooth-ring" x={-3} y={-3} width={S + 6} height={S + 6} rx={6} />}
       {shapes.map(([s, shape]) => {
         const m = marks[`t${t}-${s}`]
         const label = `Gigi ${t} ${surfaceName(t, s)}${m ? ': ' + (m.label ?? conditionOf(m.condition)?.label ?? m.condition) + (m.status ? ', ' + (statusOf(m.status)?.label ?? m.status) : '') + (m.state === 'draft' ? ' (draf)' : '') : ''}${baseline?.[t] && baseline[t] !== 'ada' ? ' (baseline: ' + (baseline[t] === 'hilang' ? 'tidak ada' : 'belum tumbuh') + ')' : ''}`

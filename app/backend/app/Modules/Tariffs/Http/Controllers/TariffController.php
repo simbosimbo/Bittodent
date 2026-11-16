@@ -2,9 +2,12 @@
 
 namespace App\Modules\Tariffs\Http\Controllers;
 
+use App\Modules\Tariffs\Contracts\PriceContext;
+use App\Modules\Tariffs\Contracts\PriceLookup;
 use App\Modules\Tariffs\Domain\Derivation;
 use App\Modules\Tariffs\Models\Tariff;
 use App\Modules\Tariffs\Models\TariffRate;
+use App\Modules\Tenancy\Contracts\DentistProfileDirectory;
 use App\Modules\Tenancy\Contracts\TenancyDirectory;
 use App\Shared\Audit\Audit;
 use App\Shared\Dentist\Specialty;
@@ -50,6 +53,28 @@ class TariffController extends Controller
         })->values();
 
         return response()->json(['items' => $items, 'categories' => Tariff::whereNotNull('category')->distinct()->orderBy('category')->pluck('category')]);
+    }
+
+    /**
+     * GET /api/tariffs/price-list (perm price.view, dentist; D-045): today's price per level for the LOGGED-IN dentist, through the same
+     * PriceLookup::quote the invoice uses -> {items: [{procedure_code, name, levels: [{variant, label, price_rp}]}]}. Codes without a
+     * price today are absent (the SPA shows "Harga menunggu diisi pemilik"). Read only, a preview: the invoice line stays the record.
+     */
+    public function priceList(Request $request, PriceLookup $prices, DentistProfileDirectory $profiles)
+    {
+        $today = now()->toDateString();
+        $uid = $request->user()->id;
+        $profile = $profiles->of($uid);
+        $ctx = new PriceContext($uid, $profile['category'], $profile['field']);
+        // shortcut: one quote() per level (a few queries each); fine for a clinic's list, batch it if the list grows to hundreds of codes.
+        $items = Tariff::where('valid_from', '<=', $today)->where(fn ($q) => $q->whereNull('valid_to')->orWhere('valid_to', '>', $today))
+            ->orderBy('procedure_code')->orderBy('level_rank')->get()->groupBy('procedure_code')
+            ->map(fn (Collection $g, $code) => ['procedure_code' => $code, 'name' => $g->first()->name,
+                'levels' => $g->map(fn ($t) => ['variant' => $t->variant, 'label' => $t->level_label,
+                    'price_rp' => $prices->quote($code, $t->variant, now(), $ctx)['price_rp']])->values()->all()])
+            ->values();
+
+        return response()->json(['items' => $items]);
     }
 
     /**

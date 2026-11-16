@@ -43,6 +43,16 @@ function Branch({ me, onSwitchBranch }: { me: Me; onSwitchBranch: (id: string) =
       </label>
 }
 
+/** A page that needs the width (T1 gaya kasir visit screen) shows the sidebar as the ≤1280px icon rail at any width while `on`. */
+export function useShellRail(on: boolean) {
+  useEffect(() => {
+    if (!on) return
+    const root = document.documentElement
+    root.setAttribute('data-shell-rail', '')
+    return () => root.removeAttribute('data-shell-rail')
+  }, [on])
+}
+
 // Shell A: sidebar (brand, clinic block, KLINIK/KLINIS/KEUANGAN nav; icon rail <=1100px; bottom nav instead at <=720px),
 // top bar (page title, search, + quick actions, bell, user menu), medical-alert ribbon slot whenever a patient is active.
 export function Shell({ me, nav, active, title = '', ribbon, badges, queue, queueRail = true, onSwitchBranch, onLogout, children }: {

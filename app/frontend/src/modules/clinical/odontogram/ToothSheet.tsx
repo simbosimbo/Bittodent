@@ -7,6 +7,7 @@ import { SymbolDefs, SymbolIcon } from './symbols'
 import { conditionByKey, conditionsIn, defaultRoles, padLabel, padsFor, spanEnds, spanTeeth, TAXONOMY, type Condition, type EntryStatus,
   type Material, type SpanRole, type SurfaceKey } from './taxonomy'
 import { Note } from '../../../shared/ui/Note'
+import { rp } from '../../../shared/format'
 
 // Boards OVv2-01..03 + AL06 ("tindakan dulu"): tooth -> Permukaan | Seluruh gigi | Rentang -> condition (official symbol + code) -> status
 // (Ada / Lain / Rencana / Selesai) -> one primary "Simpan 26 O cof". A Selesai entry IS today's procedure: the server bills the clinic code
@@ -20,11 +21,14 @@ const TREATMENT = new Set(['amf', 'cof', 'gif', 'fis', 'inl', 'onl', 'rct', 'fmc
 const defaultStatus = (c: Condition | undefined): EntryStatus => (c?.code && TREATMENT.has(c.code) ? 'selesai' : 'ada_sebelumnya')
 type Pick = { condition: string; list: { procedure_code: string; name: string }[] }
 
-export function ToothSheet({ tooth, visitId, initialSurface, onSaved }: {
+// T1 gaya kasir: `fixed` = the tindakan already picked in the catalog (no tabs, list or status: done today, into the cart);
+// `priceOf` shows today's price for the chosen tingkat (D-045, a preview; the invoice line stays the record).
+export function ToothSheet({ tooth, visitId, initialSurface, onSaved, fixed, priceOf }: {
   tooth: number; visitId: string; initialSurface?: SurfaceKey; onSaved: (msg: string) => void
+  fixed?: CatalogRow; priceOf?: (code: string, variant: string | undefined) => number | null
 }) {
   const [tab, setTab] = useState<Tab>('proc')
-  const [proc, setProc] = useState<CatalogRow | null>(null)
+  const [proc, setProc] = useState<CatalogRow | null>(fixed ?? null)
   const [serverBahan, setServerBahan] = useState<string[]>([]) // pick_condition candidates when the loaded catalog is stale
   const [pads, setPads] = useState<SurfaceKey[]>(initialSurface ? [initialSurface] : [])
   const [cond, setCond] = useState<string | null>(null) // surface / span: one condition
@@ -77,7 +81,7 @@ export function ToothSheet({ tooth, visitId, initialSurface, onSaved }: {
     : tab === 'proc' && bahan.length > 1 && !cond ? 'Pilih bahan / jenis.'
     : onSurface && !pads.length ? 'Pilih permukaan.' : tab === 'span' && !spanTo ? 'Pilih gigi akhir rentang.'
     : status === 'klinik_lain' && (!ext.clinic.trim() || !ext.date.trim()) ? 'Isi nama klinik lain dan perkiraan tanggal.'
-    : needStage ? 'Pilih tahap yang dikerjakan hari ini.' : ''
+    : needStage ? (fixed ? 'Pilih tingkat.' : 'Pilih tahap yang dikerjakan hari ini.') : ''
 
   const choose = (k: string) => {
     setPick(null)
@@ -132,7 +136,7 @@ export function ToothSheet({ tooth, visitId, initialSurface, onSaved }: {
         }
       }
       onSaved(`Gigi ${where} ${codes} tersimpan${status === 'selesai' ? ' (masuk tagihan saat Selesai)' : ''}.`)
-      setCond(null); setConds([]); setPick(null); setCodeFor({}); setVariantFor({}); setProc(null); setServerBahan([])
+      setCond(null); setConds([]); setPick(null); setCodeFor({}); setVariantFor({}); setProc(fixed ?? null); setServerBahan([])
     } catch (e) {
       setError(e instanceof ApiError && e.status === 422 ? e.data?.message ?? 'Data tidak valid.' : errorText(e))
     } finally {
@@ -154,21 +158,22 @@ export function ToothSheet({ tooth, visitId, initialSurface, onSaved }: {
   return (
     <section className="tsheet" aria-label={`Isi gigi ${tooth}`}>
       <svg width="0" height="0" aria-hidden="true" style={{ position: 'absolute' }}><SymbolDefs /></svg>
-      <div className="tsheet-tabs" role="tablist" aria-label="Cara isi">
+      {fixed ? <p className="tsheet-fixed"><strong>{fixed.name}</strong> <code>{fixed.procedure_code}</code></p>
+        : <div className="tsheet-tabs" role="tablist" aria-label="Cara isi">
         {TABS.map(([k, label]) => <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => switchTab(k)}>{label}</button>)}
-      </div>
+      </div>}
 
       {tab === 'proc' && <>
-        {procs.length > 8 || q ? <input type="search" className="tsheet-search" placeholder="Cari tindakan atau kode" aria-label="Cari tindakan" value={q}
+        {fixed ? null : procs.length > 8 || q ? <input type="search" className="tsheet-search" placeholder="Cari tindakan atau kode" aria-label="Cari tindakan" value={q}
           onChange={(e) => setQ(e.target.value)} /> : null}
-        <div className="tsheet-list" role="radiogroup" aria-label="Tindakan">
+        {!fixed && <div className="tsheet-list" role="radiogroup" aria-label="Tindakan">
           {procs.map((r) => (
             <button key={r.procedure_code} type="button" role="radio" aria-checked={proc?.procedure_code === r.procedure_code} onClick={() => pickProc(r)}>
               <span className="grow">{r.name}</span><code>{r.procedure_code}</code>
             </button>
           ))}
           {!procs.length && <p className="muted small">{q ? 'Tidak ada tindakan yang cocok.' : 'Belum ada tindakan di katalog klinik.'}</p>}
-        </div>
+        </div>}
         {proc && bahan.length > 1 && (
           <div className="tsheet-pick" role="radiogroup" aria-label="Bahan / jenis">
             <p className="small">Bahan / jenis:</p>
@@ -220,11 +225,11 @@ export function ToothSheet({ tooth, visitId, initialSurface, onSaved }: {
         )}
       </>}
 
-      <div className="tsheet-status" role="radiogroup" aria-label="Status">
+      {!fixed && <div className="tsheet-status" role="radiogroup" aria-label="Status">
         {TAXONOMY.statuses.map((s) => <button key={s.key} type="button" role="radio" aria-checked={status === s.key} title={s.label}
           onClick={() => setStatus(s.key)}>{STATUS_SHORT[s.key]}</button>)}
-      </div>
-      {status === 'selesai' && <p className="muted small">Selesai = dikerjakan hari ini; masuk tagihan saat kunjungan Selesai.</p>}
+      </div>}
+      {status === 'selesai' && !fixed && <p className="muted small">Selesai = dikerjakan hari ini; masuk tagihan saat kunjungan Selesai.</p>}
       {status === 'klinik_lain' && (
         <div className="tsheet-ext">
           <label>Nama klinik lain<input maxLength={120} value={ext.clinic} onChange={(e) => setExt({ ...ext, clinic: e.target.value })} /></label>
@@ -245,8 +250,9 @@ export function ToothSheet({ tooth, visitId, initialSurface, onSaved }: {
         </div>
       )}
       {chosen.filter((k) => stagesOf(k).length > 1).map((k) => (
-        <div key={k} className="tsheet-pick" role="radiogroup" aria-label={`Tahap ${nameOf(k)}`}>
-          <p className="small">Tahap {nameOf(k)} hari ini:</p>
+        // gaya kasir speaks of "Tingkat" (D-035); the old sheet keeps "Tahap"
+        <div key={k} className="tsheet-pick" role="radiogroup" aria-label={`${fixed ? 'Tingkat' : 'Tahap'} ${nameOf(k)}`}>
+          <p className="small">{fixed ? 'Tingkat' : `Tahap ${nameOf(k)} hari ini:`}</p>
           {stagesOf(k).map((s) => <button key={s.variant} type="button" role="radio" aria-checked={variantFor[k] === s.variant}
             onClick={() => setVariantFor({ ...variantFor, [k]: s.variant })}>{s.label}</button>)}
         </div>
@@ -260,10 +266,15 @@ export function ToothSheet({ tooth, visitId, initialSurface, onSaved }: {
           </div>
         </div>
       )}
+      {fixed && priceOf && (() => {
+        const st = stagesOf(fixed.procedure_code)
+        const price = st.length > 1 && !variantFor[fixed.procedure_code] ? null : priceOf(fixed.procedure_code, variantFor[fixed.procedure_code])
+        return <p className="tsheet-price" role="status" aria-label="Harga"><span className="muted">Harga</span> <strong>{price === null ? '—' : rp(price)}</strong></p>
+      })()}
       {error && <Note status="danger" role="alert">{error}</Note>}
       {missing && !pick && <p className="muted small" id="tsheet-why">{missing}</p>}
       <Button fullWidth isDisabled={busy || !!missing || !!pick || !!dup} aria-describedby={missing ? 'tsheet-why' : undefined}
-        onPress={() => save()}>{busy ? 'Menyimpan…' : `Simpan ${where}${codes ? ' ' + codes : ''}`}</Button>
+        onPress={() => save()}>{busy ? 'Menyimpan…' : fixed ? `Masukkan ${where}` : `Simpan ${where}${codes ? ' ' + codes : ''}`}</Button>
     </section>
   )
 }
