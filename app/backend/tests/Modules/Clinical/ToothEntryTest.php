@@ -103,7 +103,11 @@ class ToothEntryTest extends TestCase
         $v = $this->visit();
         $post = fn (array $b) => $this->as(self::DOC)->postJson("/api/visits/{$v->id}/tooth-entries", $b + ['status' => 'selesai']);
         // one candidate: picked automatically (cof -> 23.2 in the starter mapping)
-        $post(['tooth' => 26, 'surfaces' => ['O'], 'condition' => 'tambalan_komposit'])->assertCreated()->assertJsonPath('procedure_code', '23.2');
+        $auto = $post(['tooth' => 26, 'surfaces' => ['O'], 'condition' => 'tambalan_komposit'])->assertCreated()->assertJsonPath('procedure_code', '23.2')
+            ->assertJsonPath('diagnosis_source', 'aturan'); // ICD-10 from the clinic rule paired with 23.2 on this tooth group
+        $this->assertMatchesRegularExpression('/^K02\\./', $auto->json('diagnosis_code'));
+        $post(['tooth' => 27, 'surfaces' => ['O'], 'condition' => 'tambalan_komposit', 'diagnosis_code' => 'K02.9'])->assertCreated()
+            ->assertJsonPath('diagnosis_code', 'K02.9')->assertJsonPath('diagnosis_source', 'manual'); // the dentist can override
         // several candidates (cabut: 23.01/23.09/23.11/23.19 record "mis"): the dentist picks one; a code outside the mapping is refused
         $pick = $post(['tooth' => 48, 'condition' => 'hilang'])->assertUnprocessable()->assertJsonPath('error', 'pick_code');
         $this->assertContains('23.09', collect($pick->json('candidates'))->pluck('procedure_code')->all());

@@ -43,6 +43,24 @@ final class CodingSuggestions
             ->values()->all();
     }
 
+    /**
+     * Odontogram v2: ICD-10 for a finished entry, from the clinic rules that pair a diagnosis with the billed ICD-9-CM code on this tooth
+     * group ("diisi dari aturan cabang", design/odontogram-kondisi.md). Same order as for(): this dentist's usage, then rule priority.
+     */
+    public static function forProcedure(string $icd9cm, ?int $tooth, string $dentistId): ?string
+    {
+        $groups = $tooth === null ? ['any'] : Odontogram::toothGroups($tooth); // no tooth (scaling): clinic-wide rules only
+        $rules = CodingRule::where('icd9cm', $icd9cm)->where('active', true)->whereIn('tooth_group', $groups)->get();
+        $group = collect($groups)->first(fn ($g) => $rules->contains('tooth_group', $g));
+        $rules = $rules->where('tooth_group', $group);
+        $valid = Icd10Code::whereIn('code', $rules->pluck('icd10'))->where('valid', true)->pluck('code')->all();
+        $pref = CodingPreference::where('dentist_id', $dentistId)->whereIn('icd10', $valid)->get()->groupBy('icd10')->map->sum('count');
+
+        return $rules->filter(fn ($r) => in_array($r->icd10, $valid, true))
+            ->sortBy([fn ($a, $b) => ($pref[$b->icd10] ?? 0) <=> ($pref[$a->icd10] ?? 0), fn ($a, $b) => $a->priority <=> $b->priority])
+            ->first()?->icd10;
+    }
+
     /** A dentist chose $icd10 for $condition: count++ and stamp last_used_at (tenant from Ctx). */
     public static function recordChoice(string $dentistId, string $condition, string $icd10): void
     {

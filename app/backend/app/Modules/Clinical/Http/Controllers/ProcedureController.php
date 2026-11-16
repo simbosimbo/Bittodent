@@ -18,6 +18,7 @@ use App\Modules\Clinical\Models\ProcedureCorrectionDecision;
 use App\Modules\Clinical\Models\ProcedureDefinition;
 use App\Modules\Clinical\Models\ProcedureRecord;
 use App\Modules\Clinical\Models\Visit;
+use App\Modules\Clinical\Services\CodingSuggestions;
 use App\Modules\Clinical\Services\PatientCareSync;
 use App\Modules\Identity\Contracts\UserDirectory;
 use App\Modules\Tenancy\Contracts\DentistProfileDirectory;
@@ -87,6 +88,7 @@ class ProcedureController extends Controller
             'surfaces' => ['sometimes', 'array', 'max:5'],
             'surfaces.*' => ['string', 'in:M,O,I,D,V,L'],
             'procedure_code' => ['bail', 'sometimes', 'nullable', 'string', 'regex:'.Soap::ICD9CM, OfficialIcdCode::icd9cm()],
+            'diagnosis_code' => ['bail', 'sometimes', 'nullable', 'string', 'regex:'.Soap::ICD10, OfficialIcdCode::icd10()],
             'span_to' => ['sometimes', 'nullable', 'integer', 'in:'.implode(',', $tax::teeth())],
             'span_roles' => ['sometimes', 'nullable', 'array'],
             'span_roles.*' => ['string', 'in:'.implode(',', $tax::spanRoles())],
@@ -121,7 +123,13 @@ class ProcedureController extends Controller
             }
             $d['procedure_code'] = $sent ?? $codes[0];
         }
-        $p = ['status' => $tax::procedureStatus($d['status']), 'procedure_code' => $d['procedure_code'] ?? null,
+        // diagnosis: what the dentist sent, else the clinic rule paired with the billed code on this tooth (editable before Selesai)
+        $dx = $d['diagnosis_code'] ?? null;
+        $dxSource = $dx === null ? null : 'manual';
+        if ($dx === null && ($d['procedure_code'] ?? null) && ($dx = CodingSuggestions::forProcedure($d['procedure_code'], $d['tooth'], Ctx::current()->userId))) {
+            $dxSource = 'aturan';
+        }
+        $p = ['diagnosis_code' => $dx, 'diagnosis_source' => $dxSource, 'status' => $tax::procedureStatus($d['status']), 'procedure_code' => $d['procedure_code'] ?? null,
             'external_clinic_name' => $d['external_clinic_name'] ?? null, 'external_date' => $d['external_date'] ?? null];
         $roles = null;
         if ($span) {
@@ -574,6 +582,12 @@ class ProcedureController extends Controller
             return $ext;
         }
         $dx = $d['diagnosis_code'] ?? null;
+        if (! array_key_exists('diagnosis_code', $d) && $d['status'] === ProcedureStatus::BILLABLE && $code !== null) {
+            // not sent at all (explicit null = cleared on purpose): the clinic rule paired with the billed code, as for tooth entries
+            if ($dx = CodingSuggestions::forProcedure($code, isset($d['tooth']) ? (int) $d['tooth'] : null, Ctx::current()->userId)) {
+                $d['diagnosis_source'] = 'aturan';
+            }
+        }
 
         return [...$loc, ...$ext, 'status' => $d['status'], 'procedure_code' => $code, 'variant' => $d['variant'] ?? 'standar', 'provider_id' => $provider,
             // a code set through the API without a source is `manual`; no code = no source
