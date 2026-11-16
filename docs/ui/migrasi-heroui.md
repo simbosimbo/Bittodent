@@ -1,0 +1,68 @@
+# Kontrak migrasi HeroUI (untuk subagen modul)
+
+Dokumen ini kontrak kerja. Jangan diubah oleh subagen; laporkan bila ada yang salah.
+
+## Tujuan
+
+Seluruh React SPA (`app/frontend`) memakai komponen HeroUI v3 + HeroUI Pro dengan tema token Bittodent, supaya tampilan HP dan desktop seragam, seimbang, dan ukuran fontnya sesuai kanvas desain "Bittodent / Kasir". Kelas CSS lama yang bentrok dengan HeroUI hilang.
+
+## Sudah tersedia (jangan diulang)
+
+- `@heroui/react` + `@heroui/styles` 3.2.7, `@heroui-pro/react` (pasang lokal), Tailwind v4.
+- `src/shared/ui/app.css` satu-satunya entry CSS. Layer: `theme, base, legacy-base, components, legacy, utilities`. Tema HeroUI → token Bittodent (accent `#0B6B62`, Plus Jakarta Sans, `--radius: 8px`).
+- Shell (top bar, bottom nav, `shared/ui`) sudah dimigrasi lebih dulu. Pakai API `shared/ui` apa adanya.
+- Dokumen HeroUI v3: `node /Users/yohanessantoso/.claude/skills/heroui-react/scripts/get_component_docs.mjs <Komponen...>`. Komponen Pro: `app/frontend/node_modules/@heroui-pro/react/dist/components/<nama>/index.d.ts`.
+- Pola v3: tanpa Provider, compound (`Card.Header`), `onPress` bukan `onClick`, varian semantik (`primary`, `secondary`, `tertiary`, `danger`, `ghost`, `outline`). Jangan pakai pola v2.
+
+## Rujukan HeroUI Pro (baca saja, berlisensi: jangan salin file ke repo)
+
+- Skill Pro: `/Users/yohanessantoso/Downloads/Hero UI/Agent Skills/HeroUI Web/.claude/skills/heroui-react-pro/SKILL.md` (aturan import, komponen yang TIDAK ada: `Divider` → `Separator`, `Progress` → `ProgressBar`, tanpa `CardHeader` langsung).
+- Selera desain: `.../heroui-pro-design-taste/SKILL.md` di folder yang sama. Dipakai bila kanvas tidak mengatur; kanvas menang bila bertentangan.
+- Halaman dokumentasi offline per komponen Pro: `/Users/yohanessantoso/Downloads/Hero UI/Components/<Kategori>/<Nama>.html` (mis. `Navigation/Navbar.html`, `Overlays/Sheet.html`, `Data Display/List View.html`, `Data Display/Agenda.html`, `Data Display/KPI.html`, `Forms/Native Select.html`).
+- Contoh aplikasi: template dashboard terekstrak di scratchpad koordinator `/private/tmp/claude-501/-Users-yohanessantoso--claude-spares-spare-NRLtSP/a105626c-cd19-4571-bded-9e4cb20d490b/scratchpad/heroui-ref/template-dashboard/src` (`components/app-shell.tsx` pakai `AppLayout`, `widgets/*` untuk kartu, tabel, KPI). Next.js; ambil polanya, bukan routing-nya.
+- Ikon: tetap pakai `shared/ui/Icon` milik SPA (jangan tambah `@iconify/react`).
+
+## Pagar (wajib)
+
+- Tulis HANYA file di folder modulmu (`src/modules/<modul>/**`, termasuk CSS dan tesnya). File lain milik orang lain: `src/shared/**`, `src/App.tsx`, `app.css`, `styles.css`, `package.json`, `vite.config.ts`, modul lain, backend, dokumen ini.
+- Butuh perubahan di luar pagar → jangan diubah; tulis di laporan sebagai permintaan.
+- Jangan commit, jangan ganti cabang, jangan pasang paket baru. Butuh peer Pro (mis. `motion`) → minta di laporan.
+- Data sintetis saja. Bahasa Indonesia sederhana. Jangan klaim sertifikasi/kepatuhan di UI.
+- Logika bisnis, panggilan API, aturan klinis (draf vs tanda tangan, tenant), dan alur tidak berubah. Ini migrasi tampilan.
+- Tes: pertahankan perilaku yang diuji (teks, peran ARIA, alur, aturan). Ganti selector kelas lama ke peran/teks. Jangan hapus cakupan aksesibilitas.
+
+## Resep per layar
+
+1. Baca artboard kanvas yang relevan (lihat tabel). Kanvas: `https://claude.ai/code/artifact/54a947b7-e8a8-4dfe-b709-99c55b916ef7`, baca dengan Artifact `read_file` path `project/<nama>.dc.html`. Kanvas = sumber tata letak dan ukuran; warna dari token.
+2. Ganti markup lama ke komponen HeroUI/Pro. Kelas bentrok yang harus hilang: `avatar, badge, card, chip, menu, tabs, toast, toolbar, spinner, date-field, field-error`.
+3. Hapus CSS modul yang tidak terpakai lagi. Tata letak sisa: utilitas Tailwind atau CSS modul berawalan nama modul.
+
+## Ukuran target
+
+- HP (≤720px): body 15px, sekunder 14px, caption 13px, minimal 12px. Judul halaman 20–22px/700. Gutter 16px, gap 12px. Kartu radius 16px, padding 12–16px. Target sentuh ≥44px (aksi primer ≥48px). Tanpa overflow horizontal. Meta kartu tidak terpotong oleh tombol (tombol turun ke baris sendiri bila sempit).
+- Desktop: tata letak sekarang dipertahankan, hanya komponennya diganti.
+
+## Artboard per modul
+
+| Modul | Artboard |
+| --- | --- |
+| scheduling | PD01, QA1–QA4, JH01–JH10, FO01, FO07–FO13, MP02 |
+| clinical | PD02–PD07, PD10–PD15, OD06–OD08, OVv2-01–07, AL01–AL09, PR07–PR13, IC08–IC18, EA08, RK06–RK19 |
+| patients | PD08, FO02–FO06, AIv4-04 |
+| settings | PR02–PR06, MP03–MP05, KL10–KL13, AP04–AP09, IC19–IC28 |
+| billing | KL01–KL06, K01–K15, RK20–RK23, PR14 |
+| reporting | KL07–KL09, RK25 |
+| booking | SS01–SS18 |
+| auth | DS-Components (form, tombol) |
+
+## Selesai bila (diperiksa ulang oleh koordinator, bukan laporanmu)
+
+1. `npx tsc --noEmit` bersih.
+2. `npx vitest run src/modules/<modul>` lulus.
+3. `node scripts/legacy-classes.mjs --json` → tidak ada hit di folder modulmu.
+4. `node scripts/ui-audit.mjs --routes <rute modulmu> --out <scratchpad>` → semua `ok` (tanpa overflow, tanpa kontrol di luar layar, target ≥44px di HP, tanpa teks <12px). Login sintetis otomatis.
+5. Screenshot 390px dan 1440px rute modulmu dibandingkan dengan artboard; sebut perbedaan yang tersisa.
+
+## Laporan (ringkas)
+
+File diubah, komponen HeroUI/Pro dipakai, hasil 4 pemeriksaan di atas (angka), perbedaan dari kanvas yang tersisa, permintaan di luar pagar.
