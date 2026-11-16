@@ -197,7 +197,7 @@ test('390px Beranda: clinic + DATA SINTETIS + bell + avatar; no search', () => {
   expect(within(top).queryByRole('search')).toBeNull()
 })
 
-test('390px Rekam Medis: back + "Rekam Medis" header instead of the clinic; Pasien list: "Pasien" header; bottom nav unchanged', () => {
+test('390px Rekam Medis: back + "Rekam Medis" header instead of the clinic; Pasien list: the same tab header as every tab; bottom nav unchanged', () => {
   viewport(390)
   location.hash = '/rekam-medis/p1'
   const { unmount } = shell(clin, { id: 'p1' }, '/rekam-medis')
@@ -214,9 +214,8 @@ test('390px Rekam Medis: back + "Rekam Medis" header instead of the clinic; Pasi
   location.hash = '/pasien?q=budi'
   shell(me, null, '/pasien')
   top = document.querySelector('header.shell-top') as HTMLElement
-  expect(top.querySelector('.shell-top-title')).toHaveTextContent('Pasien')
-  expect(top).not.toHaveTextContent('Klinik Gigi Senyum Sehat')
-  expect(within(top).queryByRole('button', { name: 'Aksi cepat' })).toBeNull() // + is the list's FAB here
+  expect(top).toHaveTextContent('Klinik Gigi Senyum Sehat') // kanvas MP02: every tab shares one header; only detail pages get back + title
+  expect(within(top).getByRole('button', { name: 'Aksi cepat' })).toBeInTheDocument()
 })
 
 test('390px without an active patient: Rekam Medis tab leads to the patient list', () => {

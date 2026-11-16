@@ -146,16 +146,11 @@ export function Shell({ me, nav, active, title = '', ribbon, badges, queue, queu
         {/* top bar + ribbon stay pinned while the page scrolls: alerts must never scroll out of view */}
         <div className="shell-sticky" ref={sticky}>
         {mobile ? (
-          // Mobile header per screen (sketch): Rekam Medis = back + title; patient list = "Pasien" (+ is a FAB there); else clinic + bell + avatar.
+          // Mobile header (kanvas MP02): detail pages = back + title; every tab = the same clinic + actions bar.
           route.startsWith('/rekam-medis/') ? (
             <header className="shell-top">
               <a className={buttonVariants({ variant: 'ghost', isIconOnly: true }) + ' shell-icon'} href="#/pasien" aria-label="Kembali ke daftar pasien"><Icon d={ICONS.left} /></a>
               <strong className="shell-top-title">Rekam Medis</strong>
-              <span className="badge-synthetic shell-top-synthetic">DATA SINTETIS</span>
-            </header>
-          ) : route === '/pasien' ? (
-            <header className="shell-top">
-              <strong className="shell-top-title" aria-hidden="true">Pasien</strong>
               <span className="badge-synthetic shell-top-synthetic">DATA SINTETIS</span>
             </header>
           ) : (
