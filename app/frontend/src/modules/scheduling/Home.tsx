@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { Avatar, buttonVariants, Card, Chip, ToggleButton } from '@heroui/react'
 import { fmtDate, fmtTime, initials, todayWib, TZ } from '../../shared/format'
 import type { Me } from '../../shared/session'
 import { RevenueCard } from '../billing'
@@ -39,10 +40,10 @@ function DeskHome({ me }: { me: Me }) {
   const can = (p: string) => me.permissions.includes(p)
   const mobile = useIsMobile()
   // Phone: CTAs leave the first fold (greeting + KPIs); they sit after the KPI tiles and in the header + menu.
-  const toolbar = (can('patient.create') || can('appointment.create')) && (
-    <div className="toolbar home-actions">
-      {can('patient.create') && <a className="btn" href="#/pasien/baru">Daftarkan pasien</a>}
-      {can('appointment.create') && <a className="btn btn-primary" href="#/jadwal">Buat janji</a>}
+  const ctas = (can('patient.create') || can('appointment.create')) && (
+    <div className="home-actions">
+      {can('patient.create') && <a className={buttonVariants({ variant: 'outline' })} href="#/pasien/baru">Daftarkan pasien</a>}
+      {can('appointment.create') && <a className={buttonVariants({ variant: 'primary' })} href="#/jadwal">Buat janji</a>}
     </div>
   )
   const canChart = can('note.read')
@@ -63,7 +64,7 @@ function DeskHome({ me }: { me: Me }) {
   const href = (a: Appointment) => canChart && a.patient ? `#/rekam-medis/${a.patient.id}${canVisit ? `/janji/${a.id}` : ''}` : null
   const open = (a: Appointment) => {
     const h = href(a)
-    return h && <a className="btn row-action" href={h} aria-label={`Buka Rekam Medis ${a.patient!.name}`}>Buka Rekam Medis</a>
+    return h && <a className={'home-open ' + buttonVariants({ variant: 'outline', size: 'sm' })} href={h} aria-label={`Buka Rekam Medis ${a.patient!.name}`}>Buka Rekam Medis</a>
   }
 
   const nowMin = minutesOfDay(now.toISOString(), tz)
@@ -102,32 +103,32 @@ function DeskHome({ me }: { me: Me }) {
           <p className="home-greet">{greeting}, {me.user.name}</p>
           <p className="muted">{fmtDate(date)} · {nowLabel} WIB</p>
         </div>
-        {!mobile && toolbar}
+        {!mobile && ctas}
       </div>
-      {error ? <div className="card state-card error">{error}</div> : loading && !data ? <PageSkeleton variant="home" /> : (
+      {error ? <Card className="state-card error">{error}</Card> : loading && !data ? <PageSkeleton variant="home" /> : (
         <div className="grid-12">
           {kpis.map((k) => (
-            <section key={k.label} className="card stat span-3" aria-label={k.label}>
+            <Card key={k.label} className="stat span-3" role="region" aria-label={k.label}>
               <div className="stat-head"><span className="stat-label">{k.label}</span><span className="stat-icon"><Icon d={k.icon} /></span></div>
               <div className="stat-value">{k.value}</div>
               <div className="muted">{k.note}</div>
-            </section>
+            </Card>
           ))}
           <RevenueCard canRead={can('billing.read')} branchId={me.active.branch_id} />
-          {mobile && toolbar && <div className="span-12 home-actions-row">{toolbar}</div>}
+          {mobile && ctas && <div className="span-12 home-actions-row">{ctas}</div>}
 
-          <section className="card span-12 home-board" aria-labelledby="home-board">
+          <Card className="span-12 home-board" role="region" aria-labelledby="home-board">
             <div className="card-head">
               <div>
                 <h2 id="home-board">Jadwal hari ini per dokter</h2>
                 <p className="muted small">Klik blok untuk membuka rekam medis pasien</p>
               </div>
               <div className="tl-legend" aria-label="Keterangan status">
-                {LEGEND.map(([s, l]) => <span key={s} className={`chip chip-${s}`}>{l}</span>)}
+                {LEGEND.map(([s, l]) => <Chip key={s} size="sm" className={`chip-${s}`}>{l}</Chip>)}
               </div>
             </div>
             {lanes.length === 0 ? <p className="muted empty">Belum ada janji aktif hari ini.</p> : (
-              <div className="tl-scroll" ref={tlScroll}>
+              <div className="tl-scroll" ref={tlScroll} data-audit-skip>{/* sideways scroller by design: later blocks sit past the edge */}
                 <div className="tl" style={{ '--tl-hours': hours.length - 1 } as CSSProperties}>
                   <div className="tl-row tl-axis" aria-hidden="true">
                     <div />
@@ -138,7 +139,7 @@ function DeskHome({ me }: { me: Me }) {
                   {lanes.map((l) => (
                     <div key={l.id} className="tl-row">
                       <div className="tl-who">
-                        <span className="avatar">{initials(l.name) || '?'}</span>
+                        <Avatar size="sm" color="accent" variant="soft" className="tl-av" aria-hidden="true"><Avatar.Fallback>{initials(l.name) || '?'}</Avatar.Fallback></Avatar>
                         <div>
                           <div className="strong">{l.name}</div>
                           <div className="muted small">{l.items.length} janji · {l.items.filter((a) => a.status !== 'done').length} tersisa</div>
@@ -166,17 +167,17 @@ function DeskHome({ me }: { me: Me }) {
                 </div>
               </div>
             )}
-          </section>
+          </Card>
 
-          <section className="card span-12 home-today" aria-labelledby="home-today">
+          <Card className="span-12 home-today" role="region" aria-labelledby="home-today">
             <div className="card-head">
               <div>
                 <h2 id="home-today">Janji hari ini</h2>
                 <p className="muted small" aria-live="polite">{shown.length} janji ditampilkan · urut berdasarkan jam</p>
               </div>
               <div className="seg" role="group" aria-label="Saring janji">
-                <button type="button" className="btn" aria-pressed={filter === 'open'} onClick={() => setFilter('open')}>Belum selesai</button>
-                <button type="button" className="btn" aria-pressed={filter === 'all'} onClick={() => setFilter('all')}>Semua</button>
+                <ToggleButton size="sm" variant="ghost" isSelected={filter === 'open'} onChange={() => setFilter('open')}>Belum selesai</ToggleButton>
+                <ToggleButton size="sm" variant="ghost" isSelected={filter === 'all'} onChange={() => setFilter('all')}>Semua</ToggleButton>
               </div>
             </div>
             {shown.length === 0 ? <p className="muted empty">Belum ada janji aktif hari ini.</p> : (
@@ -194,7 +195,7 @@ function DeskHome({ me }: { me: Me }) {
                 ))}
               </ul>
             )}
-          </section>
+          </Card>
 
         </div>
       )}

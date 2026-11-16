@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Button, buttonVariants } from '@heroui/react'
 import { fmtTime, todayWib, TZ } from '../../shared/format'
 import type { Me } from '../../shared/session'
 import type { Appointment } from './api'
@@ -48,7 +49,7 @@ export function QueuePanel({ me, where = 'rail' }: { me: Me; where?: 'rail' | 's
         {where === 'rail' && <div className="queue-panel-top">
           <h2 id="queue-panel-h">Antrean hari ini</h2>
           {updated && <span className="muted small">{updated}</span>}
-          <button type="button" className="btn btn-ghost btn-sm" onClick={reload}>Muat ulang</button>
+          <Button variant="ghost" size="sm" onPress={reload}>Muat ulang</Button>
         </div>}
         {(data?.dentists.length ?? 0) > 1 && (
           <label className="queue-panel-filter"><span className="sr-only">Saring dokter</span>
@@ -75,7 +76,7 @@ export function QueuePanel({ me, where = 'rail' }: { me: Me; where?: 'rail' | 's
                   <li key={a.id}>
                     <span className={`queue-panel-no chip-${g.key}`}>{g.key === 'booked' || g.key === 'late' ? fmtTime(a.starts_at, tz) : i + 1}</span>
                     {h ? <a className="queue-panel-who" href={h}>{body}</a> : <span className="queue-panel-who">{body}</span>}
-                    {g.key === 'unpaid' && a.visit_id && <a className="btn btn-primary btn-sm" href={`#/tagihan/${a.visit_id}`} aria-label={`Bayar ${a.patient?.name ?? ''}`}>Bayar</a>}
+                    {g.key === 'unpaid' && a.visit_id && <a className={buttonVariants({ variant: 'primary', size: 'sm' })} href={`#/tagihan/${a.visit_id}`} aria-label={`Bayar ${a.patient?.name ?? ''}`}>Bayar</a>}
                   </li>
                 )
               })}
@@ -84,7 +85,7 @@ export function QueuePanel({ me, where = 'rail' }: { me: Me; where?: 'rail' | 's
         ))
       )}
       {data && groups.every((g) => g.items.length === 0) && <p className="muted small queue-panel-empty">Belum ada pasien hari ini.</p>}
-      {can('appointment.read') && <a className="btn btn-block queue-panel-foot" href="#/jadwal">Buka jadwal</a>}
+      {can('appointment.read') && <a className={'queue-panel-foot ' + buttonVariants({ variant: 'outline', fullWidth: true })} href="#/jadwal">Buka jadwal</a>}
     </section>
   )
 }

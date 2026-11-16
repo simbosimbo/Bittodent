@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent, type MouseEvent, type PointerEvent, useRef } from 'react'
+import { Button, buttonVariants, Card, Chip, ToggleButton } from '@heroui/react'
 import { DateField } from '../../shared/ui/DateField'
 import { ApiError, errorText } from '../../shared/api/http'
 import { fmtDate, fmtTime, todayWib } from '../../shared/format'
@@ -93,7 +94,7 @@ function WeekStrip({ date, counts, error, onPick, onRetry }: {
           )
         })}
       </div>
-      {error && <p className="week-error small" role="alert">Jumlah janji per hari gagal dimuat. <button type="button" className="btn btn-ghost" onClick={onRetry}>Coba lagi</button></p>}
+      {error && <p className="week-error small" role="alert">Jumlah janji per hari gagal dimuat. <Button variant="ghost" size="sm" onPress={onRetry}>Coba lagi</Button></p>}
     </>
   )
 }
@@ -383,36 +384,36 @@ export default function Schedule({ me, newFor = null }: { me: Me; newFor?: strin
     onClickCapture: (e: MouseEvent) => { if (swiped.current) { swiped.current = false; e.preventDefault(); e.stopPropagation() } },
   }
 
-  if (!me.active.branch_id) return <div className="card state-card">Belum ada cabang aktif.</div>
+  if (!me.active.branch_id) return <Card className="state-card">Belum ada cabang aktif.</Card>
 
-  const prev = <button className="btn" onClick={() => shift(-1)} aria-label="Hari sebelumnya">‹</button>
-  const next = <button className="btn" onClick={() => shift(1)} aria-label="Hari berikutnya">›</button>
-  const today = <button className={mobile ? 'btn sched-today' : 'btn'} onClick={() => setDate(todayWib())}>Hari ini</button>
-  const dateInput = <DateField aria-label="Tanggal" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} />
-  const create = canCreate && <button className="btn btn-primary" onClick={() => setDialog({})}>+ Buat Janji</button>
-  const arrive = canArrive && isToday && <button className="btn" onClick={() => { setNotice(''); setArriveOpen(true) }}>Pasien datang</button>
+  const prev = <Button variant="outline" isIconOnly onPress={() => shift(-1)} aria-label="Hari sebelumnya">‹</Button>
+  const next = <Button variant="outline" isIconOnly onPress={() => shift(1)} aria-label="Hari berikutnya">›</Button>
+  const today = <Button variant="outline" className={mobile ? 'sched-today' : undefined} onPress={() => setDate(todayWib())}>Hari ini</Button>
+  const dateInput = <DateField aria-label="Tanggal" className="sched-date" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} />
+  const create = canCreate && <Button variant="primary" onPress={() => setDialog({})}>+ Buat Janji</Button>
+  const arrive = canArrive && isToday && <Button variant="outline" onPress={() => { setNotice(''); setArriveOpen(true) }}>Pasien datang</Button>
 
   const dayBody = (
       error ? (mobile
           ? <div className="sched-empty" role="alert"><Icon d={ICONS.cloudOff} size={40} /><p>Gagal memuat.</p>
-              <button className="btn btn-outline" onClick={reload}><Icon d={ICONS.refresh} size={18} />Coba lagi</button></div>
-          : <div className="card state-card error">{error} <button className="btn" onClick={reload}>Coba lagi</button></div>)
+              <Button variant="outline" className="sched-empty-btn" onPress={reload}><Icon d={ICONS.refresh} size={18} />Coba lagi</Button></div>
+          : <Card className="state-card error"><span>{error} <Button variant="outline" onPress={reload}>Coba lagi</Button></span></Card>)
         : !data || (mobile && loading && data.date !== date) ? <PageSkeleton variant="schedule" label="Memuat jadwal…" />
-        : data.chairs.length === 0 ? <div className="card state-card muted">Cabang ini belum punya kursi aktif.</div> : (
+        : data.chairs.length === 0 ? <Card className="state-card muted">Cabang ini belum punya kursi aktif.</Card> : (
           <>
           {mobile && !dokter && cols.length > 1 && (
             // Agenda: "Semua" + one pill per dentist. Grid shows one dentist column, so it has no "Semua" (see docPick).
             <div className="chair-pills" role="group" aria-label="Pilih dokter">
-              {!gridOn && <button type="button" aria-pressed={!docPick} onClick={() => setDocPick(null)}>Semua <span className="muted small">· {count}</span></button>}
+              {!gridOn && <ToggleButton isSelected={!docPick} onChange={() => setDocPick(null)}>Semua <span className="muted small">· {count}</span></ToggleButton>}
               {cols.map((c) => (
-                <button key={c.id} type="button" aria-pressed={gridOn ? c === shownCol : c.id === docPick} onClick={() => setDocPick(c.id)}
-                  aria-label={`${c.label} · ${c.appointments.length}`} title={c.label}>
+                <ToggleButton key={c.id} isSelected={gridOn ? c === shownCol : c.id === docPick} onChange={() => setDocPick(c.id)}
+                  aria-label={`${c.label} · ${c.appointments.length}`}>
                   {shortName(c.label)} <span className="muted small">· {c.appointments.length}</span>
-                </button>
+                </ToggleButton>
               ))}
             </div>
           )}
-          {mobile && inv.error && <p className="week-error small" role="alert">Status bayar gagal dimuat. <button type="button" className="btn btn-ghost" onClick={inv.retry}>Coba lagi</button></p>}
+          {mobile && inv.error && <p className="week-error small" role="alert">Status bayar gagal dimuat. <Button variant="ghost" size="sm" onPress={inv.retry}>Coba lagi</Button></p>}
           {mobile && (
             <Agenda mode={mode} list={agendaList} tz={tz} chairs={data.chairs} nowMin={isToday ? minutesOfDay(new Date(now).toISOString(), tz) : null}
               unpaid={inv.unpaid} primary={primary} onOpen={(a) => setSheetId(a.id)} confirmOnly={gridOn} busyId={busyId} arrivedId={arrivedId}
@@ -421,7 +422,7 @@ export default function Schedule({ me, newFor = null }: { me: Me; newFor?: strin
                   <Icon d={ICONS.people} size={40} />
                   <p>{isToday ? 'Tidak ada pasien hari ini.' : 'Tidak ada pasien.'}</p>
                   {seek === 'none' ? <p className="muted">Tidak ada janji 30 hari ke depan.</p>
-                    : <button type="button" className="btn btn-outline" disabled={seek === 'busy'} onClick={nextOwnDay}><Icon d={ICONS.arrowRight} size={18} />{seek === 'busy' ? 'Mencari…' : 'Hari berikutnya'}</button>}
+                    : <Button variant="outline" className="sched-empty-btn" isDisabled={seek === 'busy'} onPress={nextOwnDay}><Icon d={ICONS.arrowRight} size={18} />{seek === 'busy' ? 'Mencari…' : 'Hari berikutnya'}</Button>}
                 </div>
               ) : (
                 <div className="sched-empty" role="status">
@@ -432,7 +433,7 @@ export default function Schedule({ me, newFor = null }: { me: Me; newFor?: strin
           )}
           {gridOn && count === 0 && <div className="sched-empty sched-empty-sm" role="status"><p>Belum ada janji.</p></div>}
           {mobile && !gridOn ? null : (
-          <div className={'card schedule' + (loading ? ' is-loading' : '')}>
+          <Card className={'schedule' + (loading ? ' is-loading' : '')}>
             <div className="sched-grid" style={{ gridTemplateColumns: `64px repeat(${chairs.length}, minmax(${mobile ? 0 : 180}px, 1fr))` }}>
               <div className="sched-head" />
               {chairs.map((c) => <div key={c.id} className="sched-head">{c.label} <span className="muted small">· {c.appointments.length}</span></div>)}
@@ -460,7 +461,7 @@ export default function Schedule({ me, newFor = null }: { me: Me; newFor?: strin
                       <button key={a.id} type="button" className={`appt appt-${a.status}`} style={box} aria-haspopup="dialog" onClick={() => setSheetId(a.id)}>
                         <span className="appt-top">
                           <span className="appt-time">{fmtTime(a.starts_at, tz)}–{fmtTime(a.ends_at, tz)}</span>
-                          {a.source === 'online' && <span className="chip chip-online">Online</span>}
+                          {a.source === 'online' && <Chip size="sm" className="sched-chip chip-online">Online</Chip>}
                           <StatusChip status={a.status} />
                         </span>
                         <span className="appt-name">{a.patient?.name}{chairLabel(a) && <span className="appt-chair">{chairLabel(a)}</span>}</span>
@@ -470,7 +471,7 @@ export default function Schedule({ me, newFor = null }: { me: Me; newFor?: strin
                       <div key={a.id} className={`appt appt-${a.status}`} style={box}>
                         <div className="appt-top">
                           <span className="appt-time">{fmtTime(a.starts_at, tz)}–{fmtTime(a.ends_at, tz)}</span>
-                          {a.source === 'online' && <span className="chip chip-online">Online</span>}
+                          {a.source === 'online' && <Chip size="sm" className="sched-chip chip-online">Online</Chip>}
                           {a.status === 'pending_confirmation' ? <span className="sr-only">{STATUS.pending_confirmation}</span> : <StatusChip status={a.status} />}
                         </div>
                         <div className="appt-name">{a.patient?.name}{chairLabel(a) && <span className="appt-chair">{chairLabel(a)}</span>}</div>
@@ -480,8 +481,8 @@ export default function Schedule({ me, newFor = null }: { me: Me; newFor?: strin
                                 value={keluhan[a.id] ?? a.reason ?? ''} onChange={(e) => setKeluhan({ ...keluhan, [a.id]: e.target.value })} />
                             : <span className="appt-meta">{a.reason ?? a.dentist?.name}</span>}
                           {actions(a).filter((x) => !x.sheetOnly).map((x) => x.href
-                            ? <a key={x.label} className="btn btn-xs" href={x.href}>{x.label}</a>
-                            : <button key={x.label} className="btn btn-xs" onClick={x.run}>{x.label}</button>)}
+                            ? <a key={x.label} className={buttonVariants({ variant: 'outline', size: 'sm' }) + ' appt-act'} href={x.href}>{x.label}</a>
+                            : <Button key={x.label} variant="outline" size="sm" className="appt-act" onPress={x.run}>{x.label}</Button>)}
                         </div>
                       </div>
                     )
@@ -489,7 +490,7 @@ export default function Schedule({ me, newFor = null }: { me: Me; newFor?: strin
                 </div>
               ))}
             </div>
-          </div>
+          </Card>
           )}
           </>
         )
@@ -505,8 +506,8 @@ export default function Schedule({ me, newFor = null }: { me: Me; newFor?: strin
             <h1>{dokter ? 'Pasien saya' : 'Jadwal'}</h1>
             {!dokter && (
               <div className="view-seg" role="group" aria-label="Tampilan">
-                <button type="button" aria-pressed={view === 'agenda'} aria-label="Tampilan agenda" onClick={() => setView('agenda')}><Icon d={ICONS.agenda} /></button>
-                <button type="button" aria-pressed={view === 'grid'} aria-label="Tampilan grid" onClick={() => setView('grid')}><Icon d={ICONS.grid2} /></button>
+                <ToggleButton isIconOnly variant="ghost" isSelected={view === 'agenda'} aria-label="Tampilan agenda" onChange={() => setView('agenda')}><Icon d={ICONS.agenda} /></ToggleButton>
+                <ToggleButton isIconOnly variant="ghost" isSelected={view === 'grid'} aria-label="Tampilan grid" onChange={() => setView('grid')}><Icon d={ICONS.grid2} /></ToggleButton>
               </div>
             )}
           </div>
@@ -515,12 +516,12 @@ export default function Schedule({ me, newFor = null }: { me: Me; newFor?: strin
         <div className="sched-top">
           <div className="sched-bar">
             {dateInput}
-            <span className="muted small sched-count">{count} janji</span>
+            <span className="muted sched-count">{count} janji</span>
+            <Button isIconOnly variant="outline" onPress={() => shift(weekOpen ? -7 : -1)} aria-label={weekOpen ? 'Minggu sebelumnya' : 'Tanggal sebelumnya'}><Icon d={ICONS.left} size={20} /></Button>
+            <Button isIconOnly variant="outline" onPress={() => shift(weekOpen ? 7 : 1)} aria-label={weekOpen ? 'Minggu berikutnya' : 'Tanggal berikutnya'}><Icon d={ICONS.right} size={20} /></Button>
+            <Button isIconOnly variant={weekOpen ? 'secondary' : 'outline'} className="week-toggle" aria-expanded={weekOpen} aria-label="Pilih hari minggu ini" onPress={() => setWeekOpen(!weekOpen)}><Icon d={ICONS.calendar} size={20} /></Button>
             {!isToday && today}
             {!dokter && arrive}
-            <button className="btn" onClick={() => shift(weekOpen ? -7 : -1)} aria-label={weekOpen ? 'Minggu sebelumnya' : 'Tanggal sebelumnya'}><Icon d={ICONS.left} /></button>
-            <button className="btn" onClick={() => shift(weekOpen ? 7 : 1)} aria-label={weekOpen ? 'Minggu berikutnya' : 'Tanggal berikutnya'}><Icon d={ICONS.right} /></button>
-            <button className="btn week-toggle" aria-expanded={weekOpen} aria-label="Pilih hari minggu ini" onClick={() => setWeekOpen(!weekOpen)}><Icon d={ICONS.calendar} /></button>
           </div>
           {weekOpen && <WeekStrip date={date} counts={weekCounts} error={week.error} onPick={setDate} onRetry={week.retry} />}
         </div>
@@ -532,14 +533,14 @@ export default function Schedule({ me, newFor = null }: { me: Me; newFor?: strin
             <h1 className="shell-dup-title">Jadwal</h1>
             <p className="muted">{fmtDate(date)} · {me.active.branch_name} · {count} janji</p>
           </div>
-          <div className="toolbar">{prev}{today}{next}{dateInput}{arrive}{create}</div>
+          <div className="sched-toolbar">{prev}{today}{next}{dateInput}{arrive}{create}</div>
           {cols.length > 1 && (
             <div className="seg doc-seg" role="group" aria-label="Pilih dokter">
-              <button type="button" aria-pressed={!shownCol} onClick={() => setDocPick(null)}>Semua · {count}</button>
+              <ToggleButton size="sm" variant="ghost" isSelected={!shownCol} onChange={() => setDocPick(null)}>Semua · {count}</ToggleButton>
               {cols.map((c) => (
-                <button key={c.id} type="button" aria-pressed={c === shownCol} onClick={() => setDocPick(c.id)} aria-label={`${c.label} · ${c.appointments.length}`} title={c.label}>
+                <ToggleButton key={c.id} size="sm" variant="ghost" isSelected={c === shownCol} onChange={() => setDocPick(c.id)} aria-label={`${c.label} · ${c.appointments.length}`}>
                   {shortName(c.label)} · {c.appointments.length}
-                </button>
+                </ToggleButton>
               ))}
             </div>
           )}
@@ -548,23 +549,23 @@ export default function Schedule({ me, newFor = null }: { me: Me; newFor?: strin
       {actionError && <p className="form-error" role="alert">{actionError}</p>}
       {notice && <p className="notice" role="status">{notice}</p>}
       {!mobile && canConfirm && pending.length > 0 && (
-        <div className="card confirm-card">
+        <Card className="confirm-card">
           <h2>Perlu konfirmasi <span className="muted small">· {pending.length}</span></h2>
           <ul className="confirm-list">
             {pending.map((a) => (
               <li key={a.id} className="confirm-row">
                 <span className="appt-time">{fmtTime(a.starts_at, tz)}–{fmtTime(a.ends_at, tz)}</span>
-                <span className="chip chip-online">Online</span>
+                <Chip size="sm" className="sched-chip chip-online">Online</Chip>
                 <div className="grow">
                   <strong>{a.patient?.name}</strong>
                   <div className="muted small">{[a.dentist?.name, a.reason].filter(Boolean).join(' · ')}</div>
                 </div>
-                <button className="btn btn-primary" onClick={() => move(a, 'booked')} aria-label={`Konfirmasi ${a.patient?.name ?? ''}`}>Konfirmasi</button>
-                <button className="btn" onClick={() => move(a, 'rejected')} aria-label={`Tolak ${a.patient?.name ?? ''}`}>Tolak</button>
+                <Button variant="primary" onPress={() => move(a, 'booked')} aria-label={`Konfirmasi ${a.patient?.name ?? ''}`}>Konfirmasi</Button>
+                <Button variant="outline" onPress={() => move(a, 'rejected')} aria-label={`Tolak ${a.patient?.name ?? ''}`}>Tolak</Button>
               </li>
             ))}
           </ul>
-        </div>
+        </Card>
       )}
       {mobile ? <div className="sched-swipe" {...swipe}>{dayBody}</div> : dayBody}
       {mobile && data && (
@@ -673,7 +674,8 @@ function BookDialog({ sched, date, me, initial, onClose, onSaved }: {
   useDialog(dlg, onClose, useIsMobile())
   return (
     <div className={`overlay ${phase}`} onClick={onClose}>
-      <form ref={dlg} className="card dialog" role="dialog" aria-modal="true" aria-labelledby="book-title" onClick={(e) => e.stopPropagation()} onSubmit={submit} noValidate>
+      <Card<'form'> ref={dlg} render={(p) => <form {...p} />} className="dialog" role="dialog" aria-modal="true" aria-labelledby="book-title"
+        onClick={(e) => e.stopPropagation()} onSubmit={submit} noValidate>
         <h2 id="book-title">Buat Janji</h2>
         <p className="muted">{fmtDate(date)} · {sched.branch.name}</p>
         <PatientPicker value={patient} onChange={setPatient} />
@@ -686,10 +688,10 @@ function BookDialog({ sched, date, me, initial, onClose, onSaved }: {
         <label>Keperluan (opsional)<input value={reason} maxLength={300} onChange={(e) => setReason(e.target.value)} placeholder="mis. Kontrol, scaling" /></label>
         {error && <p className="form-error" role="alert">{error}</p>}
         <div className="dialog-actions">
-          <button type="button" className="btn" onClick={onClose}>Batal</button>
-          <button className="btn btn-primary" disabled={busy}>{busy ? 'Menyimpan…' : 'Simpan janji'}</button>
+          <Button variant="outline" onPress={onClose}>Batal</Button>
+          <Button type="submit" variant="primary" isDisabled={busy}>{busy ? 'Menyimpan…' : 'Simpan janji'}</Button>
         </div>
-      </form>
+      </Card>
     </div>
   )
 }
@@ -723,7 +725,8 @@ function ArriveDialog({ sched, me, onClose, onSaved }: { sched: Sched; me: Me; o
   useDialog(dlg, onClose, useIsMobile())
   return (
     <div className={`overlay ${phase}`} onClick={onClose}>
-      <form ref={dlg} className="card dialog" role="dialog" aria-modal="true" aria-labelledby="arrive-title" onClick={(e) => e.stopPropagation()} onSubmit={submit} noValidate>
+      <Card<'form'> ref={dlg} render={(p) => <form {...p} />} className="dialog" role="dialog" aria-modal="true" aria-labelledby="arrive-title"
+        onClick={(e) => e.stopPropagation()} onSubmit={submit} noValidate>
         <h2 id="arrive-title">Pasien datang</h2>
         <p className="muted">Tanpa janji · {sched.branch.name}</p>
         <PatientPicker value={patient} onChange={setPatient} />
@@ -734,10 +737,10 @@ function ArriveDialog({ sched, me, onClose, onSaved }: { sched: Sched; me: Me; o
         <label>Keluhan (opsional)<input value={complaint} maxLength={500} onChange={(e) => setComplaint(e.target.value)} placeholder="mis. Gigi ngilu" /></label>
         {error && <p className="form-error" role="alert">{error}</p>}
         <div className="dialog-actions">
-          <button type="button" className="btn" onClick={onClose}>Batal</button>
-          <button className="btn btn-primary" disabled={busy}>{busy ? 'Menyimpan…' : 'Daftarkan datang'}</button>
+          <Button variant="outline" onPress={onClose}>Batal</Button>
+          <Button type="submit" variant="primary" isDisabled={busy}>{busy ? 'Menyimpan…' : 'Daftarkan datang'}</Button>
         </div>
-      </form>
+      </Card>
     </div>
   )
 }
@@ -773,12 +776,12 @@ function PlannedList({ sched, date, canCreate, onScheduled, folded }: { sched: S
         {items?.map((p) => (
           <li key={p.id} className="planned-row">
             <div>
-              <strong>{p.patient_name}</strong> {p.priority === 'segera' && <span className="chip chip-urgent">Segera</span>}
+              <strong>{p.patient_name}</strong> {p.priority === 'segera' && <Chip size="sm" className="chip-urgent">Segera</Chip>}
               <div className="small">{p.procedure} · {p.est_minutes} menit · {p.dentist_name}</div>
               {p.note && <div className="muted small">Catatan: {p.note}</div>}
             </div>
             {canCreate && (
-              <div className={mobile ? 'toolbar planned-bar' : 'toolbar'}>
+              <div className={mobile ? 'sched-toolbar planned-bar' : 'sched-toolbar'}>
                 <select aria-label="Kursi" value={sel(p).chair} onChange={(e) => setPick({ ...pick, [p.id]: { ...sel(p), chair: e.target.value } })}>
                   {sched.chairs.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
                 </select>
@@ -786,8 +789,8 @@ function PlannedList({ sched, date, canCreate, onScheduled, folded }: { sched: S
                   {SLOTS.filter((m) => m + p.est_minutes <= END).map((m) => <option key={m} value={m}>{hhmm(m)}</option>)}
                 </select>
                 {mobile
-                  ? <button className="btn btn-primary" onClick={() => book(p)} aria-label={`Jadwalkan ${p.patient_name ?? 'pasien'} ${fmtDate(date)}`}>Jadwalkan</button>
-                  : <button className="btn btn-xs btn-primary" onClick={() => book(p)}>Jadwalkan {fmtDate(date)}</button>}
+                  ? <Button variant="primary" onPress={() => book(p)} aria-label={`Jadwalkan ${p.patient_name ?? 'pasien'} ${fmtDate(date)}`}>Jadwalkan</Button>
+                  : <Button variant="primary" size="sm" onPress={() => book(p)}>Jadwalkan {fmtDate(date)}</Button>}
               </div>
             )}
           </li>
@@ -797,6 +800,6 @@ function PlannedList({ sched, date, canCreate, onScheduled, folded }: { sched: S
   )
   // Phone (review-2): folded, so today's operational list stays short; desktop unchanged.
   return folded
-    ? <details className="card planned-fold"><summary>{title}</summary>{body}</details>
-    : <div className="card">{title}{body}</div>
+    ? <Card<'details'> render={(el) => <details {...el} />} className="planned-fold"><summary>{title}</summary>{body}</Card>
+    : <Card className="planned-card">{title}{body}</Card>
 }

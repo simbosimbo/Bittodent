@@ -1,8 +1,9 @@
 // Jadwal on a phone (≤720px): role mode (Meja depan | Dokter), sectioned agenda, cards with one primary action, toast, Bayar prompt,
 // reschedule form and the owner's day summary. Schedule.tsx owns the data and the actions; this file only renders.
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { Button, buttonVariants, Chip as HChip, Spinner, ToggleButton } from '@heroui/react'
 import { ApiError, errorText } from '../../shared/api/http'
-import { fmtTime, initials } from '../../shared/format'
+import { fmtTime } from '../../shared/format'
 import type { Me } from '../../shared/session'
 import { storage } from '../../shared/storage'
 import { DateField } from '../../shared/ui/DateField'
@@ -72,7 +73,7 @@ const CHIP: Record<string, string> = {
   cancelled: 'Batal', no_show: 'No-show', rejected: 'Ditolak',
 }
 const Chip = ({ a, owe }: { a: Appointment; owe?: boolean }) =>
-  <span className={`chip ${owe ? 'chip-unpaid' : `chip-${a.status}`}`}>{owe ? 'Belum bayar' : CHIP[a.status] ?? a.status}</span>
+  <HChip size="sm" className={owe ? 'chip-unpaid' : `chip-${a.status}`}>{owe ? 'Belum bayar' : CHIP[a.status] ?? a.status}</HChip>
 
 // ---- Payment status of finished visits ("Belum bayar") ----
 /**
@@ -133,8 +134,9 @@ function Card({ a, tz, chair, dentist, owe, primary, onOpen, busy, arrived }: {
 }) {
   const who = a.patient?.name ?? 'Pasien'
   // Buka RM is the one outlined primary (board): opening a chart is not a state change.
-  const cls = primary?.key === 'chart' ? 'btn agenda-cta agenda-cta-outline' : 'btn btn-primary agenda-cta'
-  const label = busy ? <><span className="spinner" aria-hidden="true" />Memproses</>
+  // native <button>/<a> with HeroUI button styles: the busy state needs a real `disabled` + aria-busy (board 08)
+  const cls = 'agenda-cta ' + buttonVariants({ variant: primary?.key === 'chart' ? 'outline' : 'primary' })
+  const label = busy ? <><Spinner size="sm" color="current" aria-hidden="true" />Memproses</>
     : primary && <>{ACT_ICON[primary.key] && primary.key !== 'checkin' && primary.key !== 'confirm' && <Icon d={ACT_ICON[primary.key]} size={18} />}{primary.label}</>
   // Board 01: a Check-in row says its status through the button; no "Terjadwal" chip. The service (reason) is never cut off;
   // dentist and chair are secondary and may truncate.
@@ -144,11 +146,10 @@ function Card({ a, tz, chair, dentist, owe, primary, onOpen, busy, arrived }: {
     <li className={`agenda-item appt-${a.status}${arrived ? ' agenda-arrive' : ''}`}>
       <button type="button" className="agenda-open" aria-haspopup="dialog" onClick={onOpen}>
         <span className="agenda-time">{fmtTime(a.starts_at, tz)}</span>
-        <span className="agenda-av" aria-hidden="true">{initials(who)}</span>
         <span className="agenda-main">
           <span className="agenda-name">{who}</span>
-          <span className="agenda-meta">{a.reason && <span className="agenda-svc">{a.reason}</span>}{extra && <span className="agenda-extra">{a.reason ? ' · ' : ''}{extra}</span>}</span>
-          {(showChip || a.source === 'online') && <span className="agenda-chips">{a.source === 'online' && a.status !== 'pending_confirmation' && <span className="chip chip-online">Online</span>}{showChip && <Chip a={a} owe={owe} />}</span>}
+          {(a.reason || extra) && <span className="agenda-meta">{[a.reason, extra].filter(Boolean).join(' · ')}</span>}
+          {(showChip || a.source === 'online') && <span className="agenda-chips">{a.source === 'online' && a.status !== 'pending_confirmation' && <HChip size="sm" className="chip-online">Online</HChip>}{showChip && <Chip a={a} owe={owe} />}</span>}
         </span>
         {!primary && <span className="agenda-more" aria-hidden="true"><Icon d={ICONS.more} /></span>}
       </button>
@@ -260,7 +261,7 @@ export function ApptSheet({ a, tz, chair, acts, onClose, onReschedule, onForm, c
     <Sheet title={a.patient?.name ?? 'Janji'} onClose={onClose} className="appt-sheet">
       <p className="appt-sheet-meta">
         <span>{fmtTime(a.starts_at, tz)}–{fmtTime(a.ends_at, tz)}</span>
-        {a.source === 'online' && a.status !== 'pending_confirmation' && <span className="chip chip-online">Online</span>}
+        {a.source === 'online' && a.status !== 'pending_confirmation' && <HChip size="sm" className="chip-online">Online</HChip>}
         <Chip a={a} />
       </p>
       {(a.reason || a.dentist || chair) && <p className="muted">{[a.reason, a.dentist?.name, chair].filter(Boolean).join(' · ')}</p>}
@@ -268,8 +269,8 @@ export function ApptSheet({ a, tz, chair, acts, onClose, onReschedule, onForm, c
       {confirmCancel ? (
         <div className="appt-sheet-actions" role="group" aria-label="Batalkan janji?">
           <p><strong>Batalkan janji ini?</strong></p>
-          <button type="button" className="btn btn-danger" onClick={() => { onClose(); confirmCancel.run?.() }}>Ya, batalkan</button>
-          <button type="button" className="btn" onClick={() => setConfirmCancel(null)}>Tidak</button>
+          <Button variant="danger" onPress={() => { onClose(); confirmCancel.run?.() }}>Ya, batalkan</Button>
+          <Button variant="outline" onPress={() => setConfirmCancel(null)}>Tidak</Button>
         </div>
       ) : (
         <div className="appt-sheet-actions sheet-rows">
@@ -317,12 +318,12 @@ export function RescheduleSheet({ a, tz, date, chairs, onClose, onSaved }: {
     <Sheet title="Ubah jadwal" onClose={onClose} className="appt-sheet">
       <form className="resched" onSubmit={submit} noValidate>
         <p className="muted">{a.patient?.name} · {mins} menit</p>
-        <label>Tanggal<DateField value={day} onChange={(e) => e.target.value && setDay(e.target.value)} /></label>
+        <label>Tanggal<DateField className="resched-date" value={day} onChange={(e) => e.target.value && setDay(e.target.value)} /></label>
         <label>Jam mulai<select value={minute} onChange={(e) => setMinute(Number(e.target.value))}>{SLOTS.map((m) => <option key={m} value={m}>{hhmm(m)}</option>)}</select></label>
         <label>Kursi<select value={chair} onChange={(e) => setChair(e.target.value)}>{chairs.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}</select></label>
         {error && <p className="form-error" role="alert">{error}</p>}
         <div className="appt-sheet-actions">
-          <button className="btn btn-primary" disabled={busy}>{busy ? 'Menyimpan…' : 'Simpan'}</button>
+          <Button type="submit" variant="primary" isDisabled={busy}>{busy ? 'Menyimpan…' : 'Simpan'}</Button>
         </div>
       </form>
     </Sheet>
@@ -361,7 +362,7 @@ export function ChairSheet({ a, chairs, save, onClose, onSaved }: {
         </select></label>
         {error && <p className="form-error" role="alert">{error}</p>}
         <div className="appt-sheet-actions">
-          <button className="btn btn-primary" disabled={busy || chair === a.chair_id}>{busy ? 'Menyimpan…' : 'Simpan'}</button>
+          <Button type="submit" variant="primary" isDisabled={busy || chair === a.chair_id}>{busy ? 'Menyimpan…' : 'Simpan'}</Button>
         </div>
       </form>
     </Sheet>
@@ -408,13 +409,13 @@ export function ReferSheet({ a, dentists, save, unavailable = false, onClose, on
           {others.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
         </select></label>
         <div className="refer-presets" role="group" aria-label="Alasan cepat">
-          <button type="button" className="chip-toggle" aria-pressed={preset} onClick={() => { setPreset(!preset); setError('') }}>{UNAVAILABLE}</button>
+          <ToggleButton className="refer-preset" isSelected={preset} onChange={(on) => { setPreset(on); setError('') }}>{UNAVAILABLE}</ToggleButton>
         </div>
         <label>{preset ? 'Keterangan (opsional)' : 'Alasan rujukan'}<textarea value={note} maxLength={450} rows={3}
           onChange={(e) => { setNote(e.target.value); setError('') }} placeholder={preset ? 'mis. sakit, cuti' : 'mis. Perlu penanganan bedah mulut'} /></label>
         {error && <p className="form-error" role="alert">{error}</p>}
         <div className="appt-sheet-actions">
-          <button className="btn btn-primary" disabled={busy || !dentist}>{busy ? 'Menyimpan…' : 'Rujuk'}</button>
+          <Button type="submit" variant="primary" isDisabled={busy || !dentist}>{busy ? 'Menyimpan…' : 'Rujuk'}</Button>
         </div>
       </form>
     </Sheet>
@@ -426,8 +427,8 @@ export function PayPrompt({ onPay, onLater }: { onPay: () => void; onLater: () =
   return (
     <Sheet title="Lanjut ke Bayar?" onClose={onLater} className="appt-sheet">
       <div className="pay-prompt">
-        <button type="button" className="btn btn-primary" onClick={onPay}>Bayar</button>
-        <button type="button" className="btn" onClick={onLater}>Nanti</button>
+        <Button variant="primary" onPress={onPay}>Bayar</Button>
+        <Button variant="outline" onPress={onLater}>Nanti</Button>
       </div>
     </Sheet>
   )
@@ -442,9 +443,9 @@ export function Toast({ text, undo, undoLabel = 'Urungkan', onDone }: { text: st
     return () => clearTimeout(t)
   }, []) // the parent keys each toast, so a new one restarts the 5 s
   return (
-    <div className="toast" role="status">
+    <div className="sched-toast" role="status">
       <span>{text}{undo && ' ·'}</span>
-      {undo && <button type="button" className="btn btn-ghost" onClick={() => { onDone(); undo() }}>{undoLabel}</button>}
+      {undo && <Button variant="ghost" onPress={() => { onDone(); undo() }}>{undoLabel}</Button>}
     </div>
   )
 }

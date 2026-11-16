@@ -44,16 +44,16 @@ test('janji online menunggu: kartu jadwal tanpa tombol, daftar "Perlu konfirmasi
   const posts = mockFetch(() => list)
   const { container } = render(<Schedule me={ME} />)
 
-  const panel = (await screen.findByRole('heading', { name: /Perlu konfirmasi/ })).closest('.card') as HTMLElement
+  const panel = (await screen.findByRole('heading', { name: /Perlu konfirmasi/ })).closest('.confirm-card') as HTMLElement
   expect(within(panel).getByText('Sinta Contoh')).toBeInTheDocument()
   expect(within(panel).queryByText('Budi Contoh')).toBeNull()
   expect(within(panel).getByText('Online')).toBeInTheDocument()
 
   // Grid card: time + badge + name, no action buttons
-  const card = container.querySelector('.appt-pending_confirmation') as HTMLElement
-  expect(within(card).getByText('Online')).toBeInTheDocument()
-  expect(within(card).getByText('Sinta Contoh')).toBeInTheDocument()
-  expect(within(card).queryByRole('button')).toBeNull()
+  const block = container.querySelector('.appt-pending_confirmation') as HTMLElement
+  expect(within(block).getByText('Online')).toBeInTheDocument()
+  expect(within(block).getByText('Sinta Contoh')).toBeInTheDocument()
+  expect(within(block).queryByRole('button')).toBeNull()
 
   fireEvent.click(within(panel).getByRole('button', { name: /Konfirmasi/ }))
   await vi.waitFor(() => expect(posts).toEqual([{ url: '/api/appointments/a1/transition', body: { to: 'booked' } }]))
@@ -217,8 +217,8 @@ test('HP Check-in (papan 08): tombol Memproses (tak bisa diketuk ulang) -> baris
   await vi.waitFor(() => expect(screen.getByText(/Budi Contoh hadir/)).toBeInTheDocument())
   expect(posts).toEqual(['/api/appointments/a2/transition']) // one tap, one request
   await vi.waitFor(() => expect([...container.querySelectorAll('.agenda-sec h2')].map((h) => h.textContent)).toContain('Menunggu · 1'))
-  expect(container.querySelector('.agenda-item.appt-checked_in .chip')).toHaveTextContent('Hadir')
-  expect(screen.getByText(/Budi Contoh hadir/).closest('.toast')).toHaveAttribute('role', 'status')
+  expect(container.querySelector('.agenda-item.appt-checked_in .chip-checked_in')).toHaveTextContent('Hadir')
+  expect(screen.getByText(/Budi Contoh hadir/).closest('.sched-toast')).toHaveAttribute('role', 'status')
   fireEvent.click(screen.getByRole('button', { name: 'Batalkan' }))
   await vi.waitFor(() => expect(posts).toEqual(['/api/appointments/a2/transition', '/api/appointments/a2/undo-checkin']))
   expect(await screen.findByRole('button', { name: 'Check-in Budi Contoh' })).toBeEnabled()
@@ -231,9 +231,9 @@ test('desktop: kartu tetap punya tombol Check-in + Buka Rekam Medis inline, tanp
   mockOne(() => [appt('a2', 'booked', 'staff', 'Budi Contoh', '10:00')])
   const { container } = render(<Schedule me={ME_CHART} />)
   await screen.findByText('Budi Contoh')
-  const card = container.querySelector('div.appt-booked') as HTMLElement
-  expect(within(card).getByRole('button', { name: 'Check-in' })).toHaveClass('btn', 'btn-xs')
-  expect(within(card).getByRole('link', { name: 'Buka Rekam Medis' })).toHaveAttribute('href', '#/rekam-medis/p-a2/janji/a2')
+  const block = container.querySelector('div.appt-booked') as HTMLElement
+  expect(within(block).getByRole('button', { name: 'Check-in' })).toHaveClass('button--sm') // HeroUI small size: fits the 30-minute block
+  expect(within(block).getByRole('link', { name: 'Buka Rekam Medis' })).toHaveAttribute('href', '#/rekam-medis/p-a2/janji/a2')
   expect(container.querySelector('button.appt')).toBeNull()
 })
 
@@ -259,13 +259,13 @@ test('HP: ketuk kartu membuka sheet aksi; aksi memanggil transisi yang sama; Esc
   render(<Schedule me={ME_CHART} />)
   const card = await screen.findByRole('button', { name: /^10\.00.*Budi Contoh/ })
   expect(within(card).queryByRole('button')).toBeNull() // the card opens the sheet; its one primary sits beside it
-  expect(screen.getByRole('button', { name: 'Check-in Budi Contoh' })).toHaveClass('btn-primary')
+  expect(screen.getByRole('button', { name: 'Check-in Budi Contoh' })).toHaveClass('button--primary')
   expect(card).not.toHaveTextContent('Terjadwal') // board 01: the Check-in button says it; no status chip
 
   card.focus()
   fireEvent.click(card)
   const dialog = screen.getByRole('dialog', { name: 'Budi Contoh' })
-  expect(screen.queryByRole('button', { name: /^10\.00.*Budi Contoh/ })).toBeNull() // modal (HeroUI Sheet): the board behind is hidden from assistive tech
+  await vi.waitFor(() => expect(screen.queryByRole('button', { name: /^10\.00.*Budi Contoh/ })).toBeNull()) // modal (HeroUI Sheet): React Aria hides the board behind from assistive tech
   await vi.waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true)) // React Aria moves focus in after mount
   expect(document.documentElement.style.overflow).toBe('hidden') // React Aria locks scroll on <html>
   expect(within(dialog).getByRole('link', { name: 'Buka RM' })).toHaveAttribute('href', '#/rekam-medis/p-a2/janji/a2')
@@ -711,7 +711,7 @@ test('HP: Konfirmasi satu ketuk -> toast "Dikonfirmasi" + Urungkan mengembalikan
   render(<Schedule me={who(['front_desk'])} />)
   fireEvent.click(await screen.findByRole('button', { name: 'Konfirmasi Pasien p' }))
   const toast = await screen.findByText(/^Dikonfirmasi/)
-  fireEvent.click(within(toast.closest('.toast') as HTMLElement).getByRole('button', { name: 'Urungkan' }))
+  fireEvent.click(within(toast.closest('.sched-toast') as HTMLElement).getByRole('button', { name: 'Urungkan' }))
   await vi.waitFor(() => expect(posts.map((p) => p.body.to)).toEqual(['booked', 'pending_confirmation']))
 })
 
