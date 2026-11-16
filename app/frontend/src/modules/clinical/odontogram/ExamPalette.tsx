@@ -90,7 +90,8 @@ export function ExamPalette({ exam, visitId, emptyTeeth, onSaved }: { exam: Exam
       )}
       {error && <p className="form-error" role="alert">{error}</p>}
       <div className="exam-dock">
-        <button type="button" className="btn" disabled={!rest.length} onClick={() => exam.markRest(emptyTeeth)}>Tandai sisa sou ({rest.length})</button>
+        {emptyTeeth.length || exam.teeth.size ? <button type="button" className="btn" disabled={!rest.length} onClick={() => exam.markRest(emptyTeeth)}>Tandai sisa sou ({rest.length})</button>
+          : <span className="muted small">Campuran: tandai sou per gigi (tidak semua gigi tetap dan sulung ada).</span>}
         <button type="button" className="btn btn-primary" disabled={busy || !exam.entries.length} onClick={save}>
           {busy ? 'Menyimpan…' : `Simpan ${exam.teeth.size} gigi`}</button>
       </div>

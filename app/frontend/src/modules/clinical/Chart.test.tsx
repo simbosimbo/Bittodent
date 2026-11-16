@@ -286,6 +286,25 @@ test('OVv2-06 Pemeriksaan awal: tool once, tap many teeth (tap again = remove), 
   expect(sent.filter((e: { condition: string }) => e.condition === 'sehat')).toHaveLength(29)
 })
 
+test('OVv2-07 campuran: default from age (9 th), toggle under the chart, 55 under 15, same symbols on primary teeth, no blanket sou', async () => {
+  const car55 = { id: 'p55', visit_id: 'v1', treat_area: 'surface', tooth: 55, surfaces: 'O', tooth_range: null, quadrant: null, arch: null, status: 'ada_di_klinik_ini',
+    procedure_code: null, variant: 'standar', diagnosis_code: null, provider_id: 'u1', state: 'final', source: 'manual', supersedes_id: null, created_by: 'u1',
+    finalized_at: '2026-01-05T03:00:00Z', paint_type: 'Text', name: null, layman: null, external_clinic_name: null, external_date: null, external_date_precision: null,
+    condition: 'karies' }
+  renderChart({ patient: { ...patient, dob: childDob }, visits: [visit], findings: [], procedures: [car55] })
+  const odo = await screen.findByRole('region', { name: 'Odontogram' })
+  expect(radio('Dentisi', 'Campuran')).toHaveAttribute('aria-checked', 'true')
+  expect(radio('Dentisi', 'Campuran').closest('.dent-toggle')).not.toBeNull() // under the chart, not hidden in the tools
+  expect(odo.querySelector('.dent-toggle')!.compareDocumentPosition(odo.querySelector('svg.odontogram')!) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy()
+  const x = (t: number) => document.getElementById(`t${t}`)!.getAttribute('transform')!.match(/translate\(([\d.]+)/)![1]
+  expect(x(55)).toBe(x(15)) // primary tooth under its successor
+  expect(x(85)).toBe(x(45))
+  expect(document.getElementById('t55-O')).toHaveAttribute('data-symbol', 'outline') // car, same symbol as permanent
+  fireEvent.click(radio('Mode isi', 'Pemeriksaan awal'))
+  expect(screen.queryByRole('button', { name: /Tandai sisa sou/ })).toBeNull()
+  expect(screen.getByText(/Campuran: tandai sou per gigi/)).toBeInTheDocument()
+})
+
 test('no active visit: the tooth panel is read-only (no entry sheet, no POST) and points to today\'s appointment', async () => {
   renderChart()
   await screen.findByRole('region', { name: 'Odontogram' })

@@ -318,3 +318,6 @@ rect.sym-surface { fill: none; }
 .exam-tool { margin: 0; }
 .exam-dock { display: flex; gap: 8px; flex-wrap: wrap; position: sticky; bottom: 0; padding: 8px 0; background: var(--color-surface, #fff); }
 .exam-dock .btn-primary { flex: 1; }
+/* OVv2-07: Tetap | Sulung | Campuran under the chart, 48px targets */
+.dent-toggle { display: flex; justify-content: center; margin: 8px 0; }
+.dent-toggle .seg button { min-height: 48px; min-width: 72px; }

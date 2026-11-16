@@ -505,7 +505,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   }, [chart, mine, myProcs])
 
   // teeth of the drawn dentition with nothing charted yet (Tandai sisa sou)
-  const emptyTeeth = (dent === 'sulung' ? TAXONOMY.dentitions.primary : TAXONOMY.dentitions.permanent).filter((t) => !Object.keys(marks).some((k) => k === `t${t}` || k.startsWith(`t${t}-`)))
+  const emptyTeeth = (dent === 'campuran' ? [] : dent === 'sulung' ? TAXONOMY.dentitions.primary : TAXONOMY.dentitions.permanent).filter((t) => !Object.keys(marks).some((k) => k === `t${t}` || k.startsWith(`t${t}-`)))
   const shown = mode === 'periksa' ? { ...marks, ...exam.preview } : marks
   // The record lives inside the patient: wrap every state in PatientPage (header + Profil/Keluarga/Riwayat menu).
   // review-2 P1: a billing reader continues to the payment (solid); a dentist without billing goes back to the schedule.
@@ -646,7 +646,6 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
                   <label className="small">Lihat per tanggal <DateField value={asOf} placeholder="Hari ini" max={new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' })}
                     onChange={(e) => setAsOf(e.target.value)} /></label>
                   {asOf && <button className="btn btn-xs" onClick={() => setAsOf('')}>Kembali ke hari ini</button>}
-                  <Seg label="Dentisi" value={dent ?? 'tetap'} onChange={(v) => setDentPick({ base: defDent, v })} options={[['tetap', 'Tetap'], ['sulung', 'Sulung'], ['campuran', 'Campuran']]} />
                   <Seg label="Tampilan" value={view} onChange={changeView} options={[['2d', '2D'], ['3d', '3D']]} />
                   {editable && <Seg label="Mode isi" value={mode} onChange={(m) => { setMode(m); setPick(null) }} options={[['perawatan', 'Perawatan'], ['periksa', 'Pemeriksaan awal']]} />}
                 </div>
@@ -736,6 +735,10 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
               <Odontogram marks={shown} baseline={chart.baseline?.teeth} dentition={dent} compact={view === '3d'} selected={pick ? `t${pick.tooth}-${pick.surface}` : null} onPick={onPick} />
             </div>
             )}
+            {/* OVv2-07: dentition under the chart, always visible (48px); default from age, the dentist can change it */}
+            <div className="dent-toggle">
+              <Seg label="Dentisi" value={dent ?? 'tetap'} onChange={(v) => setDentPick({ base: defDent, v })} options={[['tetap', 'Tetap'], ['sulung', 'Sulung'], ['campuran', 'Campuran']]} />
+            </div>
             {!editable && (visit ? <p className="muted small">{readOnlyWhy}</p> : (
               <div className="chart-cta small">
                 <p>Belum ada kunjungan aktif. Mulai kunjungan hari ini (tanpa janji juga bisa) untuk mengisi odontogram dan SOAP.</p>
