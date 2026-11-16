@@ -64,9 +64,14 @@ class ProcedureController extends Controller
             if (! is_array($attrs)) {
                 return $attrs;
             }
+            $dup = self::duplicateOf($attrs, $visit);
+            if ($dup && ! ($d['confirm_duplicate'] ?? false)) {
+                return self::duplicate($dup);
+            }
             $p = ProcedureRecord::create([...$attrs, 'patient_id' => $visit->patient_id, 'visit_id' => $visit->id, 'state' => 'draft',
                 'source' => $d['source'] ?? 'manual', 'created_by' => $ctx->userId]);
-            Audit::log('buat', 'procedure_record', $p->id, ['tooth' => $p->tooth, 'surfaces' => $p->surfaces, ...self::externalAudit($p)]);
+            Audit::log('buat', 'procedure_record', $p->id, ['tooth' => $p->tooth, 'surfaces' => $p->surfaces, ...self::externalAudit($p),
+                ...($dup ? ['duplicate_of' => $dup->id] : [])]);
 
             return response()->json(self::out($p), 201);
         });
@@ -161,7 +166,40 @@ class ProcedureController extends Controller
             'material' => ['sometimes', 'nullable', 'string', 'in:'.implode(',', $tax::materials())],
             'external_clinic_name' => ['sometimes', 'nullable', 'string', 'max:120'],
             'external_date' => ['sometimes', 'nullable', 'string', 'max:10'],
+            'confirm_duplicate' => ['sometimes', 'boolean'],
         ];
+    }
+
+    /**
+     * A billable row about to double-bill: a current `selesai` row of this visit with the same code on the same site (tooth, range,
+     * quadrant, arch; overlapping surfaces). 36 O then 36 D is two fillings, not a duplicate. Only `selesai` bills, so only it counts.
+     */
+    private static function duplicateOf(array $attrs, Visit $visit): ?ProcedureRecord
+    {
+        if ($attrs['status'] !== ProcedureStatus::BILLABLE) {
+            return null;
+        }
+        $overlap = fn (?string $a, ?string $b) => $a === null || $b === null || array_intersect(str_split($a), str_split($b)) !== [];
+
+        return ProcedureRecord::where('visit_id', $visit->id)->whereIn('state', ['draft', 'final'])->where('status', ProcedureStatus::BILLABLE)
+            ->where('procedure_code', $attrs['procedure_code'])->whereNotIn('id', ProcedureRecord::whereNotNull('supersedes_id')->select('supersedes_id'))
+            ->where('tooth', $attrs['tooth'])->where('tooth_range', $attrs['tooth_range'])->where('quadrant', $attrs['quadrant'])->where('arch', $attrs['arch'])
+            ->get()->first(fn (ProcedureRecord $p) => $overlap($p->surfaces, $attrs['surfaces']));
+    }
+
+    private static function duplicate(ProcedureRecord $dup): JsonResponse
+    {
+        $def = ProcedureDefinition::where('procedure_code', $dup->procedure_code)->first();
+        $site = match (true) {
+            $dup->tooth !== null => 'di gigi '.$dup->tooth.($dup->surfaces ? ' '.$dup->surfaces : ''),
+            $dup->tooth_range !== null => 'di gigi '.$dup->tooth_range,
+            $dup->quadrant !== null => 'di kuadran '.$dup->quadrant,
+            $dup->arch !== null => 'di rahang '.$dup->arch,
+            default => '',
+        };
+
+        return response()->json(['error' => 'duplicate_procedure', 'existing_id' => $dup->id,
+            'message' => trim(($def?->layman ?? $def?->name ?? $dup->procedure_code).' sudah dicatat '.$site).' pada kunjungan ini. Tambahkan lagi?'], 409);
     }
 
     /** Taxonomy, span, code and diagnosis checks of one entry: [$p, $roles] or a 422. */
@@ -255,11 +293,16 @@ class ProcedureController extends Controller
         if (! is_array($attrs)) {
             return $attrs;
         }
+        $dup = self::duplicateOf($attrs, $visit);
+        if ($dup && ! ($d['confirm_duplicate'] ?? false)) {
+            return self::duplicate($dup);
+        }
         $r = ProcedureRecord::create([...$attrs, 'patient_id' => $visit->patient_id, 'visit_id' => $visit->id, 'state' => 'draft',
             'source' => 'manual', 'created_by' => $ctx->userId, 'condition' => $p['condition'],
             'span_roles' => $roles ?: null, 'material' => $d['material'] ?? null]);
         Audit::log('buat', 'procedure_record', $r->id, ['entry' => 'odontogram_v2', 'tooth' => $r->tooth, 'tooth_range' => $r->tooth_range,
-            'surfaces' => $r->surfaces, 'condition' => $p['condition'], 'status' => $r->status, ...self::externalAudit($r)]);
+            'surfaces' => $r->surfaces, 'condition' => $p['condition'], 'status' => $r->status, ...self::externalAudit($r),
+            ...($dup ? ['duplicate_of' => $dup->id] : [])]);
 
         return $r;
     }

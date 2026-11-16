@@ -57,6 +57,8 @@ class PatientJourneyTest extends TestCase
         $this->as($doc)->deleteJson("/api/procedures/$wrong")->assertNoContent();
         $entry = $this->as($doc)->postJson("/api/visits/$visit/tooth-entries", ['tooth' => 36, 'surfaces' => ['O'], 'condition' => 'tambalan_komposit', 'status' => 'selesai'])
             ->assertCreated()->assertJsonPath('procedure_code', '23.2')->json('id'); // code from the clinic mapping, not typed
+        $this->as($doc)->postJson("/api/visits/$visit/tooth-entries", ['tooth' => 36, 'surfaces' => ['O'], 'condition' => 'tambalan_komposit', 'status' => 'selesai'])
+            ->assertConflict()->assertJsonPath('existing_id', $entry); // saved twice by mistake: asked, the dentist taps Batal, one line stays
         $chart = $this->as($doc)->getJson("/api/patients/$patient/chart")->assertOk()->json('procedure_drafts');
         $this->assertSame([[36, 'O', 'tambalan_komposit', 'selesai']], collect($chart)->map(fn ($p) => [$p['tooth'], $p['surfaces'], $p['condition'], $p['status']])->all()); // odontogram source
         $this->as($doc)->putJson("/api/visits/$visit/note", ['soap' => ['S' => 'Gigi berlubang, ngilu.', 'O' => 'Karies 36 O.']])->assertOk();
