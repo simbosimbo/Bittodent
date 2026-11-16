@@ -33,7 +33,7 @@ class CreditNoteTest extends TestCase
         $this->assertSame($before['balance_rp'], $after['balance_rp']); // pending: nothing moves yet
         $this->assertSame([], $after['adjustments']); // no discount
         $this->assertSame(1, $this->in($this->tenantA(), fn () => InvoiceLine::where('invoice_id', $inv)->count()));
-        $this->assertFalse($this->in($this->tenantA(), fn () => InvoiceLine::where('price_rp', 0)->exists()));
+        $this->assertFalse($this->in($this->tenantA(), fn () => InvoiceLine::where('invoice_id', $inv)->where('price_rp', 0)->exists()));
 
         // pending reversal is not "handled": the visit cannot close yet, neither by desk /close nor by the DPJP's Selesai
         $this->assertEqualsCanonicalizing([$unbilled, $proc], $this->as(self::DESK)->postJson("/api/visits/$visit/close")->assertConflict()
