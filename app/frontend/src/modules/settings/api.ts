@@ -14,6 +14,9 @@ export const saveBranch = (id: string, body: { address: string | null; phone: st
 export type Level = { id: string; variant: string; label: string; price_rp: number }
 export type TariffItem = { id: string; procedure_code: string; name: string; category: string | null; valid_from: string | null
   levels: Level[]; next: { valid_from: string; levels: Level[] } | null; editable_from: string }
+/** First price for a procedure that has none yet (Rp0 allowed: the owner decides what is free). */
+export const addTariff = (procedure_code: string, name: string, price_rp: number) =>
+  api('/api/tariffs', { method: 'POST', body: { procedure_code, name, price_rp } })
 export const getTariffs = (q = '', category = '') =>
   api<{ items: TariffItem[]; categories: string[] }>(`/api/tariffs?q=${encodeURIComponent(q)}&category=${encodeURIComponent(category)}`)
 export const saveLevels = (id: string, valid_from: string, levels: { code: string; label: string; price_rp: number }[]) =>

@@ -4,6 +4,7 @@ namespace App\Modules\Clinical\Services;
 
 use App\Modules\Clinical\Domain\ProcedureStatus;
 use App\Modules\Clinical\Events\VisitClosing;
+use App\Modules\Clinical\Http\Controllers\ProcedureController;
 use App\Modules\Clinical\Models\ClinicalNote;
 use App\Modules\Clinical\Models\ClinicalNoteVersion;
 use App\Modules\Clinical\Models\ProcedureRecord;
@@ -36,13 +37,16 @@ final class VisitCloser
             return response()->json(['error' => 'use_selesai',
                 'message' => 'Kunjungan ini punya catatan atau tindakan yang belum Selesai. Dokter penanggung jawab harus menekan Selesai.'], 409);
         }
-        $event = new VisitClosing(Ctx::current()->tenant(), $v->id, $this->completedProcedureIds($v));
+        $done = $this->completedProcedureIds($v);
+        // Retry billing (idempotent, one line per procedure): work signed before its price existed gets its line once the owner sets one.
+        ProcedureRecord::whereIn('id', $done)->where('state', 'final')->get()->each(fn ($p) => ProcedureController::recorded($p));
+        $event = new VisitClosing(Ctx::current()->tenant(), $v->id, $done);
         event($event);
         if ($event->blocked() && ! $cancelled) {
             Audit::log('tutup_ditolak', 'visit', $v->id, ['reason' => 'invoice_required', 'procedures' => $event->unbilledProcedureIds, 'via' => $via]);
 
             return response()->json(['error' => 'invoice_required', 'procedure_ids' => $event->unbilledProcedureIds,
-                'message' => 'Kunjungan dengan tindakan selesai tidak bisa ditutup tanpa tagihan. Pastikan setiap tindakan selesai punya baris tagihan (cek tarif), lalu tekan Selesai lagi.'], 409);
+                'message' => 'Kunjungan dengan tindakan selesai tidak bisa ditutup tanpa tagihan. Ada tindakan yang belum punya harga. Minta pemilik mengisi harganya di Pengaturan Klinik > Harga, lalu tutup kunjungan lagi.'], 409);
         }
         $v->update(['status' => 'selesai', 'ended_at' => now(), 'closed_by' => Ctx::current()->userId,
             'close_reason' => $cancelled ? trim($reason) : null, 'closed_without_invoice' => $event->blocked()]);

@@ -5,7 +5,7 @@ import { Kop, loadLetterhead, type Letterhead } from '../../shared/letterhead'
 import { getCatalog, ODONTOGRAM_TAXONOMY, setCatalogConditions, SymbolIcon, type CatalogRow } from '../clinical'
 import type { Me } from '../../shared/session'
 import { DateField } from '../../shared/ui/DateField'
-import { addAccount, bulkTariffs, getAccounts, getProfile, getTariffs, saveBranch, saveCategory, saveLevels, saveProfile, updateAccount, uploadLogo, uploadQris,
+import { addAccount, addTariff, bulkTariffs, getAccounts, getProfile, getTariffs, saveBranch, saveCategory, saveLevels, saveProfile, updateAccount, uploadLogo, uploadQris,
   type Account, type AccountKind, type BulkRow, type ClinicProfile, type TariffItem } from './api'
 import './settings.css'
 
@@ -171,6 +171,8 @@ function PriceTab() {
       {error && <p className="form-error" role="alert">{error}</p>}
       {msg && <p className="notice" role="status">{msg}</p>}
       {sel.length > 0 && data && <BulkPanel codes={sel} items={data.items} onDone={(t) => { setSel([]); setMsg(t); load() }} onCancel={() => setSel([])} />}
+      {data && !q.trim() && !cat && <Unpriced rows={catalog.filter((c) => !data.items.some((it) => it.procedure_code === c.procedure_code))}
+        onSaved={(name) => { setMsg(`Harga ${name} tersimpan. Kunjungan yang menunggu harga bisa ditutup sekarang.`); load() }} onError={setError} />}
       {!data ? <p className="muted">Memuat…</p> : data.items.length === 0 ? <p className="muted">Tidak ada tindakan yang cocok.</p> : (
         <ul className="set-list">
           {data.items.map((it) => {
@@ -389,6 +391,32 @@ function AddAccount({ me, onDone, onCancel }: { me: Me; onDone: (a: Account) => 
  * Odontogram v2 "tindakan dulu": the odontogram condition codes this tariff item records. A dentist's "cof · Selesai" bills the item whose
  * mapping holds cof (several items -> the dentist picks one). Unmapped conditions cannot be finished, so the owner maps them here.
  */
+// S1: procedures the dentist can record that have no price yet. Until the owner sets one, a visit with that work cannot be closed.
+function Unpriced({ rows, onSaved, onError }: { rows: CatalogRow[]; onSaved: (name: string) => void; onError: (m: string) => void }) {
+  const [price, setPrice] = useState<Record<string, string>>({})
+  const [busy, setBusy] = useState('')
+  if (!rows.length) return null
+  async function save(r: CatalogRow) {
+    setBusy(r.procedure_code)
+    try { await addTariff(r.procedure_code, r.name, digits(price[r.procedure_code])); onSaved(r.name) } catch (e) { onError(msgOf(e)) } finally { setBusy('') }
+  }
+  return (
+    <section className="card set-row" aria-label="Tindakan tanpa harga">
+      <strong>Tindakan tanpa harga ({rows.length})</strong>
+      <p className="muted small">Dokter bisa mengisi tindakan ini, tetapi kunjungan tidak bisa ditutup dan dibayar sebelum harganya diisi. Isi 0 bila memang gratis.</p>
+      {rows.map((r) => (
+        <div key={r.procedure_code} className="set-price">
+          <span>{r.name} <span className="muted small">{r.procedure_code}</span></span>
+          <span className="set-rp"><span aria-hidden="true">Rp</span>
+            <input inputMode="numeric" aria-label={`Harga ${r.name}`} value={price[r.procedure_code] ?? ''}
+              onChange={(e) => setPrice({ ...price, [r.procedure_code]: e.target.value.replace(/\D/g, '') })} />
+            <button type="button" className="btn" disabled={busy === r.procedure_code || !(price[r.procedure_code] ?? '')} onClick={() => save(r)}>Simpan</button></span>
+        </div>
+      ))}
+    </section>
+  )
+}
+
 function OdoMap({ item, row, onSaved, onError }: { item: TariffItem; row?: CatalogRow; onSaved: (r: CatalogRow) => void; onError: (m: string) => void }) {
   const [open, setOpen] = useState(false)
   const [pick, setPick] = useState<string[]>(row?.conditions ?? [])

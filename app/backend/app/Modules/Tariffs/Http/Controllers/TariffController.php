@@ -53,6 +53,29 @@ class TariffController extends Controller
     }
 
     /**
+     * POST /api/tariffs {procedure_code, name, price_rp} (owner, perm tariff.manage): first price for a procedure that has none yet
+     * (one "Standar" level from today; more levels via levels()). Rp0 is allowed: the owner decides what is free. 409 when it exists.
+     */
+    public function store(Request $request)
+    {
+        $d = $request->validate([
+            'procedure_code' => ['required', 'string', 'max:10'],
+            'name' => ['required', 'string', 'max:120'],
+            'price_rp' => ['required', 'integer', 'min:0', 'max:1000000000'],
+        ]);
+
+        return DB::transaction(function () use ($d) {
+            if (Tariff::where('procedure_code', $d['procedure_code'])->lockForUpdate()->exists()) {
+                return response()->json(['error' => 'exists', 'message' => 'Tindakan ini sudah punya harga. Ubah lewat daftar harga.'], 409);
+            }
+            $t = Tariff::create($d + ['variant' => 'standar', 'level_label' => 'Standar', 'level_rank' => 1, 'valid_from' => now()->toDateString()]);
+            Audit::log('tarif_dibuat', 'tariff', $t->id, ['procedure_code' => $t->procedure_code, 'price_rp' => $t->price_rp]);
+
+            return response()->json($t->only(['id', 'procedure_code', 'name', 'variant', 'price_rp', 'valid_from']), 201);
+        });
+    }
+
+    /**
      * PUT /api/tariffs/{id}/levels {valid_from, levels: [{code, label, price_rp}]} (owner, perm tariff.manage).
      * Replaces the level set of {id}'s procedure from valid_from on: open rows get valid_to = valid_from, new rows are inserted.
      * Past versions keep their prices; invoice lines keep their own snapshot. Order = rank (last = highest).
