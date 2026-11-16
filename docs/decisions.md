@@ -259,7 +259,7 @@ Setiap keputusan ditulis dengan pola ini (mirip *ADR* = Architecture Decision Re
 ### D-035: Tarif mendukung tingkat kesulitan; dokter memilih tingkat, bukan mengetik harga
 - Tanggal: 2026-11-14 · Status: **Diterima** (Jawaban Jerome atas Q-18, 14 Nov 2026)
 - Konteks: Jerome: kesulitan tambalan bisa berbeda-beda.
-- Keputusan: daftar tarif boleh punya beberapa tingkat per tindakan. Bitto menyediakan **templat awal yang bisa diubah** (contoh: tambalan menurut jumlah permukaan atau tingkat kerumitan). Templat ini hanya titik awal pengaturan tarif, **bukan panduan klinis**. Klinik boleh mengubah, menambah, atau menghapus tingkat. Dokter, saat mencatat tindakan selesai, memilih tingkat; tingkat tertinggi wajib diisi alasan. Sistem (modul Billing dari Tariffs) yang mengisi harga, lalu menyalin angka itu ke baris tagihan. Perubahan tarif kemudian tidak mengubah tagihan lama. Tingkat boleh mempengaruhi bagi hasil jika pemilik mengaturnya. Modul Clinical tidak bergantung pada Billing atau Tariffs.
+- Keputusan: daftar tarif boleh punya beberapa tingkat per tindakan. Bitto menyediakan **templat awal yang bisa diubah** (contoh: tambalan menurut jumlah permukaan atau tingkat kerumitan). Templat ini hanya titik awal pengaturan tarif, **bukan panduan klinis**. Klinik boleh mengubah, menambah, atau menghapus tingkat. Dokter, saat mencatat tindakan selesai, memilih tingkat; tingkat tertinggi wajib diisi alasan. Sistem (modul Billing dari Tariffs) yang mengisi harga, lalu menyalin angka itu ke baris tagihan. Perubahan tarif kemudian tidak mengubah tagihan lama. Tingkat boleh mempengaruhi bagi hasil jika pemilik mengaturnya. Modul Clinical tidak bergantung pada Billing atau Tariffs. **Amandemen D-045 (16 Nov 2026):** dokter kini **melihat** harga dan total di layar kunjungan, tetap tanpa bisa mengubahnya. Kalimat "dokter tidak melihat harga" di README modul tidak berlaku lagi. Modul Clinical tetap tidak bergantung pada Billing atau Tariffs.
 - Alasan: harga yang diketik tangan mudah salah dan sulit diaudit; foto harga menjaga tagihan dan bagi hasil tetap cocok dengan yang berlaku di hari tindakan. Templat mempercepat setup tanpa mengunci klinik pada satu skema, dan tidak boleh dibaca sebagai standar medis.
 - Akibat: templat awal ikut seed data palsu; layar pengaturan tarif menampilkan catatan “bukan panduan klinis”. Kuitansi menampilkan nama tindakan dan tingkat, tanpa diagnosis.
 
@@ -338,6 +338,36 @@ Setiap keputusan ditulis dengan pola ini (mirip *ADR* = Architecture Decision Re
 - Keputusan: peran `kasir`: tagihan + penyesuaian, data identitas pasien (NIK tersamar), jadwal; **tanpa** catatan klinis, odontogram, atau riwayat medis (ditolak dan tercatat di audit). Peringatan medis sama dengan resepsionis (alergi, perlu premedikasi, "ada catatan penting" tanpa isinya).
 - Perlu dicek: apakah kasir boleh membuat penyesuaian (diskon/hapus piutang) atau hanya melihat.
 
+### D-045: Dokter melihat harga dan total di layar kunjungan, tanpa bisa mengubahnya
+- Tanggal: 2026-11-16 · Status: **Diterima** (Yohanes, sesi 16 Nov 2026)
+- Konteks: D-035 menetapkan dokter memilih tingkat dan tidak melihat harga. Layar kunjungan dokter diubah menjadi gaya kasir (katalog tindakan, odontogram, keranjang kunjungan ini), dan pemilik ingin dokter tahu biaya yang timbul.
+- Keputusan: dokter gigi **melihat** harga per tindakan, harga per baris keranjang, dan total kunjungan. Dokter **tidak bisa mengubah** harga; tidak ada API yang menerima harga dari dokter. Harga tetap diatur pemilik di Pengaturan Klinik dan disalin ke baris tagihan saat tagihan dibuat. Tindakan tanpa harga tampil "Harga menunggu diisi pemilik" dan tidak bisa dimasukkan ke keranjang. Diskon tetap hanya oleh kasir/pemilik. **Mengganti bagian D-035** "dokter tidak melihat harga"; bagian lain D-035 tetap (tingkat kesulitan, alasan tingkat tertinggi, salinan harga di tagihan, "bukan panduan klinis").
+- Batas modul: modul Clinical di server **tetap tidak bergantung** pada Tariffs/Billing (D-031). Layar membaca harga dari endpoint baca milik Tariffs/Billing; event tindakan tetap tanpa harga.
+- Alasan: keputusan pemilik; dokter bisa menjelaskan biaya ke pasien sebelum tindakan.
+- Akibat: izin baru untuk melihat harga (peran dokter gigi); angka di keranjang adalah **pratinjau**, tagihan yang sah tetap dibuat Billing. Harga per dokter (override) terlihat oleh dokter yang bersangkutan. Apakah asisten juga boleh melihat harga: belum diputuskan (saat ini tidak).
+
+### D-046: Tindakan multi-kunjungan (paket) dengan satu harga terkunci dan aturan tagih yang diatur pemilik
+- Tanggal: 2026-11-16 · Status: **Diterima** (Yohanes, sesi 16 Nov 2026)
+- Konteks: perawatan seperti PSA, implan, dan behel berjalan beberapa kunjungan dengan satu harga. Saat ini satu tindakan selesai = satu baris tagihan, dan tagihan baru terbentuk saat kunjungan ditandatangani.
+- Keputusan:
+  1. Tindakan punya dua jenis: **tunggal** dan **multi-kunjungan (paket)**. Pemilik mengatur jenis, daftar kunjungan, harga paket, dan aturan tagih di Pengaturan Klinik.
+  2. Paket punya **satu harga**. Harga (dan aturan tagihnya) **dikunci saat paket dimulai**; perubahan pengaturan sesudahnya hanya berlaku untuk paket baru.
+  3. Aturan tagih dipilih pemilik per tindakan: (a) **DP x% di awal + pelunasan di kunjungan terakhir**; (b) **lunas di depan**; (c) **cicil per kunjungan** dengan rupiah per kunjungan diisi pemilik, jumlahnya wajib sama dengan harga paket.
+  4. **Aturan baru khusus paket:** tagihan DP / lunas di depan dibuat **saat paket dimulai**, tidak menunggu kunjungan selesai ditandatangani. Tindakan tunggal tidak berubah (ditagih saat Selesai).
+  5. **Paket berhenti di tengah:** kasir menghentikan paket dan mengajukan refund atau penagihan sisa lewat nota kredit / refund / penyesuaian yang sudah ada; **pemilik menyetujui**. Sistem **tidak menghitung otomatis** nilai refund atau sisa.
+  6. Pengaturan paket yang belum lengkap (harga, kunjungan, atau aturan tagih kosong / tidak cocok) = "menunggu diisi pemilik"; paket tidak bisa dimulai. Sistem tidak menebak.
+- Alasan: keputusan pemilik; harga terkunci menjaga kesepakatan dengan pasien; tanpa hitungan otomatis karena nilai pekerjaan yang sudah dilakukan adalah penilaian klinik, bukan rumus kita.
+- Akibat: tabel paket pasien + jadwal tagih (hanya ditambah); baris tagihan boleh ada tanpa tindakan (DP) dan boleh Rp0 untuk kunjungan paket yang tidak ditagih; penjaga tutup kunjungan dan laporan integritas harus mengenali baris paket. Catatan klinis tiap kunjungan paket tetap draf sampai ditandatangani dokter (D-001, D-041).
+- Perlu dicek (bukan nasihat hukum, belum ada sumber yang dibaca): perlakuan pajak dan pembukuan uang muka; ketentuan perlindungan konsumen untuk pengembalian uang muka; isi kuitansi DP. Kode ICD-9-CM untuk behel dan pemutihan: perlu dicek di daftar resmi, jangan dikarang.
+
+### D-047: Komponen (bahan) per kunjungan paket dengan kuota gratis; jumlah ditetapkan pemilik
+- Tanggal: 2026-11-16 · Status: **Diterima** (Yohanes, sesi 16 Nov 2026)
+- Konteks: sebagian bahan sudah termasuk harga paket, sebagian ditagih bila melewati jatah.
+- Keputusan: pemilik mengatur per kunjungan paket: bahan, **jumlah**, dan kuota gratis ("gratis semua" atau "gratis sampai N"). Jumlah di atas kuota ditagih dengan harga satuan bahan. **Jumlah tetap sesuai pengaturan pemilik; dokter tidak mengubahnya saat kunjungan.** Daftar bahan dan harga satuannya diatur pemilik di Pengaturan Klinik.
+- Alasan: keputusan pemilik; tagihan bahan bisa diketahui pasien sejak paket dimulai dan tidak bergantung pada ketikan saat kunjungan.
+- Akibat: master bahan sederhana di modul Inventory (nama, satuan, harga bertanggal). **Bukan** stok: pengurangan stok otomatis belum dibuat (product.md: Inventaris = Nanti). Catatan desain: teks bantuan di artboard TK08 ("Dokter mencatat jumlah sebenarnya saat kunjungan") bertentangan dengan keputusan ini dan harus diganti saat dibangun.
+- Belum diputuskan: apakah komponen juga berlaku untuk tindakan tunggal (Q-24 di rencana).
+
 ## Pertanyaan terbuka (perlu jawaban Jerome)
 - ~~Q-1 Target klinik~~ → **ditutup**: semua ukuran (D-007).
 - ~~Q-2 BPJS di MVP?~~ → **ditutup**: tidak, model data siap BPJS (D-008).
@@ -360,3 +390,8 @@ Setiap keputusan ditulis dengan pola ini (mirip *ADR* = Architecture Decision Re
 - ~~Q-19~~ Ditutup 14 Nov 2026: MVP = resep tercetak dan ditandatangani dokter (resep tertulis biasa), data tersimpan terstruktur dengan kode KFA; e-resep SATUSEHAT (MedicationRequest / Nomor Resep Nasional) menyusul setelah modul keluar dari sandbox (D-036).
 - ~~Q-20~~ Ditutup 14 Nov 2026: dokter boleh melihat laporan bagi hasil miliknya sendiri, hanya baca, tanpa aturan atau angka dokter lain (D-039).
 - ~~Q-21~~ Ditutup 14 Nov 2026: pemilik (meski bukan dokter) boleh membuka catatan klinis, hanya baca, tanpa tanda tangan atau ubahan; setiap buka tercatat dan dijelaskan di pemberitahuan privasi (D-040).
+- ~~Q-22~~ Ditutup 16 Nov 2026 (Yohanes): dokter **boleh membatalkan sendiri** paket yang baru dimulai selama DP belum dibayar (contoh: awalnya konsultasi, lalu ternyata perlu tindakan). Setelah ada pembayaran: lewat kasir + persetujuan pemilik (D-046 butir 5).
+- ~~Q-23~~ Ditutup 16 Nov 2026 (Yohanes): harga **berbeda per grup dokter**. Pemilik membuat grup; satu grup bisa punya harga tindakan tertentu, atau naik/diskon x% dari harga dasar; ada aksi massal menaikkan harga x%. Mengganti asumsi rencana "paket satu harga untuk semua dokter". Hubungan grup dengan band yang ada (Umum/Spesialis/bidang/per dokter) dan dengan rupiah cicilan per kunjungan: perlu dirancang sebelum T2.
+- ~~Q-24~~ Ditutup 16 Nov 2026 (Yohanes): komponen berlaku untuk **tindakan tunggal dan paket** (memperluas D-047).
+- ~~Q-25~~ Ditutup 16 Nov 2026 (Yohanes): menghentikan paket: kasir mengajukan, **dokter yang merawat ikut mengonfirmasi**, pemilik menyetujui uangnya.
+- ~~Q-26~~ Ditutup 16 Nov 2026 (Yohanes): bagi hasil paket **diatur pemilik** dengan templat yang disediakan; tindakan tertentu bisa dihitung setelah dipotong bahan (sejalan D-034). Modul Compensation masih kosong: tahap tersendiri setelah T5.

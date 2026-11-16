@@ -3,6 +3,7 @@
 namespace App\Modules\Tenancy\Http\Controllers;
 
 use App\Modules\Tenancy\Models\Branch;
+use App\Modules\Tenancy\Models\Tenant;
 use App\Shared\Http\Controller;
 use App\Shared\Permissions\Permissions;
 use App\Shared\Tenancy\Ctx;
@@ -16,7 +17,7 @@ class MeController extends Controller
         $user = $request->user();
         $branches = Branch::whereNull('archived_at')
             ->when($ctx->branchIds !== null, fn ($q) => $q->whereIn('id', $ctx->branchIds))
-            ->orderBy('name')->get(['id', 'name', 'timezone']);
+            ->orderBy('name')->get(['id', 'name', 'timezone', 'address', 'phone']);
         $active = $branches->firstWhere('id', $ctx->branchId);
 
         return response()->json([
@@ -30,8 +31,15 @@ class MeController extends Controller
                 'branch_id' => $ctx->branchId,
                 'branch_name' => $active?->name,
                 'timezone' => $active?->timezone,
+                // Pengaturan Klinik: the branch address, else the clinic address; null = not filled in yet (UI shows the branch name)
+                'address' => $active?->address ?? Tenant::whereKey($ctx->tenantId)->value('address'),
             ],
             'branches' => $branches,
+            // Selesai (#55): whether this clinic asks for a PIN and whether I have one; never the hash
+            'selesai' => ['pin_required' => (bool) Tenant::whereKey($ctx->tenantId)->value('selesai_pin_required'),
+                'has_pin' => $user->selesai_pin_hash !== null],
+            // RM: whether the odontogram offers the "Pemeriksaan awal" entry mode (owner setting, default on)
+            'odontogram_exam_enabled' => (bool) Tenant::whereKey($ctx->tenantId)->value('odontogram_exam_enabled'),
             'memberships' => $ctx->memberships->map(fn ($m) => [
                 'tenant_id' => $m->tenant_id, 'tenant_name' => $m->tenant->name, 'branch_id' => $m->branch_id,
                 'role' => $m->role, 'role_label' => Permissions::LABELS[$m->role],

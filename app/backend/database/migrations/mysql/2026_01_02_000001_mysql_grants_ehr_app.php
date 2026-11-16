@@ -2,8 +2,8 @@
 
 // Owning module: Shared (platform; grants for every module table).
 
+use Database\Support\MysqlGrants;
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Support\Facades\DB;
 
 // MySQL only. Runtime account ehr_app gets per-table SELECT/INSERT/UPDATE; DELETE only on framework tables.
 // No DROP/ALTER/CREATE/INDEX/TRIGGER/REFERENCES/GRANT, so also no TRUNCATE (MySQL TRUNCATE needs DROP).
@@ -20,14 +20,9 @@ return new class extends Migration
 
     public function up(): void
     {
-        $db = DB::connection()->getDatabaseName();
-        $grantee = sprintf("'%s'@'%s'", config('database.connections.mysql.username'), env('DB_APP_GRANT_HOST', '127.0.0.1'));
-        $grant = fn (string $privs, array $tables) => array_map(
-            fn ($t) => DB::statement("GRANT $privs ON `$db`.`$t` TO $grantee"), $tables);
-
-        $grant('SELECT, INSERT, UPDATE', self::READ_WRITE);
-        $grant('SELECT, INSERT', self::APPEND_ONLY);
-        $grant('SELECT, INSERT, UPDATE, DELETE', self::WITH_DELETE);
+        MysqlGrants::grant('SELECT, INSERT, UPDATE', ...self::READ_WRITE);
+        MysqlGrants::grant('SELECT, INSERT', ...self::APPEND_ONLY);
+        MysqlGrants::grant('SELECT, INSERT, UPDATE, DELETE', ...self::WITH_DELETE);
     }
 
     public function down(): void {}

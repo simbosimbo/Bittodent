@@ -1,0 +1,76 @@
+/* Pengaturan Klinik (#71) on HeroUI: 48px targets, neutral chips, one primary action per view, phone first.
+   Unlayered: wins over HeroUI component sizes and the legacy layer. */
+.set-page .button, .set-page .toggle-button, .set-page .input { min-height: 48px; }
+.set-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin: -4px 0 18px; flex-wrap: nowrap; overflow-x: auto; }
+.set-tabs a { display: inline-flex; flex: none; align-items: center; min-height: 48px; padding: 0 16px; color: var(--muted); font-weight: 400; white-space: nowrap;
+  border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.set-tabs a:hover { color: var(--text); text-decoration: none; }
+.set-tabs a:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; border-radius: 8px 8px 0 0; }
+.set-tabs a.on { font-weight: 500; color: var(--color-primary-700); border-bottom-color: var(--color-primary-700); }
+.set-card { max-width: 640px; padding: var(--space-4); }
+.set-form { display: grid; gap: 0; }
+.set-form label { margin-bottom: 12px; }
+.set-sub { font-size: var(--font-size-md, 16px); margin: var(--space-2) 0 0; }
+.set-branch { border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-3); display: grid; gap: var(--space-3); margin: 0; }
+.set-branch legend { font-weight: 600; padding: 0 4px; }
+.set-dock, .set-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); justify-content: flex-end; align-items: center; }
+.set-filter { display: grid; gap: var(--space-2); margin-bottom: var(--space-3); }
+.set-filter .input { width: 100%; }
+.set-chips .bt-chip { text-transform: capitalize; }
+.set-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+.set-row { padding: var(--space-2) var(--space-3); display: grid; gap: 2px; }
+.set-row-head { display: flex; align-items: center; gap: var(--space-2); }
+/* The whole 48px box is the checkbox's hit area. */
+.set-pick { display: inline-flex; align-items: center; justify-content: center; min-width: 48px; min-height: 48px; margin-left: -12px; }
+.set-row-name { display: grid; min-width: 0; }
+.set-row-name strong { overflow-wrap: anywhere; }
+.set-cat { border: 0; background: transparent; padding: 0; min-height: 0; width: 9em; font: inherit; color: var(--muted); text-transform: capitalize; }
+.set-cat:focus { outline: 2px solid var(--focus); border-radius: 4px; color: var(--text); }
+label.set-price { flex-direction: row; margin: 0; display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); min-height: 52px; padding-left: 36px; }
+.set-rp { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); }
+.set-rp .input { width: 9.5em; text-align: right; font-variant-numeric: tabular-nums; font-weight: 400; color: var(--text); }
+.set-when { margin: 0 0 4px 36px; }
+.set-link { color: var(--accent); }
+.set-dock-fixed { position: sticky; bottom: 8px; z-index: 5; background: var(--surface); padding: var(--space-2);
+  border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow); margin-top: var(--space-3); }
+.set-bulk { display: grid; gap: var(--space-2); margin-bottom: var(--space-3); padding: var(--space-3); border-left: 3px solid var(--text); }
+.set-bulk p { margin: 0; }
+.set-bulk-row { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.set-bulk-row .input { width: 6em; text-align: right; }
+.set-kinds { display: grid; grid-template-columns: repeat(3, 1fr); }
+.set-kinds .toggle-button { width: 100%; }
+.set-preview { margin: 0; padding-left: 1.2em; }
+.set-acc-group { display: grid; gap: var(--space-1); padding: var(--space-2) var(--space-3); }
+.set-acc { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); min-height: 56px; border-top: 1px solid var(--border); }
+.set-acc > div { display: grid; min-width: 0; }
+.set-acc.is-off strong { color: var(--muted); }
+@media (max-width: 720px) {
+  .set-card { max-width: none; border-radius: 16px; }
+  .set-dock-fixed { bottom: calc(73px + env(safe-area-inset-bottom)); }
+  .shell-main:has(.set-dock-fixed) { padding-bottom: calc(80px + 72px + env(safe-area-inset-bottom)); }
+  .set-dock .button, .set-actions .button { flex: 1; }
+  .set-page .input { font-size: 16px; } /* iOS does not zoom on focus */
+}
+/* KL10-KL13 */
+.set-logo { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; margin-bottom: var(--space-3); }
+.set-logo img { width: 72px; height: 72px; object-fit: contain; border: 1px solid var(--shells-a-color-border); border-radius: 12px; }
+.set-kops { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--space-3); margin-bottom: var(--space-3); }
+.set-kop { padding: var(--space-3); }
+.set-qris { width: 64px; height: 64px; object-fit: contain; }
+/* Harga: odontogram mapping per tariff item */
+.set-odo { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.set-odo-pick { flex-basis: 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 4px; }
+.set-odo-opt { min-height: 48px; justify-content: center; }
+.set-odo-opt code { margin-left: auto; color: var(--muted); }
+.set-odo-pick .set-actions { grid-column: 1 / -1; }
+
+/* S1/S2: unpriced procedures and stage editor rows */
+.set-unpriced { display: grid; grid-template-columns: 1fr auto; gap: var(--space-2); align-items: center; padding-block: var(--space-2); border-top: 1px solid var(--border); }
+.set-unpriced-name { grid-column: 1 / -1; font-weight: 600; }
+.set-unpriced .set-stages { grid-column: 1 / -1; }
+.set-unpriced > .set-link { grid-column: 1 / -1; justify-self: start; }
+.set-stages { border: 1px solid var(--border); border-radius: 12px; padding: var(--space-3); margin: var(--space-2) 0 0; display: grid; gap: var(--space-2); }
+.set-stages legend { padding: 0 4px; color: var(--muted); }
+.set-stage-row { display: grid; grid-template-columns: 1fr auto auto; gap: var(--space-2); align-items: center; }
+.set-stage-row > .input { min-width: 0; }
+@media (max-width: 520px) { .set-stage-row { grid-template-columns: 1fr auto; } .set-stage-row > .input { grid-column: 1 / -1; } }

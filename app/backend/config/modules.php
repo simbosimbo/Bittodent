@@ -6,19 +6,22 @@
 return [
     'Tenancy' => [],
     'Identity' => [],
-    'Audit' => [],
+    'Audit' => ['Identity', 'Tenancy'], // unit 6: actor names + branch timezone for the read-only audit log
     'Patients' => ['Tenancy'],
     'Scheduling' => ['Tenancy', 'Patients', 'Identity'],
     'Clinical' => ['Patients', 'Scheduling', 'Tenancy', 'Identity', 'Integrations'],
     'Intake' => ['Patients'], // pushes medical alerts via Patients\Contracts\MedicalAlerts
     'Queue' => ['Scheduling'],
     'Prescriptions' => ['Patients', 'Clinical'],
-    'Tariffs' => [],
+    'Tariffs' => ['Tenancy'], // per-dentist price cells: dentist_id must be an active dentist of this tenant
     // Invoice lines are generated from Clinical procedures with a Tariffs price snapshot. Clinical never depends on Billing/Tariffs.
-    'Billing' => ['Clinical', 'Tariffs', 'Patients'], // C3: payer = guarantor via Patients\Contracts\PatientDirectory
+    // C3: payer = guarantor via Patients\Contracts\PatientDirectory. Unit 4: Tenancy = count active owners for the Rp0 approval rule;
+    // Billing guards visit close by listening to Clinical\Events\VisitClosing (Clinical never reaches Billing).
+    'Billing' => ['Clinical', 'Tariffs', 'Patients', 'Tenancy'],
     'Compensation' => ['Billing', 'Identity'], // reads finalized revenue via Billing\Contracts only
     'Inventory' => [],
     'Recall' => ['Scheduling'], // C3: reminder_log reads appointments via Scheduling\Contracts\AppointmentDirectory
     'Integrations' => [],
-    'Reporting' => [],
+    // Unit 6 owner integrity report: reads facts only through each module's Contracts (no Models).
+    'Reporting' => ['Clinical', 'Billing', 'Scheduling', 'Identity', 'Patients', 'Tenancy'],
 ];

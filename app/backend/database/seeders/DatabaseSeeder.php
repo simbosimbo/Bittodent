@@ -5,33 +5,48 @@ namespace Database\Seeders;
 use App\Modules\Billing\Models\Invoice;
 use App\Modules\Billing\Models\InvoiceAdjustment;
 use App\Modules\Billing\Models\InvoiceLine;
+use App\Modules\Billing\Models\InvoicePayment;
+use App\Modules\Billing\Models\PaymentAccount;
+use App\Modules\Billing\Services\Ledger;
+use App\Modules\Clinical\Domain\CodingTemplate;
+use App\Modules\Clinical\Domain\ProcedureCatalog;
 use App\Modules\Clinical\Models\ClinicalNote;
 use App\Modules\Clinical\Models\ClinicalNoteVersion;
 use App\Modules\Clinical\Models\ConsentRecord;
+use App\Modules\Clinical\Models\ProcedureRecord;
 use App\Modules\Clinical\Models\ToothBaseline;
 use App\Modules\Clinical\Models\ToothFinding;
 use App\Modules\Clinical\Models\Visit;
+use App\Modules\Clinical\Services\PatientCareSync as ClinicalCareSync;
 use App\Modules\Identity\Models\User;
 use App\Modules\Patients\Models\Guardian;
 use App\Modules\Patients\Models\Household;
 use App\Modules\Patients\Models\MedicalHistoryVersion;
 use App\Modules\Patients\Models\Patient;
+use App\Modules\Patients\Services\MrnGenerator;
 use App\Modules\Prescriptions\Models\Prescription;
 use App\Modules\Prescriptions\Models\PrescriptionItem;
 use App\Modules\Prescriptions\Models\PrescriptionVoid;
 use App\Modules\Recall\Models\ReminderLog;
 use App\Modules\Scheduling\Models\Appointment;
 use App\Modules\Scheduling\Models\Chair;
+use App\Modules\Scheduling\Models\ClinicService;
 use App\Modules\Scheduling\Models\PlannedAppointment;
+use App\Modules\Scheduling\Models\PracticeHour;
+use App\Modules\Scheduling\Services\PatientCareSync as SchedulingCareSync;
 use App\Modules\Tariffs\Domain\DifficultyTemplate;
 use App\Modules\Tariffs\Models\Tariff;
 use App\Modules\Tenancy\Models\Branch;
+use App\Modules\Tenancy\Models\DentistProfile;
 use App\Modules\Tenancy\Models\Membership;
 use App\Modules\Tenancy\Models\Tenant;
 use App\Shared\Crypto\Crypto;
 use App\Shared\Tenancy\Ctx;
+use App\Shared\Terminology\CsvIcdSource;
+use App\Shared\Terminology\IcdImporter;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 // SYNTHETIC DATA ONLY: invented clinics, names, NIK-like numbers (prefix 99 = no real province), 0899 phones.
 class DatabaseSeeder extends Seeder
@@ -45,8 +60,14 @@ class DatabaseSeeder extends Seeder
 
     private const LAST = ['Rahmawati', 'Santoso', 'Pratama', 'Wijaya', 'Kusuma', 'Hidayat', 'Saputra', 'Permata', 'Nugroho', 'Halim'];
 
+    // staging:seed binds its own credentials from env (never the public dev ones on a public URL); local/tests use the defaults.
+    public function __construct(private string $password = self::PASSWORD, private string $totpSecret = self::TOTP_SECRET) {}
+
     public function run(): void
     {
+        // Official (not synthetic) ICD reference lists, same importer as `php artisan icd:import`.
+        app(IcdImporter::class)->import(new CsvIcdSource(database_path('data/icd')));
+
         $users = [];
         foreach ([
             'pemilik@senyum.test' => ['Pemilik Senyum (dummy)', 'lainnya'],
@@ -56,18 +77,21 @@ class DatabaseSeeder extends Seeder
             'kasir@senyum.test' => ['Kasir Senyum (dummy)', 'lainnya'],
             'dokter@ceria.test' => ['drg. Citra Contoh', 'dokter_gigi'],
             'kasir@ceria.test' => ['Kasir Ceria (dummy)', 'lainnya'],
+            'dokter.bunga@senyum.test' => ['drg. Bunga Contoh', 'dokter_gigi'],
+            'dokter.raka@senyum.test' => ['drg. Raka Contoh', 'dokter_gigi'],
         ] as $email => [$name, $license]) {
-            $users[$email] = self::user($email, $name, $license);
+            $users[$email] = self::user($email, $name, $license, password: $this->password, totpSecret: $this->totpSecret);
         }
 
-        $a = Tenant::create(['name' => 'Klinik Gigi Senyum Sehat', 'is_demo' => true]);
-        $b = Tenant::create(['name' => 'Klinik Gigi Ceria', 'is_demo' => true]);
+        $a = Tenant::create(['name' => 'Klinik Gigi Senyum Sehat', 'is_demo' => true, 'slug' => 'senyum', 'online_booking_enabled' => true]);
+        $b = Tenant::create(['name' => 'Klinik Gigi Ceria', 'is_demo' => true, 'slug' => 'ceria', 'online_booking_enabled' => true]);
 
         Ctx::runAs($a->id, function () use ($users) {
             $b1 = $this->branch('Senyum Sehat Kemang (Jakarta)', ['Kursi 1', 'Kursi 2', 'Kursi 3']);
             $b2 = $this->branch('Senyum Sehat Rawamangun (Jakarta)', ['Kursi 1', 'Kursi 2']);
             $this->member($users['pemilik@senyum.test'], 'owner');
             $this->member($users['dokter@senyum.test'], 'dentist');
+            DentistProfile::create(['user_id' => $users['dokter@senyum.test']->id, 'category' => 'general']);
             $this->member($users['asisten@senyum.test'], 'assistant', $b1->id);
             $this->member($users['depan@senyum.test'], 'front_desk', $b1->id);
             $this->member($users['kasir@senyum.test'], 'kasir', $b1->id);
@@ -75,31 +99,62 @@ class DatabaseSeeder extends Seeder
             $this->appointments([$b1, $b2], $users['dokter@senyum.test'], $patients);
             $this->clinicalDemo($b1, $users['dokter@senyum.test'], $patients[0]);
             $this->c3Demo($b1, $users['dokter@senyum.test'], $patients, 1);
+            $this->paymentAccounts($users['pemilik@senyum.test'], [
+                ['Kas Kemang', 'tunai', $b1->id], ['Kas Rawamangun', 'tunai', $b2->id], ['QRIS klinik', 'qris', null],
+                ['EDC BCA klinik', 'edc', null, 'BCA'], ['Transfer BCA klinik', 'transfer', null, 'BCA', '0123'], ['EDC Mandiri klinik', 'edc', null, 'Mandiri'],
+                ['Transfer Mandiri klinik', 'transfer', null, 'Mandiri', '5678'], ['BPJS Kesehatan', 'bpjs', null], ['Asuransi (klaim)', 'asuransi', null]]);
+            $this->bookingDemo($users, $b1, $b2); // before careDemo: the pending online request counts as a next appointment
+            $this->careDemo($b1, $users['dokter@senyum.test'], $patients);
+            // Kemang today: 300000 + 150000 = Rp450.000 from 2 payments. Excluded: 100000 yesterday (Kemang), 200000 today (Rawamangun).
+            $this->paymentDemo($b1, $users['dokter@senyum.test'], $patients[0], 3, 300000, [['Kas Kemang', 300000, 0]]);
+            $this->paymentDemo($b1, $users['dokter@senyum.test'], $patients[0], 4, 350000, [['Transfer BCA klinik', 100000, 1], ['QRIS klinik', 150000, 0]]);
+            $this->paymentDemo($b2, $users['dokter@senyum.test'], $patients[0], 6, 200000, [['EDC BCA klinik', 200000, 0]]);
         }, $users['pemilik@senyum.test']->id);
 
         Ctx::runAs($b->id, function () use ($users) {
             $b1 = $this->branch('Ceria Dago (Bandung)', ['Kursi A', 'Kursi B']);
             $this->member($users['dokter@ceria.test'], 'owner');
             $this->member($users['dokter@ceria.test'], 'dentist');
+            DentistProfile::create(['user_id' => $users['dokter@ceria.test']->id, 'category' => 'general']);
             $this->member($users['kasir@ceria.test'], 'kasir', $b1->id);
             $patients = $this->patients(40, 2, [$b1->id]);
             $this->appointments([$b1], $users['dokter@ceria.test'], $patients);
             $this->c3Demo($b1, $users['dokter@ceria.test'], $patients, 2);
+            $this->paymentAccounts($users['dokter@ceria.test'], [['Kas Dago', 'tunai', $b1->id]]);
+            $this->careDemo($b1, $users['dokter@ceria.test'], $patients);
+            $this->paymentDemo($b1, $users['dokter@ceria.test'], $patients[1], 12, 175000, [['Kas Dago', 175000, 0]]); // other tenant, today
+            foreach ([1, 2, 3, 4, 5] as $day) {
+                PracticeHour::create(['dentist_id' => $users['dokter@ceria.test']->id, 'branch_id' => $b1->id, 'weekday' => $day, 'start_time' => '10:00', 'end_time' => '16:00']);
+            }
+            ClinicService::create(['name' => 'Konsultasi', 'duration_minutes' => 30, 'online' => true]);
+            ClinicService::create(['name' => 'Scaling', 'duration_minutes' => 60, 'online' => true]);
         }, $users['dokter@ceria.test']->id);
     }
 
-    public static function user(string $email, string $name, string $license = 'lainnya', bool $twoFactor = true): User
+    public static function user(string $email, string $name, string $license = 'lainnya', bool $twoFactor = true,
+        string $password = self::PASSWORD, string $totpSecret = self::TOTP_SECRET): User
     {
-        $u = User::create(['name' => $name, 'email' => $email, 'password' => self::PASSWORD, 'license_type' => $license]);
+        $u = User::create(['name' => $name, 'email' => $email, 'password' => $password, 'license_type' => $license]);
         if ($twoFactor) {
+            // Known recovery codes only with the public dev secret; otherwise random (they would bypass TOTP).
+            $recovery = $totpSecret === self::TOTP_SECRET ? ['dev-recovery-1', 'dev-recovery-2'] : [Str::random(20), Str::random(20)];
             $u->forceFill([
-                'two_factor_secret' => encrypt(self::TOTP_SECRET),
-                'two_factor_recovery_codes' => encrypt(json_encode(['dev-recovery-1', 'dev-recovery-2'])),
+                'two_factor_secret' => encrypt($totpSecret),
+                'two_factor_recovery_codes' => encrypt(json_encode($recovery)),
                 'two_factor_confirmed_at' => now(),
             ])->save();
         }
 
         return $u;
+    }
+
+    /** Unit 5: synthetic clinic payment accounts (the only payment methods). New tenants start with none; the owner adds them. */
+    private function paymentAccounts(User $owner, array $rows): void
+    {
+        foreach ($rows as $r) {
+            PaymentAccount::create(['name' => $r[0], 'kind' => $r[1], 'branch_id' => $r[2], 'bank_name' => $r[3] ?? null,
+                'account_last4' => $r[4] ?? null, 'created_by' => $owner->id]);
+        }
     }
 
     private function branch(string $name, array $chairs): Branch
@@ -129,6 +184,7 @@ class DatabaseSeeder extends Seeder
                 'phone' => sprintf('0899%02d%06d', $seed, $i + 1),
                 'address' => 'Jl. Contoh No. '.($i + 1).', Kota Fiktif',
             ])->fill([
+                'mrn' => MrnGenerator::next(),
                 'dob' => CarbonImmutable::create(1960 + ($i * 7) % 55, 1 + $i % 12, 1 + $i % 28)->format('Y-m-d'),
                 'sex' => $i % 2 ? 'laki_laki' : 'perempuan',
                 'home_branch_id' => $branchIds[$i % count($branchIds)],
@@ -175,11 +231,13 @@ class DatabaseSeeder extends Seeder
             'ended_at' => $daysAgo ? now()->subDays($daysAgo)->addHour() : null, 'status' => $daysAgo ? 'selesai' : 'berlangsung']);
         $note = fn (Visit $v) => ClinicalNote::create(['visit_id' => $v->id, 'patient_id' => $patient->id, 'author_id' => $dentist->id,
             'first_input_at' => $v->started_at]);
-        $finding = fn (Visit $v, int $tooth, ?string $surface, string $cond, string $state = 'final', string $source = 'manual', string $status = 'kondisi_pantau', ?string $code = null) => ToothFinding::create([
+        $finding = fn (Visit $v, int $tooth, ?string $surface, string $cond, string $state = 'final', string $source = 'manual') => ToothFinding::create([
             'patient_id' => $patient->id, 'visit_id' => $v->id, 'tooth' => $tooth, 'surface' => $surface, 'condition' => $cond,
-            'status' => $status, 'procedure_code' => $code,
             'state' => $state, 'source' => $source, 'created_by' => $dentist->id,
             'finalized_by' => $state === 'final' ? $dentist->id : null, 'finalized_at' => $state === 'final' ? $v->started_at : null]);
+        // treatments (DEVIATIONS #47): one procedure_record per act; surfaces is a combination, e.g. "MOD"
+        $procedure = fn (Visit $v, int $tooth, ?string $surfaces, string $status, string $code, ?string $dx = null, string $state = 'final') => self::procedure(
+            $v, $tooth, $surfaces, $status, $code, $dx, $state, $dentist);
         $soap = fn (string $s, string $o, string $a, array $icd10, string $p, array $icd9 = []) => ['S' => $s, 'O' => $o,
             'A' => ['codes' => $icd10, 'text' => $a], 'P' => ['codes' => $icd9, 'text' => $p]];
 
@@ -187,11 +245,13 @@ class DatabaseSeeder extends Seeder
         $n1 = $note($v1);
         $x1 = self::version($n1, 1, null, $soap('Ngilu gigi kanan bawah saat minum dingin.', 'Karies dentin gigi 36 oklusal.', 'Karies dentin', ['K02.1'], 'Tumpatan komposit.', ['23.2']), $dentist, at: $v1->started_at);
         self::version($n1, 2, $x1, $soap('Ngilu gigi kanan bawah saat minum dingin.', 'Karies dentin gigi 46 oklusal.', 'Karies dentin', ['K02.1'], 'Tumpatan komposit.', ['23.2']), $dentist, 'Salah nomor gigi (36 -> 46)', $v1->started_at->addHours(3));
-        $finding($v1, 46, 'O', 'tambalan', status: 'selesai', code: '23.2');
+        self::bill($v1, $procedure($v1, 46, 'O', 'selesai', '23.2'), 250000); // still owed (terbuka)
 
         $v2 = $visit(2);
         self::version($note($v2), 1, null, $soap('Kontrol tumpatan, tidak ada keluhan.', 'Tumpatan 46 baik. Gigi 18 goyang derajat 3.', 'Periodontitis kronis', ['K05.3'], 'Rencana cabut 18.'), $dentist, at: $v2->started_at);
-        $finding($v2, 18, null, 'perlu_dicabut', status: 'direncanakan', code: '23.09');
+        self::checkup($v2, $dentist);
+        $finding($v2, 18, null, 'perlu_dicabut');
+        $procedure($v2, 18, null, 'direncanakan', '23.09');
         $finding($v2, 11, 'I', 'karies');
 
         $appt = Appointment::where('patient_id', $patient->id)->orderBy('starts_at')->firstOrFail();
@@ -199,7 +259,7 @@ class DatabaseSeeder extends Seeder
         $draft = (new ClinicalNoteVersion(['note_id' => $note($v3)->id, 'version' => 1, 'revision' => 1, 'state' => 'draft',
             'source' => 'manual', 'created_by' => $dentist->id]))->setSoap($soap('Gigi depan atas berlubang.', 'Karies email 11 insisal, 26 oklusal.', 'Karies email', ['K02.0'], 'Tumpatan 11 dan 26.', ['23.2']));
         $draft->save();
-        $finding($v3, 11, 'I', 'tambalan', 'draft', status: 'selesai', code: '23.2');
+        $procedure($v3, 11, 'I', 'selesai', '23.2', 'K02.0', 'draft');
         $finding($v3, 26, 'O', 'karies', 'draft', 'ai_draft');
     }
 
@@ -211,6 +271,8 @@ class DatabaseSeeder extends Seeder
     private function c3Demo(Branch $branch, User $dentist, array $patients, int $seed): void
     {
         DifficultyTemplate::seed('2026-01-01');
+        CodingTemplate::seed(); // usulan condition -> ICD mapping (not a national standard)
+        ProcedureCatalog::seed(); // how codes are charted (treat_area / paint_type); not prices
         Tariff::create(['procedure_code' => '23.2', 'name' => 'Tumpatan (contoh)', 'variant' => 'standar', 'level_label' => '1 permukaan',
             'price_rp' => 200000, 'valid_from' => '2025-01-01', 'valid_to' => '2026-01-01']);
 
@@ -224,7 +286,7 @@ class DatabaseSeeder extends Seeder
 
         $home = Household::create(['name' => 'Keluarga '.explode(' ', $p0->name)[1].' (contoh)']);
         $minor = (new Patient)->fillIdentity(['name' => 'Nadia Anak Contoh', 'nik' => sprintf('99%02d%012d', $seed, 900), 'phone' => null])
-            ->fill(['dob' => now()->subYears(9)->format('Y-m-d'), 'sex' => 'perempuan', 'home_branch_id' => $branch->id, 'household_id' => $home->id,
+            ->fill(['mrn' => MrnGenerator::next(), 'dob' => now()->subYears(9)->format('Y-m-d'), 'sex' => 'perempuan', 'home_branch_id' => $branch->id, 'household_id' => $home->id,
                 'guarantor_id' => $p0->id, 'created_by' => Ctx::current()->userId]);
         $minor->save();
         $p0->update(['household_id' => $home->id]);
@@ -249,10 +311,9 @@ class DatabaseSeeder extends Seeder
         $p1 = $patients[1];
         $visit = Visit::create(['patient_id' => $p1->id, 'branch_id' => $branch->id, 'dentist_id' => $dentist->id, 'started_at' => now()->subDays(10),
             'ended_at' => now()->subDays(10)->addHour(), 'status' => 'selesai']);
-        $done = ToothFinding::create(['patient_id' => $p1->id, 'visit_id' => $visit->id, 'tooth' => 36, 'surface' => 'O', 'condition' => 'tambalan',
-            'status' => 'selesai', 'procedure_code' => '23.2', 'state' => 'final', 'created_by' => $dentist->id, 'finalized_by' => $dentist->id, 'finalized_at' => $visit->started_at]);
+        $done = self::procedure($visit, 36, 'O', 'selesai', '23.2', null, 'final', $dentist);
         $invoice = Invoice::create(['visit_id' => $visit->id, 'patient_id' => $p1->id, 'payer_patient_id' => $p1->id, 'branch_id' => $branch->id, 'created_by' => $dentist->id]);
-        InvoiceLine::create(['invoice_id' => $invoice->id, 'finding_id' => $done->id, 'procedure_code' => '23.2', 'variant' => 'standar', 'tooth' => 36, 'price_rp' => 250000]);
+        InvoiceLine::create(['invoice_id' => $invoice->id, 'procedure_id' => $done->id, 'procedure_code' => '23.2', 'variant' => 'standar', 'tooth' => 36, 'price_rp' => 250000]);
         InvoiceAdjustment::create(['invoice_id' => $invoice->id, 'kind' => 'discount', 'amount_rp' => 25000, 'reason' => 'Diskon pelanggan lama (contoh)', 'created_by' => $dentist->id]);
 
         // U0c prescription (D-036): #1 signed, voided with a reason, reissued as #2 (supersedes #1). KFA codes are synthetic.
@@ -266,6 +327,110 @@ class DatabaseSeeder extends Seeder
         $sign($rx1, ['dose' => '500 mg', 'route' => 'oral', 'frequency' => '3x sehari', 'duration_days' => 3]);
         PrescriptionVoid::create(['prescription_id' => $rx1->id, 'reason_enc' => Crypto::encrypt('Salah durasi (contoh)'), 'voided_by' => $dentist->id]);
         $sign($rx("R-$seed-0002", $rx1->id), ['dose' => '500 mg', 'route' => 'oral', 'frequency' => '3x sehari', 'duration_days' => 5]);
+    }
+
+    public static function procedure(Visit $v, int $tooth, ?string $surfaces, string $status, string $code, ?string $dx, string $state, User $dentist): ProcedureRecord
+    {
+        return ProcedureRecord::create(['patient_id' => $v->patient_id, 'visit_id' => $v->id, 'treat_area' => $surfaces ? 'surface' : 'tooth',
+            'tooth' => $tooth, 'surfaces' => $surfaces, 'status' => $status, 'procedure_code' => $code, 'diagnosis_code' => $dx,
+            'diagnosis_source' => $dx ? 'manual' : null, 'provider_id' => $v->dentist_id, 'state' => $state, 'created_by' => $dentist->id,
+            'finalized_by' => $state === 'final' ? $dentist->id : null, 'finalized_at' => $state === 'final' ? $v->started_at : null]);
+    }
+
+    /** A closed visit always ends in billing (audit S9, R1/R6): one line for $done on the visit's invoice, status via Ledger. */
+    private static function bill(Visit $v, ProcedureRecord $done, int $price): void
+    {
+        $invoice = Invoice::create(['visit_id' => $v->id, 'patient_id' => $v->patient_id, 'payer_patient_id' => $v->patient_id,
+            'branch_id' => $v->branch_id, 'created_by' => $done->created_by,
+            'created_at' => now()->addMinutes(2)]); // tests take the C3 invoice as the oldest (orderBy created_at): never tie with it
+        InvoiceLine::create(['invoice_id' => $invoice->id, 'procedure_id' => $done->id, 'procedure_code' => $done->procedure_code,
+            'variant' => $done->variant ?? 'standar', 'tooth' => $done->tooth, 'price_rp' => $price]);
+        Ledger::syncStatus($invoice->refresh());
+    }
+
+    /** A visit with no other work bills "Pemeriksaan gigi" 89.31 Kontrol at Rp0 (audit P0-4, DEVIATIONS #78: lunas at once). */
+    private static function checkup(Visit $v, User $dentist): void
+    {
+        $done = ProcedureRecord::create(['patient_id' => $v->patient_id, 'visit_id' => $v->id, 'treat_area' => 'mouth', 'status' => 'selesai',
+            'procedure_code' => '89.31', 'variant' => 'kontrol', 'provider_id' => $v->dentist_id, 'state' => 'final', 'created_by' => $dentist->id,
+            'finalized_by' => $dentist->id, 'finalized_at' => $v->started_at]);
+        self::bill($v, $done, 0);
+    }
+
+    /**
+     * Patient list mix (no new patients): #30 visited 60 days ago + allergy => Perlu kontrol; #31 visited 400 days ago => Tidak aktif
+     * with a last visit; #32 allergy only, never visited. Then every patient's facts are pushed through the real writers
+     * (patients with today's/tomorrow's appointments or an open visit => Dalam perawatan).
+     */
+    private function careDemo(Branch $branch, User $dentist, array $patients): void
+    {
+        foreach ([30 => 60, 31 => 400] as $i => $days) {
+            self::checkup(Visit::create(['patient_id' => $patients[$i]->id, 'branch_id' => $branch->id, 'dentist_id' => $dentist->id,
+                'started_at' => now()->subDays($days), 'ended_at' => now()->subDays($days)->addHour(), 'status' => 'selesai']), $dentist);
+        }
+        foreach ([30 => ['Ibuprofen (contoh)'], 32 => ['Lateks', 'Amoksisilin (contoh)']] as $i => $allergies) {
+            MedicalHistoryVersion::create(['patient_id' => $patients[$i]->id, 'version' => 1, 'premedication_required' => false, 'created_by' => $dentist->id,
+                'content_enc' => Crypto::encrypt(json_encode(['medications' => [], 'problems' => [], 'allergies' => $allergies, 'urgent_note' => null]))]);
+        }
+        foreach (Patient::pluck('id') as $id) {
+            app(ClinicalCareSync::class)->push($id);
+            app(SchedulingCareSync::class)->push($id);
+        }
+    }
+
+    /**
+     * Extra paid invoice (synthetic): a signed visit $daysAgo days ago (older than the patient's last visit, so care facts do not
+     * change) with one billed procedure. $payments = [[clinic payment account name, amount_rp, paidDaysAgo]] into invoice_payment
+     * (seeder writes directly so paid_at can be backdated; status via Ledger like POST /invoices/{id}/payments).
+     */
+    private function paymentDemo(Branch $branch, User $dentist, Patient $patient, int $daysAgo, int $price, array $payments): void
+    {
+        $visit = Visit::create(['patient_id' => $patient->id, 'branch_id' => $branch->id, 'dentist_id' => $dentist->id,
+            'started_at' => now()->subDays($daysAgo), 'ended_at' => now()->subDays($daysAgo)->addHour(), 'status' => 'selesai']);
+        $done = self::procedure($visit, 37, 'O', 'selesai', '23.2', null, 'final', $dentist);
+        $invoice = Invoice::create(['visit_id' => $visit->id, 'patient_id' => $patient->id, 'payer_patient_id' => $patient->id,
+            'branch_id' => $branch->id, 'created_by' => $dentist->id,
+            'created_at' => now()->addMinute()]); // tests take the C3 invoice as the oldest (orderBy created_at): never tie with it
+        InvoiceLine::create(['invoice_id' => $invoice->id, 'procedure_id' => $done->id, 'procedure_code' => '23.2', 'variant' => 'standar', 'tooth' => 37, 'price_rp' => $price]);
+        foreach ($payments as [$account, $amount, $paidDaysAgo]) {
+            InvoicePayment::create(['invoice_id' => $invoice->id, 'payment_account_id' => PaymentAccount::where('name', $account)->firstOrFail()->id,
+                'amount_rp' => $amount, 'paid_at' => now()->subDays($paidDaysAgo), 'created_by' => Ctx::current()->userId]);
+        }
+        Ledger::syncStatus($invoice->refresh()); // refresh: status comes from the DB default (terbuka)
+    }
+
+    /**
+     * Online booking (slug `senyum`): 3 dentists with weekly hours, 4 services (one not bookable online) and one pending online
+     * request tomorrow 18:00 with a fixed DEV-ONLY manage token (`demo-kelola-senyum`) so the manage page can be opened directly.
+     */
+    private function bookingDemo(array $users, Branch $kemang, Branch $rawamangun): void
+    {
+        $this->member($users['dokter.bunga@senyum.test'], 'dentist', $kemang->id);
+        $this->member($users['dokter.raka@senyum.test'], 'dentist', $rawamangun->id);
+        $hours = [
+            ['dokter@senyum.test', $kemang, [1, 2, 3, 4, 5, 6], '09:00', '17:00'],
+            ['dokter.bunga@senyum.test', $kemang, [1, 2, 3, 4, 5, 6, 7], '13:00', '20:00'],
+            ['dokter.raka@senyum.test', $rawamangun, [2, 4, 6], '09:00', '15:00'],
+        ];
+        foreach ($hours as [$email, $branch, $days, $from, $to]) {
+            foreach ($days as $day) {
+                PracticeHour::create(['dentist_id' => $users[$email]->id, 'branch_id' => $branch->id, 'weekday' => $day, 'start_time' => $from, 'end_time' => $to]);
+            }
+        }
+        $svc = ClinicService::create(['name' => 'Konsultasi', 'duration_minutes' => 30, 'online' => true]);
+        ClinicService::create(['name' => 'Scaling', 'duration_minutes' => 45, 'online' => true]);
+        ClinicService::create(['name' => 'Tambal gigi', 'duration_minutes' => 60, 'online' => true]);
+        ClinicService::create(['name' => 'Cabut gigi', 'duration_minutes' => 45, 'online' => false]);
+
+        $p = (new Patient)->fillIdentity(['name' => 'Maya Daring Contoh', 'phone' => '089901000099'])
+            ->fill(['mrn' => MrnGenerator::next(), 'home_branch_id' => $kemang->id, 'source' => 'online']);
+        $p->save();
+        $start = CarbonImmutable::now('Asia/Jakarta')->addDay()->setTime(18, 0);
+        Appointment::create(['branch_id' => $kemang->id, 'chair_id' => Chair::where('branch_id', $kemang->id)->orderBy('label')->value('id'),
+            'dentist_id' => $users['dokter.bunga@senyum.test']->id, 'patient_id' => $p->id, 'starts_at' => $start->utc(), 'ends_at' => $start->addMinutes(30)->utc(),
+            'status' => 'pending_confirmation', 'source' => 'online', 'service_id' => $svc->id, 'reason' => $svc->name,
+            'complaint_enc' => Crypto::encrypt('Gigi ngilu (contoh sintetis)'), 'booking_code' => 'BK-DEMO01',
+            'manage_token_hash' => hash('sha256', 'demo-kelola-senyum'), 'manage_expires_at' => $start->utc()]);
     }
 
     public static function version(ClinicalNote $note, int $n, ?ClinicalNoteVersion $supersedes, array $soap, User $signer, ?string $reason = null, $at = null): ClinicalNoteVersion

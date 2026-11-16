@@ -28,6 +28,14 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    // SATUSEHAT (Kemenkes) OAuth2 client_credentials. Kosong di repo; isi lewat .env. Satu client_id = satu Organization ID.
+    'satusehat' => [
+        'env' => env('SATUSEHAT_ENV', 'sandbox'), // sandbox | production
+        'client_id' => env('SATUSEHAT_CLIENT_ID'),
+        'client_secret' => env('SATUSEHAT_CLIENT_SECRET'),
+        'org_id' => env('SATUSEHAT_ORG_ID'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

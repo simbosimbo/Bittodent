@@ -1,0 +1,24 @@
+# Root .htaccess for Hostinger shared hosting (copied to public_html/.htaccess by scripts/build-hostinger-archive.sh).
+# public_html = Laravel root, so EVERY request is rewritten into public/; nothing outside public/ is web-reachable.
+# Staging only, synthetic data (docs/deploy/hostinger.md, app/DEVIATIONS.md #59).
+
+Options -Indexes -MultiViews
+
+# Defense in depth if a rewrite is ever bypassed: dotfiles (.env, .htaccess, .git*) and sensitive files are denied everywhere.
+<FilesMatch "^\.|^(artisan|composer\.(json|lock)|package(-lock)?\.json|phpunit\.xml)$|\.(zip|sql|log|sqlite|bak|env)$">
+    Require all denied
+</FilesMatch>
+
+# Fail closed: without mod_rewrite the Laravel root would be browsable as files.
+<IfModule !mod_rewrite.c>
+    Require all denied
+</IfModule>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    # Any path segment starting with a dot (except .well-known) is forbidden.
+    RewriteRule (^|/)\.(?!well-known(/|$)) - [F,L]
+    # Guard against a loop: requests already inside public/ are handled by public/.htaccess (Laravel front controller).
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>

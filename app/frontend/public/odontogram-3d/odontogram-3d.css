@@ -1,0 +1,61 @@
+/* Bitto odontogram — 3D (Blender render) view. Colours come ONLY from CSS variables generated
+   from legend.json (legend-vars.css). Shapes are fixed here. */
+.t3 { position: relative; flex: none; outline: none; }
+.t3-box { position: absolute; transform-origin: 50% 50%; pointer-events: none; }
+.t3-img { position: absolute; inset: 0; background: var(--img) center / 100% 100% no-repeat; }
+.t3[data-condition="sisa_akar"] .t3-img { background-image: var(--img-roots); }
+.t3[data-condition="implan"] .t3-img { background-image: var(--img-implant); }
+.t3[data-baseline="missing"] .t3-img { background-image: var(--img-ghost); opacity: .55; filter: grayscale(1); }
+
+/* per-surface tint: CSS mask (7-frame sprite) + colour from legend, multiplied onto the render */
+.t3-layer {
+  position: absolute; inset: 0; mix-blend-mode: multiply;
+  -webkit-mask: var(--mask) calc(var(--i) * 100% / 6) 0 / 700% 100% no-repeat;
+          mask: var(--mask) calc(var(--i) * 100% / 6) 0 / 700% 100% no-repeat;
+  background: var(--cc); opacity: var(--op, 1);
+}
+.t3-layer[data-condition="karies"] {   /* dots = shape cue, never colour only */
+  background: radial-gradient(circle, rgba(255,255,255,.95) 0 28%, transparent 34%) 0 0 / 6px 6px, var(--cc);
+}
+.t3-layer[data-condition="mahkota"] { opacity: calc(var(--op, 1) * .6); }
+.t3-layer[data-condition="sehat"] { opacity: calc(var(--op, 1) * .2); }
+/* planned work: hatched + translucent; completed/existing: solid */
+.t3-layer[data-status="direncanakan"] {
+  background: repeating-linear-gradient(45deg, var(--cc) 0 3px, transparent 3px 6px);
+}
+.t3-layer[data-status="direncanakan"][data-condition="karies"] {
+  background: radial-gradient(circle, rgba(255,255,255,.95) 0 28%, transparent 34%) 0 0 / 6px 6px,
+              repeating-linear-gradient(45deg, var(--cc) 0 3px, transparent 3px 6px);
+}
+/* missing / extracted hides every other layer */
+.t3[data-condition="hilang"] .t3-img,
+.t3[data-condition="hilang"] .t3-layer,
+.t3[data-condition="hilang"] .t3-glyphs .g:not(.g-hilang),
+.t3[data-condition="hilang"] .t3-glyphs .whole:not([data-condition="hilang"]),
+.t3[data-condition="hilang"] .t3-glyphs .status-layer ~ .status-layer { display: none; }
+.t3[data-condition="sisa_akar"] .t3-layer:not([data-condition="sisa_akar"]),
+.t3[data-condition="implan"] .t3-layer[data-condition="karies"] { display: none; }
+
+.t3-glyphs { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
+.t3-glyphs [data-condition] { color: var(--cc); }
+.t3-glyphs [data-status] { opacity: var(--op, 1); }
+.t3-glyphs .halo-fill { fill: var(--halo); }
+.t3-glyphs .ink-fill { fill: currentColor; }
+.t3-glyphs .ink-stroke { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.t3-glyphs .halo-stroke { stroke: var(--halo); stroke-width: 1.5; }
+.t3-glyphs .halo-stroke.xl { fill: none; stroke-width: 5; stroke-linecap: round; }
+.t3-glyphs .thick { stroke-width: 2.4; }
+.t3-glyphs .cap { fill: none; stroke: currentColor; stroke-width: 2.5; }
+.t3-glyphs [data-status="direncanakan"] .cap,
+.t3-glyphs [data-status="direncanakan"] .ink-stroke { stroke-dasharray: 4 3; }
+.t3-glyphs [data-status="dirujuk"] .cap { stroke-dasharray: 1.5 3; }
+.t3-glyphs .slot { fill: none; stroke: var(--c-hilang); stroke-width: 1.6; stroke-dasharray: 5 4; }
+.t3-glyphs .sm { color: var(--sc); }
+.t3-glyphs .state-frame { fill: none; stroke: transparent; }
+.t3[data-state="draft"] .state-frame { stroke: var(--state-draft); stroke-width: 2; stroke-dasharray: 6 4; fill: var(--state-draft-wash); fill-opacity: .45; }
+.t3[data-state="draft"] .draft-mark { fill: var(--state-draft-accent); stroke: var(--halo); stroke-width: 1.2; }
+.t3[data-state="signed"] .state-frame { stroke: var(--state-signed); stroke-width: 1.25; stroke-opacity: .8; }
+.t3[data-state="signed"] .lock rect { fill: var(--state-signed); }
+.t3[data-state="signed"] .lock path { stroke: var(--state-signed); stroke-width: 1.8; }
+
+.t3-super { margin-inline: 2px; align-self: center; }

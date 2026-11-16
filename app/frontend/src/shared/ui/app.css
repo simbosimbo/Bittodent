@@ -1,0 +1,129 @@
+/* Entry CSS. Layer order while screens migrate:
+   legacy-base (bare element rules: label, input, h1 …) < HeroUI components < bittodent (house radius) < legacy (class rules; HeroUI shares some class names with the legacy CSS, legacy markup must keep its look).
+   shortcut: legacy layers stay until every screen uses HeroUI; delete them then. */
+@layer theme, base, legacy-base, components, bittodent, legacy, utilities;
+
+@import "@heroui/styles";
+@import "@heroui-pro/react/css";
+
+@import "./tokens.css" layer(legacy);
+@import "./legacy-base.css" layer(legacy-base);
+@import "./styles.css" layer(legacy);
+@import "./motion.css" layer(legacy);
+
+/* HeroUI theme → Bittodent tokens (design/tokens.json, kanvas "Bittodent / Kasir"). Unlayered: wins over the default theme. */
+:root {
+  --font-sans: "Plus Jakarta Sans", Inter, "Segoe UI", system-ui, sans-serif;
+  --background: #F3F5F9;
+  --foreground: #273445;
+  --surface: #FFFFFF;
+  --surface-foreground: #273445;
+  --surface-secondary: #F2F5F7;
+  --surface-tertiary: #E6EBEF;
+  --overlay: #FFFFFF;
+  --muted: #5F6C77;
+  --default: #F2F5F7;
+  --default-foreground: #273445;
+  --accent: #0B6B62;
+  --accent-foreground: #FFFFFF;
+  --success: #1B6E42;
+  --success-foreground: #FFFFFF;
+  --warning: #E0A526;
+  --warning-foreground: #3B2400;
+  --danger: #B42318;
+  --danger-foreground: #FFFFFF;
+  --border: #EAEDF8;
+  --separator: #EAEDF8;
+  --focus: #14A396;
+  --link: #0B6B62;
+  --field-background: #FFFFFF;
+  --field-border: #D4DBE1;
+  --field-border-width: 1px;
+  --radius: 8px;
+  --field-radius: 10px;
+  --radius-2xl: 12px; /* HeroUI chips, dropdown items */
+  --radius-3xl: 16px; /* HeroUI cards, popovers, modals: min(32px, 3xl) */
+}
+
+body { font-family: var(--font-sans); }
+
+/* House radius (kanvas: field 10, button 12, card/popover 16). HeroUI buttons use rounded-3xl, which would be 16 here.
+   Below `legacy` and `utilities`, so a className such as rounded-full or the legacy round .icon-btn still wins. */
+@layer bittodent {
+  .button { border-radius: 12px; }
+
+  /* Shared blocks (shared/ui/*.tsx). Phone: 44px targets, row buttons 14px, card radius 16, chip radius 12. */
+  .bt-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .bt-chip {
+    --toggle-button-bg: var(--surface); --toggle-button-bg-selected: var(--accent); --toggle-button-bg-selected-hover: var(--color-primary-800);
+    --toggle-button-bg-selected-pressed: var(--color-primary-800); --toggle-button-fg-selected: var(--accent-foreground);
+    flex: none; height: 36px; padding: 0 14px; border: 1px solid var(--field-border); border-radius: 12px; font-size: 14px; font-weight: 500;
+  }
+  .bt-chip[data-selected='true'] { border-color: var(--accent); }
+
+  .bt-seg-field { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+  .bt-seg-label { font-size: 13px; font-weight: 500; color: var(--muted); }
+
+  .bt-stat { gap: 4px; min-width: 0; }
+  .bt-stat-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+  .bt-stat-label { font-size: 14px; font-weight: 500; color: var(--muted); }
+  .bt-stat-icon { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--accent-50); color: var(--accent); }
+  .bt-stat-value { font-size: 24px; font-weight: 700; line-height: 1.25; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .bt-stat-note { font-size: 13px; color: var(--muted); }
+
+  .bt-row {
+    display: flex; align-items: center; gap: var(--space-3); width: 100%; min-height: 64px; padding: var(--space-3); border: 1px solid var(--border);
+    border-radius: 16px; background: var(--surface); color: var(--foreground); font: inherit; text-align: left; text-decoration: none; cursor: pointer;
+  }
+  .bt-row:hover { border-color: var(--accent); text-decoration: none; }
+  .bt-row:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .bt-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .bt-row-main > strong { font-weight: 600; overflow-wrap: anywhere; }
+  .bt-row-what { font-size: 14px; overflow-wrap: anywhere; }
+  .bt-row-sub { font-size: 14px; color: var(--muted); }
+  .bt-row-aside { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; text-align: right; font-variant-numeric: tabular-nums; }
+  .bt-row-chev { flex: none; display: flex; color: var(--muted); }
+
+  /* StatusDot: dot in the status colour, neutral text, soft neutral ground, no border (Gaya ringkas HP). */
+  .bt-status {
+    --dot: var(--color-appointment-batal-border);
+    display: inline-flex; align-items: center; gap: 6px; flex: none; padding: 2px 8px; border-radius: 12px;
+    background: var(--surface-secondary); color: var(--color-neutral-700); font-size: 12px; font-weight: 500; line-height: 18px; white-space: nowrap;
+  }
+  .bt-status > i { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--dot); }
+  .bt-status[data-status='booked'] { --dot: var(--status-booked-border); }
+  .bt-status[data-status='checked_in'] { --dot: var(--status-wait-border); }
+  .bt-status[data-status='in_treatment'], .bt-status[data-status='dalam_perawatan'] { --dot: var(--status-treat-border); }
+  .bt-status[data-status='done'], .bt-status[data-status='lunas'] { --dot: var(--status-done-border); }
+  .bt-status[data-status='pending_confirmation'], .bt-status[data-status='perlu_kontrol'] { --dot: var(--status-confirm-border); }
+  .bt-status[data-status='unpaid'], .bt-status[data-status='terbuka'] { --dot: var(--status-unpaid-border); }
+  .bt-status[data-status='void'] { --dot: var(--status-alert-border); }
+  .bt-status[data-status='busy'] { --dot: var(--accent); }
+
+  .bt-state { align-items: center; gap: var(--space-3); padding: 28px; text-align: center; color: var(--muted); }
+  .bt-state.is-error { color: var(--foreground); }
+  .bt-state.is-error > p { margin: 0; color: var(--danger); }
+
+  .bt-section { margin: var(--space-3) 0 var(--space-2); font-size: 14px; font-weight: 600; color: var(--color-neutral-700); }
+  .bt-count { font-weight: 400; color: var(--muted); }
+
+  @media (max-width: 720px) {
+    /* Tombol HP: row buttons 44px, 14px, content width (a page's main button sets 48px itself); 600 only on the solid action. */
+    .button, .toggle-button { min-height: 44px; }
+    .button { font-weight: 500; }
+    .button--primary, .button--danger { font-weight: 600; } /* the one solid action; secondary/outline/ghost keep HeroUI's 500 */
+    .toggle-button { font-weight: 500; }
+    .button--icon-only, .toggle-button--icon-only { min-width: 44px; }
+    .bt-chip { height: 44px; }
+    .bt-seg .toggle-button { min-height: 44px; }
+    .bt-stat-icon { display: none; }
+    .bt-stat-value { font-size: 22px; }
+    .bt-row-what, .bt-row-sub { font-size: 13px; }
+  }
+}
+
+/* Pro NativeSelect (shared/ui/Select.tsx) is unlayered: same field height as the HeroUI inputs; 16px on a phone so iOS does not zoom. */
+.native-select__select { min-height: 40px; }
+@media (max-width: 720px) { .native-select__select { min-height: 44px; font-size: 16px; } }
+/* Unlayered: beats the legacy .muted on a count inside a picked chip (white on teal). */
+.bt-chip[data-selected='true'] .muted { color: inherit; }

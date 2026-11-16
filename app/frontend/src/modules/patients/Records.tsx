@@ -1,37 +1,91 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { StateCard } from '../../shared/ui/StateCard'
+import { Avatar, Button, Card, Chip } from '@heroui/react'
 import { ApiError, errorText } from '../../shared/api/http'
 import { setActivePatient } from '../../shared/activePatient'
-import { fmtDateTime } from '../../shared/format'
-import { ALERTS_CHANGED } from './AlertRibbon'
+import { fmtDateTime, initials } from '../../shared/format'
+import { Icon, ICONS } from '../../shared/ui/Icon'
+import { Menu } from '../../shared/ui/Menu'
+import { PageSkeleton } from '../../shared/ui/Skeleton'
+import { useIsMobile } from '../../shared/useIsMobile'
+import { ALERTS_CHANGED, AlertRibbon, AlertSheet, AlertStrip } from './AlertRibbon'
 import { getFamily, getMedicalHistory, getPatient, saveMedicalHistory, type Family, type MedicalHistory, type PatientFull } from './api'
-import { age, dob } from './Patients'
+import { age, ageTahun, dob, SEX } from './Patients'
+import { Note } from '../../shared/ui/Note'
 
 const TABS = [['pasien', 'Profil'], ['rekam-medis', 'Rekam Medis'], ['keluarga', 'Keluarga'], ['riwayat-medis', 'Riwayat Medis']] as const
 
-/** Header + tabs shared by the patient screens; loading the patient makes it the active patient. */
-export function PatientPage({ id, tab, canChart, actions, children }: { id: string; tab: string; canChart: boolean; actions?: ReactNode; children: (p: PatientFull) => ReactNode }) {
+/** Header (with the Profil / Rekam Medis / Keluarga / Riwayat Medis menu) shared by the patient screens; loading the patient makes it the active patient.
+ *  `alerts`: allergy/premed/condition chips in the header (one /alerts fetch); `status`: extra chip in the same row (visit status). Both used on Rekam Medis. */
+export function PatientPage({ id, tab, canChart, actions, alerts, status, children }: { id: string; tab: string; canChart: boolean; actions?: ReactNode; alerts?: boolean; status?: ReactNode; children: (p: PatientFull) => ReactNode }) {
   const [p, setP] = useState<PatientFull | null>(null)
   const [error, setError] = useState('')
+  const mobile = useIsMobile()
+  const head = useRef<HTMLDivElement>(null)
+  const passed = useScrolledPast(head, mobile && !!alerts && !!p)
+  const [sheet, setSheet] = useState(false)
   useEffect(() => {
-    getPatient(id).then((x) => { setP(x); setActivePatient({ id: x.id, name: x.name }) }, (e) => setError(e?.status === 404 ? 'Pasien tidak ditemukan.' : errorText(e)))
+    let live = true
+    setP(null)
+    setError('')
+    getPatient(id).then((x) => { if (!live) return; setP(x); setActivePatient({ id: x.id, name: x.name }) }, (e) => { if (live) setError(e?.status === 404 ? 'Pasien tidak ditemukan.' : errorText(e)) })
+    return () => { live = false }
   }, [id])
-  if (error) return <div className="card state-card error">{error} <a href="#/pasien">Kembali</a></div>
-  if (!p) return <div className="card state-card muted">Memuat…</div>
+  if (error) return <StateCard error={error}><a href="#/pasien">Kembali</a></StateCard>
+  if (!p) return <PageSkeleton variant="record" />
   return (
     <>
-      <div className="page-head">
-        <div><a href="#/pasien" className="muted small">← Daftar pasien</a><h1>{p.name}</h1>
-          <p className="muted">{dob(p.dob)} {age(p.dob)}</p></div>
-        {actions}
+      <nav className="crumbs small" aria-label="Breadcrumb"><a href="#/pasien">Daftar Pasien</a> <span aria-hidden="true">›</span> <span aria-current="page">{p.name}</span></nav>
+      <div className="patient-head" ref={head}>
+        <Avatar size="lg" color="accent" variant="soft" className="pt-avatar-lg" aria-hidden="true"><Avatar.Fallback>{initials(p.name)}</Avatar.Fallback></Avatar>
+        <div className="patient-head-main">
+          <div className="patient-head-title">
+            <h1>{p.name}</h1>
+            {/* DOB and payer live on Profil; "No. RM …" never breaks mid-token. */}
+            <p className="muted small">{[ageTahun(p.dob), p.sex && (SEX[p.sex] ?? p.sex)].filter(Boolean).map((x) => x + ' · ')}<span className="patient-mrn">No. RM <strong>{p.mrn ?? 'belum ada'}</strong></span></p>
+          </div>
+          {(alerts || status) && (
+            <div className="patient-chip-row">
+              {alerts && <AlertRibbon patientId={p.id} compactDefault label="Peringatan medis pasien" className="patient-alerts" />}
+              {status}
+            </div>
+          )}
+        </div>
+        <div className="patient-head-actions">
+          {actions}
+          {/* Profil / Keluarga / Riwayat Medis live here (no outer tab bar, no sidebar items). */}
+          <Menu label="Menu pasien" variant="outline" isIconOnly className="shell-icon" trigger={<Icon d={ICONS.more} />}>
+            {(close) => TABS.filter(([k]) => k !== 'rekam-medis' || canChart).map(([k, label]) => (
+              <a key={k} href={`#/${k}/${p.id}`} aria-current={k === tab ? 'page' : undefined} onClick={close}>{label}</a>
+            ))}
+          </Menu>
+        </div>
       </div>
-      <nav className="tabs" aria-label="Data pasien">
-        {TABS.filter(([k]) => k !== 'rekam-medis' || canChart).map(([k, label]) => (
-          <a key={k} href={`#/${k}/${p.id}`} className={k === tab ? 'on' : undefined} aria-current={k === tab ? 'page' : undefined}>{label}</a>
-        ))}
-      </nav>
+      {/* Phone: the full header scrolls away; this strip keeps name + allergies under the top bar. */}
+      {mobile && alerts && (
+        <div className="patient-mini" hidden={!passed}>
+          <p className="patient-mini-who"><strong>{p.name}</strong> <span className="muted">{p.mrn ?? ''}</span></p>
+          <AlertStrip patientId={p.id} onOpen={() => setSheet(true)} />
+        </div>
+      )}
+      {sheet && <AlertSheet patientId={p.id} onClose={() => setSheet(false)} />}
       {children(p)}
     </>
   )
+}
+
+/** true once `ref` has scrolled up under the pinned top bar (--shell-sticky-h). No IntersectionObserver (jsdom) = never. */
+function useScrolledPast(ref: { current: HTMLElement | null }, on: boolean) {
+  const [past, setPast] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!on || !el || typeof IntersectionObserver === 'undefined') { setPast(false); return }
+    const top = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--shell-sticky-h')) || 0
+    const io = new IntersectionObserver(([e]) => setPast(!e.isIntersecting && e.boundingClientRect.top < top), { rootMargin: `-${top}px 0px 0px 0px` })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [ref, on])
+  return past
 }
 
 const REL: Record<string, string> = { ayah: 'Ayah', ibu: 'Ibu', kakek_nenek: 'Kakek/Nenek', saudara: 'Saudara', wali_lain: 'Wali lain' }
@@ -39,38 +93,43 @@ const REL: Record<string, string> = { ayah: 'Ayah', ibu: 'Ibu', kakek_nenek: 'Ka
 export function FamilyPage({ id, canChart }: { id: string; canChart: boolean }) {
   const [f, setF] = useState<Family | null>(null)
   const [error, setError] = useState('')
-  useEffect(() => { getFamily(id).then(setF, (e) => setError(errorText(e))) }, [id])
+  useEffect(() => {
+    let live = true
+    setF(null); setError('')
+    getFamily(id).then((x) => { if (live) setF(x) }, (e) => { if (live) setError(errorText(e)) })
+    return () => { live = false }
+  }, [id])
   return (
-    <PatientPage id={id} tab="keluarga" canChart={canChart}>{() => error ? <div className="card state-card error">{error}</div> : !f ? <div className="card state-card muted">Memuat…</div> : (
+    <PatientPage id={id} tab="keluarga" canChart={canChart}>{() => error ? <StateCard error={error} /> : !f ? <PageSkeleton variant="record" /> : (
       <div className="grid-2 gap">
-        <div className="card">
+        <Card className="pt-card">
           <h2>Anggota keluarga {f.household?.name && <span className="muted">· {f.household.name}</span>}</h2>
           {!f.household ? <p className="muted empty">Belum tergabung dalam keluarga.</p> : (
             <ul className="member-list">
               {f.household.members.map((m) => (
                 <li key={m.id} className={m.id === id ? 'is-self' : undefined}>
-                  <span className="avatar" aria-hidden="true">{m.name.charAt(0)}</span>
+                  <Avatar size="sm" color="accent" variant="soft" className="pl-avatar" aria-hidden="true"><Avatar.Fallback>{m.name.charAt(0)}</Avatar.Fallback></Avatar>
                   <div className="grow"><div className="strong">{m.name}</div><div className="muted small">{dob(m.dob)} {age(m.dob)}</div></div>
-                  {f.guarantor?.id === m.id && <span className="chip chip-done">Penanggung biaya</span>}
-                  {m.id === id ? <span className="chip chip-neutral">Pasien ini</span> : <a href={'#/keluarga/' + m.id}>Jadikan aktif</a>}
+                  {f.guarantor?.id === m.id && <Chip size="sm" variant="soft" color="success" className="pl-chip">Penanggung biaya</Chip>}
+                  {m.id === id ? <Chip size="sm" variant="soft" className="pl-chip">Pasien ini</Chip> : <a href={'#/keluarga/' + m.id} className="member-switch">Jadikan aktif</a>}
                 </li>
               ))}
             </ul>
           )}
-        </div>
+        </Card>
         <div className="stack">
-          <div className="card">
+          <Card className="pt-card">
             <h2>Penanggung biaya</h2>
-            <p>{f.guarantor ? <a href={'#/pasien/' + f.guarantor.id} className="strong">{f.guarantor.name}</a> : 'Bayar sendiri'}</p>
-          </div>
-          <div className="card">
-            <h2>Wali {f.is_minor && <span className="chip chip-checked_in">Pasien di bawah umur</span>}</h2>
+            <p>{f.guarantor ? <a href={'#/pasien/' + f.guarantor.id} className="strong guarantor-link">{f.guarantor.name}</a> : 'Bayar sendiri'}</p>
+          </Card>
+          <Card className="pt-card">
+            <h2>Wali {f.is_minor && <Chip size="sm" variant="soft" color="warning" className="pl-chip">Pasien di bawah umur</Chip>}</h2>
             {f.guardians.length === 0 ? <p className="muted empty">{f.is_minor ? 'Belum ada wali tercatat.' : 'Tidak ada wali.'}</p> : (
               <dl className="details">
                 {f.guardians.map((g) => <div key={g.id}><dt>{REL[g.relationship] ?? g.relationship}</dt><dd>{g.name}{g.phone && <span className="muted small"> · {g.phone}</span>}</dd></div>)}
               </dl>
             )}
-          </div>
+          </Card>
         </div>
       </div>
     )}</PatientPage>
@@ -86,7 +145,12 @@ export function MedicalHistoryPage({ id, canChart, canEdit }: { id: string; canC
   const [edit, setEdit] = useState<Record<'allergies' | 'problems' | 'medications' | 'urgent_note', string> & { premed: boolean } | null>(null)
   const [msg, setMsg] = useState('')
   const load = () => getMedicalHistory(id).then(setH, (e) => setError(errorText(e)))
-  useEffect(() => { load() }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    let live = true
+    setH(null); setError(''); setEdit(null); setMsg('')
+    getMedicalHistory(id).then((x) => { if (live) setH(x) }, (e) => { if (live) setError(errorText(e)) })
+    return () => { live = false }
+  }, [id])
 
   function start() {
     const c = h?.current
@@ -111,11 +175,11 @@ export function MedicalHistoryPage({ id, canChart, canEdit }: { id: string; canC
   const c = h?.current
   return (
     <PatientPage id={id} tab="riwayat-medis" canChart={canChart}
-      actions={canEdit && h && !edit ? <button className="btn btn-primary" onClick={start}>{c ? 'Perbarui riwayat medis' : 'Isi riwayat medis'}</button> : undefined}>
-      {() => error ? <div className="card state-card error">{error}</div> : !h ? <div className="card state-card muted">Memuat…</div> : (
+      actions={canEdit && h && !edit ? <Button onPress={start}>{c ? 'Perbarui riwayat medis' : 'Isi riwayat medis'}</Button> : undefined}>
+      {() => error ? <StateCard error={error} /> : !h ? <PageSkeleton variant="record" /> : (
         <div className="grid-2 gap">
           {edit ? (
-            <form className="card" onSubmit={save}>
+            <Card className="pt-card"><form onSubmit={save}>
               <h2>Perbarui riwayat medis</h2>
               <p className="muted small">Satu baris per butir. Menyimpan membuat versi baru; versi lama tidak diubah.</p>
               {(['allergies', 'problems', 'medications'] as const).map((k) => (
@@ -124,11 +188,11 @@ export function MedicalHistoryPage({ id, canChart, canEdit }: { id: string; canC
               ))}
               <label>Catatan penting<textarea rows={2} maxLength={500} value={edit.urgent_note} onChange={(e) => setEdit({ ...edit, urgent_note: e.target.value })} /></label>
               <label className="check"><input type="checkbox" checked={edit.premed} onChange={(e) => setEdit({ ...edit, premed: e.target.checked })} /> Perlu premedikasi sebelum tindakan</label>
-              {msg && <p className="form-error">{msg}</p>}
-              <div className="dialog-actions"><button type="button" className="btn" onClick={() => setEdit(null)}>Batal</button><button className="btn btn-primary">Simpan versi baru</button></div>
-            </form>
+              {msg && <Note status="danger" role="alert">{msg}</Note>}
+              <div className="dialog-actions"><Button variant="secondary" className="pt-btn" onPress={() => setEdit(null)}>Batal</Button><Button type="submit" className="pt-btn">Simpan versi baru</Button></div>
+            </form></Card>
           ) : (
-            <div className="card">
+            <Card className="pt-card">
               <h2>Riwayat medis terkini {c && <span className="muted">· versi {c.version}</span>}</h2>
               {msg && <p className="muted">{msg}</p>}
               {!c ? <p className="muted empty">Belum diisi.</p> : (
@@ -140,21 +204,21 @@ export function MedicalHistoryPage({ id, canChart, canEdit }: { id: string; canC
                   <div><dt>Obat rutin</dt><dd><List items={c.medications} /></dd></div>
                 </dl>
               )}
-            </div>
+            </Card>
           )}
-          <div className="card">
+          <Card className="pt-card">
             <h2>Versi</h2>
             {h.history.length === 0 ? <p className="muted empty">Belum ada versi.</p> : (
               <ol className="version-list">
                 {h.history.map((v) => (
                   <li key={v.id}>
-                    <div className="strong">Versi {v.version} {v.id === c?.id ? <span className="chip chip-done">Berlaku</span> : <span className="chip chip-neutral">Digantikan</span>}</div>
+                    <div className="strong">Versi {v.version} {v.id === c?.id ? <Chip size="sm" variant="soft" color="success" className="pl-chip">Berlaku</Chip> : <Chip size="sm" variant="soft" className="pl-chip">Digantikan</Chip>}</div>
                     <div className="muted small">{fmtDateTime(v.created_at)} · {v.allergies.length} alergi · {v.problems.length} kondisi · {v.medications.length} obat{v.premedication_required ? ' · premedikasi' : ''}</div>
                   </li>
                 ))}
               </ol>
             )}
-          </div>
+          </Card>
         </div>
       )}
     </PatientPage>

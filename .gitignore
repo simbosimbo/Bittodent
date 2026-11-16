@@ -7,3 +7,5 @@ vendor/
 *.sqlite
 .phpunit.result.cache
 storage/framework/
+!.env.staging.example
+screenshots/ui-audit/

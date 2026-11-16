@@ -1,0 +1,21 @@
+/* Legacy element rules (no class). Layer legacy-base sits under HeroUI components so they never restyle HeroUI internals. */
+/* Base text on body, not :root: 1rem stays 16px for HeroUI/Tailwind sizing. */
+body { font-family: var(--shells-a-font-family); font-size: var(--shells-a-font-size); color: var(--text); background: var(--bg); }
+* { box-sizing: border-box; }
+body { margin: 0; font-weight: 400; }
+b, strong { font-weight: 600; }
+h1 { font-size: var(--shells-a-font-title); margin: var(--space-1) 0; font-weight: 700; }
+h2 { font-size: var(--font-size-lg); margin: 0 0 var(--space-3); font-weight: 600; }
+a { color: var(--accent-600); text-decoration: none; }
+a:hover { text-decoration: underline; }
+label:not(.label) { display: flex; flex-direction: column; gap: 6px; font-weight: 500; font-size: var(--font-size-sm); margin-bottom: 14px; }
+input, select {
+  font: inherit; font-weight: 400; color: var(--text); background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 12px; min-height: 40px;
+}
+input:focus, select:focus { outline: 2px solid var(--accent-50); border-color: var(--accent); }
+textarea { font: inherit; font-weight: 400; color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 12px; resize: vertical; }
+@media (max-width: 720px) {
+  /* 44px fields; 16px text so iOS does not zoom on focus. */
+  input:where(:not([type='checkbox'], [type='radio'], [type='range'])), select, textarea { min-height: 44px; font-size: 16px; }
+}

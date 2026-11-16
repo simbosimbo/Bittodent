@@ -1,0 +1,65 @@
+/* Daftar Pasien (PatientList) on HeroUI. Unlayered: wins over HeroUI and the legacy layer where both set a value. */
+.pl-panel { padding: var(--space-4); gap: var(--space-3); }
+.pl-toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-3); }
+.pl-new { margin-left: auto; }
+.pl-search { flex: 1 1 320px; max-width: 480px; }
+.pl-label { margin: 0; font-size: var(--font-size-xs); font-weight: 500; color: var(--muted); }
+.pl-dentist { display: grid; gap: var(--space-1); min-width: 200px; }
+.pl-search .pl-field, .pl-dentist .pl-field { min-height: 40px; }
+
+.pl-filters { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
+.pl-table th { text-transform: uppercase; letter-spacing: 0.04em; }
+.pl-table .pl-col-name { width: 38%; }
+/* Long names wrap; never ellipsis (a clipped name risks picking the wrong patient). */
+.pl-name { display: flex; align-items: center; gap: var(--space-3); }
+/* display: flex undoes the legacy grid rule on the shared avatar class, so the fallback fills the circle. */
+.pl-avatar { display: flex; flex: none; width: 36px; height: 36px; border-radius: 50%; }
+.pl-name-text { display: block; white-space: normal; overflow-wrap: anywhere; }
+.pl-payer { display: block; }
+.pl-chip { display: inline-flex; padding: 1px 8px; font-size: 12px; font-weight: 500; }
+/* Allergy chips: safety info, so they wrap instead of being clipped. */
+.pl-allergies { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.pl-alergi { white-space: normal; flex-shrink: 1; max-width: 100%; }
+.pl-table td.cell-action { white-space: nowrap; }
+.pl-chevron { display: inline-flex; vertical-align: middle; margin-left: var(--space-2); color: var(--muted); }
+.pl-more { margin-top: var(--space-2); }
+.pl-mrn { white-space: nowrap; font-variant-numeric: tabular-nums; }
+/* No. RM is one token ("BT-000041"): never split across lines. */
+.nowrap { white-space: nowrap; }
+
+/* Phone (PD08): page gutter, 44px fields, cards straight on the page, whole card body is one link. */
+@media (max-width: 720px) {
+  .pl-page { display: grid; gap: var(--space-3); }
+  .pl-head { margin: 0; }
+  /* The top bar already says "Pasien"; the page h1 stays for screen readers only. */
+  .pl-head .shell-dup-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .pl-toolbar { display: grid; gap: var(--space-3); }
+  .pl-search { max-width: none; }
+  .pl-search .pl-field, .pl-dentist .pl-field { min-height: 44px; }
+  .pl-search input, .pl-dentist select { font-size: 16px; }
+  .pl-sum { margin: 0; font-size: 13px; color: var(--muted); }
+  .pl-cards { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+  .pl-hit { padding: var(--space-3); gap: var(--space-2); border-radius: 16px; box-shadow: none; }
+  .pl-hit-main { display: flex; align-items: flex-start; gap: var(--space-3); min-height: 48px; color: var(--text); text-decoration: none; }
+  .pl-hit-main:hover { text-decoration: none; }
+  .pl-hit-main:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; border-radius: 12px; }
+  .pl-card-body { flex: 1; min-width: 0; display: grid; gap: 4px; justify-items: start; }
+  .pl-name-text { font-size: 14px; font-weight: 600; line-height: 1.35; }
+  .pl-meta { display: grid; gap: 2px; font-size: 13px; color: var(--muted); line-height: 1.35; }
+  .pl-meta > :first-child { color: var(--text); } /* row 2 = what (No. RM, umur, penjamin); row 3 = last visit, muted */
+  .pl-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .pl-chips .pl-allergies { margin: 0; }
+  .pl-hit .pl-chevron { align-self: center; margin: 0; }
+  .pl-more { height: 44px; }
+  .pl-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-2); width: 100%; }
+}
+
+/* Pasien baru, profil, keluarga, riwayat medis */
+.pt-card { padding: var(--shells-a-space-card); gap: var(--space-3); }
+.pt-error { color: var(--danger); font-weight: 500; font-size: 13px; }
+@media (max-width: 720px) {
+  .pt-card { padding: var(--space-4); border-radius: 16px; }
+  .pt-btn { height: 48px; }
+}
+.pt-avatar-lg { display: flex; flex: none; width: 48px; height: 48px; border-radius: 50%; }

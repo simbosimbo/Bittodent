@@ -1,47 +1,194 @@
-import { fmtDate, fmtTime, todayWib } from '../../shared/format'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { RowLink } from '../../shared/ui/RowLink'
+import { FilterChips } from '../../shared/ui/FilterChips'
+import { Stat } from '../../shared/ui/Stat'
+import { StateCard } from '../../shared/ui/StateCard'
+import { Avatar, buttonVariants, Card } from '@heroui/react'
+import { StatusDot } from '../../shared/ui/StatusDot'
+import { fmtDate, fmtTime, initials, todayWib, TZ } from '../../shared/format'
 import type { Me } from '../../shared/session'
-import { StatusChip, useSchedule } from './Schedule'
+import { RevenueCard } from '../billing'
+import { Icon, ICONS } from '../../shared/ui/Icon'
+import { PageSkeleton } from '../../shared/ui/Skeleton'
+import { useIsMobile } from '../../shared/useIsMobile'
+import type { Appointment } from './api'
+import Schedule, { minutesOfDay, StatusChip, useSchedule } from './Schedule'
+import { useJadwalMode } from './MobileJadwal'
 
+type Row = Appointment & { chair: string }
+const LEGEND = [['done', 'Selesai'], ['in_treatment', 'Merawat'], ['checked_in', 'Check-in'], ['booked', 'Terjadwal']]
+const AXIS_START = 8 * 60, AXIS_MIN_END = 15 * 60, AXIS_MAX_END = 20 * 60
+// "drg. Clara Wijaya, Sp.KGA" -> "CW": skip titles (words with a dot).
+
+function useNow() {
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 30_000)
+    return () => clearInterval(t)
+  }, [])
+  return now
+}
+
+// Phone in Dokter mode (#70): Beranda IS "Pasien saya" (same agenda + detail sheet as Jadwal), no KPI/revenue/desk CTAs to scroll past.
 export default function Home({ me }: { me: Me }) {
+  const mobile = useIsMobile()
+  const { mode } = useJadwalMode(me)
+  return mobile && mode === 'dokter' ? <Schedule me={me} /> : <DeskHome me={me} />
+}
+
+function DeskHome({ me }: { me: Me }) {
   const date = todayWib()
+  const now = useNow()
   const { data, error, loading } = useSchedule(me.active.branch_id, date)
-  const all = data?.chairs.flatMap((c) => c.appointments.map((a) => ({ ...a, chair: c.label }))) ?? []
-  const active = all.filter((a) => a.status !== 'cancelled' && a.status !== 'no_show')
-  const queue = all.filter((a) => a.status === 'checked_in').sort((a, b) => a.starts_at.localeCompare(b.starts_at))
+  const [filter, setFilter] = useState<'open' | 'all'>('open')
+  const tlScroll = useRef<HTMLDivElement>(null)
+  const can = (p: string) => me.permissions.includes(p)
+  const mobile = useIsMobile()
+  // Phone: CTAs leave the first fold (greeting + KPIs); they sit after the KPI tiles and in the header + menu.
+  const ctas = (can('patient.create') || can('appointment.create')) && (
+    <div className="home-actions">
+      {can('patient.create') && <a className={buttonVariants({ variant: 'outline' })} href="#/pasien/baru">Daftarkan pasien</a>}
+      {can('appointment.create') && <a className={buttonVariants({ variant: 'primary' })} href="#/jadwal">Buat janji</a>}
+    </div>
+  )
+  const canChart = can('note.read')
+  const canVisit = can('note.write') // same rule as Schedule: a writer lands on the chart with an active visit
+  const tz = data?.branch.timezone ?? TZ
+  const all: Row[] = (data?.chairs.flatMap((c) => c.appointments.map((a) => ({ ...a, chair: c.label }))) ?? [])
+    .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
+  const active = all.filter((a) => !['cancelled', 'no_show', 'rejected'].includes(a.status))
+  const count = (s: string) => active.filter((a) => a.status === s).length
+  const done = count('done'), treating = count('in_treatment'), waiting = count('checked_in')
+  const queue = active.filter((a) => a.status === 'checked_in' || a.status === 'in_treatment')
+  const shown = filter === 'open' ? active.filter((a) => a.status !== 'done') : active
+  const patients = new Set(active.flatMap((a) => (a.patient ? [a.patient.id] : []))).size
+  const walkIns = data?.walk_in_patients ?? 0 // server already excludes patients who also have an active appointment
+
+  const time = (a: Appointment) => fmtTime(a.starts_at, tz)
+  const span = (a: Appointment) => `${time(a)}–${fmtTime(a.ends_at, tz)}`
+  const href = (a: Appointment) => canChart && a.patient ? `#/rekam-medis/${a.patient.id}${canVisit ? `/janji/${a.id}` : ''}` : null
+
+  const nowMin = minutesOfDay(now.toISOString(), tz)
+  const greeting = nowMin < 11 * 60 ? 'Selamat pagi' : nowMin < 15 * 60 ? 'Selamat siang' : 'Selamat sore'
+  const nowLabel = fmtTime(now.toISOString(), tz)
+
+  // Timeline: 08:00 to at least 15:00, extended (max 20:00) so no appointment is clipped.
+  const lastEnd = Math.max(AXIS_MIN_END, ...active.map((a) => minutesOfDay(a.ends_at, tz)))
+  const axisEnd = Math.min(AXIS_MAX_END, Math.ceil(lastEnd / 60) * 60)
+  const hours = Array.from({ length: (axisEnd - AXIS_START) / 60 + 1 }, (_, i) => AXIS_START + i * 60)
+  const pct = (m: number) => `${((Math.min(Math.max(m, AXIS_START), axisEnd) - AXIS_START) / (axisEnd - AXIS_START)) * 100}%`
+  const dentists = [...(data?.dentists ?? [])]
+  for (const a of active) if (a.dentist && !dentists.some((d) => d.id === a.dentist!.id)) dentists.push(a.dentist)
+  const lanes = dentists.map((d) => ({ id: d.id, name: d.name, items: active.filter((a) => a.dentist?.id === d.id) }))
+  const orphan = active.filter((a) => !a.dentist)
+  if (orphan.length) lanes.push({ id: '-', name: 'Tanpa dokter', items: orphan })
+
+  // Long day: open the timeline at "now" (a third in from the left) instead of 08.00.
+  const hasLanes = lanes.length > 0
+  useEffect(() => {
+    const el = tlScroll.current, line = el?.querySelector<HTMLElement>('.tl-now')
+    if (el && line) el.scrollLeft = Math.max(0, line.getBoundingClientRect().left - el.getBoundingClientRect().left + el.scrollLeft - el.clientWidth / 3)
+  }, [hasLanes])
+
+  const kpis = [
+    { label: 'Pasien hari ini', icon: ICONS.user, value: patients + walkIns, note: `${patients} dengan janji${walkIns ? ` · ${walkIns} tanpa janji` : ''}` },
+    { label: 'Janji temu', icon: ICONS.calendar, value: active.length, note: `${done} selesai · ${active.length - done} tersisa` },
+    { label: 'Antrean', icon: ICONS.users, value: queue.length, note: `${treating} sedang dirawat · ${waiting} menunggu` },
+  ]
 
   return (
     <>
-      <div className="page-head">
+      <div className="page-head home-head">
         <div>
-          <h1>Selamat datang, {me.user.name}</h1>
-          <p className="muted">{fmtDate(date)} · {me.active.branch_name ?? 'Belum ada cabang aktif'}</p>
+          <h1 className="sr-only">Beranda</h1>
+          <p className="home-greet">{greeting}, {me.user.name}</p>
+          <p className="muted">{fmtDate(date)} · {nowLabel} WIB</p>
         </div>
+        {!mobile && ctas}
       </div>
-      {error ? <div className="card state-card error">{error}</div> : loading && !data ? <div className="card state-card muted">Memuat…</div> : (
-        <div className="grid-2">
-          <div className="card stat">
-            <div className="stat-label">Janji hari ini</div>
-            <div className="stat-value">{active.length}</div>
-            <div className="muted">{all.filter((a) => a.status === 'done').length} selesai · {queue.length} menunggu</div>
-            <a className="btn btn-link" href="#/jadwal">Lihat jadwal →</a>
-          </div>
-          <div className="card">
-            <h2>Antrean (sudah datang)</h2>
-            {queue.length === 0 ? <p className="muted empty">Belum ada pasien yang check-in.</p> : (
-              <ul className="queue">
-                {queue.map((a, i) => (
-                  <li key={a.id}>
-                    <span className="queue-no">{i + 1}</span>
-                    <div className="grow">
-                      <div className="strong">{a.patient?.name}</div>
-                      <div className="muted small">{fmtTime(a.starts_at, data?.branch.timezone)} · {a.chair} · {a.dentist?.name}</div>
+      {error ? <StateCard error={error} /> : loading && !data ? <PageSkeleton variant="home" /> : (
+        <div className="grid-12">
+          {kpis.map((k) => (
+            <Stat key={k.label} className="span-3" label={k.label} value={k.value} note={k.note} icon={<Icon d={k.icon} />} />
+          ))}
+          <RevenueCard canRead={can('billing.read')} branchId={me.active.branch_id} />
+          {mobile && ctas && <div className="span-12 home-actions-row">{ctas}</div>}
+
+          <Card className="span-12 home-board" role="region" aria-labelledby="home-board">
+            <div className="card-head">
+              <div>
+                <h2 id="home-board">Jadwal hari ini per dokter</h2>
+                <p className="muted small">Klik blok untuk membuka rekam medis pasien</p>
+              </div>
+              <div className="tl-legend" aria-label="Keterangan status">
+                {LEGEND.map(([s, l]) => <StatusDot key={s} status={s}>{l}</StatusDot>)}
+              </div>
+            </div>
+            {lanes.length === 0 ? <p className="muted empty">Belum ada janji aktif hari ini.</p> : (
+              <div className="tl-scroll" ref={tlScroll} data-audit-skip>{/* sideways scroller by design: later blocks sit past the edge */}
+                <div className="tl" style={{ '--tl-hours': hours.length - 1 } as CSSProperties}>
+                  <div className="tl-row tl-axis" aria-hidden="true">
+                    <div />
+                    <div className="tl-track">
+                      {hours.map((h) => <span key={h} style={{ left: pct(h) }}>{String(h / 60).padStart(2, '0')}.00</span>)}
                     </div>
-                    <StatusChip status={a.status} />
-                  </li>
-                ))}
+                  </div>
+                  {lanes.map((l) => (
+                    <div key={l.id} className="tl-row">
+                      <div className="tl-who">
+                        <Avatar size="sm" color="accent" variant="soft" className="tl-av" aria-hidden="true"><Avatar.Fallback>{initials(l.name) || '?'}</Avatar.Fallback></Avatar>
+                        <div>
+                          <div className="strong">{l.name}</div>
+                          <div className="muted small">{l.items.length} janji · {l.items.filter((a) => a.status !== 'done').length} tersisa</div>
+                        </div>
+                      </div>
+                      <div className="tl-track tl-lane">
+                        {l.items.map((a) => {
+                          const s = minutesOfDay(a.starts_at, tz), e = minutesOfDay(a.ends_at, tz)
+                          const name = a.patient?.name ?? '—'
+                          const style = { left: pct(s), width: `calc(${pct(e)} - ${pct(s)})` }
+                          const body = <><span className="tl-name">{name}</span><span className="tl-time">{time(a)}</span></>
+                          const h = href(a)
+                          return h
+                            ? <a key={a.id} className={`tl-block tl-${a.status}`} style={style} href={h} title={`${name} · ${span(a)}`} aria-label={`Buka Rekam Medis ${name}`}>{body}</a>
+                            : <div key={a.id} className={`tl-block tl-${a.status}`} style={style} title={`${name} · ${span(a)}`}>{body}</div>
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                  {nowMin >= AXIS_START && nowMin <= axisEnd && (
+                    <div className="tl-now-layer" aria-hidden="true">
+                      <div className="tl-now" style={{ left: pct(nowMin) }}><span>Sekarang {nowLabel}</span></div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </Card>
+
+          <Card className="span-12 home-today" role="region" aria-labelledby="home-today">
+            <div className="card-head">
+              <div>
+                <h2 id="home-today">Janji hari ini</h2>
+                <p className="muted small" aria-live="polite">{shown.length} janji ditampilkan · urut berdasarkan jam</p>
+              </div>
+              <FilterChips label="Saring janji" value={filter} onChange={setFilter} options={[['open', 'Belum selesai'], ['all', 'Semua']]} />
+            </div>
+            {shown.length === 0 ? <p className="muted empty">Belum ada janji aktif hari ini.</p> : (
+              <ul className="queue">
+                {shown.map((a) => {
+                  // Who → what (service) → when/where; opening the chart is the row's only action: the whole row is the link (chevron).
+                  const h = href(a), name = a.patient?.name ?? '—'
+                  const where = <span className="tabular-nums">{[span(a), a.chair, a.dentist?.name].filter(Boolean).join(' · ')}</span>
+                  return h
+                    ? <li key={a.id}><RowLink className="queue-link" href={h} aria-label={`Buka Rekam Medis ${name}`}
+                        title={name} what={a.reason || undefined} sub={where} aside={<StatusChip status={a.status} />} /></li>
+                    : <li key={a.id}><div className="grow"><div className="strong">{name}</div>{a.reason && <div className="small">{a.reason}</div>}<div className="muted small">{where}</div></div><StatusChip status={a.status} /></li>
+                })}
               </ul>
             )}
-          </div>
+          </Card>
+
         </div>
       )}
     </>

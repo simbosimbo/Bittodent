@@ -17,13 +17,13 @@ class PermissionMatrixTest extends TestCase
         $rows = [];
         $routes = ['patient.read' => 'GET patients', 'patient.create' => 'POST patients', 'note.read' => 'GET notes',
             'appointment.read' => 'GET schedule', 'appointment.create' => 'POST appointments', 'appointment.transition' => 'POST transition',
-            'billing.read' => 'GET invoice'];
+            'billing.read' => 'GET invoice', 'appointment.confirm' => 'POST confirm'];
         $allowed = [
-            'pemilik@senyum.test' => ['patient.read', 'patient.create', 'note.read', 'appointment.read', 'appointment.create', 'appointment.transition', 'billing.read'],
-            'dokter@senyum.test' => ['patient.read', 'patient.create', 'note.read', 'appointment.read', 'appointment.create', 'appointment.transition'],
+            'pemilik@senyum.test' => ['patient.read', 'patient.create', 'note.read', 'appointment.read', 'appointment.create', 'appointment.transition', 'billing.read', 'appointment.confirm'],
+            'dokter@senyum.test' => ['patient.read', 'patient.create', 'note.read', 'appointment.read', 'appointment.create', 'appointment.transition', 'appointment.confirm'],
             'asisten@senyum.test' => ['patient.read', 'note.read', 'appointment.read', 'appointment.transition'],
-            'depan@senyum.test' => ['patient.read', 'patient.create', 'appointment.read', 'appointment.create', 'appointment.transition', 'billing.read'],
-            'kasir@senyum.test' => ['patient.read', 'appointment.read', 'billing.read'],
+            'depan@senyum.test' => ['patient.read', 'patient.create', 'appointment.read', 'appointment.create', 'appointment.transition', 'billing.read', 'appointment.confirm'],
+            'kasir@senyum.test' => ['patient.read', 'patient.create', 'appointment.read', 'appointment.create', 'appointment.transition', 'billing.read', 'appointment.confirm'], // #67
         ];
         foreach ($allowed as $email => $perms) {
             foreach ($routes as $perm => $route) {
@@ -32,6 +32,11 @@ class PermissionMatrixTest extends TestCase
         }
 
         return $rows;
+    }
+
+    public function test_price_view_is_dentist_only(): void // D-045: the assistant does not see prices until the owner decides
+    {
+        $this->assertSame(['dentist'], array_keys(array_filter(\App\Shared\Permissions\Permissions::MATRIX, fn ($p) => in_array('price.view', $p, true))));
     }
 
     #[DataProvider('matrix')]
@@ -48,6 +53,8 @@ class PermissionMatrixTest extends TestCase
             'POST appointments' => ['POST', '/api/appointments', ['patient_id' => $p->id, 'chair_id' => $appt->chair_id,
                 'dentist_id' => $appt->dentist_id, 'starts_at' => '2030-01-01T02:00:00Z', 'ends_at' => '2030-01-01T02:30:00Z']],
             'POST transition' => ['POST', "/api/appointments/{$appt->id}/transition", ['to' => 'checked_in']],
+            // confirm a pending online booking (seeded BK-DEMO01) = transition pending_confirmation -> booked
+            'POST confirm' => ['POST', '/api/appointments/'.Ctx::runAs($a, fn () => Appointment::where('booking_code', 'BK-DEMO01')->value('id')).'/transition', ['to' => 'booked']],
             'GET invoice' => ['GET', '/api/invoices/'.Ctx::runAs($a, fn () => Invoice::orderBy('created_at')->firstOrFail()->id), []],
         };
         $status = $this->as($email)->json($method, $path, $body)->status();

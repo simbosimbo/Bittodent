@@ -1,6 +1,10 @@
-import { useState, type FormEvent, type ReactElement, type ReactNode } from 'react'
+import { cloneElement, useState, type FormEvent, type InputHTMLAttributes, type ReactElement, type ReactNode } from 'react'
+import { Select } from '../../shared/ui/Select'
+import { Button, buttonVariants, Card } from '@heroui/react'
+import { DateField } from '../../shared/ui/DateField'
 import { ApiError, errorText } from '../../shared/api/http'
 import { createPatient } from './api'
+import { Note } from '../../shared/ui/Note'
 
 type Form = Record<'name' | 'dob' | 'sex' | 'nik' | 'phone' | 'address' | 'payer_type' | 'payer_name' | 'payer_member_no', string>
 const EMPTY: Form = { name: '', dob: '', sex: '', nik: '', phone: '', address: '', payer_type: 'umum', payer_name: '', payer_member_no: '' }
@@ -46,24 +50,25 @@ export default function PatientForm() {
     }
   }
 
-  const field = (k: keyof Form, label: string, input: ReactElement) => (
+  // Audit P3-1: name = the visible label only (the error would otherwise join it); the error is the description.
+  const field = (k: keyof Form, label: string, input: ReactElement<InputHTMLAttributes<HTMLElement>>) => (
     <label className={errors[k] ? 'has-error' : ''}>
-      {label}
-      {input}
-      {errors[k] && <span className="field-error" role="alert">{errors[k]}</span>}
+      <span id={`pf-${k}`}>{label}</span>
+      {cloneElement(input, { 'aria-labelledby': `pf-${k}`, 'aria-invalid': errors[k] ? true : undefined, 'aria-describedby': errors[k] ? `pf-${k}-error` : undefined })}
+      {errors[k] && <span id={`pf-${k}-error`} className="pt-error" role="alert">{errors[k]}</span>}
     </label>
   )
 
   return (
     <>
-      <div className="page-head"><div><a href="#/pasien" className="muted small">← Daftar pasien</a><h1>Pasien Baru</h1></div></div>
-      <form className="card form" onSubmit={submit} noValidate>
+      <div className="page-head"><div><a href="#/pasien" className="muted small">← Daftar pasien</a><h1 className="shell-dup-title">Pasien Baru</h1></div></div>
+      <Card className="pt-card"><form className="form" onSubmit={submit} noValidate>
         <h2>Identitas</h2>
         <div className="grid-2">
           {field('name', 'Nama lengkap *', <input value={f.name} onChange={set('name')} maxLength={200} />)}
-          {field('dob', 'Tanggal lahir', <input type="date" value={f.dob} onChange={set('dob')} />)}
+          {field('dob', 'Tanggal lahir', <DateField value={f.dob} onChange={set('dob')} />)}
           {field('sex', 'Jenis kelamin', (
-            <select value={f.sex} onChange={set('sex')}><option value="">— Pilih —</option><option value="laki_laki">Laki-laki</option><option value="perempuan">Perempuan</option></select>
+            <Select value={f.sex} onChange={set('sex')}><option value="">— Pilih —</option><option value="laki_laki">Laki-laki</option><option value="perempuan">Perempuan</option></Select>
           ))}
           {field('nik', 'NIK', <input inputMode="numeric" value={f.nik} onChange={set('nik')} placeholder="16 angka" />)}
           {field('phone', 'No. HP', <input inputMode="tel" value={f.phone} onChange={set('phone')} placeholder="08xx…" />)}
@@ -72,17 +77,17 @@ export default function PatientForm() {
         <h2>Penjamin</h2>
         <div className="grid-2">
           {field('payer_type', 'Jenis penjamin', (
-            <select value={f.payer_type} onChange={set('payer_type')}><option value="umum">Umum (bayar sendiri)</option><option value="asuransi">Asuransi swasta</option></select>
+            <Select value={f.payer_type} onChange={set('payer_type')}><option value="umum">Umum (bayar sendiri)</option><option value="asuransi">Asuransi swasta</option></Select>
           ))}
           {f.payer_type === 'asuransi' && field('payer_name', 'Nama asuransi *', <input value={f.payer_name} onChange={set('payer_name')} />)}
           {f.payer_type === 'asuransi' && field('payer_member_no', 'No. peserta', <input value={f.payer_member_no} onChange={set('payer_member_no')} />)}
         </div>
-        {error && <p className="form-error" role="alert">{error}</p>}
+        {error && <Note status="danger" role="alert">{error}</Note>}
         <div className="dialog-actions">
-          <a className="btn" href="#/pasien">Batal</a>
-          <button className="btn btn-primary" disabled={busy}>{busy ? 'Menyimpan…' : 'Simpan pasien'}</button>
+          <a className={buttonVariants({ variant: 'secondary' }) + ' pt-btn'} href="#/pasien">Batal</a>
+          <Button type="submit" className="pt-btn" isDisabled={busy}>{busy ? 'Menyimpan…' : 'Simpan pasien'}</Button>
         </div>
-      </form>
+      </form></Card>
     </>
   )
 }

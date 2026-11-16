@@ -1,0 +1,61 @@
+/* Kasir, Tagihan, Shift, Kwitansi (KL01-KL06) on HeroUI. Layout is Tailwind utilities; this file holds what utilities cannot say. */
+.kasir { max-width: 960px; }
+.kasir-h { font-size: var(--font-size-md); margin: var(--space-3) 0 var(--space-2); }
+/* Choice chips (filter, bank): the picked one is solid teal, as on KL01/KL04. */
+.billing .pick[data-selected='true'] { background: var(--accent); color: var(--accent-foreground); }
+
+/* #70 Tagihan: payment first, corrections folded; sisa big; method cards (KL03) */
+.inv-head h1 { margin-bottom: var(--space-1); }
+.inv-sum { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--space-2); margin: 0; }
+.inv-big { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.inv-chip { align-self: center; }
+.inv-panel { display: block; margin-bottom: var(--space-3); padding: var(--space-4); border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
+.billing details > summary { cursor: pointer; font-weight: var(--font-weight-semibold); min-height: 44px; display: flex; align-items: center; }
+.inv-sub { margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--separator); }
+.inv-amount { display: flex; flex-direction: column; gap: 4px; max-width: 220px; margin: 0; }
+.inv-breakdown { display: grid; grid-template-columns: max-content 1fr; gap: 2px var(--space-3); margin: var(--space-3) 0 0; font-size: var(--font-size-sm); color: var(--muted); }
+.inv-breakdown div { display: contents; }
+.inv-breakdown dd { margin: 0; font-variant-numeric: tabular-nums; }
+.pay-kind { width: 100%; height: auto; min-height: 72px; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; padding: var(--space-3);
+  border: 1px solid var(--border); border-radius: 16px; background: var(--surface); color: var(--foreground); white-space: normal; text-align: left; }
+.pay-kind[data-selected='true'] { border: 2px solid var(--accent); background: var(--accent-soft); color: var(--foreground); }
+.pay-cash { display: flex; gap: var(--space-3); align-items: end; flex-wrap: wrap; }
+.pay-cash p { margin: 0; min-height: 48px; display: flex; align-items: center; gap: 8px; }
+.pay-qris { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); }
+.pay-qris img { width: min(100%, 280px); aspect-ratio: 1; object-fit: contain; }
+.paid { text-align: center; }
+
+.kwitansi { max-width: 560px; }
+.kwitansi-head { display: flex; justify-content: space-between; gap: var(--space-4); align-items: flex-start; }
+.kwitansi-head h2 { margin: 0; letter-spacing: .08em; }
+.kwitansi table { width: 100%; border-collapse: collapse; margin: var(--space-3) 0; }
+.kwitansi td { padding: 4px 0; vertical-align: top; }
+.kwitansi td:last-child { text-align: right; white-space: nowrap; padding-left: var(--space-3); font-variant-numeric: tabular-nums; }
+.kwitansi tr.sum td { border-top: 1px solid var(--border); font-weight: var(--font-weight-semibold); }
+.kwitansi-stamp { display: inline-block; border: 2px solid var(--color-success-fg); color: var(--color-success-fg); padding: 2px 10px;
+  border-radius: var(--radius-sm); font-weight: var(--font-weight-bold); letter-spacing: .1em; }
+.kwitansi-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+
+/* KL06 shift */
+.shift { max-width: 560px; display: flex; flex-direction: column; gap: var(--space-3); }
+.shift-field { display: flex; flex-direction: column; gap: 4px; margin: 0; }
+.shift-dl { display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; margin: 0; }
+.shift-dl div { display: contents; }
+.shift-dl dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Phone (#70): 44px targets, 48px primary; Terima sticks above the bottom nav. */
+@media (max-width: 720px) {
+  .billing :is(.button, .toggle-button, .input, .native-select__select) { min-height: 44px; }
+  .billing .button--primary, .billing .pick, .billing details > summary { min-height: 48px; }
+  .billing .inv-amount { max-width: none; width: 100%; }
+  .pay-submit { position: sticky; bottom: calc(65px + env(safe-area-inset-bottom, 0px)); background: var(--surface); padding: 8px 0; z-index: 5; }
+}
+
+@media print {
+  body * { visibility: hidden !important; }
+  .kwitansi, .kwitansi * { visibility: visible !important; }
+  .kwitansi { position: absolute; inset: 0 auto auto 0; width: 100%; max-width: none; box-shadow: none; border: 0; }
+  .kwitansi-actions { display: none !important; }
+  .kwitansi.paper-80 { max-width: 80mm; font-size: 12px; } /* KL13 paper from clinic settings */
+  .kwitansi.paper-58 { max-width: 58mm; font-size: 10px; }
+}

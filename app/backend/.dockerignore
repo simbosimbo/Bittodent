@@ -1,8 +1,16 @@
 vendor
+node_modules
 .env
+.env.*
+!.env.example
+!.env.staging.example
 .phpunit.result.cache
+.phpunit.cache
 bootstrap/cache/*.php
 storage/logs/*
 storage/framework/sessions/*
 storage/framework/views/*
 storage/framework/cache/data/*
+public/client
+public/hot
+tests

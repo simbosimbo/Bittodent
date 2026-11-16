@@ -1,0 +1,182 @@
+import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { Avatar, Button, buttonVariants, Card, Input, TextArea, ToggleButton } from '@heroui/react'
+import { ApiError } from '../../shared/api/http'
+import { getInfo, resendOtp, startBooking, verifyOtp, type Booked, type Challenge, type Info, type Slot } from './api'
+import { Note } from '../../shared/ui/Note'
+import { apiMessage, longDate, Page, SlotPicker, StatusChip, Summary, timeRange } from './parts'
+
+type Step = 'dokter' | 'layanan' | 'jadwal' | 'data' | 'otp' | 'selesai'
+const STEPS: Step[] = ['dokter', 'layanan', 'jadwal', 'data', 'otp']
+const TITLE: Record<Step, string> = { dokter: 'Pilih dokter', layanan: 'Pilih layanan', jadwal: 'Pilih jadwal', data: 'Data diri', otp: 'Kode verifikasi', selesai: 'Booking terkirim' }
+
+export default function BookingPage({ slug }: { slug: string }) {
+  const [info, setInfo] = useState<Info | null>(null)
+  const [loadError, setLoadError] = useState('')
+  const [step, setStep] = useState<Step>('dokter')
+  const [dentistId, setDentistId] = useState('')
+  const [serviceId, setServiceId] = useState('')
+  const [slot, setSlot] = useState<Slot | null>(null)
+  const [form, setForm] = useState({ name: '', phone: '', complaint: '' })
+  const [challenge, setChallenge] = useState<Challenge | null>(null)
+  const [code, setCode] = useState('')
+  const [wait, setWait] = useState(0)
+  const [result, setResult] = useState<Booked | null>(null)
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const heading = useRef<HTMLHeadingElement>(null)
+
+  useEffect(() => { getInfo(slug).then(setInfo, (e) => setLoadError(e instanceof ApiError && e.status === 404 ? 'Klinik tidak ditemukan.' : apiMessage(e))) }, [slug])
+  useEffect(() => { heading.current?.focus() }, [step])
+  useEffect(() => {
+    if (wait <= 0) return
+    const t = setTimeout(() => setWait(wait - 1), 1000)
+    return () => clearTimeout(t)
+  }, [wait])
+
+  if (loadError) return <Page clinic="Bittodent"><Note status="danger" role="alert">{loadError}</Note></Page>
+  if (!info) return <Page clinic="Bittodent"><p className="bk-muted">Memuat…</p></Page>
+  if (!info.clinic.online_booking_enabled)
+    return <Page clinic={info.clinic.name}><Card className="bk-card bk-state"><h1>Booking online belum dibuka</h1><p className="bk-muted">Hubungi klinik.</p></Card></Page>
+
+  const dentist = info.dentists.find((d) => d.id === dentistId)
+  const service = info.services.find((s) => s.id === serviceId)
+  const branch = info.branches.find((b) => b.id === slot?.branch_id)
+  const go = (s: Step) => { setError(''); setStep(s) }
+  const index = STEPS.indexOf(step)
+
+  async function sendCode(ev: FormEvent) {
+    ev.preventDefault()
+    if (form.name.trim().length < 2) return setError('Isi nama.')
+    if (form.phone.replace(/\D/g, '').length < 9) return setError('Isi nomor WhatsApp.')
+    setBusy(true)
+    setError('')
+    try {
+      const c = await startBooking(slug, { dentist_id: dentistId, service_id: serviceId, starts_at: slot!.starts_at, ...form })
+      setChallenge(c)
+      setWait(c.resend_in)
+      setCode('')
+      go('otp')
+    } catch (e) {
+      if (e instanceof ApiError && e.data?.error === 'slot_taken') { setSlot(null); setStep('jadwal') }
+      setError(e instanceof ApiError && e.status === 422 ? (Object.values(e.data?.errors ?? {}).flat()[0] as string) ?? 'Data tidak valid.' : apiMessage(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function verify(ev: FormEvent) {
+    ev.preventDefault()
+    if (!/^\d{6}$/.test(code)) return setError('Masukkan 6 angka.')
+    setBusy(true)
+    setError('')
+    try {
+      setResult(await verifyOtp(slug, challenge!.challenge_id, code))
+      go('selesai')
+    } catch (e) {
+      if (e instanceof ApiError && e.data?.error === 'slot_taken') { setSlot(null); setStep('jadwal') }
+      setError(e instanceof ApiError && e.data?.error === 'otp_wrong' ? `Kode salah. Sisa ${e.data.attempts_left} kali.` : apiMessage(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function resend() {
+    setError('')
+    try {
+      const r = await resendOtp(slug, challenge!.challenge_id)
+      setWait(r.resend_in)
+    } catch (e) {
+      if (e instanceof ApiError && e.data?.retry_in) setWait(e.data.retry_in)
+      setError(apiMessage(e))
+    }
+  }
+
+  const summary = (
+    <Summary rows={[
+      ['Dokter', dentist?.name],
+      ['Layanan', service && `${service.name} · ${service.duration_minutes} mnt`],
+      ['Tanggal', slot && longDate(slot.starts_at)],
+      ['Jam', slot && timeRange(slot.starts_at, slot.ends_at)],
+      ['Cabang', branch?.name],
+    ]} />
+  )
+
+  if (step === 'selesai' && result)
+    return (
+      <Page clinic={info.clinic.name} aside={summary}>
+        <Card className="bk-card bk-done">
+          <h1 ref={heading} tabIndex={-1}>{TITLE.selesai}</h1>
+          <StatusChip status={result.status} />
+          <p className="bk-label">Kode booking</p>
+          <p className="bk-code">{result.code}</p>
+          <a className={buttonVariants({ variant: 'primary', fullWidth: true })} href={`#/book/${slug}/manage/${result.manage_token}`}>Kelola</a>
+        </Card>
+      </Page>
+    )
+
+  return (
+    <Page clinic={info.clinic.name} aside={step !== 'dokter' && summary}>
+      <div className="bk-head">
+        {index > 0 && step !== 'otp' && <Button variant="ghost" className="-ml-3" onPress={() => go(STEPS[index - 1])}>‹ Kembali</Button>}
+        <p className="bk-step">Langkah {index + 1} dari {STEPS.length}</p>
+        <h1 ref={heading} tabIndex={-1}>{TITLE[step]}</h1>
+      </div>
+      <div aria-live="assertive">{error && <Note status="danger" role="alert">{error}</Note>}</div>
+
+      {step === 'dokter' && (
+        <div className="bk-list">
+          {info.dentists.length === 0 && <p className="bk-muted">Belum ada dokter.</p>}
+          {info.dentists.map((d) => (
+            <ToggleButton key={d.id} className="bk-option" isSelected={d.id === dentistId} onChange={() => { setDentistId(d.id); setSlot(null); go('layanan') }}>
+              <Avatar size="sm" color="accent" variant="soft" className="flex shrink-0" aria-hidden="true"><Avatar.Fallback>{d.name.replace(/^drg\.\s*/, '').slice(0, 1)}</Avatar.Fallback></Avatar>{d.name}
+            </ToggleButton>
+          ))}
+        </div>
+      )}
+
+      {step === 'layanan' && (
+        <div className="bk-list">
+          {info.services.map((s) => (
+            <ToggleButton key={s.id} className="bk-option" isSelected={s.id === serviceId} onChange={() => { setServiceId(s.id); setSlot(null); go('jadwal') }}>
+              <span className="grow">{s.name}</span><small>{s.duration_minutes} mnt</small>
+            </ToggleButton>
+          ))}
+        </div>
+      )}
+
+      {step === 'jadwal' && (
+        <Card className="bk-card">
+          <SlotPicker slug={slug} dentistId={dentistId} serviceId={serviceId} value={slot} onChange={setSlot} />
+          <Button variant="primary" fullWidth isDisabled={!slot} onPress={() => go('data')}>Lanjut</Button>
+        </Card>
+      )}
+
+      {step === 'data' && (
+        <form onSubmit={sendCode} noValidate>
+          <Card className="bk-card">
+            <label className="bk-field">Nama lengkap<Input fullWidth autoComplete="name" required maxLength={100} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></label>
+            <label className="bk-field">Nomor WhatsApp<Input fullWidth type="tel" inputMode="tel" autoComplete="tel" required placeholder="08xx" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></label>
+            <label className="bk-field">Keluhan (opsional)<TextArea fullWidth rows={3} maxLength={200} value={form.complaint} onChange={(e) => setForm({ ...form, complaint: e.target.value })} /></label>
+            <Button type="submit" variant="primary" fullWidth isDisabled={busy}>{busy ? 'Mengirim…' : 'Kirim kode'}</Button>
+          </Card>
+        </form>
+      )}
+
+      {step === 'otp' && challenge && (
+        <form onSubmit={verify} noValidate>
+          <Card className="bk-card">
+            <p className="bk-muted">Dikirim ke WhatsApp {challenge.phone_masked}</p>
+            <label className="bk-field">Kode 6 angka
+              <Input fullWidth className="bk-otp" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} />
+            </label>
+            <Button type="submit" variant="primary" fullWidth isDisabled={busy}>{busy ? 'Memeriksa…' : 'Verifikasi'}</Button>
+            <div className="bk-row">
+              <Button variant="ghost" isDisabled={wait > 0} onPress={resend}>{wait > 0 ? `Kirim ulang (${wait})` : 'Kirim ulang'}</Button>
+              <Button variant="ghost" onPress={() => go('data')}>Ganti nomor</Button>
+            </div>
+          </Card>
+        </form>
+      )}
+    </Page>
+  )
+}

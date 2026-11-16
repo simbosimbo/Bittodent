@@ -17,6 +17,13 @@ class PatientApiTest extends TestCase
         $this->assertSame('9901000000000001', $this->as('dokter@senyum.test')->getJson("/api/patients/{$p->id}")->assertOk()->json('nik'));
     }
 
+    public function test_list_includes_status_but_no_sensitive_columns(): void
+    {
+        $row = $this->as('depan@senyum.test')->getJson('/api/patients')->assertOk()->json('data.0');
+        $this->assertSame('aktif', $row['status']);
+        $this->assertSame([], array_intersect(array_keys($row), ['nik', 'nik_enc', 'phone', 'phone_enc', 'address', 'address_enc']));
+    }
+
     public function test_create_patient_encrypts_and_rejects_duplicates_with_id_only(): void
     {
         $r = $this->as('depan@senyum.test');

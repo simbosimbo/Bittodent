@@ -1,4 +1,4 @@
-# EHR Gigi — backend (Laravel 13 API, MySQL 8.4 mode)
+# Bittodent — backend (Laravel 13 API, MySQL 8.4 mode)
 
 Prototipe. **Hanya data palsu.** MySQL tidak punya RLS, jadi data pasien asli dilarang di mode ini (D-030);
 target sebelum data asli = PostgreSQL + RLS (lihat "Pindah ke PostgreSQL").
@@ -37,19 +37,48 @@ user DB, matriks izin) di `tests/Feature`. Migrasi tetap di `database/migrations
 | Identity | `users`, login Fortify + TOTP wajib, `EnsureTwoFactor`, `NoRememberMe`, masuk cepat dev; kontrak `UserDirectory` | — |
 | Patients | `patient`, `household`, `guardian`, `medical_history_version` (berversi), `/api/patients*` (keluarga, wali, riwayat medis, peringatan), `PatientSearch`; kontrak `PatientDirectory` | Tenancy |
 | Scheduling | `chair`, `appointment` (+ waktu datang/duduk/selesai), `planned_appointment`, state machine, cek double booking (buat, ubah jadwal, dari rencana), `/api/schedule`, `/api/appointments*`, `/api/planned-appointments*` | Tenancy, Patients, Identity |
-| Clinical | `visit`, `clinical_note(_version)`, `tooth_finding`, `correction_request`, rekam medis (chart, odontogram, SOAP, tanda tangan, koreksi), status tindakan (`Domain\ProcedureStatus`), `tooth_baseline`, `consent_record`; `Contracts\VisitDirectory`, `Events\ProcedureRecorded` (tanpa harga, dikirim untuk tindakan `selesai`) | Patients, Scheduling, Tenancy, Identity, Integrations |
+| Clinical | `visit`, `clinical_note(_version)`, `tooth_finding`, `correction_request`, rekam medis (chart, odontogram, SOAP, tanda tangan, koreksi), status tindakan (`Domain\ProcedureStatus`), `tooth_baseline`, `consent_record`; `Contracts\VisitDirectory`, `Contracts\IntegrityFacts` (laporan pemilik), `Events\ProcedureRecorded` (tanpa harga, dikirim untuk tindakan `selesai`) | Patients, Scheduling, Tenancy, Identity, Integrations |
 | Integrations | `outbox` + kontrak `OutboxPublisher` (belum ada pengirim) | — |
 | Intake | stub. Akan: anamnesis/kuesioner pra-kunjungan berversi; peringatan medis lewat kontrak `Patients\Contracts\MedicalAlerts` | Patients |
 | Queue | stub. Akan: antrean cabang (`menunggu → dipanggil → di_kursi → selesai`, `batal`) | Scheduling |
 | Prescriptions | `prescription`, `prescription_item` (`kfa_code` + dosis terenkripsi), `prescription_void` (U0c: tabel + trigger, belum ada API). MVP = resep cetak ditandatangani dokter di kertas; `signed` tak bisa diubah, koreksi = batal + terbit ulang nomor baru; belum kirim SATUSEHAT (D-036) | Patients, Clinical |
 | Tariffs | `tariff` (kode + tingkat kesulitan `variant`/`level_label`/`level_rank`, `valid_from`/`valid_to`, harga palsu), templat tingkat `Domain\DifficultyTemplate` di-seed per tenant, `PUT /api/tariffs/{id}/levels` (pemilik, versi baru bertanggal, diaudit); kontrak `PriceLookup` | — |
-| Billing | `invoice`, `invoice_line` (dibuat listener dari `Clinical\Events\ProcedureRecorded` + snapshot `PriceLookup`), `invoice_adjustment` (append-only); dokter tidak pernah mengetik harga; kontrak `FinalizedRevenue` (stub) | Clinical, Tariffs, Patients |
+| Billing | `invoice`, `invoice_line` (dibuat listener dari `Clinical\Events\ProcedureRecorded` + snapshot `PriceLookup`), `invoice_adjustment` (append-only); dokter tidak pernah mengetik harga; kontrak `FinalizedRevenue` (stub), `IntegrityFacts` (laporan pemilik) | Clinical, Tariffs, Patients, Tenancy |
 | Compensation | `Domain\CompensationBasis` (default `after_material_and_lab`, alternatif `before_costs`, D-034), kontrak stub `FeeCalculator` (aturan bertanggal, periode lewat tidak dihitung ulang); belum ada tabel/API | Billing (hanya `Contracts\`), Identity |
 | Recall | `reminder_log` + `ReminderService` (pengingat janji, kanal no-op) | Scheduling |
-| Audit, Inventory, Reporting | stub: README + provider kosong | — (tidak ada yang boleh memakai Reporting) |
+| Audit | `GET /api/audit-events` (pemilik, baca saja; tanpa API ubah/hapus), unit 6 | Identity, Tenancy |
+| Reporting | laporan integritas pemilik per dokter + peringatan `GET /api/reports/integrity` (`reporting.read`), unit 6; hanya lewat Contracts | Clinical, Billing, Scheduling, Identity, Patients, Tenancy (tidak ada yang boleh memakai Reporting) |
+| Inventory | stub: README + provider kosong | — |
 
 Aturan harga (tes `test_pricing_and_reporting_edges`): Clinical tidak punya jalur (langsung/transitif) ke Billing atau Tariffs, Compensation membaca Billing hanya lewat `Contracts\`, tidak ada yang bergantung pada Reporting.
 Kontrak stub tanpa implementasi/binding: `Billing\FinalizedRevenue`, `Patients\MedicalAlerts`, `Compensation\FeeCalculator`. (C3 mengimplementasikan `Tariffs\PriceLookup`, `Clinical\VisitDirectory` dan mengirim `ProcedureRecorded`.)
+
+## Referensi ICD (data resmi, bukan sintetis)
+
+Tabel global `icd10_codes` dan `icd9cm_codes` (tanpa `tenant_id`; `ehr_app` hanya SELECT). Isi = daftar resmi SATUSEHAT:
+ICD-10 versi `ICD10_2010` (18542 kode) dan ICD-9-CM versi `ICD9CM_2010` (4626 kode). `display` = teks resmi **bahasa Inggris**;
+dokumen resmi tidak punya judul bahasa Indonesia, jadi tidak ada terjemahan. **K02.5 tidak ada** di versi ini (kode WHO 2019).
+Sumber, URL unduhan, dan SHA-256: `database/data/icd/SOURCE.md` (CSV di folder itu = ekspor apa adanya dari xlsx resmi).
+
+```sh
+php artisan icd:import                                       # dari CSV lokal database/data/icd (default; juga dipanggil DatabaseSeeder)
+php artisan icd:import --source=file --path=tests/fixtures/icd   # berkas/folder CSV lain (kolom code,display,version)
+php artisan icd:import --source=satusehat                    # API FHIR SATUSEHAT (OAuth2; butuh SATUSEHAT_* di .env)
+php artisan icd:import --source=satusehat --fallback=spreadsheet # sama, tapi pakai spreadsheet bila API tidak memberi daftar
+php artisan icd:import --source=satusehat-spreadsheet        # unduh spreadsheet publik resmi (Google Sheets export, tanpa kredensial)
+```
+
+Ditulis sebagai `ehr_admin` (`mysql_admin`), idempoten: upsert per `code`; kode yang hilang dari sumber jadi `valid=false`
+(tidak dihapus, catatan lama mungkin memakainya), kode yang muncul lagi jadi valid. Production butuh `--force`.
+Pencarian: `App\Shared\Terminology\IcdCatalog` (hanya `valid=true`).
+
+`--source=satusehat` (`SatusehatApiSource`): token `POST {base}/oauth2/v1/accesstoken?grant_type=client_credentials` (form
+`client_id`, `client_secret`), lalu Bearer ke `{base}/fhir-r4/v1`: `ValueSet/$expand?url=` lalu `CodeSystem?url=` untuk
+`http://hl7.org/fhir/sid/icd-10` dan `.../icd-9-cm`. **Per 15 Nov 2026 katalog API resmi tidak mendokumentasikan unduhan daftar ICD
+lengkap lewat API** (CodeSystem/ValueSet tidak tercantum); bila server tidak menjawab, perintah gagal tanpa menulis apa pun dan menyarankan
+`--source=satusehat-spreadsheet` (daftar lengkap resmi). Isi `.env`: `SATUSEHAT_ENV` (`sandbox`|`production`), `SATUSEHAT_CLIENT_ID`,
+`SATUSEHAT_CLIENT_SECRET`, `SATUSEHAT_ORG_ID` (wajib walau belum dikirim; satu client_id = satu organisasi). Cara mendapat kredensial
+sandbox & detail: `database/data/icd/SOURCE.md`. Tes hanya memakai `Http::fake` (tanpa kredensial asli).
 
 ## Masuk cepat (DEV SAJA)
 

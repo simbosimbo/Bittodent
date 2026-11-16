@@ -1,0 +1,491 @@
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { Select } from '../../shared/ui/Select'
+import { Button, Card, Checkbox, Input } from '@heroui/react'
+import { FilterChips } from '../../shared/ui/FilterChips'
+import { Segmented } from '../../shared/ui/Segmented'
+import { ApiError, errorText } from '../../shared/api/http'
+import { fmtYmdShort, num, rp, todayWib } from '../../shared/format'
+import { Kop, loadLetterhead, type Letterhead } from '../../shared/letterhead'
+import { getCatalog, ODONTOGRAM_TAXONOMY, setCatalogConditions, SymbolIcon, type CatalogRow } from '../clinical'
+import type { Me } from '../../shared/session'
+import { DateField } from '../../shared/ui/DateField'
+import { addAccount, addTariff, bulkTariffs, getAccounts, getProfile, getTariffs, saveBranch, saveCategory, saveLevels, saveProfile, updateAccount, uploadLogo, uploadQris,
+  type Account, type AccountKind, type BulkRow, type ClinicProfile, type TariffItem } from './api'
+import './settings.css'
+import { Note } from '../../shared/ui/Note'
+
+// Pengaturan Klinik (DEVIATIONS #71). Each tab follows its own permission (owner only today: settings.manage / tariff.manage /
+// billing.accounts in Permissions::MATRIX); the server checks every write, scopes it to the clinic and audits it.
+const TABS = [
+  { key: '', label: 'Profil', perm: 'settings.manage' },
+  { key: 'harga', label: 'Harga', perm: 'tariff.manage' },
+  { key: 'pembayaran', label: 'Pembayaran', perm: 'billing.accounts' },
+] as const
+export const SETTINGS_PERMS = TABS.map((t) => t.perm).join('|')
+const msgOf = (e: unknown) => e instanceof ApiError && [409, 422].includes(e.status) ? e.data?.message ?? 'Data tidak valid.' : errorText(e)
+
+export default function ClinicSettingsPage({ me, tab, onChanged }: { me: Me; tab: string; onChanged: () => void }) {
+  const allowed = TABS.filter((t) => me.permissions.includes(t.perm))
+  const cur = allowed.find((t) => t.key === tab) ?? allowed[0]
+  if (!cur) return null
+  return (
+    <div className="set-page">
+      <div className="page-head"><h1>Pengaturan Klinik</h1></div>
+      <nav className="set-tabs" aria-label="Pengaturan Klinik">
+        {allowed.map((t) => <a key={t.key} href={`#/pengaturan-klinik${t.key ? '/' + t.key : ''}`} className={t === cur ? 'on' : undefined}
+          aria-current={t === cur ? 'page' : undefined}>{t.label}</a>)}
+      </nav>
+      {cur.key === '' && <ProfileTab onChanged={onChanged} />}
+      {cur.key === 'harga' && <PriceTab />}
+      {cur.key === 'pembayaran' && <PaymentTab me={me} />}
+    </div>
+  )
+}
+
+/** File picker as a HeroUI Button: the input stays hidden (no 1px focus target), the button opens it. */
+function FilePick({ children, onPick }: { children: ReactNode; onPick: (f: File | undefined) => void }) {
+  const ref = useRef<HTMLInputElement>(null)
+  return <>
+    <Button variant="secondary" onPress={() => ref.current?.click()}>{children}</Button>
+    <input ref={ref} type="file" accept={IMG} hidden onChange={(e) => onPick(e.target.files?.[0])} />
+  </>
+}
+
+const FIELDS: [keyof Omit<ClinicProfile, 'branches'>, string, string][] = [
+  ['name', 'Nama klinik', 'text'], ['address', 'Alamat', 'text'], ['phone', 'Telepon', 'tel'], ['email', 'Email', 'email'],
+  ['license_no', 'Nomor izin klinik (tampil di kop)', 'text'], ['license_valid_until', 'Izin berlaku sampai', 'date'], ['npwp', 'NPWP', 'text'],
+]
+const IMG = 'image/png,image/jpeg,image/webp'
+
+function ProfileTab({ onChanged }: { onChanged: () => void }) {
+  const [p, setP] = useState<ClinicProfile | null>(null)
+  const [msg, setMsg] = useState('')
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [logoV, setLogoV] = useState(0)
+  useEffect(() => { getProfile().then(setP, (e) => setError(errorText(e))) }, [])
+  if (!p) return error ? <Note status="danger" role="alert">{error}</Note> : <p className="muted">Memuat…</p>
+  const set = (k: string, v: string) => setP({ ...p, [k]: v })
+  async function save(e: FormEvent) {
+    e.preventDefault()
+    if (!p) return
+    setBusy(true); setMsg(''); setError('')
+    try {
+      const { branches, ...body } = p
+      const out = await saveProfile({ ...Object.fromEntries(Object.entries(body).filter(([k]) => FIELDS.some(([f]) => f === k))), receipt_paper_mm: p.receipt_paper_mm })
+      await Promise.all(branches.map((b) => saveBranch(b.id, { address: b.address || null, phone: b.phone || null })))
+      setP({ ...out, branches })
+      setMsg('Profil klinik tersimpan.')
+      loadLetterhead(true).catch(() => null)
+      onChanged() // header address comes from /api/me
+    } catch (err) { setError(msgOf(err)) }
+    setBusy(false)
+  }
+  async function pickLogo(f: File | undefined) {
+    if (!f) return
+    setError(''); setMsg('')
+    try { setP({ ...(await uploadLogo(f)), branches: p!.branches }); setLogoV((v) => v + 1); loadLetterhead(true).catch(() => null); setMsg('Logo tersimpan.') } catch (err) { setError(msgOf(err)) }
+  }
+  // KL11: kop preview per branch from the form as typed (one logo + name, address of that branch)
+  const kop: Letterhead = { name: p.name, phone: p.phone, email: p.email, npwp: p.npwp, license_no: p.license_no, receipt_paper_mm: p.receipt_paper_mm,
+    has_logo: p.has_logo, branches: p.branches.map((b) => ({ ...b, address: b.address || p.address, phone: b.phone || p.phone })) }
+  return (
+    <Card className="set-card"><form className="set-form" onSubmit={save} noValidate>
+      <div className="set-logo">
+        {p.has_logo ? <img src={`/api/clinic/logo?v=${logoV}`} alt="Logo klinik" /> : <span className="muted small">Belum ada logo</span>}
+        <FilePick onPick={pickLogo}>{p.has_logo ? 'Ganti logo' : 'Unggah logo'}</FilePick>
+        <span className="muted small">Satu logo untuk semua cabang. PNG/JPG/WebP, maks 1 MB, rasio 1:1.</span>
+      </div>
+      {FIELDS.map(([k, label, type]) => (
+        <label key={k}>{label}{type === 'date' ? <DateField value={(p[k] as string | null) ?? ''} onChange={(e) => set(k, e.target.value)} />
+          : <Input type={type} value={(p[k] as string | null) ?? ''} required={k === 'name'} inputMode={k === 'phone' ? 'tel' : undefined}
+            onChange={(e) => set(k, e.target.value)} />}</label>
+      ))}
+      {p.branches.length > 0 && <h2 className="set-sub">Cabang</h2>}
+      {p.branches.map((b, i) => (
+        <fieldset key={b.id} className="set-branch">
+          <legend>{b.name}</legend>
+          <label>Alamat cabang<Input value={b.address ?? ''} placeholder={p.address ?? 'Sama dengan alamat klinik'}
+            onChange={(e) => setP({ ...p, branches: p.branches.map((x, j) => j === i ? { ...x, address: e.target.value } : x) })} /></label>
+          <label>Telepon cabang<Input type="tel" inputMode="tel" value={b.phone ?? ''}
+            onChange={(e) => setP({ ...p, branches: p.branches.map((x, j) => j === i ? { ...x, phone: e.target.value } : x) })} /></label>
+        </fieldset>
+      ))}
+      <h2 className="set-sub">Struk dan printer</h2>
+      <Segmented label="Lebar kertas struk" value={p.receipt_paper_mm} options={[[58, '58 mm'], [80, '80 mm']]} onChange={(mm) => setP({ ...p, receipt_paper_mm: mm })} />
+      <p className="muted small">Struk dicetak lewat dialog cetak perangkat: pilih printer thermal atau printer sistem (A4) di sana.</p>
+      {kop.branches.length > 0 && <h2 className="set-sub">Pratinjau kop</h2>}
+      <div className="set-kops">
+        {kop.branches.map((b) => <Card key={b.id} className="set-kop" aria-label={`Pratinjau kop ${b.name}`}><Kop l={kop} branchId={b.id} logoVersion={logoV} /></Card>)}
+      </div>
+      {error && <Note status="danger" role="alert">{error}</Note>}
+      {msg && <Note status="success" role="status">{msg}</Note>}
+      <div className="set-dock"><Button type="submit" isDisabled={busy}>{busy ? 'Menyimpan…' : 'Simpan profil'}</Button></div>
+    </form></Card>
+  )
+}
+
+const digits = (v: string) => Number(v.replace(/\D/g, '').slice(0, 10) || '0')
+const ROUNDING: [string, string][] = [['nearest_1000', 'Bulatkan ke 1.000'], ['nearest_500', 'Bulatkan ke 500'], ['nearest_100', 'Bulatkan ke 100'],
+  ['ceil_1000', 'Naik ke 1.000'], ['floor_1000', 'Turun ke 1.000'], ['none', 'Tanpa pembulatan']]
+
+function PriceTab() {
+  const [q, setQ] = useState('')
+  const [cat, setCat] = useState('')
+  const [data, setData] = useState<{ items: TariffItem[]; categories: string[] } | null>(null)
+  const [edits, setEdits] = useState<Record<string, Record<string, number>>>({}) // procedure_code -> variant -> new price
+  const [sel, setSel] = useState<string[]>([])
+  const [msg, setMsg] = useState('')
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const load = () => getTariffs(q.trim(), cat).then(setData, (e) => setError(errorText(e)))
+  const [catalog, setCatalog] = useState<CatalogRow[]>([])
+  useEffect(() => { getCatalog().then(setCatalog, () => setCatalog([])) }, [])
+  useEffect(() => { const t = setTimeout(load, 250); return () => clearTimeout(t) }, [q, cat]) // eslint-disable-line react-hooks/exhaustive-deps
+  const today = todayWib()
+  const dirty = Object.keys(edits).filter((c) => Object.keys(edits[c]).length)
+  const priceOf = (it: TariffItem, v: string, base: number) => edits[it.procedure_code]?.[v] ?? base
+  function edit(it: TariffItem, variant: string, base: number, value: number) {
+    const row = { ...(edits[it.procedure_code] ?? {}) }
+    if (value === base) delete row[variant]; else row[variant] = value
+    setEdits({ ...edits, [it.procedure_code]: row })
+  }
+  async function saveAll() {
+    if (!data) return
+    setBusy(true); setMsg(''); setError('')
+    const failed: string[] = []
+    for (const code of dirty) {
+      const it = data.items.find((x) => x.procedure_code === code)!
+      const base = it.next && it.next.valid_from === it.editable_from ? it.next.levels : it.levels
+      try {
+        await saveLevels(it.id, it.editable_from, base.map((l) => ({ code: l.variant, label: l.label, price_rp: priceOf(it, l.variant, l.price_rp) })))
+      } catch (e) { failed.push(`${it.name}: ${msgOf(e)}`) }
+    }
+    setEdits({})
+    await load()
+    setBusy(false)
+    if (failed.length) setError(failed.join(' '))
+    else setMsg(`${dirty.length} harga tersimpan.`)
+  }
+  const later = (it: TariffItem) => it.editable_from > today
+  return (
+    <section className="set-prices" aria-label="Daftar harga">
+      <div className="set-filter">
+        <Input type="search" aria-label="Cari tindakan" placeholder="Cari tindakan atau kode" value={q} onChange={(e) => setQ(e.target.value)} />
+        {data && data.categories.length > 0 && (
+          <FilterChips label="Kategori" className="set-chips" value={cat} onChange={setCat}
+            options={['', ...data.categories].map((c) => [c, c ? c.replace(/_/g, ' ') : 'Semua'] as const)} />
+        )}
+      </div>
+      {error && <Note status="danger" role="alert">{error}</Note>}
+      {msg && <Note status="success" role="status">{msg}</Note>}
+      {sel.length > 0 && data && <BulkPanel codes={sel} items={data.items} onDone={(t) => { setSel([]); setMsg(t); load() }} onCancel={() => setSel([])} />}
+      {data && !q.trim() && !cat && <Unpriced rows={catalog.filter((c) => !data.items.some((it) => it.procedure_code === c.procedure_code))}
+        onSaved={(name) => { setMsg(`Harga ${name} tersimpan. Kunjungan yang menunggu harga bisa ditutup sekarang.`); load() }} onError={setError} />}
+      {!data ? <p className="muted">Memuat…</p> : data.items.length === 0 ? <p className="muted">Tidak ada tindakan yang cocok.</p> : (
+        <ul className="set-list">
+          {data.items.map((it) => {
+            const levels = it.next && it.next.valid_from === it.editable_from ? it.next.levels : it.levels
+            return (
+              <li key={it.procedure_code}><Card className="set-row">
+                <div className="set-row-head">
+                  <Checkbox className="set-pick" isSelected={sel.includes(it.procedure_code)} aria-label={`Pilih ${it.name}`}
+                    onChange={(on) => setSel(on ? [...sel, it.procedure_code] : sel.filter((c) => c !== it.procedure_code))}>
+                    <Checkbox.Content><Checkbox.Control><Checkbox.Indicator /></Checkbox.Control></Checkbox.Content></Checkbox>
+                  <div className="set-row-name"><strong>{it.name}</strong>
+                    <span className="muted small">{it.procedure_code}
+                      {' · '}<CategoryInput item={it} categories={data.categories} onSaved={load} onError={setError} /></span></div>
+                </div>
+                <OdoMap item={it} row={catalog.find((c) => c.procedure_code === it.procedure_code)}
+                  onSaved={(r) => { setCatalog([...catalog.filter((c) => c.procedure_code !== r.procedure_code), r]); setMsg(`Pemetaan odontogram ${it.name} tersimpan.`) }}
+                  onError={setError} />
+                {levels.map((l) => {
+                  const cur = it.levels.find((x) => x.variant === l.variant)
+                  return (
+                    <label key={l.variant} className="set-price">
+                      <span>{levels.length > 1 || l.label !== 'Standar' ? l.label : 'Harga'}
+                        {cur && cur.price_rp !== l.price_rp && <span className="muted small"> · kini {rp(cur.price_rp)}</span>}</span>
+                      <span className="set-rp"><span aria-hidden="true">Rp</span>
+                        <Input inputMode="numeric" aria-label={`Harga ${it.name}${levels.length > 1 ? ' ' + l.label : ''}`}
+                          value={num(priceOf(it, l.variant, l.price_rp))} onChange={(e) => edit(it, l.variant, l.price_rp, digits(e.target.value))} /></span>
+                    </label>
+                  )
+                })}
+                <StageEditor name={it.name} initial={levels.map((l) => ({ code: l.variant, label: l.label, price_rp: l.price_rp }))} onError={setError}
+                  submit={async (ls) => { await saveLevels(it.id, it.editable_from, ls); setMsg(`Tahap ${it.name} tersimpan, berlaku ${fmtYmdShort(it.editable_from)}.`); load() }} />
+                {(later(it) || it.next) && <p className="muted small set-when">
+                  {it.next ? `Harga baru berlaku ${fmtYmdShort(it.next.valid_from)}.` : ''}
+                  {later(it) && edits[it.procedure_code] && Object.keys(edits[it.procedure_code]).length ? ` Perubahan berlaku ${fmtYmdShort(it.editable_from)} (hari ini sudah diubah).` : ''}
+                </p>}
+              </Card></li>
+            )
+          })}
+        </ul>
+      )}
+      {dirty.length > 0 && (
+        <div className="set-dock set-dock-fixed">
+          <Button variant="secondary" onPress={() => setEdits({})} isDisabled={busy}>Batal</Button>
+          <Button onPress={saveAll} isDisabled={busy}>{busy ? 'Menyimpan…' : `Simpan ${dirty.length} harga`}</Button>
+        </div>
+      )}
+    </section>
+  )
+}
+
+// S2: stages / levels of one procedure (PSA kunjungan 1 / lanjutan, mahkota preparasi / pemasangan). The dentist picks the label done
+// today (never sees prices); the kasir bills that level per visit.
+type StageRow = { code: string; label: string; price_rp: number }
+function StageEditor({ name, initial, submit, onError, open = 'Atur tahap' }: {
+  name: string; initial: StageRow[]; submit: (levels: StageRow[]) => Promise<void>; onError: (m: string) => void; open?: string
+}) {
+  const [rows, setRows] = useState<{ code: string; label: string; price: string }[] | null>(null)
+  const [busy, setBusy] = useState(false)
+  if (!rows) return <Button variant="ghost" className="set-link" onPress={() => setRows(initial.map((l) => ({ code: l.code, label: l.label, price: l.price_rp ? String(l.price_rp) : initial.length > 1 ? '0' : '' })))}>
+    {open}{initial.length > 1 ? ` (${initial.length})` : ''}</Button>
+  const set = (i: number, k: 'label' | 'price', v: string) => setRows(rows.map((r, j) => (j === i ? { ...r, [k]: k === 'price' ? v.replace(/\D/g, '') : v } : r)))
+  const fresh = () => { let n = rows.length + 1; while (rows.some((r) => r.code === `t${n}`)) n++; return `t${n}` }
+  const bad = rows.some((r) => !r.label.trim() || r.price === '')
+  async function save() {
+    setBusy(true)
+    try { await submit(rows!.map((r) => ({ code: r.code, label: r.label.trim(), price_rp: digits(r.price) }))); setRows(null) } catch (e) { onError(msgOf(e)) } finally { setBusy(false) }
+  }
+  return (
+    <fieldset className="set-stages">
+      <legend className="small">Tahap {name}, urut dari tahap pertama. Dokter memilih tahap yang dikerjakan; kasir menagih per kunjungan. Isi 0 bila gratis.</legend>
+      {rows.map((r, i) => (
+        <div key={r.code} className="set-stage-row">
+          <Input aria-label={`Nama tahap ${i + 1}`} placeholder={`Tahap ${i + 1}`} maxLength={60} value={r.label} onChange={(e) => set(i, 'label', e.target.value)} />
+          <span className="set-rp"><span aria-hidden="true">Rp</span>
+            <Input inputMode="numeric" aria-label={`Harga tahap ${i + 1}`} value={r.price === '' ? '' : num(digits(r.price))} onChange={(e) => set(i, 'price', e.target.value)} /></span>
+          {rows.length > 1 && <Button variant="ghost" aria-label={`Hapus tahap ${i + 1}`} onPress={() => setRows(rows.filter((_, j) => j !== i))}>Hapus</Button>}
+        </div>
+      ))}
+      <div className="set-dock">
+        <Button variant="ghost" isDisabled={rows.length >= 10} onPress={() => setRows([...rows, { code: fresh(), label: '', price: '' }])}>+ Tahap</Button>
+        <Button variant="secondary" onPress={() => setRows(null)} isDisabled={busy}>Batal</Button>
+        <Button onPress={save} isDisabled={busy || bad}>{busy ? 'Menyimpan…' : 'Simpan tahap'}</Button>
+      </div>
+    </fieldset>
+  )
+}
+
+function CategoryInput({ item, categories, onSaved, onError }: { item: TariffItem; categories: string[]; onSaved: () => void; onError: (m: string) => void }) {
+  const [v, setV] = useState(item.category ?? '')
+  useEffect(() => setV(item.category ?? ''), [item.category])
+  const slug = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 30)
+  async function commit() {
+    const next = slug(v) || null
+    if (next === item.category) return setV(item.category ?? '')
+    try { await saveCategory(item.procedure_code, next); onSaved() } catch (e) { onError(msgOf(e)) }
+  }
+  return (
+    <>
+      <input className="set-cat" list="set-cats" aria-label={`Kategori ${item.name}`} placeholder="+ kategori" value={v.replace(/_/g, ' ')}
+        onChange={(e) => setV(e.target.value)} onBlur={commit} onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }} />
+      <datalist id="set-cats">{categories.map((c) => <option key={c} value={c.replace(/_/g, ' ')} />)}</datalist>
+    </>
+  )
+}
+
+function BulkPanel({ codes, items, onDone, onCancel }: { codes: string[]; items: TariffItem[]; onDone: (msg: string) => void; onCancel: () => void }) {
+  const [kind, setKind] = useState<'percent' | 'amount'>('percent')
+  const [value, setValue] = useState('10')
+  const [down, setDown] = useState(false)
+  const [rounding, setRounding] = useState('nearest_1000')
+  const [preview, setPreview] = useState<BulkRow[] | null>(null)
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const from = useMemo(() => items.filter((i) => codes.includes(i.procedure_code)).map((i) => i.editable_from).sort().at(-1) ?? todayWib(), [codes, items])
+  const body = (dry: boolean) => ({ procedure_codes: codes, kind, value: (down ? -1 : 1) * digits(value), rounding, valid_from: from, dry_run: dry })
+  async function go(dry: boolean) {
+    setBusy(true); setError('')
+    try {
+      const r = await bulkTariffs(body(dry))
+      if (dry) setPreview(r.rows); else onDone(`${r.count} harga diubah, berlaku ${fmtYmdShort(from)}.`)
+    } catch (e) { setError(msgOf(e)) }
+    setBusy(false)
+  }
+  return (
+    <Card className="set-bulk" role="region" aria-label="Ubah massal">
+      <p><strong>{codes.length} tindakan dipilih</strong> <span className="muted small">· berlaku {fmtYmdShort(from)}</span></p>
+      <div className="set-bulk-row">
+        <Segmented label="Arah" value={down ? 'turun' : 'naik'} options={[['naik', 'Naik'], ['turun', 'Turun']]} onChange={(k) => { setDown(k === 'turun'); setPreview(null) }} />
+        <Input inputMode="numeric" aria-label="Besar perubahan" value={value} onChange={(e) => { setValue(e.target.value.replace(/\D/g, '')); setPreview(null) }} />
+        <Segmented label="Satuan" value={kind} options={[['percent', '%'], ['amount', 'Rp']]} onChange={(k) => { setKind(k); setPreview(null) }} />
+        <Select aria-label="Pembulatan" value={rounding} onChange={(e) => { setRounding(e.target.value); setPreview(null) }}>
+          {ROUNDING.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+        </Select>
+      </div>
+      {preview && <ul className="set-preview small">{preview.slice(0, 6).map((r) => (
+        <li key={r.procedure_code + r.variant}>{items.find((i) => i.procedure_code === r.procedure_code)?.name ?? r.procedure_code}
+          {r.variant !== 'standar' ? ` (${r.variant})` : ''}: {rp(r.old_rp)} → <strong>{rp(r.new_rp)}</strong></li>))}
+        {preview.length > 6 && <li className="muted">+{preview.length - 6} harga lain</li>}</ul>}
+      {error && <Note status="danger" role="alert">{error}</Note>}
+      <div className="set-actions">
+        <Button variant="secondary" onPress={onCancel}>Batal</Button>
+        {preview ? <Button isDisabled={busy} onPress={() => go(false)}>Terapkan {preview.length} harga</Button>
+          : <Button isDisabled={busy || !digits(value)} onPress={() => go(true)}>Pratinjau</Button>}
+      </div>
+    </Card>
+  )
+}
+
+const KINDS: { key: AccountKind; label: string; hint: string }[] = [
+  { key: 'tunai', label: 'Tunai', hint: 'Laci kas' }, { key: 'transfer', label: 'Transfer', hint: 'Rekening bank klinik' },
+  { key: 'qris', label: 'QRIS', hint: 'Kode QR klinik' }, { key: 'edc', label: 'Debit (EDC)', hint: 'Mesin kartu debit/kredit' },
+  { key: 'bpjs', label: 'BPJS', hint: 'Klaim dicatat sebagai metode bayar' }, { key: 'asuransi', label: 'Asuransi', hint: 'Klaim dicatat sebagai metode bayar' },
+]
+
+function PaymentTab({ me }: { me: Me }) {
+  const [list, setList] = useState<Account[] | null>(null)
+  const [error, setError] = useState('')
+  const [msg, setMsg] = useState('')
+  const [adding, setAdding] = useState(false)
+  const load = () => getAccounts().then(setList, (e) => setError(errorText(e)))
+  useEffect(() => { load() }, [])
+  const [ver, setVer] = useState(0)
+  async function pickQris(a: Account, f: File | undefined) {
+    if (!f) return
+    setError(''); setMsg('')
+    try { await uploadQris(a.id, f); setVer((v) => v + 1); setMsg(`Foto QRIS ${a.name} tersimpan.`); load() } catch (e) { setError(msgOf(e)) }
+  }
+  const branchName = (id: string | null) => id === null ? 'Semua cabang' : me.branches.find((b) => b.id === id)?.name ?? 'Cabang'
+  async function toggle(a: Account) {
+    setError(''); setMsg('')
+    try { await updateAccount(a.id, { is_active: !a.is_active }); setMsg(`${a.name} ${a.is_active ? 'dinonaktifkan' : 'diaktifkan'}.`); load() } catch (e) { setError(msgOf(e)) }
+  }
+  return (
+    <section aria-label="Metode pembayaran">
+      <p className="muted small">Pembayaran hanya masuk ke akun milik klinik. Nomor rekening tidak disimpan, hanya 4 angka terakhir.</p>
+      {error && <Note status="danger" role="alert">{error}</Note>}
+      {msg && <Note status="success" role="status">{msg}</Note>}
+      {!list ? <p className="muted">Memuat…</p> : (
+        <ul className="set-list">
+          {KINDS.map((k) => {
+            const rows = list.filter((a) => a.kind === k.key)
+            return (
+              <li key={k.key}><Card className="set-acc-group">
+                <h2 className="set-sub">{k.label}</h2>
+                {rows.length === 0 && <p className="muted small">Belum ada. {k.hint}.</p>}
+                {rows.map((a) => (
+                  <div key={a.id} className={`set-acc${a.is_active ? '' : ' is-off'}`}>
+                    <div><strong>{a.name}</strong>
+                      <span className="muted small">{[a.bank_name, a.account_last4 && `•••• ${a.account_last4}`, branchName(a.branch_id), !a.is_active && 'Nonaktif'].filter(Boolean).join(' · ')}</span></div>
+                    {a.kind === 'qris' && <>
+                      {a.has_qris_image && <img className="set-qris" src={`/api/payment-accounts/${a.id}/qris-image?v=${ver}`} alt={`Foto QRIS ${a.name}`} />}
+                      <FilePick onPick={(f) => pickQris(a, f)}>{a.has_qris_image ? 'Ganti foto QRIS' : 'Unggah foto QRIS'}</FilePick>
+                    </>}
+                    <Button variant="ghost" onPress={() => toggle(a)}>{a.is_active ? 'Nonaktifkan' : 'Aktifkan'}</Button>
+                  </div>
+                ))}
+              </Card></li>
+            )
+          })}
+        </ul>
+      )}
+      {adding ? <AddAccount me={me} onDone={(a) => { setAdding(false); setMsg(`${a.name} ditambahkan.`); load() }} onCancel={() => setAdding(false)} />
+        : <div className="set-dock"><Button onPress={() => setAdding(true)}>Tambah metode</Button></div>}
+    </section>
+  )
+}
+
+function AddAccount({ me, onDone, onCancel }: { me: Me; onDone: (a: Account) => void; onCancel: () => void }) {
+  const [kind, setKind] = useState<AccountKind>('transfer')
+  const [name, setName] = useState('')
+  const [bank, setBank] = useState('')
+  const [last4, setLast4] = useState('')
+  const [branch, setBranch] = useState('')
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const needsBank = kind === 'transfer' || kind === 'edc'
+  async function submit(e: FormEvent) {
+    e.preventDefault()
+    setBusy(true); setError('')
+    try {
+      const auto = kind === 'tunai' ? 'Kas tunai' : kind === 'qris' ? 'QRIS klinik' : kind === 'bpjs' ? 'BPJS Kesehatan' : kind === 'asuransi' ? 'Asuransi' : `${kind === 'edc' ? 'EDC' : 'Transfer'} ${bank.trim()}`.trim()
+      onDone(await addAccount({ name: name.trim() || auto, kind, branch_id: branch || null,
+        ...(needsBank && bank.trim() ? { bank_name: bank.trim() } : {}), ...(kind === 'transfer' && last4 ? { account_last4: last4 } : {}) }))
+    } catch (err) { setError(msgOf(err)) }
+    setBusy(false)
+  }
+  return (
+    <Card className="set-card"><form className="set-form" onSubmit={submit} noValidate aria-label="Tambah metode pembayaran">
+      <Segmented label="Jenis" className="set-kinds" value={kind} options={KINDS.map((k): [AccountKind, string] => [k.key, k.label])} onChange={setKind} />
+      {needsBank && <label>Bank<Input value={bank} onChange={(e) => setBank(e.target.value)} placeholder="mis. BCA" /></label>}
+      {kind === 'transfer' && <label>4 angka terakhir rekening<Input inputMode="numeric" maxLength={4} value={last4}
+        onChange={(e) => setLast4(e.target.value.replace(/\D/g, '').slice(0, 4))} /></label>}
+      <label>Nama (opsional)<Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nama yang tampil di kasir" /></label>
+      {me.branches.length > 1 && <label>Cabang<Select value={branch} onChange={(e) => setBranch(e.target.value)}>
+        <option value="">Semua cabang</option>{me.branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</Select></label>}
+      {error && <Note status="danger" role="alert">{error}</Note>}
+      <div className="set-actions">
+        <Button variant="secondary" onPress={onCancel}>Batal</Button>
+        <Button type="submit" isDisabled={busy || (kind === 'transfer' && (!bank.trim() || last4.length !== 4))}>Simpan</Button>
+      </div>
+    </form></Card>
+  )
+}
+
+/**
+ * Odontogram v2 "tindakan dulu": the odontogram condition codes this tariff item records. A dentist's "cof · Selesai" bills the item whose
+ * mapping holds cof (several items -> the dentist picks one). Unmapped conditions cannot be finished, so the owner maps them here.
+ */
+// S1: procedures the dentist can record that have no price yet. Until the owner sets one, a visit with that work cannot be closed.
+// One price, or "Bertahap" (S2) to create its stages at once so they apply today.
+function Unpriced({ rows, onSaved, onError }: { rows: CatalogRow[]; onSaved: (name: string) => void; onError: (m: string) => void }) {
+  const [price, setPrice] = useState<Record<string, string>>({})
+  const [busy, setBusy] = useState('')
+  if (!rows.length) return null
+  async function save(r: CatalogRow) {
+    setBusy(r.procedure_code)
+    try { await addTariff(r.procedure_code, r.name, digits(price[r.procedure_code])); onSaved(r.name) } catch (e) { onError(msgOf(e)) } finally { setBusy('') }
+  }
+  return (
+    <Card className="set-row" role="region" aria-label="Tindakan tanpa harga">
+      <strong>Tindakan tanpa harga ({rows.length})</strong>
+      <p className="muted small">Dokter bisa mengisi tindakan ini, tetapi kunjungan tidak bisa ditutup dan dibayar sebelum harganya diisi. Isi 0 bila memang gratis.</p>
+      {rows.map((r) => (
+        <div key={r.procedure_code} className="set-unpriced">
+          <span className="set-unpriced-name">{r.name} <span className="muted small">{r.procedure_code}</span></span>
+          <span className="set-rp"><span aria-hidden="true">Rp</span>
+            <Input inputMode="numeric" aria-label={`Harga ${r.name}`} value={price[r.procedure_code] ? num(digits(price[r.procedure_code])) : ''}
+              onChange={(e) => setPrice({ ...price, [r.procedure_code]: e.target.value.replace(/\D/g, '') })} /></span>
+          <Button variant="secondary" isDisabled={busy === r.procedure_code || !(price[r.procedure_code] ?? '')} onPress={() => save(r)}>Simpan</Button>
+          <StageEditor name={r.name} open="Bertahap" onError={onError} initial={[{ code: 'k1', label: 'Kunjungan 1', price_rp: digits(price[r.procedure_code] ?? '') }]}
+            submit={async (ls) => { await addTariff(r.procedure_code, r.name, ls); onSaved(r.name) }} />
+        </div>
+      ))}
+    </Card>
+  )
+}
+
+function OdoMap({ item, row, onSaved, onError }: { item: TariffItem; row?: CatalogRow; onSaved: (r: CatalogRow) => void; onError: (m: string) => void }) {
+  const [open, setOpen] = useState(false)
+  const [pick, setPick] = useState<string[]>(row?.conditions ?? [])
+  const [busy, setBusy] = useState(false)
+  const conds = ODONTOGRAM_TAXONOMY.conditions.filter((c) => c.code && c.code !== 'sou')
+  const mapped = row?.conditions ?? []
+  async function save() {
+    setBusy(true)
+    try { onSaved(await setCatalogConditions(item.procedure_code, pick, item.name)); setOpen(false) } catch (e) { onError(msgOf(e)) }
+    setBusy(false)
+  }
+  return (
+    <div className="set-odo">
+      <span className="muted small">Odontogram: {mapped.length ? mapped.join(', ') : 'belum dipetakan'}</span>
+      <Button variant="ghost" className="set-link" aria-expanded={open} onPress={() => { setPick(mapped); setOpen(!open) }}>Atur odontogram</Button>
+      {open && (
+        <div className="set-odo-pick" role="group" aria-label={`Kondisi odontogram yang dicatat ${item.name}`}>
+          {conds.map((c) => (
+            <Checkbox key={c.key} className="set-odo-opt" isSelected={pick.includes(c.code!)}
+              onChange={(on) => setPick(on ? [...pick, c.code!] : pick.filter((x) => x !== c.code))}>
+              <Checkbox.Content><Checkbox.Control><Checkbox.Indicator /></Checkbox.Control>
+                <SymbolIcon symbol={c.symbol} code={c.code} /> {c.label} <code>{c.code}</code></Checkbox.Content></Checkbox>
+          ))}
+          <div className="set-actions"><Button variant="secondary" onPress={() => setOpen(false)}>Batal</Button>
+            <Button isDisabled={busy} onPress={save}>{busy ? 'Menyimpan…' : 'Simpan pemetaan'}</Button></div>
+        </div>
+      )}
+    </div>
+  )
+}
