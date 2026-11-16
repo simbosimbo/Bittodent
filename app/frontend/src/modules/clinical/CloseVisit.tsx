@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Button, buttonVariants, Card } from '@heroui/react'
 import { ApiError, errorText } from '../../shared/api/http'
 import { cancelAttendance, closeVisit } from './api'
 
@@ -27,21 +28,21 @@ export function CloseVisit({ visit, needsSelesai = false, canBilling, onDone }: 
 
   const walkIn = visit.appointment_id === null
   return (
-    <div className="card">
-      <div className="card-head"><h2>Tutup kunjungan</h2>{canBilling && <a className="btn btn-xs" href={`#/tagihan/${visit.id}`}>Lihat tagihan</a>}</div>
+    <Card>
+      <div className="card-head"><h2>Tutup kunjungan</h2>{canBilling && <a className={buttonVariants({ variant: 'outline', size: 'sm' })} href={`#/tagihan/${visit.id}`}>Lihat tagihan</a>}</div>
       <label>Alasan (wajib bila kehadiran dibatalkan)
         <textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} aria-invalid={!!error} />
       </label>
       {needsSelesai && <p className="muted small">Catatan/tindakan belum Selesai: dokter penanggung jawab menekan Selesai (menutup kunjungan sekaligus).</p>}
       {error && <p className="form-error" role="alert">{error}</p>}
-      <div className="toolbar">
+      <div className="flex flex-wrap items-center gap-2">
         {walkIn && !visit.attendance_cancelled_at && (
-          <button className="btn" disabled={busy} onClick={() => reason.trim().length < 10 ? setError('Isi alasan minimal 10 huruf.') : run(() => cancelAttendance(visit.id, reason.trim()))}>
+          <Button variant="outline" isDisabled={busy} onPress={() => reason.trim().length < 10 ? setError('Isi alasan minimal 10 huruf.') : run(() => cancelAttendance(visit.id, reason.trim()))}>
             Batalkan kehadiran
-          </button>
+          </Button>
         )}
-        {!needsSelesai && <button className="btn btn-primary" disabled={busy} onClick={() => run(() => closeVisit(visit.id, reason.trim()))}>Tutup kunjungan</button>}
+        {!needsSelesai && <Button isDisabled={busy} onPress={() => run(() => closeVisit(visit.id, reason.trim()))}>Tutup kunjungan</Button>}
       </div>
-    </div>
+    </Card>
   )
 }

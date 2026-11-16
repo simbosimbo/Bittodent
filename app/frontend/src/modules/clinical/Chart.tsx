@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type KeyboardEvent, type ReactNode, useRef } from 'react'
+import { Button, buttonVariants, Card, Chip, Tabs, ToggleButton, ToggleButtonGroup } from '@heroui/react'
 import { DateField } from '../../shared/ui/DateField'
 import { useDialog } from '../../shared/ui/Sheet'
 import { Presence, usePresenceClass } from '../../shared/ui/presence'
@@ -78,13 +79,16 @@ const INNER = [['odo', 'Odontogram'], ['notes', 'Catatan Klinis'], ['bill', 'Bil
 // Surface keypad (sketch): lingual/palatal top, M left, O/I centre, D right, buccal/labial bottom. Labels come from surfaceLabel.
 const PAD: [Surface, string][] = [['L', 'top'], ['M', 'left'], ['O', 'center'], ['D', 'right'], ['B', 'bottom']]
 
+/** Record-state chip; colours (draft / signed / superseded / AI) stay in clinical.css so the states never read alike. */
+const Tag = ({ k, children }: { k: 'draft' | 'signed' | 'old' | 'fix' | 'ai'; children: ReactNode }) => <Chip size="sm" className={`clin-tag clin-${k}`}>{children}</Chip>
+
 function StatusBadge({ v }: { v: Version }) {
   return (
     <>
-      {v.status === 'draf' ? <span className="badge badge-draft">Draf</span>
-        : v.status === 'berlaku' ? <span className="badge badge-signed">🔒 Selesai</span>
-        : <span className="badge badge-old">Digantikan</span>}
-      {v.status === 'draf' && v.source === 'ai_draft' && <span className="badge badge-ai">{AI_BADGE}</span>}
+      {v.status === 'draf' ? <Tag k="draft">Draf</Tag>
+        : v.status === 'berlaku' ? <Tag k="signed">🔒 Selesai</Tag>
+        : <Tag k="old">Digantikan</Tag>}
+      {v.status === 'draf' && v.source === 'ai_draft' && <Tag k="ai">{AI_BADGE}</Tag>}
     </>
   )
 }
@@ -106,12 +110,11 @@ function SoapFields({ form, onChange, readOnly, stacked }: { form: Form; onChang
   )
   return (
     <div className="soap">
-      <div role="tablist" className="tabs">
-        {TABS.map(([k, label]) => (
-          <button key={k} type="button" role="tab" aria-selected={tab === k} className={tab === k ? 'is-active' : ''} onClick={() => setTab(k)}>{k} — {label}</button>
-        ))}
-      </div>
-      <div role="tabpanel" className="soap-panel">
+      <Tabs variant="secondary" selectedKey={tab} onSelectionChange={(k) => setTab(k as typeof tab)}>
+        <Tabs.ListContainer><Tabs.List aria-label="Bagian SOAP">
+          {TABS.map(([k, label]) => <Tabs.Tab key={k} id={k}>{k} — {label}<Tabs.Indicator /></Tabs.Tab>)}
+        </Tabs.List></Tabs.ListContainer>
+      <Tabs.Panel id={tab} className="soap-panel">
         {(tab === 'S' || tab === 'O') && (
           <textarea rows={5} aria-label={tab} readOnly={readOnly} value={form[tab]} onChange={(e) => set({ [tab]: e.target.value })} placeholder="Tulis catatan…" />
         )}
@@ -125,7 +128,8 @@ function SoapFields({ form, onChange, readOnly, stacked }: { form: Form; onChang
               onChange={(e) => set({ [tab]: { ...form[tab], text: e.target.value } })} />
           </>
         )}
-      </div>
+      </Tabs.Panel>
+      </Tabs>
     </div>
   )
 }
@@ -159,7 +163,7 @@ function CorrectionDialog({ note, solo, onDone, onClose }: { note: Note; solo: b
   useDialog(dlg, onClose, useIsMobile())
   return (
     <div className={`overlay ${phase}`} onClick={onClose}>
-      <form ref={dlg} className="card dialog dialog-wide" role="dialog" aria-modal="true" aria-labelledby="fix-title" onClick={(e) => e.stopPropagation()} onSubmit={submit} noValidate>
+      <Card<'form'> render={(p) => <form {...p} />} ref={dlg} className="dialog dialog-wide" role="dialog" aria-modal="true" aria-labelledby="fix-title" onClick={(e) => e.stopPropagation()} onSubmit={submit} noValidate>
         <h2 id="fix-title">Koreksi catatan (versi {current.version} → {Math.max(...note.versions.map((v) => v.version)) + 1})</h2>
         <p className={late ? 'notice notice-warn' : 'notice'}>{info}</p>
         <label>Alasan koreksi *<textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} aria-invalid={!!error} /></label>
@@ -167,10 +171,10 @@ function CorrectionDialog({ note, solo, onDone, onClose }: { note: Note; solo: b
         <p className="muted small">Versi {current.version} tetap tersimpan dan ditandai “Digantikan”.</p>
         {error && <p className="form-error" role="alert">{error}</p>}
         <div className="dialog-actions">
-          <button type="button" className="btn" onClick={onClose}>Batal</button>
-          <button className="btn btn-primary" disabled={busy}>{busy ? 'Menyimpan…' : late && !solo ? 'Ajukan koreksi' : 'Simpan koreksi'}</button>
+          <Button variant="outline" onPress={onClose}>Batal</Button>
+          <Button type="submit" isDisabled={busy}>{busy ? 'Menyimpan…' : late && !solo ? 'Ajukan koreksi' : 'Simpan koreksi'}</Button>
         </div>
-      </form>
+      </Card>
     </div>
   )
 }
@@ -191,7 +195,7 @@ function History({ visits, me, onFix, onApprove }: { visits: ChartVisit[]; me: M
                 <div className="notice notice-warn">
                   Koreksi menunggu persetujuan pemilik ({n.pending_correction.requested_by_name}): “{n.pending_correction.reason}”
                   {can('correction.approve') && n.pending_correction.requested_by !== me.user.id && (
-                    <button className="btn btn-xs" onClick={() => onApprove(n.pending_correction!.id)}>Setujui</button>
+                    <Button size="sm" variant="outline" onPress={() => onApprove(n.pending_correction!.id)}>Setujui</Button>
                   )}
                 </div>
               )}
@@ -199,13 +203,13 @@ function History({ visits, me, onFix, onApprove }: { visits: ChartVisit[]; me: M
                 <div key={x.id} className={`version version-${x.status}`}>
                   <button className="version-row" aria-expanded={open === x.id} onClick={() => setOpen(open === x.id ? null : x.id)}>
                     <strong>Versi {x.version}</strong> <StatusBadge v={x} />
-                    {x.supersedes_id && <span className="badge badge-fix">Dikoreksi</span>}
+                    {x.supersedes_id && <Tag k="fix">Dikoreksi</Tag>}
                     <span className="muted small">{x.signed_at ? `${x.signed_by_name ?? ''} · ${fmt(x.signed_at)}` : 'Belum ditandatangani'}</span>
                   </button>
                   {x.reason && <p className="small">Alasan koreksi: {x.reason}</p>}
                   {open === x.id && <SoapFields form={toForm(x.soap)} readOnly />}
                   {x.status === 'berlaku' && !n.pending_correction && n.author_id === me.user.id && can('note.sign') && (
-                    <button className="btn btn-xs" onClick={() => onFix(n)}>Koreksi</button>
+                    <Button size="sm" variant="outline" onPress={() => onFix(n)}>Koreksi</Button>
                   )}
                 </div>
               ))}
@@ -256,7 +260,7 @@ export function ProcedureFixDialog({ p, mode, visitId, onDone, onClose }: { p: P
   useDialog(dlg, onClose, useIsMobile())
   return (
     <div className={`overlay ${phase}`} onClick={onClose}>
-      <form ref={dlg} className="card dialog" role="dialog" aria-modal="true" aria-labelledby="pfix-title" onClick={(e) => e.stopPropagation()} onSubmit={submit} noValidate>
+      <Card<'form'> render={(p) => <form {...p} />} ref={dlg} className="dialog" role="dialog" aria-modal="true" aria-labelledby="pfix-title" onClick={(e) => e.stopPropagation()} onSubmit={submit} noValidate>
         <h2 id="pfix-title">{mode === 'ganti' ? 'Ganti tindakan' : 'Koreksi tindakan'}: {procedureText(p)}</h2>
         {mode === 'koreksi' && <label>Jenis koreksi * <select value={type} onChange={(e) => setType(e.target.value as CorrectionType)}>
           <option value="">Pilih…</option>
@@ -272,10 +276,10 @@ export function ProcedureFixDialog({ p, mode, visitId, onDone, onClose }: { p: P
         <p className="muted small">{mode === 'ganti' ? 'Tindakan lama tetap tersimpan sebagai “Digantikan”; tagihannya tidak berubah.' : 'Koreksi tidak menambah tagihan. Lewat tenggat klinik, koreksi menunggu persetujuan pemilik. Pekerjaan ulang yang sungguh dikerjakan: pakai Ganti.'}</p>
         {error && <p className="form-error" role="alert">{error}</p>}
         <div className="dialog-actions">
-          <button type="button" className="btn" onClick={onClose}>Batal</button>
-          <button className="btn btn-primary" disabled={busy}>{busy ? 'Menyimpan…' : 'Simpan'}</button>
+          <Button variant="outline" onPress={onClose}>Batal</Button>
+          <Button type="submit" isDisabled={busy}>{busy ? 'Menyimpan…' : 'Simpan'}</Button>
         </div>
-      </form>
+      </Card>
     </div>
   )
 }
@@ -290,7 +294,7 @@ export function ProcedureHistory({ rows }: { rows: ProcedureHistoryRow[] }) {
         {[...rows].reverse().map((h) => (
           <li key={h.id}>
             <span className="muted">{fmt(h.effective_at)}</span> {procedureText(h)} <StatusChip status={h.status} />
-            {h.change && <span className="badge badge-old">{CHANGE_LABEL[h.change]}</span>}
+            {h.change && <Tag k="old">{CHANGE_LABEL[h.change]}</Tag>}
             {h.reason && <span className="muted"> · Alasan: {h.reason}</span>}
           </li>
         ))}
@@ -300,7 +304,7 @@ export function ProcedureHistory({ rows }: { rows: ProcedureHistoryRow[] }) {
 }
 
 export function StatusChip({ status }: { status: string }) {
-  return <span className={`chip st st-${status}`} data-status={statusOf(status)?.legend}>{statusOf(status)?.label ?? status}</span>
+  return <Chip size="sm" className={`st st-${status}`} data-status={statusOf(status)?.legend}>{statusOf(status)?.label ?? status}</Chip>
 }
 
 /** Findings + treatments table (Open Dental pattern, our data only). Newest first (drafts = today, then finalized_at desc), then tooth.
@@ -320,7 +324,7 @@ function Items({ findings, procedures, visits, canMove, onMove, onDiscard, onFix
         <tbody>
           {[...rows].sort((a, b) => at(b).localeCompare(at(a)) || (of(a).tooth ?? 0) - (of(b).tooth ?? 0)).map((r) => {
             const x = of(r)
-            const lock = x.state === 'draft' ? <span className="badge badge-draft">Draf</span> : <span className="muted small" aria-label="Terkunci">🔒</span>
+            const lock = x.state === 'draft' ? <Tag k="draft">Draf</Tag> : <span className="muted small" aria-label="Terkunci">🔒</span>
             return r.kind === 'finding' ? (
               <tr key={x.id}>
                 <td>{x.finalized_at ? fmtDay(x.finalized_at) : <span className="muted">Draf</span>}</td>
@@ -338,12 +342,12 @@ function Items({ findings, procedures, visits, canMove, onMove, onDiscard, onFix
                 <td>{procedureText(r.p)}</td>
                 <td>{dentist(r.p.visit_id)}</td>
                 <td><StatusChip status={r.p.status} /> {lock}
-                  {r.p.state === 'draft' && <button className="btn btn-xs btn-ghost" onClick={() => onDiscard(r.p)}>Hapus draf</button>}
+                  {r.p.state === 'draft' && <Button size="sm" variant="ghost" onPress={() => onDiscard(r.p)}>Hapus draf</Button>}
                   {r.p.state === 'final' && canMove && statusOf(r.p.status)?.next.map((to) => (
-                    <button key={to} className="btn btn-xs" onClick={() => onMove(r.p, to)}>→ {statusOf(to)!.label}</button>
+                    <Button key={to} size="sm" variant="outline" onPress={() => onMove(r.p, to)}>→ {statusOf(to)!.label}</Button>
                   ))}
-                  {r.p.state === 'final' && canMove && REPLACEABLE.includes(r.p.status) && <button className="btn btn-xs" onClick={() => onFix(r.p, 'ganti')}>Ganti…</button>}
-                  {r.p.state === 'final' && canMove && <button className="btn btn-xs btn-ghost" onClick={() => onFix(r.p, 'koreksi')}>Koreksi…</button>}</td>
+                  {r.p.state === 'final' && canMove && REPLACEABLE.includes(r.p.status) && <Button size="sm" variant="outline" onPress={() => onFix(r.p, 'ganti')}>Ganti…</Button>}
+                  {r.p.state === 'final' && canMove && <Button size="sm" variant="ghost" onPress={() => onFix(r.p, 'koreksi')}>Koreksi…</Button>}</td>
               </tr>
             )
           })}
@@ -353,16 +357,21 @@ function Items({ findings, procedures, visits, canMove, onMove, onDiscard, onFix
   )
 }
 
-/** Segmented control (radiogroup); 44px targets. */
+/** Single-choice segmented control: React Aria gives it radiogroup / radio semantics; 44px targets (clinical.css). */
+function SegGroup({ value, onChange, children, ...aria }: { value: string; onChange: (k: string) => void; children: ReactNode; 'aria-label'?: string; 'aria-labelledby'?: string }) {
+  return (
+    <ToggleButtonGroup className="clin-seg" selectionMode="single" disallowEmptySelection selectedKeys={[value]} {...aria}
+      onSelectionChange={(keys) => { const k = [...keys][0]; if (k != null) onChange(String(k)) }}>{children}</ToggleButtonGroup>
+  )
+}
+/** Labelled segmented control. */
 function Seg<T extends string>({ label, value, options, onChange }: { label: string; value: T; options: [T, string][]; onChange: (v: T) => void }) {
   return (
     <div className="seg-field">
       <span className="seg-label" id={`seg-${label.replace(/\s+/g, '-')}`}>{label}</span>
-      <div className="seg" role="radiogroup" aria-labelledby={`seg-${label.replace(/\s+/g, '-')}`}>
-        {options.map(([k, text]) => (
-          <button key={k} type="button" role="radio" aria-checked={value === k} className={value === k ? 'is-on' : ''} onClick={() => onChange(k)}>{text}</button>
-        ))}
-      </div>
+      <SegGroup aria-labelledby={`seg-${label.replace(/\s+/g, '-')}`} value={value} onChange={(k) => onChange(k as T)}>
+        {options.map(([k, text]) => <ToggleButton key={k} id={k}>{text}</ToggleButton>)}
+      </SegGroup>
     </div>
   )
 }
@@ -401,8 +410,9 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const [legendOpen, setLegendOpen] = useState(!mobile) // phone: chart first, legend on demand
   const [tab, setTab] = useState<(typeof INNER)[number][0]>('odo')
   // Phone: the tab row scrolls sideways; keep the active tab in view.
+  const tabRow = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    const t = document.getElementById(`ct-${tab}`), row = t?.parentElement
+    const row = tabRow.current, t = row?.querySelector<HTMLElement>('[role=tab][aria-selected=true]')
     if (!mobile || !t || !row) return
     const a = t.getBoundingClientRect(), r = row.getBoundingClientRect() // horizontal only: never scrolls the page
     if (a.left < r.left || a.right > r.right) row.scrollLeft += a.left - r.left - (r.width - a.width) / 2
@@ -499,12 +509,12 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   // The record lives inside the patient: wrap every state in PatientPage (header + Profil/Keluarga/Riwayat menu).
   // review-2 P1: a billing reader continues to the payment (solid); a dentist without billing goes back to the schedule.
   const afterSelesai = <>
-    {can('billing.read') && <a className="btn btn-primary" href={`#/tagihan/${billFor}`}>Lanjut ke tagihan</a>}
-    {can('appointment.read') && <a className={can('billing.read') ? 'btn' : 'btn btn-primary'} href="#/jadwal">Kembali ke Jadwal</a>}
+    {can('billing.read') && <a className={buttonVariants({ variant: 'primary' })} href={`#/tagihan/${billFor}`}>Lanjut ke tagihan</a>}
+    {can('appointment.read') && <a className={buttonVariants({ variant: can('billing.read') ? 'outline' : 'primary' })} href="#/jadwal">Kembali ke Jadwal</a>}
   </>
   const page = (actions: ReactNode, body: ReactNode | ((pp: PatientFull) => ReactNode), status?: ReactNode) =>
-    <PatientPage id={patientId} tab="rekam-medis" canChart alerts actions={actions} status={status}>{(pp) => typeof body === 'function' ? body(pp) : body}</PatientPage>
-  if (error) return page(null, <div className="card state-card error">{error} <a href="#/pasien">Kembali</a></div>)
+    <PatientPage id={patientId} tab="rekam-medis" canChart alerts actions={actions} status={status}>{(pp) => <div className="clin">{typeof body === 'function' ? body(pp) : body}</div>}</PatientPage>
+  if (error) return page(null, <Card className="state-card error">{error} <a href="#/pasien">Kembali</a></Card>)
   if (!chart) return page(null, <PageSkeleton variant="record" label="Memuat rekam medis…" />)
   const p = chart.patient
 
@@ -541,8 +551,8 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
           {dentists.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
         </select></label>
       )}
-      <button type="button" className="btn btn-primary" disabled={starting || (pickDentist && !walkInDentist)} onClick={startVisit}>
-        {starting ? 'Memulai…' : 'Mulai kunjungan'}</button>
+      <Button isDisabled={starting || (pickDentist && !walkInDentist)} onPress={startVisit}>
+        {starting ? 'Memulai…' : 'Mulai kunjungan'}</Button>
     </div>
   )
 
@@ -611,7 +621,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
     <>
       <div className="tooth-panel-head">
         <div><h2>Gigi {pick.tooth}</h2><p className="tooth-name">{toothAnatomicalName(pick.tooth)}</p></div>
-        <button type="button" className="btn btn-ghost tooth-close" aria-label="Tutup detail gigi" autoFocus={mobile} onClick={() => setPick(null)}>×</button>
+        <Button isIconOnly variant="ghost" className="tooth-close" aria-label="Tutup detail gigi" autoFocus={mobile} onPress={() => setPick(null)}>×</Button>
       </div>
       <p className="muted small" role="status">Dipilih: Gigi {pick.tooth} · {surfaceName(pick.tooth, pick.surface)} ({surfaceLabel(pick.tooth, pick.surface)})</p>
       {!editable && <div className="surf-pad" role="group" aria-label="Permukaan">
@@ -625,14 +635,14 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
         <ul className="items tooth-findings" aria-label={`Temuan gigi ${pick.tooth}`}>
           {items.filter((f) => f.tooth === pick.tooth).map((f) => (
             <li key={f.id}>{f.surface ? surfaceLabel(f.tooth, f.surface) : 'Seluruh gigi'} · {conditionOf(f.condition)?.label ?? f.condition}
-              {f.state === 'draft' && <span className="badge badge-draft">Draf</span>}</li>
+              {f.state === 'draft' && <Tag k="draft">Draf</Tag>}</li>
           ))}
           {procs.filter((x) => x.tooth === pick.tooth).map((x) => (
-            <li key={x.id}><StatusChip status={x.status} /> {procedureText(x)}{x.state === 'draft' && <span className="badge badge-draft">Draf</span>}
+            <li key={x.id}><StatusChip status={x.status} /> {procedureText(x)}{x.state === 'draft' && <Tag k="draft">Draf</Tag>}
               {/* P2-5: fix a wrong pick in place = remove own draft here, pick again below */}
               {editable && x.state === 'draft' && x.visit_id === visit?.id && x.created_by === me.user.id && (
-                <button type="button" className="btn btn-xs btn-ghost" aria-label={`Hapus draf ${procedureText(x)}`}
-                  onClick={() => run(() => discardProcedure(x.id), 'Draf dihapus.')}>Hapus</button>
+                <Button size="sm" variant="ghost" aria-label={`Hapus draf ${procedureText(x)}`}
+                  onPress={() => run(() => discardProcedure(x.id), 'Draf dihapus.')}>Hapus</Button>
               )}</li>
           ))}
         </ul>
@@ -650,14 +660,14 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
 <div className="card-head-tools">
                   <label className="small">Lihat per tanggal <DateField value={asOf} placeholder="Hari ini" max={new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' })}
                     onChange={(e) => setAsOf(e.target.value)} /></label>
-                  {asOf && <button className="btn btn-xs" onClick={() => setAsOf('')}>Kembali ke hari ini</button>}
+                  {asOf && <Button size="sm" variant="outline" onPress={() => setAsOf('')}>Kembali ke hari ini</Button>}
                 </div>
   )
   const odoLegend = (
     <>
-        <button type="button" className="btn btn-xs odo-legend-toggle" aria-expanded={legendOpen} aria-controls="odo-legends" onClick={() => setLegendOpen(!legendOpen)}>
+        <Button size="sm" variant="outline" className="odo-legend-toggle" aria-expanded={legendOpen} aria-controls="odo-legends" onPress={() => setLegendOpen(!legendOpen)}>
           {legendOpen ? 'Sembunyikan legenda' : 'Tampilkan legenda'}
-        </button>
+        </Button>
         {legendOpen && (
           <div className="odo-legends" id="odo-legends">
             <OfficialLegend />
@@ -669,25 +679,24 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   )
   return page(
     <div className="chart-actions">
-      {can('appointment.create') && <a className="btn btn-primary" href={`#/jadwal?baru=${encodeURIComponent(patientId)}`}>Buat janji</a>}
+      {can('appointment.create') && <a className={buttonVariants({ variant: 'primary' })} href={`#/jadwal?baru=${encodeURIComponent(patientId)}`}>Buat janji</a>}
     </div>,
     (pp: PatientFull) => <>
       {msg && <p className="notice" role="status">{msg}</p>}
-      {billFor && !mobile && <p className="toolbar rm-done">{afterSelesai}</p>}
+      {billFor && !mobile && <p className="rm-done flex flex-wrap items-center gap-2">{afterSelesai}</p>}
 
-      <div role="tablist" aria-label="Bagian rekam medis" className="tabs chart-tabs">
-        {INNER.filter(([k]) => k !== 'bill' || can('billing.read')).map(([k, label]) => (
-          <button key={k} type="button" role="tab" id={`ct-${k}`} aria-selected={tab === k} aria-controls="chart-tabpanel" className={tab === k ? 'on' : undefined} onClick={() => setTab(k)}>{label}</button>
-        ))}
-      </div>
-      <div role="tabpanel" id="chart-tabpanel" aria-labelledby={`ct-${tab}`}>
+      <Tabs variant="secondary" className="chart-tabs" selectedKey={tab} onSelectionChange={(k) => setTab(k as typeof tab)}>
+        <Tabs.ListContainer ref={tabRow}><Tabs.List aria-label="Bagian rekam medis">
+          {INNER.filter(([k]) => k !== 'bill' || can('billing.read')).map(([k, label]) => <Tabs.Tab key={k} id={k}>{label}<Tabs.Indicator /></Tabs.Tab>)}
+        </Tabs.List></Tabs.ListContainer>
+      <Tabs.Panel id={tab}>
       {tab === 'odo' && (
         <div className="grid-12 chart-grid">
-          <section className="card span-8 odo-card" aria-label="Odontogram">
+          <Card render={(p) => <section {...p} />} className="span-8 odo-card" aria-label="Odontogram">
             <div className="card-head">
               <h2>Odontogram</h2>
-              {mine.length + myProcs.filter(isWork).length > 0 && <span className="badge badge-draft">Draf: {mine.length} temuan, {myProcs.filter(isWork).length} tindakan</span>}
-              {mine.some((d) => d.source === 'ai_draft') && <span className="badge badge-ai">{AI_BADGE}</span>}
+              {mine.length + myProcs.filter(isWork).length > 0 && <Tag k="draft">Draf: {mine.length} temuan, {myProcs.filter(isWork).length} tindakan</Tag>}
+              {mine.some((d) => d.source === 'ai_draft') && <Tag k="ai">{AI_BADGE}</Tag>}
               {!mobile && odoTools}
             </div>
             {/* OVv2-05: 2D | 3D (and the entry mode) always visible under the title, never folded away on the phone */}
@@ -702,8 +711,8 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
               <div className="mouth-procs" role="group" aria-label="Tindakan seluruh mulut">
                 <span className="muted small">Tindakan seluruh mulut:</span>
                 {mouthProcs.map((x) => (
-                  <button key={x.procedure_code} type="button" className="btn" aria-pressed={mouthPick?.procedure_code === x.procedure_code}
-                    onClick={() => (stages[x.procedure_code]?.length ?? 0) > 1 ? setMouthPick(x) : saveMouth(x)}>{x.name} <code>{x.procedure_code}</code></button>
+                  <Button key={x.procedure_code} variant="outline" aria-pressed={mouthPick?.procedure_code === x.procedure_code}
+                    onPress={() => (stages[x.procedure_code]?.length ?? 0) > 1 ? setMouthPick(x) : saveMouth(x)}>{x.name} <code>{x.procedure_code}</code></Button>
                 ))}
               </div>
             )}
@@ -734,14 +743,14 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
               {(['upper', 'lower'] as const).map((arch) => (
                 <div key={arch} className="odo-jaw">
                   <p className="odo-jaw-head"><span id={`jaw-${arch}`}>{arch === 'upper' ? 'Rahang atas' : 'Rahang bawah'}</span> <span className="muted">kanan ← kiri pasien</span></p>
-                  <div className="odo2d-wrap odo-jaw-scroll" role="group" aria-labelledby={`jaw-${arch}`} ref={(el) => centre(el, String(dent))}>
+                  <div className="odo2d-wrap odo-jaw-scroll" data-audit-skip role="group" aria-labelledby={`jaw-${arch}`} ref={(el) => centre(el, String(dent))}>
                     <Odontogram arch={arch} wholeTooth marks={shown} baseline={chart.baseline?.teeth} dentition={dent} compact={view === '3d'} selected={pick ? `t${pick.tooth}-${pick.surface}` : null} onPick={onPick} />
                   </div>
                 </div>
               ))}
             </> : (
             // ≤720px: the chart keeps its size and scrolls sideways; opens centred on the midline (11|21).
-            <div className="odo2d-wrap" ref={(el) => { if (mobile) centre(el, String(dent)) }}>
+            <div className="odo2d-wrap" data-audit-skip ref={(el) => { if (mobile) centre(el, String(dent)) }}>
               <Odontogram marks={shown} baseline={chart.baseline?.teeth} dentition={dent} compact={view === '3d'} selected={pick ? `t${pick.tooth}-${pick.surface}` : null} onPick={onPick} />
             </div>
             )}
@@ -757,25 +766,25 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
                 <a href={can('appointment.read') ? '#/jadwal' : '#/'}>Buka janji hari ini</a>
               </div>
             ))}
-          </section>
+          </Card>
           {mode === 'periksa' && editable ? (
-            <aside className="card span-4 tooth-panel exam-panel" aria-label="Pemeriksaan awal">
+            <Card render={(p) => <aside {...p} />} className="span-4 tooth-panel exam-panel" aria-label="Pemeriksaan awal">
               <ExamPalette exam={exam} visitId={visit!.id} emptyTeeth={emptyTeeth} onSaved={(m) => { setMsg(m); load() }} />
-            </aside>
-          ) : !mobile ? <aside className="card span-4 tooth-panel" aria-label="Detail gigi">{panel}</aside> : (
+            </Card>
+          ) : !mobile ? <Card render={(p) => <aside {...p} />} className="span-4 tooth-panel" aria-label="Detail gigi">{panel}</Card> : (
             <Presence open={!!pick} exitMs={200}>
               {pick && <ToothSheet tooth={pick.tooth} panel={panel} onClose={() => setPick(null)} trapTab={trapTab} />}
             </Presence>
           )}
-          <section className="card span-12" aria-labelledby="temuan-title">
+          <Card render={(p) => <section {...p} />} className="span-12" aria-labelledby="temuan-title">
             <div className="temuan-head">
               <h2 id="temuan-title">Temuan &amp; tindakan</h2>
-              {mobile && <button type="button" className="btn btn-ghost" aria-expanded={detailsOpen} aria-controls="temuan-body" onClick={() => setDetailsOpen(!detailsOpen)}>
-                {detailsOpen ? 'Sembunyikan' : `Lihat (${items.length + procs.length})`}</button>}
-              {(!mobile || detailsOpen) && <div className="seg" role="radiogroup" aria-label="Saring temuan">
-                <button type="button" role="radio" aria-checked={!only} className={!only ? 'is-on' : ''} onClick={() => setAllFor(pick?.tooth ?? null)}>Semua gigi</button>
-                {pick && <button type="button" role="radio" aria-checked={!!only} className={only ? 'is-on' : ''} onClick={() => setAllFor(null)}>Gigi {pick.tooth}</button>}
-              </div>}
+              {mobile && <Button variant="ghost" aria-expanded={detailsOpen} aria-controls="temuan-body" onPress={() => setDetailsOpen(!detailsOpen)}>
+                {detailsOpen ? 'Sembunyikan' : `Lihat (${items.length + procs.length})`}</Button>}
+              {(!mobile || detailsOpen) && <SegGroup aria-label="Saring temuan" value={only ? 'one' : 'all'} onChange={(k) => setAllFor(k === 'all' ? pick?.tooth ?? null : null)}>
+                <ToggleButton id="all">Semua gigi</ToggleButton>
+                {pick && <ToggleButton id="one">Gigi {pick.tooth}</ToggleButton>}
+              </SegGroup>}
             </div>
             {(!mobile || detailsOpen) && <div id="temuan-body">
             {chart.pending_externals.length > 0 && (
@@ -787,8 +796,8 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
                       {procedureText(x)} · {x.external_clinic_name} · {x.external_date}{x.external_date_precision !== 'day' ? ` (perkiraan ${x.external_date_precision === 'year' ? 'tahun' : 'bulan'})` : ''}
                       {can('procedure.confirm_external') && (
                         <>
-                          {' '}<button className="btn btn-xs" onClick={() => run(() => confirmExternal(x.id, true), 'Tindakan klinik lain dikonfirmasi.')}>Konfirmasi</button>
-                          {' '}<button className="btn btn-xs btn-ghost" onClick={() => run(() => confirmExternal(x.id, false), 'Tindakan klinik lain ditolak.')}>Tolak</button>
+                          {' '}<Button size="sm" variant="outline" onPress={() => run(() => confirmExternal(x.id, true), 'Tindakan klinik lain dikonfirmasi.')}>Konfirmasi</Button>
+                          {' '}<Button size="sm" variant="ghost" onPress={() => run(() => confirmExternal(x.id, false), 'Tindakan klinik lain ditolak.')}>Tolak</Button>
                         </>
                       )}
                     </li>
@@ -802,53 +811,54 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
               : <p className="muted">{only ? 'Tidak ada temuan pada gigi ini.' : 'Belum ada temuan.'}</p>}
             <ProcedureHistory rows={chart.procedure_history} />
             </div>}
-          </section>
+          </Card>
         </div>
       )}
       {tab === 'notes' && (
         <div className="stack">
           {visit && (
-            <div className="card">
+            <Card>
               <div className="card-head">
                 <h2>Catatan SOAP</h2>
-                {draft ? <StatusBadge v={draft} /> : note ? <span className="badge badge-signed">🔒 Selesai</span> : <span className="badge badge-old">Belum ada</span>}
+                {draft ? <StatusBadge v={draft} /> : note ? <Tag k="signed">🔒 Selesai</Tag> : <Tag k="old">Belum ada</Tag>}
               </div>
               {editable && (
                 <div className="soap-quick" role="group" aria-label="Template catatan">
-                  {SOAP_TEMPLATES.map((t) => <button key={t.key} type="button" className="btn chip-quick" onClick={() => { setForm(toForm(fillEmpty(toSoap(form), t.soap))); setDirty(true) }}>{t.label}</button>)}
-                  {lastSoap && <button type="button" className="btn chip-quick" onClick={() => { setForm(toForm(fillEmpty(toSoap(form), lastSoap))); setDirty(true) }}>Ulangi kunjungan terakhir</button>}
+                  {SOAP_TEMPLATES.map((t) => <Button key={t.key} variant="outline" className="chip-quick" onPress={() => { setForm(toForm(fillEmpty(toSoap(form), t.soap))); setDirty(true) }}>{t.label}</Button>)}
+                  {lastSoap && <Button variant="outline" className="chip-quick" onPress={() => { setForm(toForm(fillEmpty(toSoap(form), lastSoap))); setDirty(true) }}>Ulangi kunjungan terakhir</Button>}
                 </div>
               )}
               <SoapFields form={form} readOnly={!editable} stacked={mobile} onChange={(f) => { setForm(f); setDirty(true) }} />
               {editable && (
                 <div className={mobile && isDpjp ? 'dialog-actions rm-actions-inline' : 'dialog-actions'}>
-                  <button className="btn" disabled={!dirty} onClick={() => run(() => saveNote(visit.id, { revision: draft?.revision ?? null, soap: toSoap(form) }), 'Draf tersimpan.')}>Simpan draf</button>
+                  <Button variant="outline" isDisabled={!dirty} onPress={() => run(() => saveNote(visit.id, { revision: draft?.revision ?? null, soap: toSoap(form) }), 'Draf tersimpan.')}>Simpan draf</Button>
                   {isDpjp && unapproved > 0 && (
-                    <button className="btn btn-primary" onClick={() => run(() => approveDrafts(visit.id), 'Draf agen disetujui.')}>Setujui draf agen ({unapproved})</button>
+                    <Button onPress={() => run(() => approveDrafts(visit.id), 'Draf agen disetujui.')}>Setujui draf agen ({unapproved})</Button>
                   )}
                   {isDpjp && (draft || dirty) && !mobile && (
-                    <button className={unapproved > 0 ? 'btn' : 'btn btn-primary'} disabled={unapproved > 0}
-                      title={unapproved > 0 ? 'Setujui draf agen dulu' : undefined} onClick={openSelesai}>Selesai</button>
+                    <Button variant={unapproved > 0 ? 'outline' : 'primary'} isDisabled={unapproved > 0}
+                      aria-description={unapproved > 0 ? 'Setujui draf agen dulu' : undefined} onPress={openSelesai}>Selesai</Button>
                   )}
                 </div>
               )}
-            </div>
+            </Card>
           )}
 
-          {mobile && <button type="button" className="btn btn-ghost fold-toggle" aria-expanded={detailsOpen} onClick={() => setDetailsOpen(!detailsOpen)}>
-            {detailsOpen ? 'Sembunyikan tutup kunjungan & riwayat' : 'Tutup kunjungan & riwayat'}</button>}
+          {mobile && <Button variant="ghost" className="fold-toggle" aria-expanded={detailsOpen} onPress={() => setDetailsOpen(!detailsOpen)}>
+            {detailsOpen ? 'Sembunyikan tutup kunjungan & riwayat' : 'Tutup kunjungan & riwayat'}</Button>}
           {(!mobile || detailsOpen) && visit && visit.status === 'berlangsung' && !asOf && can('appointment.transition') && (
             <CloseVisit visit={visit} needsSelesai={!!visit.needs_selesai && !visit.attendance_cancelled} canBilling={can('billing.read')} onDone={async () => { await load(); setMsg('Kunjungan diperbarui.') }} />
           )}
 
-          {(!mobile || detailsOpen) && <div className="card">
+          {(!mobile || detailsOpen) && <Card>
             <h2>Riwayat kunjungan</h2>
             <History visits={chart.visits} me={me} onFix={setFixing} onApprove={(id) => run(() => approveCorrection(id), 'Koreksi disetujui.')} />
-          </div>}
+          </Card>}
         </div>
       )}
       {tab === 'bill' && can('billing.read') && <BillingTab visits={chart.visits} />}
-      </div>
+      </Tabs.Panel>
+      </Tabs>
 
       {/* review-3 P2: on the phone the next step after Selesai sits in the bottom dock, where Selesai was */}
       {mobile && billFor && <div className="rm-actionbar rm-done">{afterSelesai}</div>}
@@ -857,8 +867,8 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
         // Phone (#70): one sticky bar above the bottom nav, on every RM tab: Setujui while agent drafts wait, else Selesai.
         <div className="rm-actionbar">
           {unapproved > 0
-            ? <button className="btn btn-primary" onClick={() => run(() => approveDrafts(visit.id), 'Draf agen disetujui.')}>Setujui draf agen ({unapproved})</button>
-            : <button className="btn btn-primary" onClick={openSelesai}>Selesai</button>}
+            ? <Button onPress={() => run(() => approveDrafts(visit.id), 'Draf agen disetujui.')}>Setujui draf agen ({unapproved})</Button>
+            : <Button onPress={openSelesai}>Selesai</Button>}
         </div>
       )}
       <Presence open={!!(signing && visit && draft)} exitMs={200}>
@@ -891,20 +901,20 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
 function BillingTab({ visits }: { visits: ChartVisit[] }) {
   const rows = [...visits].sort((a, b) => b.started_at.localeCompare(a.started_at)).slice(0, 20)
   return (
-    <div className="card">
+    <Card>
       <h2>Tagihan per kunjungan</h2>
       {rows.length === 0 ? <p className="muted">Belum ada kunjungan.</p> : (
         <ul className="bill-visits">
           {rows.map((v) => (
             <li key={v.id}>
               <span>{fmtDateTime(v.started_at)} · {v.dentist.name ?? 'Dokter'} · {v.status === 'berlangsung' ? 'berlangsung' : 'selesai'}</span>
-              <a className="btn btn-xs" href={`#/tagihan/${v.id}`}>Buka tagihan</a>
+              <a className={buttonVariants({ variant: 'outline', size: 'sm' })} href={`#/tagihan/${v.id}`}>Buka tagihan</a>
             </li>
           ))}
         </ul>
       )}
       <p className="muted small">Tagihan dibuat otomatis dari tindakan berstatus selesai; kunjungan tanpa tindakan tidak punya tagihan.</p>
-    </div>
+    </Card>
   )
 }
 
@@ -915,12 +925,12 @@ function ToothSheet({ tooth, panel, onClose, trapTab }: {
   return (
     <>
       <div className={`sheet-backdrop ${phase}`} onClick={onClose} />
-      <aside className={`card tooth-panel sheet tooth-sheet ${phase}`} role="dialog" aria-modal="true" aria-label={`Detail gigi ${tooth}`}
+      <Card render={(p) => <aside {...p} />} className={`tooth-panel sheet tooth-sheet ${phase}`} role="dialog" aria-modal="true" aria-label={`Detail gigi ${tooth}`}
         onKeyDown={(e) => { if (e.key === 'Escape') onClose(); else trapTab(e) }}>
         {/* review-3 (board 02): no patient identity strip; the page header above names the patient and its pinned alert ribbon stays visible */}
         <div className="sheet-handle" aria-hidden="true" />
         {panel}
-      </aside>
+      </Card>
     </>
   )
 }

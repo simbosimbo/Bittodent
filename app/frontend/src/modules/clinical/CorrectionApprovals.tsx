@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Button, Card } from '@heroui/react'
 import { errorText } from '../../shared/api/http'
 import { fmtDateTime } from '../../shared/format'
 import { decideCorrection, pendingCorrections, type PendingCorrection } from './api'
@@ -17,10 +18,10 @@ export function CorrectionApprovals() {
   }
 
   return (
-    <div className="card">
+    <Card>
       <h2>Koreksi tindakan menunggu persetujuan</h2>
       <p className="muted small">Koreksi lewat tenggat bebas menunggu di sini. Tenggat diatur di <a href="#/pengaturan-rm">Pengaturan RM</a>.</p>
-      {error && <p className="form-error" role="alert">{error}{!rows && <> <button type="button" className="btn" onClick={() => { setError(''); load() }}>Coba lagi</button></>}</p>}
+      {error && <p className="form-error" role="alert">{error}{!rows && <> <Button variant="outline" size="sm" className="max-[720px]:min-h-11" onPress={() => { setError(''); load() }}>Coba lagi</Button></>}</p>}
       {!rows && !error && <p className="muted">Memuat…</p>}
       {msg && <p className="small" role="status">{msg}</p>}
       {rows && rows.length === 0 && <p className="muted">Tidak ada koreksi yang menunggu.</p>}
@@ -31,11 +32,11 @@ export function CorrectionApprovals() {
             {c.proposed?.procedure_code && <> → kode {c.proposed.procedure_code}</>}
             {c.proposed?.surfaces !== undefined && <> → permukaan {c.proposed.surfaces || 'seluruh gigi'}</>}
             {' '}· {c.requested_by.name ?? '—'} · {fmtDateTime(c.created_at)} WIB · Alasan: {c.reason}
-            {' '}<button className="btn btn-xs" onClick={() => decide(c.id, 'approve')}>Setujui</button>
-            {' '}<button className="btn btn-xs btn-ghost" onClick={() => decide(c.id, 'reject')}>Tolak</button>
+            {' '}<Button variant="outline" size="sm" className="max-[720px]:min-h-11" onPress={() => decide(c.id, 'approve')}>Setujui</Button>
+            {' '}<Button variant="ghost" size="sm" className="max-[720px]:min-h-11" onPress={() => decide(c.id, 'reject')}>Tolak</Button>
           </li>
         ))}
       </ul>
-    </div>
+    </Card>
   )
 }

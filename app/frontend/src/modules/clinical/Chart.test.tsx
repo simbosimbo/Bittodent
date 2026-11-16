@@ -7,6 +7,7 @@ import { manifest, mockTooth3D } from './tooth3dMock'
 import css from './clinical.css?raw'
 import baseCss from '../../shared/ui/styles.css?raw'
 
+
 // Synthetic data only.
 const me: Me = {
   user: { id: 'u1', name: 'drg. Uji Sintetis', email: 'dokter@uji.test' }, roles: ['dentist'],
@@ -599,7 +600,7 @@ test('390px: selecting a tooth opens a bottom sheet named for the tooth; keypad 
   }
   expect(within(sheet).getByRole('region', { name: 'Isi gigi 16' })).toBeInTheDocument() // same editable rule as desktop
   expect(within(sheet).getByRole('button', { name: /^Simpan 16/ })).toBeDisabled() // no condition chosen yet
-  expect(within(sheet).getByRole('button', { name: 'Tutup detail gigi' })).toHaveFocus()
+  await waitFor(() => expect(within(sheet).getByRole('button', { name: 'Tutup detail gigi' })).toHaveFocus()) // React Aria focuses after the press settles
   // review-3 (board 02): the sheet does not repeat the patient (name / No. RM); the page header and its alert ribbon stay outside it.
   expect(sheet.querySelector('.sheet-strip')).toBeNull()
   expect(sheet).not.toHaveTextContent('Budi Contoh')
@@ -714,7 +715,7 @@ test('Selesai offers "Lanjut ke tagihan" to billing readers; RM > Billing lists 
   fireEvent.click(within(dlg).getByRole('checkbox'))
   fireEvent.click(within(dlg).getByRole('button', { name: 'Selesai' }))
   expect(await screen.findByRole('link', { name: 'Lanjut ke tagihan' })).toHaveAttribute('href', '#/tagihan/v1')
-  expect(screen.getByRole('link', { name: 'Lanjut ke tagihan' })).toHaveClass('btn-primary') // review-2 P1: payment is the next step
+  expect(screen.getByRole('link', { name: 'Lanjut ke tagihan' })).toHaveClass('button--primary') // review-2 P1: payment is the next step
 
   fireEvent.click(screen.getByRole('tab', { name: 'Billing' }))
   expect(screen.getByRole('heading', { name: 'Tagihan per kunjungan' })).toBeInTheDocument()

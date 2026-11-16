@@ -2,7 +2,7 @@ import type { ReactElement } from 'react'
 import type { Source, Surface, ToothPresence } from './api'
 import { Glyph as V2Glyph, SymbolDefs } from './odontogram/symbols'
 import type { Symbol } from './odontogram/taxonomy'
-import { CONDITIONS, conditionOf, STATUSES, statusOf, isAnterior, isUpper, LOWER, LOWER_PRIMARY, surfaceLabel, surfaceName, surfacesOf, UPPER, UPPER_PRIMARY } from './legend'
+import { CONDITIONS, conditionOf, statusOf, isAnterior, isUpper, LOWER, LOWER_PRIMARY, surfaceLabel, surfaceName, surfacesOf, UPPER, UPPER_PRIMARY } from './legend'
 
 // FDI chart, operator view (patient's right on the chart's left). Ids follow design/odontogram: tooth "t16", surface "t16-O".
 // data-state on .tooth: empty | draft (dashed violet) | signed (solid + lock). data-condition on surfaces / whole tooth.
@@ -121,15 +121,6 @@ export function Legend() {
       ))}
       <li><span className="swatch swatch-draft" /> Draf (garis putus ungu)</li>
       <li><span className="swatch swatch-signed" /> Ditandatangani (terkunci)</li>
-    </ul>
-  )
-}
-
-/** Procedure status layer (legend.json statuses): label + border/opacity style, never colour alone. */
-export function StatusLegend() {
-  return (
-    <ul className="odo-legend" aria-label="Legenda status">
-      {STATUSES.map((s) => <li key={s.key}><span className={`chip st st-${s.key}`} data-status={s.legend}>{s.label}</span></li>)}
     </ul>
   )
 }

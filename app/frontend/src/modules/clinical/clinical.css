@@ -1,13 +1,21 @@
 /* Rekam Medis. Odontogram colours/states from design/odontogram/legend.json + odontogram.css (internal legend). */
 .card-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
 .card-head h2 { margin: 0 8px 0 0; }
-.badge { display: inline-block; font-size: var(--font-size-xs); font-weight: 650; border-radius: 999px; padding: 2px 9px; border: 1px solid transparent; white-space: nowrap; }
-.badge-draft { color: var(--color-draft-fg); background: var(--color-draft-bg); border: 1px solid var(--color-draft-border); }
-.badge-ai { color: #6D28D9; background: #F3EEFF; border: 1px dashed #6D28D9; }
-.badge-ai::before { content: '◆ '; color: #A15C00; }
-.badge-signed { color: #fff; background: #111827; }
-.badge-old { color: var(--muted); background: var(--bg); border-color: var(--border); }
-.badge-fix { color: var(--warn); background: var(--warn-50); }
+.clin-tag { font-weight: 650; border: 1px solid transparent; white-space: nowrap; }
+.clin-draft { color: var(--color-draft-fg); background: var(--color-draft-bg); border-color: var(--color-draft-border); }
+.clin-ai { color: #6D28D9; background: #F3EEFF; border: 1px dashed #6D28D9; }
+.clin-ai::before { content: '◆ '; color: #A15C00; }
+.clin-signed { color: #fff; background: #111827; }
+.clin-old { color: var(--muted); background: var(--bg); border-color: var(--border); }
+.clin-fix { color: var(--warn); background: var(--warn-50); }
+/* Phone: every HeroUI control in the module is a >=44px target; the checkbox row is the target, not the hidden input. */
+/* legacy-base `label` stacks its children; the checkbox row stays a row. */
+.clin-check [data-slot='checkbox-content'] { min-height: 44px; flex-direction: row; align-items: center; gap: var(--space-3, 12px); margin: 0; font-weight: 500; }
+.clin-seg .toggle-button { min-height: 44px; min-width: 44px; }
+@media (max-width: 720px) {
+  .clin .button { min-height: 44px; }
+  .clin .button--icon-only { min-width: 44px; }
+}
 .notice { padding: 8px 12px; border-radius: var(--radius-sm); background: var(--info-50); margin: 0 0 12px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .notice-warn { background: var(--warn-50); color: var(--warn); }
 
@@ -48,10 +56,7 @@
 .cond-sehat { color: #0B7A45; } .cond-karies { color: #BE123C; } .cond-tambalan { color: #1E40AF; } .cond-mahkota { color: #6D28D9; }
 .cond-hilang { color: #3F3F46; } .cond-sisa_akar { color: #9A3412; } .cond-perlu_dicabut { color: #A15C00; } .cond-implan { color: #0F5F63; }
 
-.soap .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 10px; flex-wrap: wrap; }
-.soap .tabs button { background: none; border: none; border-bottom: 2px solid transparent; padding: 8px 10px; font: inherit; cursor: pointer; color: var(--muted); }
-.soap .tabs button.is-active { color: inherit; border-bottom-color: var(--accent-600, #0E8579); font-weight: 650; }
-.soap-panel { display: grid; gap: 8px; }
+.soap-panel { display: grid; gap: 8px; padding-top: 10px; }
 .soap-panel textarea, .dialog textarea { width: 100%; font: inherit; font-size: var(--font-size-note); line-height: var(--font-line-height-normal); }
 
 .timeline { list-style: none; padding: 0; margin: 0; }
@@ -91,7 +96,7 @@ label.check { flex-direction: row; gap: 8px; align-items: flex-start; font-weigh
 .chart-cta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); margin: var(--space-3) 0 0; color: var(--text); }
 .chart-cta p { margin: 0; }
 .walk-in { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-2); margin: var(--space-2) 0; }
-.walk-in .btn { min-height: 44px; }
+.walk-in .button { min-height: 44px; }
 
 /* 3D odontogram chrome (read-only render; per-tooth/surface CSS + legend colours come from public/odontogram-3d/*.css). */
 .odo3d { --halo: #fff; overflow-x: auto; max-width: 100%; padding: var(--space-2) 0; background: var(--shells-a-color-sidebar); border-radius: var(--radius-md); }
@@ -119,30 +124,25 @@ label.check { flex-direction: row; gap: 8px; align-items: flex-start; font-weigh
 .odo-legends { display: flex; flex-wrap: wrap; gap: 2px var(--space-4); margin: 0 0 var(--space-2); }
 .odo-legends .odo-legend { margin: 0; }
 
-/* Rekam Medis: Tampilan 2D/3D + Dentisi segmented controls (own CSS; Zendenta-style track, white selected segment). */
+/* Rekam Medis: Tampilan 2D/3D + Dentisi segmented controls (HeroUI ToggleButtonGroup). */
 .card-head-tools { margin-left: auto; display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); align-items: center; }
 .seg-field { display: flex; align-items: center; gap: var(--space-2); }
 .seg-label { font-size: var(--font-size-xs); font-weight: 600; color: var(--muted); }
-.seg { display: inline-flex; gap: 2px; padding: 3px; background: var(--color-neutral-50); border: 1px solid var(--color-neutral-200); border-radius: var(--radius-md); }
-.seg button { font: inherit; border: 0; background: transparent; min-height: var(--shells-a-size-touch); min-width: var(--shells-a-size-touch); padding: 0 var(--space-3);
-  border-radius: var(--radius-sm); cursor: pointer; color: var(--color-neutral-700); font-weight: var(--font-weight-medium); }
-.seg button.is-on { background: var(--surface); color: var(--color-primary-800); box-shadow: var(--shadow-sm); }
-.seg button:focus-visible { outline: 2px solid var(--accent-600); outline-offset: 1px; }
 .odo2d-wrap { overflow-x: auto; max-width: 100%; }
 .odontogram.is-compact { max-width: 760px; max-height: 300px; min-width: 640px; }
 .findings-wrap { overflow-x: auto; margin: var(--space-3) 0; }
 .findings-wrap > p { margin: var(--space-1) 0 0; }
 .table.findings tbody tr { cursor: auto; }
 .table.findings td { padding: var(--space-2) 12px; vertical-align: middle; }
-.table.findings td .btn + .btn { margin-left: 4px; }
+.table.findings td .button + .button { margin-left: 4px; }
 
 /* Rekam Medis layout: inner tabs, odontogram (8) + tooth panel (4), findings full width. */
 .chart-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); }
-.chart-tabs button { display: inline-flex; align-items: center; min-height: var(--shells-a-size-touch); padding: 0 16px; margin-bottom: -1px; border: 0; border-bottom: 2px solid transparent;
-  background: none; font: inherit; font-weight: 600; color: var(--muted); cursor: pointer; }
-.chart-tabs button:hover { color: var(--text); }
-.chart-tabs button.on { color: var(--color-primary-700); border-bottom-color: var(--color-primary-700); }
-.chart-tabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.chart-tabs { margin-bottom: var(--space-3); }
+/* Tabs stay left-aligned at their own width (as before), panels without HeroUI's inner padding. */
+.clin .tabs__list { min-width: 0; }
+.clin .tabs__tab { width: auto; }
+.clin .tabs__panel { padding: 0; }
 .chart-grid { align-items: start; }
 /* 8 + 4 berdampingan sampai 1101px (≤1280 sidebar sudah rel ikon); di bawahnya .grid-12 menumpuk (styles.css). */
 @media (min-width: 1281px) and (max-width: 1365px) { .chart-grid > .span-8, .chart-grid > .span-4 { grid-column: span 12; } }
@@ -170,7 +170,6 @@ label.check { flex-direction: row; gap: 8px; align-items: flex-start; font-weigh
 .surf:focus-visible { outline: 2px solid var(--accent-600); outline-offset: 2px; }
 .surf-top { grid-area: top; } .surf-left { grid-area: left; } .surf-center { grid-area: center; } .surf-right { grid-area: right; } .surf-bottom { grid-area: bottom; }
 .tooth-findings { margin: 0; }
-.tooth-panel .btn.cond { min-height: 40px; }
 
 /* Mobile (≤720px): sticky compact header (allergies stay on screen), odontogram scrolls sideways, tooth detail = bottom sheet. */
 @media (max-width: 720px) {
@@ -231,7 +230,7 @@ label.check { flex-direction: row; gap: 8px; align-items: flex-start; font-weigh
   .sheet-strip p { margin: 0; }
   .sheet-strip .alert-ribbon.is-compact { padding: 0; background: none; border: 0; flex-wrap: wrap; overflow: visible; }
   .sheet-strip .alert-ribbon.is-compact .alert-chip { white-space: normal; } /* allergies wrap, never scroll out of sight */
-  .tooth-sheet .btn.cond, .tooth-sheet .tooth-save, .tooth-sheet .btn-xs, .tooth-sheet select, .tooth-sheet input { min-height: 44px; }
+  .tooth-sheet select, .tooth-sheet input { min-height: 44px; }
   /* Walk-in "Mulai kunjungan" pinned just above the bottom nav (65px + safe area); the page pads for it. */
   .walk-in-bar {
     position: fixed; left: 0; right: 0; bottom: calc(65px + env(safe-area-inset-bottom)); z-index: 19;
@@ -256,7 +255,7 @@ label.check { flex-direction: row; gap: 8px; align-items: flex-start; font-weigh
 .bill-visits li { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-2) 0;
   border-top: 1px solid var(--shells-a-color-border); }
 .bill-visits li:first-child { border-top: 0; }
-.bill-visits .btn { min-height: var(--size-touch); white-space: nowrap; }
+.bill-visits .button { min-height: var(--size-touch); white-space: nowrap; }
 
 /* #70 Dokter mode: one-tap procedures, SOAP templates, reason chips (chips = 40px desktop, 48px phone). */
 .quick-procs, .soap-quick { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; margin: 0 0 var(--space-3); }
@@ -274,7 +273,7 @@ label.check { flex-direction: row; gap: 8px; align-items: flex-start; font-weigh
 .soap-row .soap-k { grid-row: span 2; }
 .soap-row input { min-height: 44px; font-size: 16px; }
 @media (max-width: 720px) {
-  .chip-quick, .chart-tabs [role=tab], .odo-more summary, .fold-toggle, .temuan-head .btn { min-height: 48px; }
+  .chip-quick, .chart-tabs [role=tab], .odo-more summary, .fold-toggle, .temuan-head .button { min-height: 48px; }
   /* #70 + review-2: the whole attestation row is the target (>=56px, full width) with a pressed and a checked state. */
   .dialog .check { min-height: 56px; width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3);
     border: 1px solid var(--color-neutral-300); border-radius: 12px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
@@ -291,16 +290,16 @@ label.check { flex-direction: row; gap: 8px; align-items: flex-start; font-weigh
     position: fixed; left: 0; right: 0; bottom: calc(65px + env(safe-area-inset-bottom)); z-index: 19; display: flex; gap: var(--space-2);
     padding: var(--space-2) var(--space-3); background: var(--surface); border-top: 1px solid var(--border); box-shadow: 0 -4px 12px rgba(16, 32, 40, 0.06);
   }
-  .rm-actionbar .btn { flex: 1; min-height: 48px; }
+  .rm-actionbar .button { flex: 1; min-height: 48px; }
   .shell-main:has(.rm-actionbar) { padding-bottom: calc(80px + 72px + env(safe-area-inset-bottom)); }
-  .rm-actions-inline .btn-primary { display: none; } /* the sticky bar carries Setujui/Selesai on a phone */
+  .rm-actions-inline .button--primary { display: none; } /* the sticky bar carries Setujui/Selesai on a phone */
 }
 
 /* Odontogram v2 entry sheet (boards OVv2-01..03): pads 56px, cards 2 columns, every target >= 48px.
    Selected = 2px primary-800 line + primary-50 background (not teal; teal is the primary button only). */
 .tsheet { display: flex; flex-direction: column; gap: var(--space-3, 12px); }
 .tsheet button { min-height: 48px; min-width: 48px; font: inherit; cursor: pointer; }
-.tsheet button:not(.btn) { color: inherit; } /* .btn sets its own colour: inheriting put dark text on the green Simpan */
+.tsheet button:not(.button) { color: inherit; } /* HeroUI buttons set their own colour: inheriting put dark text on the green Simpan */
 .tsheet-tabs, .tsheet-status { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; padding: 4px; border-radius: 12px; background: var(--color-surface-2, #f1f3f5); }
 .tsheet-tabs button, .tsheet-status button { border: 0; border-radius: 9px; background: transparent; font-weight: 600; }
 .tsheet-tabs [aria-selected='true'], .tsheet-status [aria-checked='true'] { background: var(--color-primary-50, #e6f3f2); box-shadow: inset 0 0 0 2px var(--color-primary-800, #0a4f49); }
@@ -332,7 +331,7 @@ rect.sym-surface { fill: none; }
 .tooth-glyph-v2 { color: #111; }
 .tooth-badge { font-size: 11px; font-weight: 700; fill: #111; }
 .mouth-procs { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; }
-.mouth-procs .btn { min-height: 48px; }
+.mouth-procs .button { min-height: 48px; }
 
 /* OVv2-06 Pemeriksaan awal: tool strip, Ada/Rencana, one Simpan in the dock */
 .exam { display: flex; flex-direction: column; gap: var(--space-3, 12px); }
@@ -343,10 +342,10 @@ rect.sym-surface { fill: none; }
 .exam-strip [aria-checked='true'], .exam-strip [aria-pressed='true'] { border: 2px solid var(--color-primary-800, #0a4f49); background: var(--color-primary-50, #e6f3f2); }
 .exam-tool { margin: 0; }
 .exam-dock { display: flex; gap: 8px; flex-wrap: wrap; position: sticky; bottom: 0; padding: 8px 0; background: var(--color-surface, #fff); }
-.exam-dock .btn-primary { flex: 1; }
+.exam-dock .button--primary { flex: 1; }
 /* OVv2-07: Tetap | Sulung | Campuran under the chart, 48px targets */
 .dent-toggle { display: flex; justify-content: center; margin: 8px 0; }
-.dent-toggle .seg button { min-height: 48px; min-width: 72px; }
+.dent-toggle .toggle-button { min-height: 48px; min-width: 72px; }
 /* OVv2-05: view + entry mode switches, always visible, 48px */
 .odo-switches { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin: 4px 0 8px; }
-.odo-switches .seg button { min-height: 48px; }
+.odo-switches .toggle-button { min-height: 48px; }

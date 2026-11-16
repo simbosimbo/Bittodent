@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { Button, Card } from '@heroui/react'
 import { useIsMobile } from '../../shared/useIsMobile'
 import { useDialog } from '../../shared/ui/Sheet'
 import { usePresenceClass } from '../../shared/ui/presence'
@@ -25,7 +26,7 @@ export function SelesaiDialog({ lines, pinRequired, hasPin, busy, error, warning
   useDialog(dlg, onClose, useIsMobile())
   return (
     <div className={`overlay ${phase}`} onClick={onClose}>
-      <form ref={dlg} className="card dialog" role="dialog" aria-modal="true" aria-labelledby="selesai-title" onClick={(e) => e.stopPropagation()}
+      <Card<'form'> render={(p) => <form {...p} />} ref={dlg} className="dialog" role="dialog" aria-modal="true" aria-labelledby="selesai-title" onClick={(e) => e.stopPropagation()}
         onSubmit={(e) => { e.preventDefault(); if (ready) onConfirm(needPin ? pin : undefined, warned ? reason.trim() : undefined) }}>
         <h2 id="selesai-title">Selesai: kunci rekam medis dan tutup kunjungan</h2>
         {missing.length > 0 && (
@@ -48,17 +49,17 @@ export function SelesaiDialog({ lines, pinRequired, hasPin, busy, error, warning
             <p><strong>Peringatan</strong> · pilih alasan untuk tetap Selesai:</p>
             <ul>{warnings!.map((w, i) => <li key={i}>{w.message}</li>)}</ul>
             <div className="soap-quick" role="group" aria-label="Alasan">
-              {WARNING_REASONS.map((r) => <button key={r} type="button" className="btn chip-quick" aria-pressed={reason === r} onClick={() => setReason(r)}>{r}</button>)}
+              {WARNING_REASONS.map((r) => <Button key={r} variant="outline" className="chip-quick" aria-pressed={reason === r} onPress={() => setReason(r)}>{r}</Button>)}
             </div>
             <label className="small">Alasan lain <input value={WARNING_REASONS.includes(reason) ? '' : reason} onChange={(e) => setReason(e.target.value)} /></label>
           </div>
         )}
         {error && <p className="form-error" role="alert">{error}</p>}
         <div className="dialog-actions">
-          <button type="button" className="btn" onClick={onClose}>Batal</button>
-          <button className="btn btn-primary" disabled={!ready}>{busy ? 'Menyimpan…' : warned ? 'Selesai dengan alasan' : 'Selesai'}</button>
+          <Button variant="outline" onPress={onClose}>Batal</Button>
+          <Button type="submit" isDisabled={!ready}>{busy ? 'Menyimpan…' : warned ? 'Selesai dengan alasan' : 'Selesai'}</Button>
         </div>
-      </form>
+      </Card>
     </div>
   )
 }

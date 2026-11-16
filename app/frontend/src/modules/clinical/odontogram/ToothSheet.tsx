@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Button } from '@heroui/react'
 import { ApiError, errorText } from '../../../shared/api/http'
 import { getCatalog, getStages, saveToothEntry, type CatalogRow } from '../api'
 import { SymbolDefs, SymbolIcon } from './symbols'
@@ -180,7 +181,7 @@ export function ToothSheet({ tooth, visitId, initialSurface, onSaved }: {
         <div className="tsheet-cards" role="radiogroup" aria-label="Kondisi">
           {shownSurface.map((c) => <CondCard key={c.key} c={c} on={cond === c.key} onPick={() => choose(c.key)} />)}
         </div>
-        {!more && <button type="button" className="btn btn-ghost" onClick={() => setMore(true)}>{surfaceConds.length - shownSurface.length} lainnya</button>}
+        {!more && <Button variant="ghost" onPress={() => setMore(true)}>{surfaceConds.length - shownSurface.length} lainnya</Button>}
       </>}
 
       {tab === 'tooth' && <>
@@ -252,15 +253,15 @@ export function ToothSheet({ tooth, visitId, initialSurface, onSaved }: {
         <div className="notice notice-warn" role="alertdialog" aria-labelledby="tsheet-dup">
           <p id="tsheet-dup">{dup.message}</p>
           <div className="dialog-actions">
-            <button type="button" className="btn" autoFocus onClick={() => setDup(null)}>Batal</button>
-            <button type="button" className="btn btn-primary" disabled={busy} onClick={() => save(codeFor, dup.key)}>Tambah lagi</button>
+            <Button variant="outline" autoFocus onPress={() => setDup(null)}>Batal</Button>
+            <Button isDisabled={busy} onPress={() => save(codeFor, dup.key)}>Tambah lagi</Button>
           </div>
         </div>
       )}
       {error && <p className="form-error" role="alert">{error}</p>}
       {missing && !pick && <p className="muted small" id="tsheet-why">{missing}</p>}
-      <button type="button" className="btn btn-primary btn-block" disabled={busy || !!missing || !!pick || !!dup} aria-describedby={missing ? 'tsheet-why' : undefined}
-        onClick={() => save()}>{busy ? 'Menyimpan…' : `Simpan ${where}${codes ? ' ' + codes : ''}`}</button>
+      <Button fullWidth isDisabled={busy || !!missing || !!pick || !!dup} aria-describedby={missing ? 'tsheet-why' : undefined}
+        onPress={() => save()}>{busy ? 'Menyimpan…' : `Simpan ${where}${codes ? ' ' + codes : ''}`}</Button>
     </section>
   )
 }

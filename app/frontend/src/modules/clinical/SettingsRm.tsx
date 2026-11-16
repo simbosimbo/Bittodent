@@ -1,4 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { Button, Card, Checkbox } from '@heroui/react'
+import './clinical.css'
 import { ApiError, errorText } from '../../shared/api/http'
 import type { Me } from '../../shared/session'
 import { getCatalog, getClinicSettings, saveClinicSettings, searchIcd10, setCatalogDiagnosis, setSelesaiPin, type CatalogRow } from './api'
@@ -9,12 +11,12 @@ export default function SettingsRmPage({ me, onChanged }: { me: Me; onChanged: (
   const canManage = me.permissions.includes('settings.manage')
   const canSign = me.permissions.includes('note.sign')
   return (
-    <>
+    <div className="clin grid gap-3">
       <div className="page-head"><h1>Pengaturan RM</h1></div>
       {canManage && <ClinicSettingsForm onChanged={onChanged} />}
       {canSign && <OwnPin hasPin={!!me.selesai?.has_pin} required={!!me.selesai?.pin_required} onChanged={onChanged} />}
       {canSign && <DefaultDiagnoses />}
-    </>
+    </div>
   )
 }
 
@@ -45,7 +47,7 @@ function DefaultDiagnoses() {
     } catch (err) { setError(errorText(err)) }
   }
   return (
-    <section className="card">
+    <Card render={(p) => <section {...p} />}>
       <h2>Diagnosis bawaan per tindakan</h2>
       <p className="muted small">Dipakai saat tindakan diisi tanpa diagnosis. Ditetapkan dokter gigi; dicatat di audit.</p>
       {error && <p className="form-error" role="alert">{error}</p>}
@@ -57,20 +59,20 @@ function DefaultDiagnoses() {
               <strong>{r.name}</strong> <span className="muted small">{r.procedure_code}</span>
               <p className="small">
                 {r.default_icd10 ? `${r.default_icd10} ${r.default_icd10_display ?? ''}` : <span className="muted">Belum ada</span>}
-                {r.default_icd10 && <> <button type="button" className="btn-link" aria-label={`Hapus diagnosis bawaan ${r.name}`} onClick={() => pick(r.procedure_code, null)}>Hapus</button></>}
+                {r.default_icd10 && <> <Button size="sm" variant="ghost" aria-label={`Hapus diagnosis bawaan ${r.name}`} onPress={() => pick(r.procedure_code, null)}>Hapus</Button></>}
               </p>
               <input type="search" aria-label={`Cari ICD-10 untuk ${r.name}`} placeholder="Cari kode atau nama ICD-10"
                 value={editing === r.procedure_code ? q : ''} onChange={(e) => { if (editing !== r.procedure_code) setHits([]); setEditing(r.procedure_code); setQ(e.target.value) }} />
               {editing === r.procedure_code && hits.length > 0 && (
                 <div>
-                  {hits.map((h) => <div key={h.code}><button type="button" className="btn-link" onClick={() => pick(r.procedure_code, h.code)}>{h.code} · {h.display}</button></div>)}
+                  {hits.map((h) => <div key={h.code}><Button size="sm" variant="ghost" onPress={() => pick(r.procedure_code, h.code)}>{h.code} · {h.display}</Button></div>)}
                 </div>
               )}
             </div>
           ))}
         </div>
       )}
-    </section>
+    </Card>
   )
 }
 
@@ -100,18 +102,18 @@ function ClinicSettingsForm({ onChanged }: { onChanged: () => void }) {
     } catch (err) { setError(errorText(err)) }
   }
   return (
-    <form className="card" onSubmit={save} noValidate>
+    <Card<'form'> render={(p) => <form {...p} onSubmit={save} noValidate />}>
       <h2>Pengaturan klinik</h2>
       <label>Tenggat koreksi bebas (jam) <input type="number" min={1} max={720} disabled={!loaded} value={hours} onChange={(e) => setHours(e.target.value)} /></label>
       <p className="muted small">Bawaan 48 jam (2×24 jam) sejak tindakan difinalkan. Lewat tenggat, koreksi menunggu persetujuan pemilik. Setiap koreksi disimpan sebagai versi baru dengan alasannya; versi lama tetap tersimpan.</p>
-      <label className="check"><input type="checkbox" disabled={!loaded} checked={pin} onChange={(e) => setPin(e.target.checked)} /> Wajibkan PIN saat Selesai</label>
+      <Check label="Wajibkan PIN saat Selesai" disabled={!loaded} checked={pin} onChange={setPin} />
       <p className="muted small">Bawaan: mati. Bila nyala, dokter memasukkan PIN 6 angka miliknya setiap menekan Selesai.</p>
-      <label className="check"><input type="checkbox" disabled={!loaded} checked={exam} onChange={(e) => setExam(e.target.checked)} /> Tampilkan mode Pemeriksaan awal di odontogram</label>
+      <Check label="Tampilkan mode Pemeriksaan awal di odontogram" disabled={!loaded} checked={exam} onChange={setExam} />
       <p className="muted small">Bawaan: nyala, tidak wajib. Bila mati, odontogram hanya diisi dari tindakan (mode Perawatan).</p>
       {error && <p className="form-error" role="alert">{error}</p>}
       {msg && <p className="notice" role="status">{msg}</p>}
-      <div className="toolbar"><button className="btn btn-primary" disabled={!loaded}>Simpan pengaturan</button></div>
-    </form>
+      <div className="flex flex-wrap gap-2"><Button type="submit" isDisabled={!loaded}>Simpan pengaturan</Button></div>
+    </Card>
   )
 }
 
@@ -136,14 +138,23 @@ function OwnPin({ hasPin, required, onChanged }: { hasPin: boolean; required: bo
     }
   }
   return (
-    <form className="card" onSubmit={submit}>
+    <Card<'form'> render={(p) => <form {...p} onSubmit={submit} />}>
       <h2>PIN Selesai saya</h2>
       <p className="muted small">{hasPin ? 'PIN sudah diatur.' : 'Belum ada PIN.'} {required ? 'Klinik ini mewajibkan PIN saat Selesai.' : 'Klinik ini belum mewajibkan PIN.'}</p>
       {hasPin && <label>PIN lama <input type="password" inputMode="numeric" autoComplete="off" value={current} onChange={(e) => setCurrent(digits(e.target.value))} /></label>}
       <label>PIN baru (6 angka) <input type="password" inputMode="numeric" autoComplete="off" value={pin} onChange={(e) => setPin(digits(e.target.value))} /></label>
       {error && <p className="form-error" role="alert">{error}</p>}
       {msg && <p className="notice" role="status">{msg}</p>}
-      <div className="toolbar"><button className="btn btn-primary" disabled={pin.length !== 6 || (hasPin && current.length !== 6)}>{hasPin ? 'Ubah PIN' : 'Simpan PIN'}</button></div>
-    </form>
+      <div className="flex flex-wrap gap-2"><Button type="submit" isDisabled={pin.length !== 6 || (hasPin && current.length !== 6)}>{hasPin ? 'Ubah PIN' : 'Simpan PIN'}</Button></div>
+    </Card>
+  )
+}
+
+// Whole row is the target (>=44px on a phone, clinical.css); the hidden native input is not a tap target, so the audit skips it.
+function Check({ label, checked, disabled, onChange }: { label: string; checked: boolean; disabled: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <Checkbox className="clin-check" data-audit-skip isSelected={checked} isDisabled={disabled} onChange={onChange}>
+      <Checkbox.Content><Checkbox.Control><Checkbox.Indicator /></Checkbox.Control>{label}</Checkbox.Content>
+    </Checkbox>
   )
 }
