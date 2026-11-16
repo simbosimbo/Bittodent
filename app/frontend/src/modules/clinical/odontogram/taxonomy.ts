@@ -39,7 +39,7 @@ export const TAXONOMY = data as unknown as Taxonomy
 export type Span = { from: number; to: number; roles: Record<number, SpanRole>; material: Material | null }
 /** What one Simpan sends (POST /visits/{id}/tooth-entries). */
 export type ToothEntry = {
-  tooth: number; condition: string; status: EntryStatus; surfaces?: SurfaceKey[]; procedure_code?: string | null; variant?: string
+  tooth: number; condition?: string; status: EntryStatus; surfaces?: SurfaceKey[]; procedure_code?: string | null; variant?: string
   span_to?: number; span_roles?: Record<number, SpanRole>; material?: Material | null
   external_clinic_name?: string; external_date?: string
 }

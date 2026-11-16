@@ -8,8 +8,9 @@ import { conditionByKey, conditionsIn, defaultRoles, padLabel, padsFor, spanEnds
 // Boards OVv2-01..03 + AL06 ("tindakan dulu"): tooth -> Permukaan | Seluruh gigi | Rentang -> condition (official symbol + code) -> status
 // (Ada / Lain / Rencana / Selesai) -> one primary "Simpan 26 O cof". A Selesai entry IS today's procedure: the server bills the clinic code
 // mapped to the condition; the odontogram draws from the same row. Several mapped codes -> the dentist picks one (pick_code).
-type Tab = 'surface' | 'tooth' | 'span'
-const TABS: [Tab, string][] = [['surface', 'Permukaan'], ['tooth', 'Seluruh gigi'], ['span', 'Rentang']]
+// S3 "Tindakan" (default): the dentist picks the procedure; the server takes the condition from its catalog mapping (bahan when several).
+type Tab = 'proc' | 'surface' | 'tooth' | 'span'
+const TABS: [Tab, string][] = [['proc', 'Tindakan'], ['surface', 'Permukaan'], ['tooth', 'Seluruh gigi'], ['span', 'Rentang']]
 const STATUS_SHORT: Record<EntryStatus, string> = { ada_sebelumnya: 'Ada', klinik_lain: 'Lain', rencana: 'Rencana', selesai: 'Selesai' }
 // treatments default to Selesai (done today), findings to Ada; the dentist can switch with one tap
 const TREATMENT = new Set(['amf', 'cof', 'gif', 'fis', 'inl', 'onl', 'rct', 'fmc', 'poc', 'mpc', 'gmc', 'meb', 'pob', 'prd', 'fld', 'ipx'])
@@ -19,7 +20,9 @@ type Pick = { condition: string; list: { procedure_code: string; name: string }[
 export function ToothSheet({ tooth, visitId, initialSurface, onSaved }: {
   tooth: number; visitId: string; initialSurface?: SurfaceKey; onSaved: (msg: string) => void
 }) {
-  const [tab, setTab] = useState<Tab>('surface')
+  const [tab, setTab] = useState<Tab>('proc')
+  const [proc, setProc] = useState<CatalogRow | null>(null)
+  const [serverBahan, setServerBahan] = useState<string[]>([]) // pick_condition candidates when the loaded catalog is stale
   const [pads, setPads] = useState<SurfaceKey[]>(initialSurface ? [initialSurface] : [])
   const [cond, setCond] = useState<string | null>(null) // surface / span: one condition
   const [conds, setConds] = useState<string[]>([]) // whole tooth: several, joined with "-" (poc-rct)
@@ -47,17 +50,26 @@ export function ToothSheet({ tooth, visitId, initialSurface, onSaved }: {
   const shownSurface = more ? surfaceConds : surfaceConds.filter((c) => c.top)
   const toothConds = [...conditionsIn('tooth'), ...conditionsIn('implant')].filter((c) => c.key !== 'sehat'
     && (!q.trim() || `${c.label} ${c.code ?? ''}`.toLowerCase().includes(q.trim().toLowerCase())))
-  const chosen = tab === 'tooth' ? conds : cond ? [cond] : []
-  const codes = chosen.map((k) => conditionByKey(k)?.code ?? conditionByKey(k)?.label).join('-')
+  const procs = catalog.filter((r) => (r.treat_area === 'surface' || r.treat_area === 'tooth')
+    && (!q.trim() || `${r.name} ${r.procedure_code}`.toLowerCase().includes(q.trim().toLowerCase())))
+  const bahan = serverBahan.length ? serverBahan : TAXONOMY.conditions.filter((c) => c.code && proc?.conditions.includes(c.code)).map((c) => c.key)
+  // in the Tindakan tab the one entry is keyed by its procedure code; elsewhere entries are keyed by condition
+  const chosen = tab === 'proc' ? (proc ? [proc.procedure_code] : []) : tab === 'tooth' ? conds : cond ? [cond] : []
+  const nameOf = (k: string) => (tab === 'proc' ? proc?.name : conditionByKey(k)?.label)
+  const codes = tab === 'proc' ? proc?.name ?? '' : chosen.map((k) => conditionByKey(k)?.code ?? conditionByKey(k)?.label).join('-')
+  const onSurface = tab === 'surface' || (tab === 'proc' && proc?.treat_area === 'surface')
   const span = tab === 'span' && spanTo ? spanTeeth(tooth, spanTo) : []
-  const where = tab === 'span' ? (spanTo ? `${Math.min(tooth, spanTo)}-${Math.max(tooth, spanTo)}` : `${tooth}`) : `${tooth}${tab === 'surface' && pads.length ? ' ' + pads.join('') : ''}`
+  const where = tab === 'span' ? (spanTo ? `${Math.min(tooth, spanTo)}-${Math.max(tooth, spanTo)}` : `${tooth}`) : `${tooth}${onSurface && pads.length ? ' ' + pads.join('') : ''}`
   const codeOf = (k: string, picked = codeFor) => {
+    if (tab === 'proc') return k
     const mapped = catalog.filter((r) => r.conditions.includes(conditionByKey(k)?.code ?? '')).map((r) => r.procedure_code)
     return picked[k] ?? (mapped.length === 1 ? mapped[0] : undefined)
   }
   const stagesOf = (k: string, picked = codeFor) => (status === 'selesai' ? stages[codeOf(k, picked) ?? ''] ?? [] : [])
   const needStage = chosen.some((k) => stagesOf(k).length > 1 && !variantFor[k])
-  const missing = !chosen.length ? 'Pilih kondisi.' : tab === 'surface' && !pads.length ? 'Pilih permukaan.' : tab === 'span' && !spanTo ? 'Pilih gigi akhir rentang.'
+  const missing = !chosen.length ? (tab === 'proc' ? 'Pilih tindakan.' : 'Pilih kondisi.')
+    : tab === 'proc' && bahan.length > 1 && !cond ? 'Pilih bahan / jenis.'
+    : onSurface && !pads.length ? 'Pilih permukaan.' : tab === 'span' && !spanTo ? 'Pilih gigi akhir rentang.'
     : status === 'klinik_lain' && (!ext.clinic.trim() || !ext.date.trim()) ? 'Isi nama klinik lain dan perkiraan tanggal.'
     : needStage ? 'Pilih tahap yang dikerjakan hari ini.' : ''
 
@@ -74,7 +86,8 @@ export function ToothSheet({ tooth, visitId, initialSurface, onSaved }: {
       setStatus(defaultStatus(conditionByKey(k)))
     }
   }
-  const switchTab = (t: Tab) => { setTab(t); setCond(null); setConds([]); setPick(null); setError('') }
+  const pickProc = (r: CatalogRow) => { setProc(r); setCond(null); setServerBahan([]); setVariantFor({}); setError(''); setStatus('selesai') }
+  const switchTab = (t: Tab) => { setTab(t); setCond(null); setConds([]); setPick(null); setProc(null); setServerBahan([]); setQ(''); setError('') }
   const spanEndsHere = useMemo(() => spanEnds(tooth), [tooth])
 
   async function save(chosenCodes = codeFor) {
@@ -84,10 +97,11 @@ export function ToothSheet({ tooth, visitId, initialSurface, onSaved }: {
     try {
       for (const k of chosen) {
         const external = status === 'klinik_lain' ? { external_clinic_name: ext.clinic.trim(), external_date: ext.date.trim() } : {}
-        const base = { tooth, condition: k, status, ...(chosenCodes[k] ? { procedure_code: chosenCodes[k] } : {}),
-          ...(status === 'selesai' && variantFor[k] ? { variant: variantFor[k] } : {}), ...external }
+        const what = tab === 'proc' ? { procedure_code: k, ...(cond ? { condition: cond } : {}) }
+          : { condition: k, ...(chosenCodes[k] ? { procedure_code: chosenCodes[k] } : {}) }
+        const base = { tooth, status, ...what, ...(status === 'selesai' && variantFor[k] ? { variant: variantFor[k] } : {}), ...external }
         try {
-          await saveToothEntry(visitId, tab === 'surface' ? { ...base, surfaces: pads }
+          await saveToothEntry(visitId, onSurface ? { ...base, surfaces: pads }
             : tab === 'span' ? { ...base, span_to: spanTo!, span_roles: roles, material: material || null } : base)
           saved.push(k)
         } catch (e) {
@@ -96,17 +110,32 @@ export function ToothSheet({ tooth, visitId, initialSurface, onSaved }: {
             setConds((cs) => cs.filter((x) => !saved.includes(x)))
             return
           }
+          if (e instanceof ApiError && e.status === 422 && e.data?.error === 'pick_condition') { // catalog changed since it loaded
+            setServerBahan(e.data.candidates ?? [])
+            return
+          }
           throw e
         }
       }
       onSaved(`Gigi ${where} ${codes} tersimpan${status === 'selesai' ? ' (masuk tagihan saat Selesai)' : ''}.`)
-      setCond(null); setConds([]); setPick(null); setCodeFor({}); setVariantFor({})
+      setCond(null); setConds([]); setPick(null); setCodeFor({}); setVariantFor({}); setProc(null); setServerBahan([])
     } catch (e) {
       setError(e instanceof ApiError && e.status === 422 ? e.data?.message ?? 'Data tidak valid.' : errorText(e))
     } finally {
       setBusy(false)
     }
   }
+
+  const padsEl = (
+    <div className="tsheet-pads" role="group" aria-label="Permukaan">
+      {padsFor(tooth).map((s) => (
+        <button key={s.key} type="button" aria-pressed={pads.includes(s.key)} title={s.label}
+          onClick={() => setPads(pads.includes(s.key) ? pads.filter((x) => x !== s.key) : [...pads, s.key])}>
+          <strong>{padLabel(tooth, s.key)}</strong><span className="small">{s.label.split(' ')[0].toLowerCase()}</span>
+        </button>
+      ))}
+    </div>
+  )
 
   return (
     <section className="tsheet" aria-label={`Isi gigi ${tooth}`}>
@@ -115,15 +144,28 @@ export function ToothSheet({ tooth, visitId, initialSurface, onSaved }: {
         {TABS.map(([k, label]) => <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => switchTab(k)}>{label}</button>)}
       </div>
 
-      {tab === 'surface' && <>
-        <div className="tsheet-pads" role="group" aria-label="Permukaan">
-          {padsFor(tooth).map((s) => (
-            <button key={s.key} type="button" aria-pressed={pads.includes(s.key)} title={s.label}
-              onClick={() => setPads(pads.includes(s.key) ? pads.filter((x) => x !== s.key) : [...pads, s.key])}>
-              <strong>{padLabel(tooth, s.key)}</strong><span className="small">{s.label.split(' ')[0].toLowerCase()}</span>
+      {tab === 'proc' && <>
+        {procs.length > 8 || q ? <input type="search" className="tsheet-search" placeholder="Cari tindakan atau kode" aria-label="Cari tindakan" value={q}
+          onChange={(e) => setQ(e.target.value)} /> : null}
+        <div className="tsheet-list" role="radiogroup" aria-label="Tindakan">
+          {procs.map((r) => (
+            <button key={r.procedure_code} type="button" role="radio" aria-checked={proc?.procedure_code === r.procedure_code} onClick={() => pickProc(r)}>
+              <span className="grow">{r.name}</span><code>{r.procedure_code}</code>
             </button>
           ))}
+          {!procs.length && <p className="muted small">{q ? 'Tidak ada tindakan yang cocok.' : 'Belum ada tindakan di katalog klinik.'}</p>}
         </div>
+        {proc && bahan.length > 1 && (
+          <div className="tsheet-pick" role="radiogroup" aria-label="Bahan / jenis">
+            <p className="small">Bahan / jenis:</p>
+            {bahan.map((k) => <button key={k} type="button" role="radio" aria-checked={cond === k} onClick={() => setCond(k)}>{conditionByKey(k)?.label ?? k}</button>)}
+          </div>
+        )}
+        {proc?.treat_area === 'surface' && padsEl}
+      </>}
+
+      {tab === 'surface' && <>
+        {padsEl}
         <div className="tsheet-cards" role="radiogroup" aria-label="Kondisi">
           {shownSurface.map((c) => <CondCard key={c.key} c={c} on={cond === c.key} onPick={() => choose(c.key)} />)}
         </div>
@@ -189,8 +231,8 @@ export function ToothSheet({ tooth, visitId, initialSurface, onSaved }: {
         </div>
       )}
       {chosen.filter((k) => stagesOf(k).length > 1).map((k) => (
-        <div key={k} className="tsheet-pick" role="radiogroup" aria-label={`Tahap ${conditionByKey(k)?.label}`}>
-          <p className="small">Tahap {conditionByKey(k)?.label} hari ini:</p>
+        <div key={k} className="tsheet-pick" role="radiogroup" aria-label={`Tahap ${nameOf(k)}`}>
+          <p className="small">Tahap {nameOf(k)} hari ini:</p>
           {stagesOf(k).map((s) => <button key={s.variant} type="button" role="radio" aria-checked={variantFor[k] === s.variant}
             onClick={() => setVariantFor({ ...variantFor, [k]: s.variant })}>{s.label}</button>)}
         </div>

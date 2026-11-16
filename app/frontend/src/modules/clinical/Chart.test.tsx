@@ -250,6 +250,7 @@ test('OVv2-01 tindakan dulu: tooth -> Permukaan pad -> condition card -> status 
   await screen.findByRole('region', { name: 'Odontogram' })
   fireEvent.click(document.getElementById('t26-L')!)
   const sheet = within(screen.getByRole('region', { name: 'Isi gigi 26' }))
+  fireEvent.click(sheet.getByRole('tab', { name: 'Permukaan' })) // S3: Tindakan is the default tab; conditions live here
   expect(sheet.getByRole('button', { name: /^P/ })).toHaveAttribute('aria-pressed', 'true') // tapped L reads P (palatal) on an upper tooth
   const save = sheet.getByRole('button', { name: /^Simpan 26/ })
   expect(save).toBeDisabled()
@@ -355,6 +356,7 @@ test('Mulai kunjungan: dentist starts a walk-in, chart reloads onto the new visi
 
   fireEvent.click(document.getElementById('t16-O')!)
   const sheet = within(screen.getByRole('region', { name: 'Isi gigi 16' }))
+  fireEvent.click(sheet.getByRole('tab', { name: 'Permukaan' }))
   fireEvent.click(sheet.getByRole('radio', { name: /Karies/ }))
   expect(within(sheet.getByRole('radiogroup', { name: 'Status' })).getByRole('radio', { name: 'Ada' })).toHaveAttribute('aria-checked', 'true') // a finding: Ada
   fireEvent.click(sheet.getByRole('button', { name: 'Simpan 16 O car' }))
@@ -520,6 +522,8 @@ test('active visit: panel offers conditions; inner tab Catatan Klinis shows SOAP
   expect(screen.queryByRole('heading', { name: 'Catatan SOAP' })).toBeNull()
   fireEvent.click(document.getElementById('t26-L')!)
   const sheet = within(screen.getByRole('region', { name: 'Isi gigi 26' }))
+  expect(sheet.getByRole('tab', { name: 'Tindakan' })).toHaveAttribute('aria-selected', 'true')
+  fireEvent.click(sheet.getByRole('tab', { name: 'Permukaan' }))
   expect(sheet.getByRole('radio', { name: /Karies/ })).toBeInTheDocument()
   fireEvent.click(sheet.getByRole('tab', { name: 'Seluruh gigi' }))
   expect(sheet.getByRole('button', { name: /Mahkota porselen/ })).toBeInTheDocument()
@@ -572,6 +576,7 @@ test('390px: selecting a tooth opens a bottom sheet named for the tooth; keypad 
   expect(sheet).toHaveClass('tooth-sheet')
   expect(sheet).toHaveAttribute('aria-modal', 'true')
   expect(sheet).toHaveTextContent('Molar pertama kanan atas')
+  fireEvent.click(within(sheet).getByRole('tab', { name: 'Permukaan' }))
   expect(pad().getAllByRole('button').map((b) => b.querySelector('strong')!.textContent)).toEqual(['M', 'O', 'D', 'V', 'P']) // MODVL, L reads P
   for (const b of pad().getAllByRole('button')) {
     expect(parseFloat(getComputedStyle(b).minWidth)).toBeGreaterThanOrEqual(44)
@@ -606,6 +611,7 @@ test('390px: selecting a tooth opens a bottom sheet named for the tooth; keypad 
   expect(document.querySelector('.tooth-surface.is-sel')).toBeNull()
 
   fireEvent.click(document.getElementById('t36-O')!)
+  fireEvent.click(within(screen.getByRole('dialog', { name: 'Detail gigi 36' })).getByRole('tab', { name: 'Permukaan' }))
   expect(pad().getAllByRole('button').map((b) => b.querySelector('strong')!.textContent)).toEqual(['M', 'O', 'D', 'V', 'L']) // lower: lingual stays L
   expect(screen.getByRole('dialog', { name: 'Detail gigi 36' })).toHaveTextContent('Molar pertama kiri bawah')
   fireEvent.keyDown(screen.getByRole('dialog', { name: 'Detail gigi 36' }), { key: 'Escape' })
@@ -775,6 +781,7 @@ test('E2E 16-11-2026: a finished entry whose condition is not mapped to a clinic
   await screen.findByRole('region', { name: 'Odontogram' })
   fireEvent.click(document.getElementById('t36-O')!)
   const sheet = within(screen.getByRole('region', { name: 'Isi gigi 36' }))
+  fireEvent.click(sheet.getByRole('tab', { name: 'Permukaan' }))
   fireEvent.click(sheet.getByRole('radio', { name: /Pit dan fissure sealant/ }))
   fireEvent.click(sheet.getByRole('button', { name: 'Simpan 36 O fis' }))
   expect(await sheet.findByRole('alert')).toHaveTextContent('belum dipetakan')
@@ -785,6 +792,7 @@ test('#70 phone: a saved entry closes the tooth sheet so the tabs and Selesai ba
   await screen.findByRole('region', { name: 'Odontogram' })
   fireEvent.click(document.getElementById('t26-O')!)
   const sheet = within(screen.getByRole('region', { name: 'Isi gigi 26' }))
+  fireEvent.click(sheet.getByRole('tab', { name: 'Permukaan' }))
   fireEvent.click(sheet.getByRole('radio', { name: /Tambalan komposit/ }))
   fireEvent.click(sheet.getByRole('button', { name: 'Simpan 26 O cof' }))
   await waitFor(() => expect(calls.find((c) => c.url.endsWith('/tooth-entries'))).toBeTruthy())
