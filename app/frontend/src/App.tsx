@@ -10,7 +10,7 @@ import { useIsMobile } from './shared/useIsMobile'
 import { ribbonPatientId } from './shared/ribbonRoute'
 import { getMe, Login, logout as apiLogout, switchBranch as apiSwitchBranch } from './modules/auth'
 import { AlertRibbon, FamilyPage, MedicalHistoryPage, PatientDetail, PatientForm, PatientList } from './modules/patients'
-import { Home, Schedule, usePendingConfirm } from './modules/scheduling'
+import { Home, QueuePanel, Schedule, usePendingConfirm } from './modules/scheduling'
 import { ChartPage, SettingsRmPage } from './modules/clinical'
 import { InvoicePage, KasirPage, ShiftPage } from './modules/billing'
 import { ReportPage, RevenuePage } from './modules/reporting'
@@ -51,6 +51,8 @@ function ToHome() {
 }
 
 // Public patient pages (no login): #/book/{slug} and #/book/{slug}/manage/{token}.
+const QUEUE_PAGES = ['/', '/pasien', '/kasir']
+
 export default function App() {
   const hash = useHash().split('?')[0]
   const book = hash.match(/^\/book\/([\w-]+)(?:\/manage\/([\w-]+))?$/)
@@ -139,7 +141,9 @@ function StaffApp() {
   else if (hash === '/pengaturan-rm' && can('note.sign|settings.manage')) page = <SettingsRmPage me={me} onChanged={load} />
   else page = hash === '/' ? <Home me={me} /> : <ToHome />
 
-  return <Shell me={me} nav={nav} active={active} title={pageTitle(hash, active)}
+  // Desk pages keep today's queue in view (KlinikMe pattern); the chart and settings need the full width.
+  const queue = can('appointment.read') && QUEUE_PAGES.includes(hash) ? (where: 'rail' | 'sheet') => <QueuePanel me={me} where={where} /> : undefined
+  return <Shell me={me} nav={nav} active={active} title={pageTitle(hash, active)} queue={queue}
     badges={{ '/jadwal': { count: pendingCount, label: `${pendingCount} janji online perlu konfirmasi` } }} ribbon={ribbonId && can('patient.read') && <AlertRibbon key={ribbonId} patientId={ribbonId} />}
     onSwitchBranch={switchBranch} onLogout={logout}>{page}</Shell>
 }

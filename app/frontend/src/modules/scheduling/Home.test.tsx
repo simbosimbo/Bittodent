@@ -48,17 +48,9 @@ test('with only note.read the link points at the chart without a visit', async (
   expect(hrefs(await region('Janji hari ini'))).toEqual(['#/rekam-medis/p-a2', '#/rekam-medis/p-a1'])
 })
 
-test('queue items link to the chart with the same rule', async () => {
-  home(['note.read', 'note.write'])
-  const queue = await region('Antrean live')
-  expect(hrefs(queue)).toEqual(['#/rekam-medis/p-a2/janji/a2'])
-  expect(within(queue).getByText('Sudah datang')).toBeInTheDocument()
-})
-
 test('without note.read there are no chart links', async () => {
   home([])
   expect(hrefs(await region('Janji hari ini'))).toEqual([])
-  expect(hrefs(await region('Antrean live'))).toEqual([])
 })
 
 test('Pasien hari ini adds walk-in patients without an appointment', async () => {

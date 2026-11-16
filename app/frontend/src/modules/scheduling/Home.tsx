@@ -160,7 +160,7 @@ function DeskHome({ me }: { me: Me }) {
             )}
           </section>
 
-          <section className="card span-8 home-today" aria-labelledby="home-today">
+          <section className="card span-12 home-today" aria-labelledby="home-today">
             <div className="card-head">
               <div>
                 <h2 id="home-today">Janji hari ini</h2>
@@ -188,31 +188,6 @@ function DeskHome({ me }: { me: Me }) {
             )}
           </section>
 
-          <section className="card span-4 home-queue" aria-labelledby="home-queue">
-            <div className="card-head">
-              <h2 id="home-queue">Antrean live</h2>
-              <span className="muted small">Diperbarui {nowLabel}</span>
-            </div>
-            <div className="queue-sum">
-              <div className="chip-checked_in"><strong>{waiting}</strong>Check-in</div>
-              <div className="chip-in_treatment"><strong>{treating}</strong>Merawat</div>
-              <div className="chip-done"><strong>{done}</strong>Selesai</div>
-            </div>
-            {queue.length === 0 ? <p className="muted empty">Belum ada pasien yang check-in.</p> : (
-              <ul className="queue">
-                {queue.map((a, i) => (
-                  <li key={a.id}>
-                    <span className="queue-no">{i + 1}</span>
-                    <div className="grow">
-                      <div className="strong">{a.patient?.name ?? '—'}</div>
-                      <div className="muted small">{time(a)} · {a.chair} · {a.dentist?.name} <StatusChip status={a.status} /></div>
-                    </div>
-                    {open(a)}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
         </div>
       )}
     </>
