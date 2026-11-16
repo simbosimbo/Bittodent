@@ -46,6 +46,7 @@ class ProcedureRequest extends FormRequest
             // status external only (checked in the controller): other clinic's name + approximate date ("2025", "06/2025", "12/06/2025")
             'external_clinic_name' => ['sometimes', 'nullable', 'string', 'max:120'],
             'external_date' => ['sometimes', 'nullable', 'string', 'max:10'],
+            'confirm_duplicate' => ['sometimes', 'boolean'], // POST only: record a second identical billable row on purpose
         ];
     }
 }

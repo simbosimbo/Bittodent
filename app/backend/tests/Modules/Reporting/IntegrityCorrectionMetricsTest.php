@@ -101,7 +101,7 @@ class IntegrityCorrectionMetricsTest extends TestCase
         $mid = $this->report();
         $this->assertSame([$late], array_column(array_filter($this->alerts($mid, 'koreksi_menunggu'), fn ($a) => $a['dentist_id'] === $doc2), 'ref_id'));
         $this->assertNotEmpty(array_filter($this->alerts($mid, 'tinjau_koreksi_lama'), fn ($a) => $a['dentist_id'] === $doc2 && $a['detail']['reason_type'] === 'salah_situs'));
-        $this->assertNotEmpty(array_filter($this->alerts($mid, 'tarif_nol'), fn ($a) => $a['dentist_id'] === $doc2 && $a['detail']['procedure_code'] === '23.01'));
+        $this->assertSame([], array_filter($this->alerts($mid, 'tarif_nol'), fn ($a) => $a['dentist_id'] === $doc2)); // Rp0 from the price list is free work (#78), not an anomaly
         $this->assertSame(1, $this->delta($mid, $before, $doc2)['corr_pending']);
         $this->as(self::OWNER)->postJson("/api/procedure-corrections/$late/approve")->assertOk();
 
@@ -114,7 +114,7 @@ class IntegrityCorrectionMetricsTest extends TestCase
             'voids' => 1, 'void_rp' => $price, 'void_pending' => 1, 'void_pending_rp' => $price,
         ], $this->delta($after, $before, $doc));
         $this->assertSame([
-            'tariff_zero' => 1, 'tariff_zero_pending' => 1, // anomali tarif, not rp0
+            'tariff_zero' => 1, // counted as free work for the owner, no 'menunggu' (#78)
             'corr_salah_kode' => 1, 'corr_salah_situs' => 1, 'corr_total_rp' => 2 * $price,
             'corr_outside_window' => 1, 'corr_owner_approved' => 1,
             'cn_partial' => 1, 'cn_partial_rp' => 10000,

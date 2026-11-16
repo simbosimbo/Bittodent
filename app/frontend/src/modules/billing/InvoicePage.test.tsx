@@ -84,7 +84,7 @@ test('kasir creates a full credit note: shows the number waiting for the owner; 
 test('paid invoice: no void form', async () => {
   current = { ...inv, payments: [{ id: 'p1', payment_account_id: 'k1', amount_rp: 1000, paid_at: '', refunded_rp: 0, account: { name: 'Kas', kind: 'tunai', bank_name: null, account_last4: null } }] }
   render(<InvoicePage visitId="v1" me={me(['billing.read', 'billing.adjust'])} />)
-  await screen.findByText('Tumpatan', { exact: false })
+  await screen.findAllByText('Tumpatan', { exact: false }) // the line and its option in the discount form
   expect(screen.queryByRole('button', { name: 'Void tagihan' })).toBeNull()
 })
 
@@ -202,4 +202,49 @@ test('#70 kwitansi right after paying still names the patient (payment response 
   fireEvent.click(within(paid).getByRole('button', { name: 'Cetak' }))
   expect(print).toHaveBeenCalled() // KL05 Cetak goes straight to the print dialog
   expect(screen.getByRole('region', { name: 'Kwitansi' })).toHaveTextContent('Telah diterima dari Sari Contoh')
+})
+
+test('KlinikMe-style diskon: on one line, in %, sent as whole rupiah with the line; the line shows its discount and the number shows', async () => {
+  const addAdjustment = vi.spyOn(await import('./api'), 'addAdjustment')
+  current = { ...inv, number: 'INV-2026-000007', adjustments: [], lines: [{ ...line, discount_rp: 25000 }] }
+  render(<InvoicePage visitId="v1" me={me(['billing.read', 'billing.adjust'])} />)
+  expect(await screen.findByText('INV-2026-000007')).toBeInTheDocument()
+  expect(screen.getByText(/diskon -Rp\s?25\.000/)).toBeInTheDocument()
+  fireEvent.change(screen.getByRole('combobox', { name: 'Untuk' }), { target: { value: 'l1' } })
+  fireEvent.change(screen.getByRole('combobox', { name: 'Satuan' }), { target: { value: 'pct' } })
+  fireEvent.change(screen.getByLabelText('Jumlah (%)'), { target: { value: '15' } })
+  fireEvent.change(screen.getByLabelText('Alasan'), { target: { value: 'Pasien lama' } })
+  expect(screen.getByText(/= Rp\s?15\.000/)).toBeInTheDocument()
+  addAdjustment.mockResolvedValueOnce(current)
+  fireEvent.click(screen.getByRole('button', { name: 'Simpan' }))
+  await waitFor(() => expect(addAdjustment).toHaveBeenCalledWith('i1', { kind: 'discount', amount_rp: 15000, reason: 'Pasien lama', invoice_line_id: 'l1' }))
+  await waitFor(() => expect(screen.getByLabelText('Alasan')).toHaveValue('')) // saved: the form is empty again
+  expect(screen.getByRole('combobox', { name: 'Untuk' })).toHaveValue('')
+})
+
+test('adjustments are listed by their Indonesian name', async () => {
+  current = { ...inv, adjustments: [{ id: 'a2', kind: 'write_off', amount_rp: 5000, reason: 'Pembulatan', created_at: '', status: 'applied', self_approved_sole_owner: false }] }
+  render(<InvoicePage visitId="v1" me={me(['billing.read'])} />)
+  expect(await screen.findByText(/Penghapusan Rp\s?5\.000/)).toBeInTheDocument()
+})
+
+test('the untouched payment amount follows the balance after a discount; a typed amount stays', async () => {
+  const addAdjustment = vi.spyOn(await import('./api'), 'addAdjustment')
+  current = { ...inv, adjustments: [] }
+  render(<InvoicePage visitId="v1" me={me(['billing.read', 'billing.adjust'])} />)
+  const amount = await screen.findByLabelText('Jumlah dibayar (Rp)')
+  await waitFor(() => expect(amount).toHaveValue(100000))
+  addAdjustment.mockResolvedValueOnce({ ...current, balance_rp: 90000, adjustments_rp: 10000 })
+  fireEvent.change(screen.getByLabelText('Jumlah (Rp)'), { target: { value: '10000' } })
+  fireEvent.change(screen.getByLabelText('Alasan'), { target: { value: 'Pasien lama' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Simpan' }))
+  await waitFor(() => expect(amount).toHaveValue(90000))
+
+  fireEvent.change(amount, { target: { value: '50000' } }) // cashier types a partial payment: kept on the next change
+  addAdjustment.mockResolvedValueOnce({ ...current, balance_rp: 80000, adjustments_rp: 20000 })
+  fireEvent.change(screen.getByLabelText('Jumlah (Rp)'), { target: { value: '10000' } }) // the form is empty after each save
+  fireEvent.change(screen.getByLabelText('Alasan'), { target: { value: 'Pasien lama' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Simpan' }))
+  await waitFor(() => expect(addAdjustment).toHaveBeenCalledTimes(2))
+  expect(amount).toHaveValue(50000)
 })

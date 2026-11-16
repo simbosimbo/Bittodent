@@ -5,14 +5,13 @@ import { clearActivePatients, useActivePatient } from './shared/activePatient'
 import { clearLetterhead } from './shared/letterhead'
 import { pageTitle, Shell, withActivePatientHref, type NavItem } from './shared/layout/Shell'
 import type { Me } from './shared/session'
-import { ComingSoon } from './shared/ui/ComingSoon'
 import { PageSkeleton } from './shared/ui/Skeleton'
 import { ICONS } from './shared/ui/Icon'
 import { useIsMobile } from './shared/useIsMobile'
 import { ribbonPatientId } from './shared/ribbonRoute'
 import { getMe, Login, logout as apiLogout, switchBranch as apiSwitchBranch } from './modules/auth'
 import { AlertRibbon, FamilyPage, MedicalHistoryPage, PatientDetail, PatientForm, PatientList } from './modules/patients'
-import { Home, Schedule, usePendingConfirm } from './modules/scheduling'
+import { Home, QueuePanel, Schedule, usePendingConfirm } from './modules/scheduling'
 import { ChartPage, SettingsRmPage } from './modules/clinical'
 import { InvoicePage, KasirPage, ShiftPage } from './modules/billing'
 import { ReportPage, RevenuePage } from './modules/reporting'
@@ -29,16 +28,14 @@ const useHash = () => {
   return hash
 }
 
-// Permissions: existing names only; 'a|b' = either. Resep reuses note.read (no prescription permission yet); Kasir uses billing.read
+// Permissions: existing names only; 'a|b' = either. Kasir uses billing.read
 // (owner/front_desk/kasir); Laporan = owner report (reporting.read, unit 6); Pengaturan RM = Selesai PIN / clinic settings (#55).
 // Keluarga and Riwayat Medis are not in the nav: they live in the patient header menu (PatientPage).
 export const NAV: (NavItem & { perm: string | null })[] = [
   { path: '/', label: 'Beranda', perm: null, icon: ICONS.home, section: 'KLINIK' },
   { path: '/jadwal', label: 'Jadwal', perm: 'appointment.read', icon: ICONS.calendar, section: 'KLINIK' },
-  { path: '/antrean', label: 'Antrean', perm: 'appointment.read', icon: ICONS.queue, section: 'KLINIK' },
   { path: '/pasien', label: 'Pasien', perm: 'patient.read', icon: ICONS.users, section: 'KLINIK' },
   { path: '/rekam-medis', label: 'Rekam Medis', perm: 'note.read', icon: ICONS.tooth, section: 'KLINIS', group: 'pasien' },
-  { path: '/resep', label: 'Resep', perm: 'note.read', icon: ICONS.receipt, section: 'KLINIS' },
   { path: '/pengaturan-rm', label: 'Pengaturan RM', perm: 'note.sign|settings.manage', icon: ICONS.user, section: 'KLINIS' },
   { path: '/kasir', label: 'Kasir', perm: 'billing.read', icon: ICONS.card, section: 'KEUANGAN' },
   { path: '/pengaturan-klinik', label: 'Pengaturan Klinik', perm: SETTINGS_PERMS, icon: ICONS.settings, section: 'KEUANGAN' },
@@ -55,6 +52,8 @@ function ToHome() {
 }
 
 // Public patient pages (no login): #/book/{slug} and #/book/{slug}/manage/{token}.
+const QUEUE_PAGES = ['/', '/pasien', '/kasir']
+
 export default function App() {
   const hash = useHash().split('?')[0]
   const book = hash.match(/^\/book\/([\w-]+)(?:\/manage\/([\w-]+))?$/)
@@ -123,7 +122,6 @@ function StaffApp() {
   // Keluarga / Riwayat Medis are patient screens without a nav item: they count as Pasien.
   const navHash = hash.replace(/^\/(keluarga|riwayat-medis)\//, '/pasien/')
   const active = nav.find((n) => n.path === '/' ? hash === '/' : navHash === n.path || navHash.startsWith(n.path + '/'))
-  const soon = nav.find((n) => ['/antrean', '/resep'].includes(n.path) && hash === n.path)
   const sub = hash.match(/^\/(keluarga|riwayat-medis)\/([\w-]+)$/)
 
   const ribbonId = ribbonPatientId(hash)
@@ -143,10 +141,11 @@ function StaffApp() {
   else if (hash === '/laporan/integritas' && can('reporting.read')) page = <ReportPage />
   else if (/^\/pengaturan-klinik(\/(harga|pembayaran))?$/.test(hash) && can(SETTINGS_PERMS)) page = <ClinicSettingsPage me={me} tab={hash.split('/')[2] ?? ''} onChanged={load} />
   else if (hash === '/pengaturan-rm' && can('note.sign|settings.manage')) page = <SettingsRmPage me={me} onChanged={load} />
-  else if (soon) page = <ComingSoon title={soon.label} />
   else page = hash === '/' ? <Home me={me} /> : <ToHome />
 
-  return <Shell me={me} nav={nav} active={active} title={pageTitle(hash, active)}
+  // Desk pages keep today's queue in view (KlinikMe pattern); the chart and settings need the full width.
+  const queue = can('appointment.read') && QUEUE_PAGES.includes(hash) ? (where: 'rail' | 'sheet') => <QueuePanel me={me} where={where} /> : undefined
+  return <Shell me={me} nav={nav} active={active} title={pageTitle(hash, active)} queue={queue}
     badges={{ '/jadwal': { count: pendingCount, label: `${pendingCount} janji online perlu konfirmasi` } }} ribbon={ribbonId && can('patient.read') && <AlertRibbon key={ribbonId} patientId={ribbonId} />}
     onSwitchBranch={switchBranch} onLogout={logout}>{page}</Shell>
 }

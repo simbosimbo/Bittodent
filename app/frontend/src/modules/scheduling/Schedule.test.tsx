@@ -273,8 +273,11 @@ test('HP: ketuk kartu membuka sheet aksi; aksi memanggil transisi yang sama; Esc
   expect(document.body.style.overflow).toBe('')
 
   fireEvent.click(card)
+  const keluhan = within(screen.getByRole('dialog')).getByLabelText('Keluhan')
+  expect(keluhan).toHaveValue('Konsultasi') // starts as the appointment's Keperluan: the desk only edits (audit P1-1)
+  fireEvent.change(keluhan, { target: { value: 'Gigi berlubang, ngilu' } })
   fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Check-in' }))
-  await vi.waitFor(() => expect(posts).toEqual([{ url: '/api/appointments/a2/transition', body: { to: 'checked_in' } }]))
+  await vi.waitFor(() => expect(posts).toEqual([{ url: '/api/appointments/a2/transition', body: { to: 'checked_in', complaint: 'Gigi berlubang, ngilu' } }]))
   expect(screen.queryByRole('dialog')).toBeNull()
 
   // Online request: Konfirmasi / Tolak in the sheet, same transition as the "Perlu konfirmasi" list
@@ -757,7 +760,7 @@ test('HP Dokter (#70): kartu Terjadwal hari ini punya "Mulai kunjungan" = check-
   status = 'in_treatment'
   fireEvent.click(cta)
   await vi.waitFor(() => expect(location.hash).toMatch(/^#\/rekam-medis\/p-c/))
-  expect(posts.map((x) => x.body)).toEqual([{ to: 'checked_in' }, { to: 'in_treatment' }])
+  expect(posts.map((x) => x.body)).toEqual([{ to: 'checked_in', complaint: 'Konsultasi' }, { to: 'in_treatment' }])
   location.hash = ''
 })
 
@@ -842,4 +845,36 @@ test('HP: geser kiri/kanan di konten ganti hari; geser vertikal & baris chip dia
   expect(day(9)).toHaveAttribute('aria-pressed', 'true')
   drag(within(await screen.findByRole('group', { name: 'Pilih dokter' })).getAllByRole('button')[0], -150, 0) // chip row scrolls itself
   expect(day(9)).toHaveAttribute('aria-pressed', 'true')
+})
+
+test('Pasien datang (audit P1-6): the desk registers a walk-in with dentist + keluhan, no time or chair; hidden without visit.register', async () => {
+  viewport(1280)
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date('2030-01-07T01:00:00Z'))
+  const posts: { url: string; body: any }[] = []
+  vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+    if (url === '/sanctum/csrf-cookie') { document.cookie = 'XSRF-TOKEN=abc'; return new Response(null, { status: 204 }) }
+    if (url.startsWith('/api/schedule')) return json(sched([]))
+    if (url.startsWith('/api/planned-appointments')) return json({ data: [] })
+    if (init?.method === 'POST') { posts.push({ url, body: JSON.parse(init.body as string) }); return json({ id: 'v7' }, 201) }
+    if (url.startsWith('/api/patients')) return json({ data: [{ id: 'p7', name: 'Rina Contoh', dob: '1990-05-12' }] })
+    throw new Error('unexpected ' + url)
+  }))
+  const r = render(<Schedule me={ME} />)
+  await screen.findByRole('button', { name: '+ Buat Janji' })
+  expect(screen.queryByRole('button', { name: 'Pasien datang' })).toBeNull()
+  r.unmount()
+
+  render(<Schedule me={{ ...ME, permissions: [...ME.permissions, 'visit.register'] }} />)
+  fireEvent.click(await screen.findByRole('button', { name: 'Pasien datang' }))
+  const dlg = screen.getByRole('dialog', { name: 'Pasien datang' })
+  expect(within(dlg).queryByLabelText(/Jam|Kursi/)).toBeNull()
+  fireEvent.change(within(dlg).getByLabelText('Pasien'), { target: { value: 'Rina' } })
+  fireEvent.click(await within(dlg).findByRole('button', { name: /Rina Contoh/ }))
+  expect(within(dlg).getByLabelText('Dokter gigi')).toHaveValue('d1') // the branch's only dentist
+  fireEvent.change(within(dlg).getByLabelText('Keluhan (opsional)'), { target: { value: 'Gusi bengkak' } })
+  fireEvent.click(within(dlg).getByRole('button', { name: 'Daftarkan datang' }))
+  await vi.waitFor(() => expect(posts).toEqual([{ url: '/api/patients/p7/visits/walk-in', body: { dentist_id: 'd1', complaint: 'Gusi bengkak' } }]))
+  expect(await screen.findByText('Pasien Rina Contoh terdaftar datang')).toHaveAttribute('role', 'status')
+  await vi.waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
 })

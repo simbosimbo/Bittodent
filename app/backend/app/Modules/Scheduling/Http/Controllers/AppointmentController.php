@@ -13,6 +13,7 @@ use App\Modules\Scheduling\Models\Chair;
 use App\Modules\Scheduling\Services\PatientCareSync;
 use App\Modules\Tenancy\Contracts\TenancyDirectory;
 use App\Shared\Audit\Audit;
+use App\Shared\Crypto\Crypto;
 use App\Shared\Http\Controller;
 use App\Shared\Tenancy\Ctx;
 use Carbon\CarbonImmutable;
@@ -233,7 +234,8 @@ class AppointmentController extends Controller
 
     public function transition(Request $request, string $id)
     {
-        $d = $request->validate(['to' => ['required', 'string', 'in:'.implode(',', array_keys(AppointmentStatus::TRANSITIONS))]]);
+        $d = $request->validate(['to' => ['required', 'string', 'in:'.implode(',', array_keys(AppointmentStatus::TRANSITIONS))],
+            'complaint' => ['nullable', 'string', 'max:500']]); // the desk asks the complaint at check-in (audit P1-1)
 
         return DB::transaction(function () use ($id, $d) {
             $a = Appointment::lockForUpdate()->findOrFail($id);
@@ -249,8 +251,9 @@ class AppointmentController extends Controller
                 return Audit::denied('appointment.confirm'); // confirm/reject an online booking
             }
             $stamp = AppointmentStatus::STAMPS[$d['to']] ?? null;
-            $a->update(['status' => $d['to']] + ($stamp ? [$stamp => now()] : []));
-            Audit::log('ubah_status', 'appointment', $a->id, ['from' => $from, 'to' => $d['to']]);
+            $complaint = $d['to'] === 'checked_in' ? ($d['complaint'] ?? null) : null;
+            $a->update(['status' => $d['to']] + ($stamp ? [$stamp => now()] : []) + ($complaint ? ['complaint_enc' => Crypto::encrypt($complaint)] : []));
+            Audit::log('ubah_status', 'appointment', $a->id, ['from' => $from, 'to' => $d['to']] + ($complaint ? ['keluhan' => true] : []));
             $this->care->push($a->patient_id);
 
             return response()->json($a->only(['id', 'status', 'arrived_at', 'seated_at', 'dismissed_at', 'wait_minutes', 'chair_minutes']));

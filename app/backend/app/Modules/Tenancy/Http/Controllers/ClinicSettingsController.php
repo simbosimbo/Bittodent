@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 // Per-clinic settings (owner only, perm settings.manage). Unit A koreksi: correction window in hours (DEVIATIONS #53);
-// Selesai: PIN required at Selesai, default off (DEVIATIONS #55); Pengaturan Klinik: profile (name, contact, licence) + branch
+// Selesai: PIN required at Selesai, default off (DEVIATIONS #55); Pemeriksaan awal mode, default on (audit S7); Pengaturan Klinik: profile (name, contact, licence) + branch
 // address/phone (DEVIATIONS #71). Every changed field is audited old -> new.
 class ClinicSettingsController extends Controller
 {
@@ -28,12 +28,13 @@ class ClinicSettingsController extends Controller
         return response()->json(self::out(Tenant::findOrFail(Ctx::current()->tenant())) + ['branches' => self::branches()]);
     }
 
-    /** PUT /api/settings/clinic {correction_window_hours?, selesai_pin_required?, name?, address?, phone?, email?, license_no?, license_valid_until?} */
+    /** PUT /api/settings/clinic {correction_window_hours?, selesai_pin_required?, odontogram_exam_enabled?, name?, address?, phone?, email?, license_no?, license_valid_until?} */
     public function update(Request $request)
     {
         $d = $request->validate([
             'correction_window_hours' => ['sometimes', 'integer', 'between:'.self::WINDOW_MIN.','.self::WINDOW_MAX],
             'selesai_pin_required' => ['sometimes', 'boolean'],
+            'odontogram_exam_enabled' => ['sometimes', 'boolean'],
             'name' => ['sometimes', 'string', 'min:3', 'max:200'],
             'address' => ['sometimes', 'nullable', 'string', 'max:255'],
             'phone' => ['sometimes', 'nullable', 'string', 'regex:/^[0-9+() -]{6,30}$/'],
@@ -124,6 +125,7 @@ class ClinicSettingsController extends Controller
     private static function out(Tenant $t): array
     {
         return ['correction_window_hours' => (int) $t->correction_window_hours, 'selesai_pin_required' => (bool) $t->selesai_pin_required,
+            'odontogram_exam_enabled' => (bool) $t->odontogram_exam_enabled,
             'name' => $t->name, 'address' => $t->address, 'phone' => $t->phone, 'email' => $t->email, 'license_no' => $t->license_no,
             'license_valid_until' => $t->license_valid_until ? substr((string) $t->license_valid_until, 0, 10) : null,
             'npwp' => $t->npwp, 'receipt_paper_mm' => (int) ($t->receipt_paper_mm ?? 80), 'has_logo' => (bool) $t->logo_path];

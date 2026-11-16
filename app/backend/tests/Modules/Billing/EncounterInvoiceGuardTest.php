@@ -92,15 +92,17 @@ class EncounterInvoiceGuardTest extends TestCase
         return $this->inA(fn () => InvoiceLine::whereIn('invoice_id', Invoice::where('visit_id', $visit)->select('id'))->get());
     }
 
-    public function test_billed_work_closes_via_selesai_and_appointment_done_is_then_a_no_op(): void
+    public function test_billed_work_closes_via_selesai_and_the_appointment_follows_to_done(): void
     {
         [$visit, $appt] = $this->visit();
         $this->work($visit, self::BILLED);
         $this->selesai($visit)->assertOk()->assertJsonPath('visit.status', 'selesai')->assertJsonPath('visit.closed_without_invoice', false);
         $this->assertCount(1, $this->lines($visit));
-        foreach (['checked_in', 'in_treatment', 'done'] as $to) {
-            $this->move($appt, $to)->assertOk();
-        }
+        $a = $this->inA(fn () => Appointment::findOrFail($appt));
+        $this->assertSame('done', $a->status); // never checked in: Selesai still dismisses it, each stamp set once
+        $this->assertNotNull($a->arrived_at);
+        $this->assertNotNull($a->dismissed_at);
+        $this->move($appt, 'done')->assertConflict();
         $v = $this->row($visit);
         $this->assertSame(['selesai', false], [$v->status, $v->closed_without_invoice]);
         $this->assertNotNull($v->ended_at);
@@ -117,7 +119,7 @@ class EncounterInvoiceGuardTest extends TestCase
         $this->assertSame('in_treatment', $this->inA(fn () => Appointment::findOrFail($appt2)->status));
         $this->assertSame('berlangsung', $this->row($visit2)->status);
         $this->selesai($visit2)->assertOk();
-        $this->move($appt2, 'done')->assertOk();
+        $this->assertSame('done', $this->inA(fn () => Appointment::findOrFail($appt2)->status));
     }
 
     public function test_unbilled_work_signs_but_selesai_cannot_close(): void
@@ -162,15 +164,43 @@ class EncounterInvoiceGuardTest extends TestCase
         }
     }
 
-    public function test_exam_only_visit_closes_without_invoice(): void
+    // Audit P0-4: a finished visit always ends in billing. No completed work => refused; a check-up bills 89.31 Pemeriksaan gigi.
+    public function test_visit_without_completed_work_is_refused_until_an_examination_is_added(): void
     {
-        [$visit] = $this->visit(); // a draft note = clinical work: Selesai, not /close
+        [$visit, $appt] = $this->visit(); // a draft note = clinical work: Selesai, not /close
         $this->as(self::DESK)->postJson("/api/visits/$visit/close")->assertConflict()->assertJsonPath('error', 'use_selesai');
-        $this->selesai($visit)->assertOk()->assertJsonPath('visit.status', 'selesai')->assertJsonPath('visit.closed_without_invoice', false);
-        $this->assertNotNull($this->row($visit)->ended_at);
+        $this->selesai($visit)->assertConflict()->assertJsonPath('error', 'no_billable_work')
+            ->assertJsonPath('message', 'Belum ada tindakan selesai. Tambahkan Pemeriksaan gigi (Konsultasi atau Kontrol) dari Tindakan seluruh mulut, lalu tekan Selesai lagi.');
+        $this->assertSame('draft', $this->inA(fn () => ClinicalNote::where('visit_id', $visit)->firstOrFail()->versions->first()->state)); // nothing signed
+        $this->assertSame('berlangsung', $this->row($visit)->status);
+        $this->assertTrue($this->inA(fn () => AuditEvent::where('action', 'tanda_tangan_ditolak')->where('detail->error', 'no_billable_work')->exists()));
 
-        [$empty] = $this->visit(note: false); // nothing to sign: /close still works
-        $this->as(self::DESK)->postJson("/api/visits/$empty/close")->assertOk()->assertJsonPath('status', 'selesai');
+        $this->work($visit, ['procedure_code' => '89.31', 'variant' => 'kontrol']);
+        $this->selesai($visit)->assertOk()->assertJsonPath('visit.status', 'selesai')->assertJsonPath('visit.closed_without_invoice', false);
+        $this->assertSame([[0, false]], $this->lines($visit)->map(fn ($l) => [$l->price_rp, (bool) $l->tariff_zero])->all());
+        // Rp0 kontrol from the price list is free work (#78): no owner approval, the invoice is lunas at once
+        $this->as(self::DESK)->getJson("/api/visits/$visit/invoice")->assertOk()->assertJsonPath('balance_rp', 0)
+            ->assertJsonPath('status', 'lunas')->assertJsonPath('lines.0.tariff_zero', null);
+        $this->assertSame('done', $this->inA(fn () => Appointment::findOrFail($appt)->status));
+
+        [$konsul] = $this->visit();
+        $this->work($konsul, ['procedure_code' => '89.31', 'variant' => 'standar']); // level 1 = Konsultasi
+        $this->selesai($konsul)->assertOk();
+        $this->assertSame([100000], $this->lines($konsul)->pluck('price_rp')->all());
+
+        [$empty, $emptyAppt] = $this->visit(note: false); // nothing to sign: /close and appointment done reach the same refusal
+        $this->as(self::DESK)->postJson("/api/visits/$empty/close")->assertConflict()->assertJsonPath('error', 'no_billable_work');
+        $this->move($emptyAppt, 'checked_in')->assertOk();
+        $this->move($emptyAppt, 'in_treatment')->assertOk();
+        $this->move($emptyAppt, 'done')->assertConflict()->assertJsonPath('error', 'no_billable_work');
+        $this->assertSame(['berlangsung', 'in_treatment'], [$this->row($empty)->status, $this->inA(fn () => Appointment::findOrFail($emptyAppt)->status)]);
+        $this->assertTrue($this->inA(fn () => AuditEvent::where('action', 'tutup_ditolak')->where('entity_id', $empty)
+            ->where('detail->reason', 'no_billable_work')->exists()));
+
+        $walkIn = $this->walkIn(); // cancelled attendance is the one way to close without an invoice
+        $this->as(self::DESK)->postJson("/api/visits/$walkIn/cancel-attendance", ['reason' => 'Pasien pulang sebelum diperiksa'])->assertOk();
+        $this->as(self::DESK)->postJson("/api/visits/$walkIn/close", ['reason' => 'Pasien pulang sebelum diperiksa'])->assertOk()
+            ->assertJsonPath('status', 'selesai');
     }
 
     public function test_walk_in_cancel_attendance_then_close_with_reason(): void

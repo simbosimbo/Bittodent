@@ -97,9 +97,10 @@ class ProcedureExternalTest extends TestCase
             ->assertJsonPath('external_clinic_name', null)->assertJsonPath('external_date', null)->assertJsonPath('external_confirmation', null);
         $this->as(self::DOC)->patchJson("/api/procedures/$id", self::EXT)->assertOk()->assertJsonPath('external_date_precision', 'month');
 
+        $this->proc($visit, ['procedure_code' => '89.31', 'variant' => 'kontrol'])->assertCreated(); // P0-4: Selesai needs a billable act
         $this->sign($visit)->assertOk();
         $this->inA(fn () => ProcedureController::recorded(ProcedureRecord::findOrFail($id))); // even re-raised after sign: nothing
-        $this->assertCount(0, $this->lines($visit));
+        $this->assertNotContains($id, $this->lines($visit)->pluck('procedure_id')->all());
         $this->assertContains($id, array_column($this->chart($visit)['procedures'], 'id'));
         $audit = $this->inA(fn () => AuditEvent::where('entity_id', $id)->where('action', 'buat')->sole());
         $this->assertSame(['Klinik Contoh Lain', 'month'], [$audit->detail['external_clinic_name'], $audit->detail['external_date_precision']]);

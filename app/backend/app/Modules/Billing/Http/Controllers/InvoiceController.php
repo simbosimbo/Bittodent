@@ -119,7 +119,7 @@ class InvoiceController extends Controller
             'kind' => ['required', 'in:discount,write_off,correction'],
             'amount_rp' => ['required', 'integer', 'not_in:0', 'min:-1000000000', 'max:1000000000'],
             'reason' => ['required', 'string', 'min:5', 'max:500'],
-            'invoice_line_id' => ['required_if:kind,correction', 'prohibited_unless:kind,correction', 'nullable', 'uuid'],
+            'invoice_line_id' => ['required_if:kind,correction', 'nullable', 'uuid'], // discount / write_off: optional, on one line (KlinikMe per-baris)
             'procedure_correction_id' => ['prohibited_unless:kind,correction', 'nullable', 'uuid'],
         ]);
         if ($d['kind'] !== 'correction' && $d['amount_rp'] < 0) {
@@ -134,8 +134,11 @@ class InvoiceController extends Controller
             if ($e = self::voided($inv)) {
                 return $e;
             }
-            if ($d['kind'] === 'correction' && ($e = CreditNoteController::lineRefs($inv, $d['invoice_line_id'], $d['procedure_correction_id'] ?? null))) {
+            if (isset($d['invoice_line_id']) && ($e = CreditNoteController::lineRefs($inv, $d['invoice_line_id'], $d['procedure_correction_id'] ?? null))) {
                 return $e;
+            }
+            if ($d['kind'] !== 'correction' && isset($d['invoice_line_id']) && $d['amount_rp'] > Ledger::creditable(InvoiceLine::findOrFail($d['invoice_line_id']))) {
+                return response()->json(['error' => 'over_line', 'message' => 'Potongan melebihi sisa harga baris ini.'], 422);
             }
             if (Ledger::totals($inv)['balance_rp'] - $d['amount_rp'] < 0) {
                 return response()->json(['error' => 'negative_balance', 'message' => 'Penyesuaian membuat saldo di bawah nol.'], 422);

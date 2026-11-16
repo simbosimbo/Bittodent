@@ -78,12 +78,17 @@ final class Ledger
         return $query->where('requires_approval', true)->whereNotIn('id', BillingDecision::whereNotNull($fk)->select($fk));
     }
 
-    /** What may still be credited on a line: price minus credit notes that are not rejected (pending ones reserve their amount). */
+    /**
+     * What may still be credited or discounted on a line: price minus credit notes and line discounts / write-offs that are not
+     * rejected (pending ones reserve their amount). Keeps a discounted line from being credited in full (no phantom overpayment).
+     */
     public static function creditable(InvoiceLine $line): int
     {
         $rejected = BillingDecision::where('decision', 'rejected')->whereNotNull('credit_note_id')->select('credit_note_id');
+        $cut = InvoiceAdjustment::where('invoice_line_id', $line->id)->whereIn('kind', ['discount', 'write_off'])
+            ->whereNotIn('id', InvoiceAdjustmentDecision::where('decision', 'rejected')->select('adjustment_id'))->sum('amount_rp');
 
-        return $line->price_rp - (int) CreditNote::where('invoice_line_id', $line->id)->whereNotIn('id', $rejected)->sum('amount_rp');
+        return $line->price_rp - (int) CreditNote::where('invoice_line_id', $line->id)->whereNotIn('id', $rejected)->sum('amount_rp') - (int) $cut;
     }
 
     public static function syncStatus(Invoice $inv): void
@@ -92,8 +97,10 @@ final class Ledger
             return;
         }
         $t = self::totals($inv);
-        // lunas = something was really owed and it is settled; fully credited (nothing left to bill) stays terbuka, never "lunas Rp0"
-        InvoiceStatus::move($inv, $t['balance_rp'] === 0 && $t['lines_rp'] - $t['credit_notes_rp'] > 0 ? 'lunas' : 'terbuka');
+        // lunas = something owed is settled, or only free work was billed (Rp0 from the owner's price list, Yohanes 16 Nov 2026).
+        // Fully credited (nothing left to bill) stays terbuka: a correction, not free work.
+        $free = $t['lines_rp'] === 0 && $t['credit_notes_rp'] === 0 && InvoiceLine::where('invoice_id', $inv->id)->exists();
+        InvoiceStatus::move($inv, $t['balance_rp'] === 0 && ($t['lines_rp'] - $t['credit_notes_rp'] > 0 || $free) ? 'lunas' : 'terbuka');
     }
 
     /** NK-YYYY-000001, sequential per tenant and year. Caller is inside a transaction; the counter row lock serializes numbering. */
@@ -139,19 +146,22 @@ final class Ledger
         $live = $refunds->reject(fn ($r) => $bd->firstWhere('refund_id', $r->id)?->decision === 'rejected');
         $status = fn ($row, string $fk) => ! $row->requires_approval ? 'applied' : ($bd->firstWhere($fk, $row->id)->decision ?? 'pending');
         $billedProcs = $lines->pluck('procedure_id')->all();
+        $cuts = self::applied(InvoiceAdjustment::where('invoice_id', $inv->id)->whereNotNull('invoice_line_id')->whereIn('kind', ['discount', 'write_off']),
+            InvoiceAdjustmentDecision::class, 'adjustment_id')->get();
         $noteOut = fn ($n) => [...$n->only(['id', 'number', 'invoice_line_id', 'procedure_correction_id', 'amount_rp', 'is_full', 'reason_type',
             'reason', 'created_by', 'created_at']), 'status' => $status($n, 'credit_note_id'),
             'self_approved_sole_owner' => (bool) ($bd->firstWhere('credit_note_id', $n->id)?->self_approved_sole_owner),
             'refunded_rp' => (int) $live->where('credit_note_id', $n->id)->sum('amount_rp')]; // pending + approved
 
-        return [...$inv->only(['id', 'visit_id', 'patient_id', 'payer_patient_id', 'branch_id', 'status', 'created_at']), ...self::totals($inv),
-            'lines' => $lines->map(function ($l) use ($notes, $reviews, $bd, $status, $billedProcs) {
+        return [...$inv->only(['id', 'number', 'visit_id', 'patient_id', 'payer_patient_id', 'branch_id', 'status', 'created_at']), ...self::totals($inv),
+            'lines' => $lines->map(function ($l) use ($notes, $reviews, $bd, $status, $billedProcs, $cuts) {
                 $mine = $notes->where('invoice_line_id', $l->id);
                 $counted = $mine->filter(fn ($n) => in_array($status($n, 'credit_note_id'), ['applied', 'approved'], true));
 
                 return [...$l->only(['id', 'procedure_id', 'procedure_code', 'procedure_name', 'variant', 'tooth', 'surface', 'price_rp', 'created_at']),
                     // original snapshot never changes; corrected = an applied credit note points at it ("Dikoreksi - lihat NK-...")
                     'credited_rp' => (int) $counted->sum('amount_rp'),
+                    'discount_rp' => (int) $cuts->where('invoice_line_id', $l->id)->sum('amount_rp'), // applied line discounts / write-offs
                     'credit_note_numbers' => $mine->pluck('number')->values(),
                     'tariff_zero' => $l->tariff_zero ? ($bd->firstWhere('invoice_line_id', $l->id)->decision ?? 'pending') : null,
                     'correction_reviews' => $reviews->where('invoice_line_id', $l->id)->map(fn ($r) => ['id' => $r->id,

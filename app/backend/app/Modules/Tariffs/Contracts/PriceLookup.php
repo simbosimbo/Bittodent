@@ -13,6 +13,6 @@ interface PriceLookup
      */
     public function priceFor(string $procedureCode, string $variant, \DateTimeInterface $date, ?PriceContext $dentist = null): int;
 
-    /** Same lookup, plus the tariff name and which band won. @return array{price_rp: int, band: string, name: string, derived: bool} band: umum|specialist|field|dentist; derived = a rule made the price */
+    /** Same lookup, plus the tariff name and which band won. @return array{price_rp: int, band: string, name: string, label: ?string, derived: bool} band: umum|specialist|field|dentist; derived = a rule made the price */
     public function quote(string $procedureCode, string $variant, \DateTimeInterface $date, ?PriceContext $dentist = null): array;
 }

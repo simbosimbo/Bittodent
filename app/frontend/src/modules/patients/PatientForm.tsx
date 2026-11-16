@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ReactElement, type ReactNode } from 'react'
+import { cloneElement, useState, type FormEvent, type InputHTMLAttributes, type ReactElement, type ReactNode } from 'react'
 import { DateField } from '../../shared/ui/DateField'
 import { ApiError, errorText } from '../../shared/api/http'
 import { createPatient } from './api'
@@ -47,11 +47,12 @@ export default function PatientForm() {
     }
   }
 
-  const field = (k: keyof Form, label: string, input: ReactElement) => (
+  // Audit P3-1: name = the visible label only (the error would otherwise join it); the error is the description.
+  const field = (k: keyof Form, label: string, input: ReactElement<InputHTMLAttributes<HTMLElement>>) => (
     <label className={errors[k] ? 'has-error' : ''}>
-      {label}
-      {input}
-      {errors[k] && <span className="field-error" role="alert">{errors[k]}</span>}
+      <span id={`pf-${k}`}>{label}</span>
+      {cloneElement(input, { 'aria-labelledby': `pf-${k}`, 'aria-invalid': errors[k] ? true : undefined, 'aria-describedby': errors[k] ? `pf-${k}-error` : undefined })}
+      {errors[k] && <span id={`pf-${k}-error`} className="field-error" role="alert">{errors[k]}</span>}
     </label>
   )
 

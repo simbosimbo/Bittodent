@@ -57,3 +57,21 @@ label.set-price { flex-direction: row; margin: 0; display: flex; align-items: ce
 .set-logo .btn, .set-acc .btn { min-height: 48px; }
 .set-kops { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--space-3); }
 .set-qris { width: 64px; height: 64px; object-fit: contain; }
+/* Harga: odontogram mapping per tariff item */
+.set-odo { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.set-odo .btn { min-height: 48px; }
+.set-odo-pick { flex-basis: 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 4px; }
+.set-odo-opt { display: flex; align-items: center; gap: 8px; min-height: 48px; }
+.set-odo-opt code { margin-left: auto; color: var(--muted, #4b5563); }
+.set-odo-pick .toolbar { grid-column: 1 / -1; }
+
+/* S1/S2: unpriced procedures and stage editor rows */
+.set-unpriced { display: grid; grid-template-columns: 1fr auto; gap: var(--space-2); align-items: center; padding-block: var(--space-2); border-top: 1px solid var(--border); }
+.set-unpriced-name { grid-column: 1 / -1; font-weight: 600; }
+.set-unpriced .set-stages { grid-column: 1 / -1; }
+.set-unpriced > .btn-ghost { grid-column: 1 / -1; justify-self: start; }
+.set-stages { border: 1px solid var(--border); border-radius: 12px; padding: var(--space-3); margin: var(--space-2) 0 0; display: grid; gap: var(--space-2); }
+.set-stages legend { padding: 0 4px; color: var(--muted); }
+.set-stage-row { display: grid; grid-template-columns: 1fr auto auto; gap: var(--space-2); align-items: center; }
+.set-stage-row > input { min-height: 48px; min-width: 0; }
+@media (max-width: 520px) { .set-stage-row { grid-template-columns: 1fr auto; } .set-stage-row > input { grid-column: 1 / -1; } }

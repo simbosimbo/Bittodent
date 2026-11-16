@@ -65,7 +65,6 @@ export const paintCondition = (paint: string) => PAINT_CONDITION[paint] ?? 'tamb
 export const procedureText = (p: { tooth: number | null; surfaces: string | null; name: string | null; procedure_code: string | null }) =>
   `${p.tooth ? `Gigi ${p.tooth}` : 'Mulut'}${p.surfaces ? ' ' + [...p.surfaces].map((s) => surfaceLabel(p.tooth ?? 0, s as Surface)).join('') : ''}: ${p.name ?? 'Tindakan'}${p.procedure_code ? ` (ICD-9-CM ${p.procedure_code})` : ''}`
 export const statusOf = (key: string) => STATUSES.find((s) => s.key === key)
-export const PRESENCE = [['ada', 'Ada'], ['hilang', 'Tidak ada (baseline)'], ['belum_tumbuh', 'Belum tumbuh']] as const
 
 /** Same rule as the server (422 external_same_surface): same tooth and (either whole tooth or a shared surface letter). */
 export const sameSite = (tooth: number, surfaces: string | null, p: { tooth: number | null; surfaces: string | null }) =>

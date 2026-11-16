@@ -245,10 +245,11 @@ class DatabaseSeeder extends Seeder
         $n1 = $note($v1);
         $x1 = self::version($n1, 1, null, $soap('Ngilu gigi kanan bawah saat minum dingin.', 'Karies dentin gigi 36 oklusal.', 'Karies dentin', ['K02.1'], 'Tumpatan komposit.', ['23.2']), $dentist, at: $v1->started_at);
         self::version($n1, 2, $x1, $soap('Ngilu gigi kanan bawah saat minum dingin.', 'Karies dentin gigi 46 oklusal.', 'Karies dentin', ['K02.1'], 'Tumpatan komposit.', ['23.2']), $dentist, 'Salah nomor gigi (36 -> 46)', $v1->started_at->addHours(3));
-        $procedure($v1, 46, 'O', 'selesai', '23.2');
+        self::bill($v1, $procedure($v1, 46, 'O', 'selesai', '23.2'), 250000); // still owed (terbuka)
 
         $v2 = $visit(2);
         self::version($note($v2), 1, null, $soap('Kontrol tumpatan, tidak ada keluhan.', 'Tumpatan 46 baik. Gigi 18 goyang derajat 3.', 'Periodontitis kronis', ['K05.3'], 'Rencana cabut 18.'), $dentist, at: $v2->started_at);
+        self::checkup($v2, $dentist);
         $finding($v2, 18, null, 'perlu_dicabut');
         $procedure($v2, 18, null, 'direncanakan', '23.09');
         $finding($v2, 11, 'I', 'karies');
@@ -336,6 +337,26 @@ class DatabaseSeeder extends Seeder
             'finalized_by' => $state === 'final' ? $dentist->id : null, 'finalized_at' => $state === 'final' ? $v->started_at : null]);
     }
 
+    /** A closed visit always ends in billing (audit S9, R1/R6): one line for $done on the visit's invoice, status via Ledger. */
+    private static function bill(Visit $v, ProcedureRecord $done, int $price): void
+    {
+        $invoice = Invoice::create(['visit_id' => $v->id, 'patient_id' => $v->patient_id, 'payer_patient_id' => $v->patient_id,
+            'branch_id' => $v->branch_id, 'created_by' => $done->created_by,
+            'created_at' => now()->addMinutes(2)]); // tests take the C3 invoice as the oldest (orderBy created_at): never tie with it
+        InvoiceLine::create(['invoice_id' => $invoice->id, 'procedure_id' => $done->id, 'procedure_code' => $done->procedure_code,
+            'variant' => $done->variant ?? 'standar', 'tooth' => $done->tooth, 'price_rp' => $price]);
+        Ledger::syncStatus($invoice->refresh());
+    }
+
+    /** A visit with no other work bills "Pemeriksaan gigi" 89.31 Kontrol at Rp0 (audit P0-4, DEVIATIONS #78: lunas at once). */
+    private static function checkup(Visit $v, User $dentist): void
+    {
+        $done = ProcedureRecord::create(['patient_id' => $v->patient_id, 'visit_id' => $v->id, 'treat_area' => 'mouth', 'status' => 'selesai',
+            'procedure_code' => '89.31', 'variant' => 'kontrol', 'provider_id' => $v->dentist_id, 'state' => 'final', 'created_by' => $dentist->id,
+            'finalized_by' => $dentist->id, 'finalized_at' => $v->started_at]);
+        self::bill($v, $done, 0);
+    }
+
     /**
      * Patient list mix (no new patients): #30 visited 60 days ago + allergy => Perlu kontrol; #31 visited 400 days ago => Tidak aktif
      * with a last visit; #32 allergy only, never visited. Then every patient's facts are pushed through the real writers
@@ -344,8 +365,8 @@ class DatabaseSeeder extends Seeder
     private function careDemo(Branch $branch, User $dentist, array $patients): void
     {
         foreach ([30 => 60, 31 => 400] as $i => $days) {
-            Visit::create(['patient_id' => $patients[$i]->id, 'branch_id' => $branch->id, 'dentist_id' => $dentist->id,
-                'started_at' => now()->subDays($days), 'ended_at' => now()->subDays($days)->addHour(), 'status' => 'selesai']);
+            self::checkup(Visit::create(['patient_id' => $patients[$i]->id, 'branch_id' => $branch->id, 'dentist_id' => $dentist->id,
+                'started_at' => now()->subDays($days), 'ended_at' => now()->subDays($days)->addHour(), 'status' => 'selesai']), $dentist);
         }
         foreach ([30 => ['Ibuprofen (contoh)'], 32 => ['Lateks', 'Amoksisilin (contoh)']] as $i => $allergies) {
             MedicalHistoryVersion::create(['patient_id' => $patients[$i]->id, 'version' => 1, 'premedication_required' => false, 'created_by' => $dentist->id,

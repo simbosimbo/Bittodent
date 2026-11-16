@@ -58,17 +58,24 @@ const finding = (id: string, tooth: number, surface: string | null, condition: s
 const findings = [finding('f1', 16, 'O', 'karies', 'kondisi_pantau'), finding('f2', 26, 'L', 'tambalan', 'direncanakan', '23.2'), finding('f3', 11, 'I', 'karies', 'kondisi_pantau')]
 const childDob = `${new Date().getFullYear() - 9}-01-01`
 
-function renderChart(over: Record<string, unknown> = {}) {
+function renderChart(over: Record<string, unknown> = {}, m: Me = me) {
   const c = { ...chart, findings, ...over }
   window.Tooth3D = mockTooth3D
   vi.stubGlobal('fetch', vi.fn(async (url: string) => new Response(JSON.stringify(
     url.endsWith('manifest.json') ? manifest : url.endsWith('/chart') ? c : url.endsWith('/alerts') ? alerts : full), { status: 200 })))
-  return render(<ChartPage patientId="p1" me={me} />)
+  return render(<ChartPage patientId="p1" me={m} />)
 }
 const radio = (group: string, name: string) => within(screen.getByRole('radiogroup', { name: group })).getByRole('radio', { name })
 const show3d = async () => { fireEvent.click(radio('Tampilan', '3D')); await waitFor(() => expect(document.querySelector('.t3')).not.toBeNull()) }
 const teeth2d = () => [...document.querySelectorAll<SVGElement>('.odontogram .tooth')].map((e) => Number(e.dataset.tooth))
 const teeth3d = () => [...new Set([...document.querySelectorAll<HTMLElement>('.t3')].map((e) => Number(e.dataset.tooth)))]
+
+test('OVv2-05 phone: 2D | 3D and Mode isi sit under the title, never inside the folded tools', async () => {
+  vi.stubGlobal('matchMedia', (q: string) => ({ media: q, matches: true, addEventListener() {}, removeEventListener() {} }))
+  renderChart({ visits: [visit] })
+  await screen.findByRole('radiogroup', { name: 'Tampilan' })
+  for (const g of ['Tampilan', 'Mode isi']) expect(screen.getByRole('radiogroup', { name: g }).closest('details')).toBeNull()
+})
 
 test('Tampilan: default 2D without 3D mount; 3D mounts and 2D unmounts it again', async () => {
   renderChart()
@@ -80,7 +87,7 @@ test('Tampilan: default 2D without 3D mount; 3D mounts and 2D unmounts it again'
   await show3d()
   expect(radio('Tampilan', '3D')).toHaveAttribute('aria-checked', 'true')
   expect(document.querySelector('.odontogram')).toHaveClass('is-compact') // 2D stays for per-surface input
-  expect(document.body).toHaveTextContent('Tampilan 3D hanya baca')
+  expect(document.body).toHaveTextContent('3D hanya baca. Untuk mencatat, kembali ke 2D.') // OVv2-05 wording
   fireEvent.click(radio('Tampilan', '2D'))
   expect(document.querySelector('.odo3d')).toBeNull()
 })
@@ -88,11 +95,11 @@ test('Tampilan: default 2D without 3D mount; 3D mounts and 2D unmounts it again'
 test('Legenda: open in 2D, collapsed on 3D, reopens on 2D, toggles manually', async () => {
   renderChart()
   await screen.findByRole('radiogroup', { name: 'Tampilan' })
-  const legends = () => screen.queryByRole('list', { name: 'Legenda status' })
+  const legends = () => screen.queryByRole('list', { name: 'Status' }) // official legend (OVv2-04): status as line shape
   expect(legends()).not.toBeNull()
   await show3d()
   expect(legends()).toBeNull()
-  expect(screen.queryByRole('list', { name: 'Legenda internal (bukan formulir resmi)' })).toBeNull()
+  expect(screen.queryByLabelText('Legenda simbol resmi (PDGI 2015)')).toBeNull()
   const btn = screen.getByRole('button', { name: 'Tampilkan legenda' })
   expect(btn).toHaveAttribute('aria-expanded', 'false')
   fireEvent.click(btn)
@@ -143,6 +150,28 @@ test('Dentisi: child DOB defaults to Campuran; Sulung / Tetap filter 2D and 3D; 
   await screen.findByRole('radiogroup', { name: 'Dentisi' })
   expect(radio('Dentisi', 'Tetap')).toHaveAttribute('aria-checked', 'true')
   expect(teeth2d()).not.toContain(51)
+  // audit P2-2: one way to record the initial state (Pemeriksaan awal); an old baseline still shows, read only
+  expect(document.body).toHaveTextContent('Keadaan awal lama: tetap · versi 1')
+  expect(screen.queryByRole('button', { name: /keadaan awal/i })).toBeNull()
+})
+
+test('odontogram follows the entries: official symbol per condition, Rencana dashed, Selesai check, a bridge drawn on every tooth of its span', async () => {
+  const row = (o: Record<string, unknown>) => ({ id: String(o.id), visit_id: 'v0', treat_area: 'surface', tooth: null, surfaces: null, tooth_range: null, quadrant: null,
+    arch: null, status: 'selesai', procedure_code: null, variant: 'standar', diagnosis_code: null, provider_id: 'u1', state: 'final', source: 'manual', supersedes_id: null,
+    created_by: 'u1', finalized_at: '2026-01-05T03:00:00Z', paint_type: 'Text', name: null, layman: null, external_clinic_name: null, external_date: null,
+    external_date_precision: null, ...o })
+  renderChart({ findings: [], procedures: [row({ id: 'a', tooth: 26, surfaces: 'O', condition: 'tambalan_komposit', procedure_code: '23.2' }),
+    row({ id: 'b', tooth: 36, surfaces: 'O', condition: 'karies', status: 'direncanakan' }),
+    row({ id: 'c', tooth: 16, treat_area: 'tooth', condition: 'implan', procedure_code: '23.6' }),
+    row({ id: 'd', treat_area: 'range', tooth_range: '44-46', condition: 'jembatan_porselen', status: 'direncanakan' })] })
+  await screen.findByRole('region', { name: 'Odontogram' })
+  expect(document.getElementById('t26-O')).toHaveAttribute('data-symbol', 'hatch') // cof: sewarna gigi = arsir (black and white)
+  expect(document.getElementById('t26-O')).toHaveAttribute('data-entry', 'selesai')
+  expect(document.getElementById('t36-O')).toHaveAttribute('data-entry', 'rencana') // drawn dashed by CSS, no fill
+  expect(document.querySelector('#t16 .tooth-glyph-v2')).toHaveTextContent('ipx')
+  expect(document.querySelector('#t26 .tooth-badge')).toHaveTextContent('✓')
+  for (const t of [44, 45, 46]) expect(document.querySelector(`#t${t} .tooth-glyph-v2`)).not.toBeNull()
+  expect(document.getElementById('t26-O')!.getAttribute('aria-label')).toContain('Tambalan komposit (cof)')
 })
 
 test('findings table: Tanggal/Gigi/Permukaan/Kondisi/Dokter/Status, P on upper, I on anterior, procedure row with ICD-9-CM code + status; no fee columns', async () => {
@@ -164,7 +193,7 @@ test('findings table: Tanggal/Gigi/Permukaan/Kondisi/Dokter/Status, P on upper, 
   expect(row(11)).not.toHaveTextContent('O (Oklusal)')
   expect(row(16)).toHaveTextContent('O (Oklusal)')
   expect(table).not.toHaveTextContent(/Biaya|Prioritas|Total/)
-  expect(screen.getByRole('list', { name: 'Legenda status' })).toHaveTextContent('Sudah ada (tempat lain)')
+  expect(screen.getByRole('list', { name: 'Status' })).toHaveTextContent('Klinik lain')
 })
 
 test('findings table: dentist from the finding\'s visit, drafts show "Draf" and sort first, then newest date, then tooth', async () => {
@@ -218,42 +247,92 @@ test('filter: picked tooth starts on "Gigi N"; Semua gigi shows all again; empty
   expect(vi.mocked(fetch).mock.calls.length).toBe(calls)
 })
 
-test('Simpan ke kunjungan hari ini: condition is only chosen (aria-pressed) until the button POSTs it; disabled without a condition', async () => {
+const postsTo = (end: string) => vi.mocked(fetch).mock.calls.filter(([u, i]) => String(u).endsWith(end) && (i as RequestInit | undefined)?.method === 'POST')
+test('OVv2-01 tindakan dulu: tooth -> Permukaan pad -> condition card -> status -> "Simpan 26 L cof" posts ONE tooth entry', async () => {
   renderChart({ visits: [visit] })
   await screen.findByRole('region', { name: 'Odontogram' })
   fireEvent.click(document.getElementById('t26-L')!)
-  const panel = within(screen.getByRole('complementary', { name: 'Detail gigi' }))
-  const save = panel.getByRole('button', { name: 'Simpan ke kunjungan hari ini' })
+  const sheet = within(screen.getByRole('region', { name: 'Isi gigi 26' }))
+  fireEvent.click(sheet.getByRole('tab', { name: 'Permukaan' })) // S3: Tindakan is the default tab; conditions live here
+  expect(sheet.getByRole('button', { name: /^P/ })).toHaveAttribute('aria-pressed', 'true') // tapped L reads P (palatal) on an upper tooth
+  const save = sheet.getByRole('button', { name: /^Simpan 26/ })
   expect(save).toBeDisabled()
-  expect(panel.queryByText('Pilih kondisi terlebih dahulu')).toBeNull() // review-3: disabled is enough, no visible hint
-  const posts = () => vi.mocked(fetch).mock.calls.filter(([u]) => String(u).endsWith('/findings'))
-  fireEvent.click(panel.getByRole('button', { name: 'Karies' }))
-  fireEvent.click(panel.getByRole('button', { name: 'Tambalan' }))
-  expect(panel.getByRole('button', { name: 'Tambalan' })).toHaveAttribute('aria-pressed', 'true')
-  expect(panel.getByRole('button', { name: 'Karies' })).toHaveAttribute('aria-pressed', 'false')
-  expect(posts()).toHaveLength(0)
-  expect(save).toBeEnabled()
+  expect(save).toHaveAccessibleDescription('Pilih kondisi.')
+  fireEvent.click(sheet.getByRole('radio', { name: /Tambalan komposit/ }))
+  expect(within(sheet.getByRole('radiogroup', { name: 'Status' })).getByRole('radio', { name: 'Selesai' })).toHaveAttribute('aria-checked', 'true')
+  expect(save).toHaveTextContent('Simpan 26 L cof')
   fireEvent.click(save)
-  expect(save).toBeDisabled() // in flight
-  await waitFor(() => expect(posts()).toHaveLength(1))
-  const [url, init] = posts()[0]
-  expect(url).toBe('/api/visits/v1/findings')
-  expect(init).toMatchObject({ method: 'POST' })
-  expect(JSON.parse(init!.body as string)).toEqual({ tooth: 26, surface: 'L', condition: 'tambalan' }) // condition only: treatments are procedures
-  expect(await screen.findByText('Temuan tersimpan sebagai draf di kunjungan hari ini.')).toBeInTheDocument()
-  expect(panel.getByRole('heading', { name: 'Gigi 26' })).toBeInTheDocument() // tooth stays picked
-  expect(panel.getByRole('button', { name: 'Tambalan' })).toHaveAttribute('aria-pressed', 'false')
-  expect(save).toBeDisabled()
+  await waitFor(() => expect(postsTo('/tooth-entries')).toHaveLength(1))
+  expect(JSON.parse(postsTo('/tooth-entries')[0][1]!.body as string)).toEqual({ tooth: 26, condition: 'tambalan_komposit', status: 'selesai', surfaces: ['L'] })
+  expect(postsTo('/findings').length + postsTo('/procedures').length).toBe(0) // one row: the odontogram and the bill follow it
+  expect(await screen.findByText(/Gigi 26 L cof tersimpan/)).toBeInTheDocument()
 })
 
-test('Simpan ke kunjungan hari ini: disabled with an honest reason and no POST when there is no active visit', async () => {
+test('OVv2-06 Pemeriksaan awal: tool once, tap many teeth (tap again = remove), MOD pad, Tandai sisa sou, ONE Simpan', async () => {
+  renderChart({ visits: [visit], findings: [] })
+  await screen.findByRole('region', { name: 'Odontogram' })
+  fireEvent.click(radio('Mode isi', 'Pemeriksaan awal'))
+  const exam = within(screen.getByRole('complementary', { name: 'Pemeriksaan awal' }))
+  expect(within(exam.getByRole('radiogroup', { name: 'Alat' })).getByRole('radio', { name: 'Gigi hilang (mis)' })).toHaveAttribute('aria-checked', 'true')
+  fireEvent.click(document.getElementById('t18-O')!)
+  fireEvent.click(document.getElementById('t28-O')!)
+  fireEvent.click(document.getElementById('t28-O')!) // tap again = remove
+  expect(document.getElementById('t18')).toHaveAttribute('data-state', 'draft') // the unsaved entry is drawn
+  expect(document.getElementById('t28')).toHaveAttribute('data-state', 'empty')
+  fireEvent.click(exam.getByRole('radio', { name: 'Sisa akar (rrx)' }))
+  fireEvent.click(document.getElementById('t48-O')!)
+  fireEvent.click(exam.getByRole('radio', { name: 'Tambalan amalgam (amf)' }))
+  fireEvent.click(document.getElementById('t47-O')!)
+  const pad = within(exam.getByRole('group', { name: 'Permukaan gigi 47' }))
+  for (const k of ['M', 'O', 'D']) fireEvent.click(pad.getAllByRole('button').find((b) => b.querySelector('strong')!.textContent === k)!)
+  expect(screen.queryByRole('region', { name: /^Isi gigi/ })).toBeNull() // no tooth sheet in palette mode
+  fireEvent.click(exam.getByRole('button', { name: 'Tandai sisa sou (29)' }))
+  const save = exam.getByRole('button', { name: 'Simpan 32 gigi' })
+  fireEvent.click(save)
+  await waitFor(() => expect(postsTo('/tooth-entries/batch')).toHaveLength(1))
+  const sent = JSON.parse(postsTo('/tooth-entries/batch')[0][1]!.body as string).entries
+  expect(sent).toHaveLength(32)
+  expect(sent.slice(0, 3)).toEqual([{ tooth: 18, condition: 'hilang', status: 'ada_sebelumnya' }, { tooth: 48, condition: 'sisa_akar', status: 'ada_sebelumnya' },
+    { tooth: 47, condition: 'tambalan_amalgam', status: 'ada_sebelumnya', surfaces: ['M', 'O', 'D'] }])
+  expect(sent.filter((e: { condition: string }) => e.condition === 'sehat')).toHaveLength(29)
+})
+
+test('owner switched Pemeriksaan awal off: no Mode isi switch, a tapped tooth opens the Perawatan sheet', async () => {
+  renderChart({ visits: [visit], findings: [] }, { ...me, odontogram_exam_enabled: false })
+  await screen.findByRole('region', { name: 'Odontogram' })
+  expect(screen.getByRole('radiogroup', { name: 'Tampilan' })).toBeInTheDocument()
+  expect(screen.queryByRole('radiogroup', { name: 'Mode isi' })).toBeNull()
+  expect(screen.queryByText('Pemeriksaan awal')).toBeNull()
+  fireEvent.click(document.getElementById('t16-O')!)
+  expect(screen.getByRole('region', { name: 'Isi gigi 16' })).toBeInTheDocument()
+})
+
+test('OVv2-07 campuran: default from age (9 th), toggle under the chart, 55 under 15, same symbols on primary teeth, no blanket sou', async () => {
+  const car55 = { id: 'p55', visit_id: 'v1', treat_area: 'surface', tooth: 55, surfaces: 'O', tooth_range: null, quadrant: null, arch: null, status: 'ada_di_klinik_ini',
+    procedure_code: null, variant: 'standar', diagnosis_code: null, provider_id: 'u1', state: 'final', source: 'manual', supersedes_id: null, created_by: 'u1',
+    finalized_at: '2026-01-05T03:00:00Z', paint_type: 'Text', name: null, layman: null, external_clinic_name: null, external_date: null, external_date_precision: null,
+    condition: 'karies' }
+  renderChart({ patient: { ...patient, dob: childDob }, visits: [visit], findings: [], procedures: [car55] })
+  const odo = await screen.findByRole('region', { name: 'Odontogram' })
+  expect(radio('Dentisi', 'Campuran')).toHaveAttribute('aria-checked', 'true')
+  expect(radio('Dentisi', 'Campuran').closest('.dent-toggle')).not.toBeNull() // under the chart, not hidden in the tools
+  expect(odo.querySelector('.dent-toggle')!.compareDocumentPosition(odo.querySelector('svg.odontogram')!) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy()
+  const x = (t: number) => document.getElementById(`t${t}`)!.getAttribute('transform')!.match(/translate\(([\d.]+)/)![1]
+  expect(x(55)).toBe(x(15)) // primary tooth under its successor
+  expect(x(85)).toBe(x(45))
+  expect(document.getElementById('t55-O')).toHaveAttribute('data-symbol', 'outline') // car, same symbol as permanent
+  fireEvent.click(radio('Mode isi', 'Pemeriksaan awal'))
+  expect(screen.queryByRole('button', { name: /Tandai sisa sou/ })).toBeNull()
+  expect(screen.getByText(/Campuran: tandai sou per gigi/)).toBeInTheDocument()
+})
+
+test('no active visit: the tooth panel is read-only (no entry sheet, no POST) and points to today\'s appointment', async () => {
   renderChart()
   await screen.findByRole('region', { name: 'Odontogram' })
   fireEvent.click(document.getElementById('t16-O')!)
-  const save = within(screen.getByRole('complementary', { name: 'Detail gigi' })).getByRole('button', { name: 'Simpan ke kunjungan hari ini' })
-  expect(save).toBeDisabled()
-  expect(save).toHaveAccessibleDescription('Belum ada kunjungan aktif. Mulai kunjungan dulu.')
-  fireEvent.click(save)
+  const panel = within(screen.getByRole('complementary', { name: 'Detail gigi' }))
+  expect(panel.queryByRole('region', { name: 'Isi gigi 16' })).toBeNull()
+  expect(panel.getByText(/Hanya lihat/)).toBeInTheDocument()
   expect(screen.getByText('Buka janji hari ini')).toHaveAttribute('href', '#/jadwal')
   expect(vi.mocked(fetch).mock.calls.some(([, i]) => (i as RequestInit | undefined)?.method === 'POST')).toBe(false)
 })
@@ -289,12 +368,12 @@ test('Mulai kunjungan: dentist starts a walk-in, chart reloads onto the new visi
   expect(screen.getByText('Kunjungan hari ini dimulai.')).toBeInTheDocument()
 
   fireEvent.click(document.getElementById('t16-O')!)
-  const panel = within(screen.getByRole('complementary', { name: 'Detail gigi' }))
-  fireEvent.click(panel.getByRole('button', { name: 'Karies' }))
-  const save = panel.getByRole('button', { name: 'Simpan ke kunjungan hari ini' })
-  expect(save).toBeEnabled()
-  fireEvent.click(save)
-  await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([u]) => u === '/api/visits/v1/findings')).toBe(true))
+  const sheet = within(screen.getByRole('region', { name: 'Isi gigi 16' }))
+  fireEvent.click(sheet.getByRole('tab', { name: 'Permukaan' }))
+  fireEvent.click(sheet.getByRole('radio', { name: /Karies/ }))
+  expect(within(sheet.getByRole('radiogroup', { name: 'Status' })).getByRole('radio', { name: 'Ada' })).toHaveAttribute('aria-checked', 'true') // a finding: Ada
+  fireEvent.click(sheet.getByRole('button', { name: 'Simpan 16 O car' }))
+  await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([u]) => u === '/api/visits/v1/tooth-entries')).toBe(true))
 })
 
 test('Mulai kunjungan: in the tooth panel next to Simpan when a tooth is picked; hidden with an active visit or without note.write', async () => {
@@ -455,16 +534,19 @@ test('active visit: panel offers conditions; inner tab Catatan Klinis shows SOAP
   expect(screen.getByRole('tab', { name: 'Odontogram' })).toHaveAttribute('aria-selected', 'true')
   expect(screen.queryByRole('heading', { name: 'Catatan SOAP' })).toBeNull()
   fireEvent.click(document.getElementById('t26-L')!)
-  const picker = within(screen.getByRole('complementary', { name: 'Detail gigi' })).getByRole('group', { name: 'Pilih kondisi' })
-  expect(within(picker).getByRole('button', { name: 'Karies' })).toBeInTheDocument()
-  expect(within(picker).getByRole('button', { name: 'Mahkota' })).toBeInTheDocument()
+  const sheet = within(screen.getByRole('region', { name: 'Isi gigi 26' }))
+  expect(sheet.getByRole('tab', { name: 'Tindakan' })).toHaveAttribute('aria-selected', 'true')
+  fireEvent.click(sheet.getByRole('tab', { name: 'Permukaan' }))
+  expect(sheet.getByRole('radio', { name: /Karies/ })).toBeInTheDocument()
+  fireEvent.click(sheet.getByRole('tab', { name: 'Seluruh gigi' }))
+  expect(sheet.getByRole('button', { name: /Mahkota porselen/ })).toBeInTheDocument()
 
   fireEvent.click(screen.getByRole('tab', { name: 'Catatan Klinis' }))
   expect(screen.getByRole('heading', { name: 'Catatan SOAP' })).toBeInTheDocument()
   expect(screen.getByRole('heading', { name: 'Riwayat kunjungan' })).toBeInTheDocument()
   expect(screen.queryByRole('region', { name: 'Odontogram' })).toBeNull()
-  fireEvent.click(screen.getByRole('tab', { name: 'Resep' }))
-  expect(document.body).toHaveTextContent('Belum tersedia')
+  expect(screen.queryByRole('tab', { name: 'Resep' })).toBeNull() // hidden until the feature exists (audit P2-4)
+  expect(screen.queryByRole('tab', { name: 'Rencana Perawatan' })).toBeNull()
   fireEvent.click(screen.getByRole('tab', { name: 'Odontogram' }))
   expect(screen.getByRole('region', { name: 'Odontogram' })).toBeInTheDocument()
 })
@@ -507,13 +589,14 @@ test('390px: selecting a tooth opens a bottom sheet named for the tooth; keypad 
   expect(sheet).toHaveClass('tooth-sheet')
   expect(sheet).toHaveAttribute('aria-modal', 'true')
   expect(sheet).toHaveTextContent('Molar pertama kanan atas')
-  expect(surfaces()).toEqual(['P', 'M', 'O', 'D', 'B'])
+  fireEvent.click(within(sheet).getByRole('tab', { name: 'Permukaan' }))
+  expect(pad().getAllByRole('button').map((b) => b.querySelector('strong')!.textContent)).toEqual(['M', 'O', 'D', 'V', 'P']) // MODVL, L reads P
   for (const b of pad().getAllByRole('button')) {
     expect(parseFloat(getComputedStyle(b).minWidth)).toBeGreaterThanOrEqual(44)
     expect(parseFloat(getComputedStyle(b).minHeight)).toBeGreaterThanOrEqual(44)
   }
-  expect(within(sheet).getByRole('group', { name: 'Pilih kondisi' })).toBeInTheDocument() // same editable rule as desktop
-  expect(within(sheet).getByRole('button', { name: 'Simpan ke kunjungan hari ini' })).toBeDisabled() // no condition chosen yet
+  expect(within(sheet).getByRole('region', { name: 'Isi gigi 16' })).toBeInTheDocument() // same editable rule as desktop
+  expect(within(sheet).getByRole('button', { name: /^Simpan 16/ })).toBeDisabled() // no condition chosen yet
   expect(within(sheet).getByRole('button', { name: 'Tutup detail gigi' })).toHaveFocus()
   // review-3 (board 02): the sheet does not repeat the patient (name / No. RM); the page header and its alert ribbon stay outside it.
   expect(sheet.querySelector('.sheet-strip')).toBeNull()
@@ -521,7 +604,7 @@ test('390px: selecting a tooth opens a bottom sheet named for the tooth; keypad 
   expect(sheet).not.toHaveTextContent('No. RM')
   expect(within(sheet).getByRole('heading', { name: 'Gigi 16' })).toBeInTheDocument()
   expect(vi.mocked(fetch).mock.calls.filter(([u]) => /\/patients\/p1$/.test(String(u)))).toHaveLength(1)
-  const sheetButtons = within(sheet).getAllByRole('button').filter((b) => b.closest('.cond-row') || b.classList.contains('tooth-save'))
+  const sheetButtons = within(sheet).getAllByRole('button').filter((b) => b.closest('.tsheet'))
   expect(sheetButtons.length).toBeGreaterThan(5)
   for (const b of sheetButtons) expect(parseFloat(getComputedStyle(b).minHeight)).toBeGreaterThanOrEqual(44)
   // Focus trap: Tab from the last control wraps to the first; Shift+Tab from the first wraps to the last.
@@ -541,7 +624,8 @@ test('390px: selecting a tooth opens a bottom sheet named for the tooth; keypad 
   expect(document.querySelector('.tooth-surface.is-sel')).toBeNull()
 
   fireEvent.click(document.getElementById('t36-O')!)
-  expect(surfaces()).toEqual(['L', 'M', 'O', 'D', 'B'])
+  fireEvent.click(within(screen.getByRole('dialog', { name: 'Detail gigi 36' })).getByRole('tab', { name: 'Permukaan' }))
+  expect(pad().getAllByRole('button').map((b) => b.querySelector('strong')!.textContent)).toEqual(['M', 'O', 'D', 'V', 'L']) // lower: lingual stays L
   expect(screen.getByRole('dialog', { name: 'Detail gigi 36' })).toHaveTextContent('Molar pertama kiri bawah')
   fireEvent.keyDown(screen.getByRole('dialog', { name: 'Detail gigi 36' }), { key: 'Escape' })
   expect(screen.queryByRole('dialog')).toBeNull()
@@ -624,7 +708,7 @@ test('Selesai offers "Lanjut ke tagihan" to billing readers; RM > Billing lists 
   await screen.findByRole('region', { name: 'Odontogram' })
   fireEvent.click(screen.getByRole('tab', { name: 'Catatan Klinis' }))
   fireEvent.click(await screen.findByRole('button', { name: 'Selesai' }))
-  const dlg = screen.getByRole('dialog')
+  const dlg = await screen.findByRole('dialog')
   fireEvent.click(within(dlg).getByRole('checkbox'))
   fireEvent.click(within(dlg).getByRole('button', { name: 'Selesai' }))
   expect(await screen.findByRole('link', { name: 'Lanjut ke tagihan' })).toHaveAttribute('href', '#/tagihan/v1')
@@ -635,12 +719,50 @@ test('Selesai offers "Lanjut ke tagihan" to billing readers; RM > Billing lists 
   expect(screen.getByRole('link', { name: 'Buka tagihan' })).toHaveAttribute('href', '#/tagihan/v1')
 })
 
-test('RM > Billing without billing.read stays "Belum tersedia"', async () => {
+test('RM > Billing tab is hidden without billing.read', async () => {
   renderChart({ visits: [visit] })
   await screen.findByRole('region', { name: 'Odontogram' })
-  fireEvent.click(screen.getByRole('tab', { name: 'Billing' }))
-  expect(document.body).toHaveTextContent('Belum tersedia')
-  expect(screen.queryByRole('link', { name: 'Buka tagihan' })).toBeNull()
+  expect(screen.queryByRole('tab', { name: 'Billing' })).toBeNull()
+  expect(document.body).not.toHaveTextContent('Belum tersedia')
+})
+
+// --- Audit P2-3: "sehat (sou)" from Pemeriksaan awal is a finding, not work (synthetic data) ---
+const draftRow = (id: string, tooth: number, condition: string, status: string, code: string | null, name: string | null, created_by = 'u1') => ({
+  id, visit_id: 'v1', treat_area: 'tooth', tooth, surfaces: null, tooth_range: null, quadrant: null, arch: null, status, procedure_code: code, variant: 'standar',
+  diagnosis_code: null, provider_id: 'u1', state: 'draft', source: 'manual', supersedes_id: null, created_by, finalized_at: null, paint_type: 'Text', name, layman: null,
+  external_clinic_name: null, external_date: null, external_date_precision: null, external_confirmation: 'not_required', condition })
+const draftSoap = { id: 'n1', author_id: 'u1', created_at: '2026-01-05T03:00:00Z', pending_correction: null, versions: [{ id: 'nv1', version: 1, revision: 1,
+  supersedes_id: null, status: 'draf', source: 'manual', signed_by: null, signed_by_name: null, signed_at: null, reason: null, correction_request_id: null,
+  content_hash: 'h', soap: { S: 'Ngilu.', O: 'Sisa akar.', A: { codes: ['K08.3'], text: '' }, P: { codes: [], text: '' } } }] }
+
+test('P2-3: sou entries are drawn but not counted as tindakan, and Selesai lists only real work plus one sou summary', async () => {
+  const drafts = [draftRow('s1', 11, 'sehat', 'ada_di_klinik_ini', null, null), draftRow('s2', 21, 'sehat', 'ada_di_klinik_ini', null, null),
+    draftRow('x1', 46, 'hilang', 'selesai', '23.09', 'Pencabutan gigi')]
+  renderChart({ findings: [], procedure_drafts: drafts, visits: [{ ...visit, notes: [draftSoap], draft_procedures: drafts }] })
+  const odo = await screen.findByRole('region', { name: 'Odontogram' })
+  expect(within(odo).getByText(/^Draf:/)).toHaveTextContent('Draf: 0 temuan, 1 tindakan')
+  expect(document.getElementById('t11')).toHaveAttribute('data-state', 'draft') // still saved and drawn
+  fireEvent.click(screen.getByRole('tab', { name: 'Catatan Klinis' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Selesai' }))
+  const items = [...(await screen.findByRole('dialog')).querySelectorAll('.sign-list li')].map((li) => li.textContent)
+  expect(items.slice(1)).toEqual(['Gigi 46: Pencabutan gigi (ICD-9-CM 23.09) · Selesai', 'Pemeriksaan: 2 gigi sehat (sou)'])
+})
+
+test('P2-5 phone: the tooth sheet lists this visit\'s drafts with Hapus for my own; Hapus discards it and the sheet stays open to pick again', async () => {
+  vi.stubGlobal('matchMedia', (q: string) => ({ media: q, matches: 412 <= Number(q.match(/(\d+)px/)?.[1] ?? 0), addEventListener() {}, removeEventListener() {} }))
+  const mineRow = draftRow('x1', 46, 'hilang', 'selesai', '23.09', 'Pencabutan gigi')
+  const other = draftRow('x2', 46, 'karies', 'ada_di_klinik_ini', null, 'Karies', 'u9') // another user's draft: theirs to discard
+  const signed = { ...draftRow('f9', 46, 'tambalan_komposit', 'selesai', '23.2', 'Tambalan komposit'), state: 'final', finalized_at: '2026-01-04T03:00:00Z' }
+  renderChart({ findings: [], procedures: [signed], procedure_drafts: [mineRow, other], visits: [{ ...visit, draft_procedures: [mineRow, other] }] })
+  await screen.findByRole('region', { name: 'Odontogram' })
+  fireEvent.click(document.getElementById('t46-O')!)
+  const list = within(screen.getByRole('list', { name: 'Temuan gigi 46' }))
+  expect(list.getAllByRole('button').map((b) => b.getAttribute('aria-label'))).toEqual(['Hapus draf Gigi 46: Pencabutan gigi (ICD-9-CM 23.09)'])
+  fireEvent.click(list.getByRole('button', { name: /Hapus draf/ }))
+  await waitFor(() => expect(vi.mocked(fetch).mock.calls.filter(([, i]) => (i as RequestInit | undefined)?.method === 'DELETE').map(([u]) => u))
+    .toEqual(['/api/procedures/x1']))
+  expect(await screen.findByText('Draf dihapus.')).toBeInTheDocument()
+  expect(screen.getByRole('region', { name: 'Isi gigi 46' })).toBeInTheDocument() // same sheet: pick the right one now
 })
 
 // --- #70 Dokter mode: one-tap procedure, SOAP template, Selesai saves first, phone sticky bar (synthetic data) ---
@@ -653,6 +775,13 @@ function dokterChart(w: number, appt?: string) {
     const method = init?.method ?? 'GET'
     if (method !== 'GET') calls.push({ url, method, body: init?.body ? JSON.parse(init.body as string) : null })
     if (url.endsWith('/procedures') && method === 'POST') return new Response(JSON.stringify({ id: 'x1' }), { status: 201 })
+    if (url.endsWith('/tooth-entries') && method === 'POST') {
+      const b = JSON.parse(init!.body as string)
+      if (b.condition === 'sealant' && b.status === 'selesai') return new Response(JSON.stringify({ message: 'Kondisi Pit dan fissure sealant (fis) belum dipetakan ke tindakan klinik.' }), { status: 422 })
+      if (b.condition === 'hilang' && b.status === 'selesai' && !b.procedure_code) return new Response(JSON.stringify({ error: 'pick_code', message: 'Pilih tindakan.',
+        candidates: [{ procedure_code: '23.09', name: 'Pencabutan gigi' }, { procedure_code: '23.19', name: 'Pencabutan bedah' }] }), { status: 422 })
+      return new Response(JSON.stringify({ id: 'e1' }), { status: 201 })
+    }
     if (url.endsWith('/visit') && method === 'POST') return new Response(JSON.stringify({ id: visit.id }), { status: 200 })
     if ((url.endsWith('/transition') || url.endsWith('/selesai')) && method === 'POST') return new Response(JSON.stringify({ ok: true }), { status: 200 })
     if (url.endsWith('/note') && method === 'PUT') { noteSaved = true; return new Response(JSON.stringify({ revision: 1 }), { status: 200 }) }
@@ -670,7 +799,7 @@ function dokterChart(w: number, appt?: string) {
   return calls
 }
 
-test('#70 RM Selesai from an appointment also frees the chair (appointment -> done), so "Pasien saya" stays current', async () => {
+test('#70 / P1-2 RM Selesai from an appointment: the server frees the chair, the page sends no transition of its own', async () => {
   const calls = dokterChart(412, 'a1')
   await screen.findByRole('region', { name: 'Odontogram' })
   fireEvent.click(screen.getByRole('tab', { name: 'Catatan Klinis' }))
@@ -679,44 +808,104 @@ test('#70 RM Selesai from an appointment also frees the chair (appointment -> do
   const dlg = await screen.findByRole('dialog')
   fireEvent.click(within(dlg).getByRole('checkbox'))
   fireEvent.click(within(dlg).getByRole('button', { name: 'Selesai' }))
-  await waitFor(() => expect(calls.find((c) => c.url.endsWith('/appointments/a1/transition'))?.body).toEqual({ to: 'done' }))
-  expect(calls.findIndex((c) => c.url.endsWith('/selesai'))).toBeLessThan(calls.findIndex((c) => c.url.endsWith('/transition')))
+  await waitFor(() => expect(calls.some((c) => c.url.endsWith('/selesai'))).toBe(true))
+  expect(calls.some((c) => c.url.endsWith('/transition'))).toBe(false)
 })
 
-test('#70 tooth panel: one tap "Tambal 23.2" saves procedure + diagnosis (no typing) and becomes this dentist\'s favourite', async () => {
+test('P0-4: a mouth procedure with stages asks Konsultasi / Kontrol and sends the variant; Selesai without work shows the server\'s hint', async () => {
+  const noWork = 'Belum ada tindakan selesai. Tambahkan Pemeriksaan gigi (Konsultasi atau Kontrol) dari Tindakan seluruh mulut, lalu tekan Selesai lagi.'
+  const draftNote = { id: 'n1', author_id: 'u1', created_at: '', pending_correction: null, versions: [{ id: 'nv1', version: 1, revision: 1, supersedes_id: null,
+    status: 'draf', source: 'manual', signed_by: null, signed_by_name: null, signed_at: null, reason: null, correction_request_id: null, content_hash: 'h',
+    soap: { S: 'Kontrol rutin.', O: 'Baik.', A: { codes: [], text: '' }, P: { codes: [], text: '' } } }] }
+  const posts: { url: string; body: any }[] = []
+  vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+    if (init?.method === 'POST') posts.push({ url, body: JSON.parse(init.body as string) })
+    if (url.endsWith('/selesai')) return new Response(JSON.stringify({ error: 'no_billable_work', message: noWork }), { status: 409 })
+    if (url.endsWith('/procedures')) return new Response(JSON.stringify({ id: 'x1' }), { status: 201 })
+    return new Response(JSON.stringify(url.endsWith('manifest.json') ? manifest : url.endsWith('/chart') ? { ...chart, findings, visits: [{ ...visit, notes: [draftNote] }] }
+      : url.endsWith('/procedure-catalog') ? [{ procedure_code: '89.31', name: 'Pemeriksaan gigi', treat_area: 'mouth', paint_type: 'Text', conditions: [] },
+        { procedure_code: '96.54', name: 'Scaling', treat_area: 'mouth', paint_type: 'Text', conditions: [] }]
+      : url.endsWith('/tariffs/stages') ? { '89.31': [{ variant: 'standar', label: 'Konsultasi' }, { variant: 'kontrol', label: 'Kontrol' }] }
+      : url.endsWith('/alerts') ? alerts : full), { status: 200 })
+  }))
+  window.Tooth3D = mockTooth3D
+  render(<ChartPage patientId="p1" me={me} />)
+
+  await screen.findByRole('region', { name: 'Odontogram' })
+  fireEvent.click(screen.getByRole('tab', { name: 'Catatan Klinis' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Selesai' }))
+  const dlg = await screen.findByRole('dialog')
+  fireEvent.click(within(dlg).getByRole('checkbox'))
+  fireEvent.click(within(dlg).getByRole('button', { name: 'Selesai' }))
+  expect(await screen.findByText(noWork)).toBeInTheDocument()
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull()) // closed (after its exit animation): the mouth buttons are reachable
+
+  fireEvent.click(screen.getByRole('tab', { name: 'Odontogram' }))
+  const mouth = within(await screen.findByRole('group', { name: 'Tindakan seluruh mulut' }))
+  fireEvent.click(await mouth.findByRole('button', { name: /Pemeriksaan gigi/ }))
+  expect(posts.some((p) => p.url.endsWith('/procedures'))).toBe(false) // 2 stages: asked first
+  fireEvent.click(within(screen.getByRole('radiogroup', { name: 'Tahap Pemeriksaan gigi' })).getByRole('radio', { name: 'Kontrol' }))
+  await waitFor(() => expect(posts.filter((p) => p.url.endsWith('/procedures')).map((p) => p.body)).toEqual([
+    { tooth: null, surfaces: null, status: 'selesai', procedure_code: '89.31', variant: 'kontrol' }]))
+  expect(screen.queryByRole('radiogroup', { name: 'Tahap Pemeriksaan gigi' })).toBeNull()
+
+  fireEvent.click(mouth.getByRole('button', { name: /Scaling/ })) // one level: saved at once, no variant
+  await waitFor(() => expect(posts.filter((p) => p.url.endsWith('/procedures'))[1]?.body).toEqual(
+    { tooth: null, surfaces: null, status: 'selesai', procedure_code: '96.54' }))
+})
+
+test('P1-1: the desk\'s complaint shows as Keluhan in the header and starts S only while the visit has no note', async () => {
+  const { unmount } = renderChart({ visits: [{ ...visit, complaint: 'Gigi ngilu kalau minum dingin' }] })
+  expect(await screen.findByRole('note', { name: 'Keluhan pasien' })).toHaveTextContent('Keluhan: Gigi ngilu kalau minum dingin')
+  fireEvent.click(screen.getByRole('tab', { name: 'Catatan Klinis' }))
+  expect(screen.getByLabelText('S')).toHaveValue('Gigi ngilu kalau minum dingin')
+  unmount()
+
+  const note = { id: 'n1', author_id: 'u1', created_at: '', pending_correction: null, versions: [{ id: 'nv1', version: 1, revision: 1, supersedes_id: null,
+    status: 'draf', source: 'manual', signed_by: null, signed_by_name: null, signed_at: null, reason: null, correction_request_id: null, content_hash: 'h',
+    soap: { S: 'Ditulis dokter.', O: '', A: { codes: [], text: '' }, P: { codes: [], text: '' } } }] }
+  renderChart({ visits: [{ ...visit, complaint: 'Gigi ngilu kalau minum dingin', notes: [note] }] })
+  fireEvent.click(await screen.findByRole('tab', { name: 'Catatan Klinis' }))
+  expect(screen.getByLabelText('S')).toHaveValue('Ditulis dokter.') // an existing S is never overwritten
+})
+
+test('tindakan dulu: several clinic codes record "mis" -> the dentist picks one and the entry is sent again with it', async () => {
   const calls = dokterChart(1280)
   await screen.findByRole('region', { name: 'Odontogram' })
   fireEvent.click(document.getElementById('t26-O')!)
-  const quick = within(screen.getByRole('group', { name: 'Tindakan cepat' }))
-  fireEvent.click(quick.getByRole('button', { name: 'Tambal (23.2, diagnosis K02.1) di gigi 26' }))
-  await waitFor(() => expect(calls.find((c) => c.url.endsWith('/procedures'))).toBeTruthy())
-  expect(calls.find((c) => c.url.endsWith('/procedures'))!.body).toMatchObject({ tooth: 26, surfaces: 'O', status: 'selesai', procedure_code: '23.2', diagnosis_code: 'K02.1' })
-  expect(JSON.parse(localStorage.getItem('bt.quick-proc.u1')!)[0]).toMatchObject({ code: '23.2', dx: 'K02.1', n: 1 })
+  const sheet = within(screen.getByRole('region', { name: 'Isi gigi 26' }))
+  fireEvent.click(sheet.getByRole('tab', { name: 'Seluruh gigi' }))
+  fireEvent.click(sheet.getByRole('button', { name: /Gigi hilang/ }))
+  fireEvent.click(within(sheet.getByRole('radiogroup', { name: 'Status' })).getByRole('radio', { name: 'Selesai' })) // cabut hari ini
+  fireEvent.click(sheet.getByRole('button', { name: 'Simpan 26 mis' }))
+  const choice = await screen.findByRole('radiogroup', { name: /Tindakan untuk Gigi hilang/ })
+  fireEvent.click(within(choice).getByRole('radio', { name: /Pencabutan gigi/ }))
+  await waitFor(() => expect(calls.filter((c) => c.url.endsWith('/tooth-entries'))).toHaveLength(2))
+  expect(calls.filter((c) => c.url.endsWith('/tooth-entries'))[1].body).toEqual({ tooth: 26, condition: 'hilang', status: 'selesai', procedure_code: '23.09' })
 })
 
-test('E2E 16-11-2026: a finished procedure cannot be saved without its ICD-9-CM code (it would never be billed)', async () => {
-  const calls = dokterChart(1280)
+test('E2E 16-11-2026: a finished entry whose condition is not mapped to a clinic code is refused with the reason (never saved unbilled)', async () => {
+  dokterChart(1280)
   await screen.findByRole('region', { name: 'Odontogram' })
-  fireEvent.click(document.getElementById('t26-O')!)
-  const save = screen.getByRole('button', { name: /^Simpan tindakan/ })
-  expect(screen.getByLabelText('Kode ICD-9-CM')).toHaveValue('') // "mis. 23.2" is only a placeholder
-  expect(save).toBeDisabled()
-  expect(save).toHaveAccessibleDescription(/perlu kode ICD-9-CM/)
-  fireEvent.click(save)
-  expect(calls.find((c) => c.url.endsWith('/procedures'))).toBeUndefined()
-  fireEvent.change(screen.getByLabelText('Kode ICD-9-CM'), { target: { value: '23.2' } })
-  expect(save).toBeEnabled()
+  fireEvent.click(document.getElementById('t36-O')!)
+  const sheet = within(screen.getByRole('region', { name: 'Isi gigi 36' }))
+  fireEvent.click(sheet.getByRole('tab', { name: 'Permukaan' }))
+  fireEvent.click(sheet.getByRole('radio', { name: /Pit dan fissure sealant/ }))
+  fireEvent.click(sheet.getByRole('button', { name: 'Simpan 36 O fis' }))
+  expect(await sheet.findByRole('alert')).toHaveTextContent('belum dipetakan')
 })
 
-test('#70 phone: a quick procedure closes the tooth sheet so the tabs and Selesai bar are reachable again', async () => {
+test('#70 phone: a saved entry closes the tooth sheet so the tabs and Selesai bar are reachable again', async () => {
   const calls = dokterChart(412)
   await screen.findByRole('region', { name: 'Odontogram' })
   fireEvent.click(document.getElementById('t26-O')!)
-  const quick = within(screen.getByRole('group', { name: 'Tindakan cepat' }))
-  fireEvent.click(quick.getByRole('button', { name: 'Tambal (23.2, diagnosis K02.1) di gigi 26' }))
-  await waitFor(() => expect(calls.find((c) => c.url.endsWith('/procedures'))).toBeTruthy())
+  const sheet = within(screen.getByRole('region', { name: 'Isi gigi 26' }))
+  fireEvent.click(sheet.getByRole('tab', { name: 'Permukaan' }))
+  fireEvent.click(sheet.getByRole('radio', { name: /Tambalan komposit/ }))
+  fireEvent.click(sheet.getByRole('button', { name: 'Simpan 26 O cof' }))
+  await waitFor(() => expect(calls.find((c) => c.url.endsWith('/tooth-entries'))).toBeTruthy())
   await waitFor(() => expect(screen.queryByRole('heading', { name: 'Gigi 26' })).toBeNull())
-  expect(await screen.findByText('Tambal gigi 26 (O) tersimpan.')).toBeInTheDocument()
+  expect(await screen.findByText(/Gigi 26 O cof tersimpan/)).toBeInTheDocument()
 })
 
 test('#70 Catatan: template fills only empty fields; "Ulangi kunjungan terakhir" copies the last signed SOAP; Selesai saves the draft first', async () => {

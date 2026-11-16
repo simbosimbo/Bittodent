@@ -15,7 +15,7 @@ class ProcedureRecord extends Model
 
     protected $guarded = ['tenant_id'];
 
-    protected $casts = ['finalized_at' => 'datetime', 'external_confirmed_at' => 'datetime', 'tooth' => 'integer', 'quadrant' => 'integer'];
+    protected $casts = ['finalized_at' => 'datetime', 'external_confirmed_at' => 'datetime', 'tooth' => 'integer', 'quadrant' => 'integer', 'span_roles' => 'array'];
 
     /**
      * This row's correction chain, root first, ending with this row: walk back over rows written by a correction (with a reason,

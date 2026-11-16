@@ -7,22 +7,28 @@ import { ApiError, errorText } from '../../shared/api/http'
 import { setActivePatient } from '../../shared/activePatient'
 import { fmtDateTime, fmtDay, fmtTime } from '../../shared/format'
 import type { Me } from '../../shared/session'
+import { ToothSheet as EntrySheet } from './odontogram/ToothSheet'
+import { OfficialLegend } from './odontogram/OfficialLegend'
+import { ExamPalette, useExam } from './odontogram/ExamPalette'
+import { conditionByKey, spanTeeth, TAXONOMY, type SurfaceKey } from './odontogram/taxonomy'
+// procedure status -> v2 entry status (line shape on the chart)
+const ENTRY: Partial<Record<string, Mark['entry']>> = { ada_di_klinik_ini: 'ada_sebelumnya', ada_di_tempat_lain: 'klinik_lain', direncanakan: 'rencana', selesai: 'selesai' }
 import { PHONE_QUERY, useIsMobile, useMedia } from '../../shared/useIsMobile'
 import { PatientPage } from '../patients'
 import type { PatientFull } from '../patients'
 import {
-  approveCorrection, approveDrafts, changeStatus, confirmExternal, correctNote, correctProcedure, discardFinding, discardProcedure, getChart, getDentists,
-  replaceProcedure, saveBaseline, saveFinding, saveNote, saveProcedure, selesaiVisit, startWalkInVisit, visitFromAppointment, appointmentDone,
+  approveCorrection, approveDrafts, changeStatus, confirmExternal, correctNote, correctProcedure, discardProcedure, getChart, getDentists,
+  replaceProcedure, saveNote, saveProcedure, selesaiVisit, selesaiCheck, getCatalog, getStages, type CatalogRow, startWalkInVisit, visitFromAppointment,
   type Baseline, type Chart, type ChartVisit, type CorrectionType, type Finding, type Note, type ProcStatus, type Procedure, type ProcedureHistoryRow,
-  type Soap, type Surface, type ToothPresence, type Version,
+  type Soap, type Surface, type Version,
 } from './api'
-import { AI_BADGE, CHOOSABLE, CONDITIONS, conditionOf, CORRECTION_LABEL, findingText, isAnterior, paintCondition, PRESENCE, procedureText, sameSite, statusOf,
-  surfaceLabel, surfaceName, surfacesOf, toothAnatomicalName } from './legend'
-import { Legend, Odontogram, StatusLegend, type Mark } from './Odontogram'
+import { AI_BADGE, CONDITIONS, conditionOf, CORRECTION_LABEL, findingText, isAnterior, paintCondition, procedureText, statusOf,
+  surfaceLabel, surfaceName, toothAnatomicalName } from './legend'
+import { Odontogram, type Mark } from './Odontogram'
 import { dentitionFromDob, Odontogram3D } from './Odontogram3D'
 import { SelesaiDialog } from './SelesaiDialog'
 import { CloseVisit } from './CloseVisit'
-import { fillEmpty, quickProcs, rememberProc, SOAP_TEMPLATES, type QuickProc } from './quick'
+import { fillEmpty, SOAP_TEMPLATES } from './quick'
 import './clinical.css'
 
 type Form = { S: string; O: string; A: { codes: string; text: string }; P: { codes: string; text: string } }
@@ -50,10 +56,25 @@ function trapTab(e: KeyboardEvent<HTMLElement>) {
   }
 }
 /** "2 karies · 1 tambalan" over current rows, CONDITIONS order, zero counts skipped. */
-export const findingSummary = (items: { condition: string }[]) =>
-  CONDITIONS.map((c) => [items.filter((f) => f.condition === c.key).length, c.label.toLowerCase()] as const).filter(([n]) => n).map(([n, l]) => `${n} ${l}`).join(' · ')
+/**
+ * "8 gigi hilang (mis) · 1 tambalan amalgam (amf) · 21 sehat (sou)": legacy findings + odontogram v2 entries, counted per tooth per
+ * condition (a span counts each tooth). Same exclusions as the chart: cancelled / not done / superseded rows and unconfirmed externals.
+ */
+export function findingSummary(items: { condition: string }[], procs: Procedure[] = []) {
+  const legacy = CONDITIONS.map((c) => [items.filter((f) => f.condition === c.key).length, c.label.toLowerCase()] as const).filter(([n]) => n).map(([n, l]) => `${n} ${l}`)
+  const teeth = new Map<string, Set<number>>()
+  for (const p of procs) {
+    if (!p.condition || ['cancelled', 'superseded', 'tidak_dikerjakan'].includes(p.status) || p.external_confirmation === 'pending' || p.external_confirmation === 'rejected') continue
+    const ts = p.tooth !== null ? [p.tooth] : p.tooth_range ? spanTeeth(...(p.tooth_range.split('-').map(Number) as [number, number])) : []
+    teeth.set(p.condition, new Set([...(teeth.get(p.condition) ?? []), ...ts]))
+  }
+  const v2 = TAXONOMY.conditions.filter((c) => teeth.get(c.key)?.size).map((c) => `${teeth.get(c.key)!.size} ${c.label.toLowerCase()} (${c.code ?? 'panah'})`)
+  return [...legacy, ...v2].join(' · ')
+}
 const FREE_EDIT_MS = 48 * 3600 * 1000
-const INNER = [['odo', 'Odontogram'], ['notes', 'Catatan Klinis'], ['plan', 'Rencana Perawatan'], ['rx', 'Resep'], ['bill', 'Billing']] as const
+// "sehat (sou)" is an exam finding stored as a procedure_record row: drawn and signed, never counted or listed as work (audit P2-3)
+const isWork = (p: Procedure) => p.condition !== 'sehat'
+const INNER = [['odo', 'Odontogram'], ['notes', 'Catatan Klinis'], ['bill', 'Billing']] as const
 // Surface keypad (sketch): lingual/palatal top, M left, O/I centre, D right, buccal/labial bottom. Labels come from surfaceLabel.
 const PAD: [Surface, string][] = [['L', 'top'], ['M', 'left'], ['O', 'center'], ['D', 'right'], ['B', 'bottom']]
 
@@ -336,43 +357,11 @@ function Items({ findings, procedures, visits, canMove, onMove, onDiscard, onFix
 function Seg<T extends string>({ label, value, options, onChange }: { label: string; value: T; options: [T, string][]; onChange: (v: T) => void }) {
   return (
     <div className="seg-field">
-      <span className="seg-label" id={`seg-${label}`}>{label}</span>
-      <div className="seg" role="radiogroup" aria-labelledby={`seg-${label}`}>
+      <span className="seg-label" id={`seg-${label.replace(/\s+/g, '-')}`}>{label}</span>
+      <div className="seg" role="radiogroup" aria-labelledby={`seg-${label.replace(/\s+/g, '-')}`}>
         {options.map(([k, text]) => (
           <button key={k} type="button" role="radio" aria-checked={value === k} className={value === k ? 'is-on' : ''} onClick={() => onChange(k)}>{text}</button>
         ))}
-      </div>
-    </div>
-  )
-}
-
-/** Baseline (first visit): dentition + per-tooth presence. Saving = new version (never overwritten). */
-function BaselineEditor({ value, onSave, onClose }: { value: Baseline | null; onSave: (b: { dentition: Baseline['dentition']; teeth: Record<string, ToothPresence> }) => void; onClose: () => void }) {
-  const [dentition, setDentition] = useState<Baseline['dentition']>(value?.dentition ?? 'tetap')
-  const [teeth, setTeeth] = useState<Record<string, ToothPresence>>(value?.teeth ?? {})
-  const [tooth, setTooth] = useState('')
-  const t = Number(tooth)
-  return (
-    <div className="picker-pop" role="group" aria-label="Keadaan awal gigi">
-      <strong>Keadaan awal gigi (kunjungan pertama){value ? ` · versi ${value.version}` : ''}</strong>
-      <p className="muted small">Bukan temuan klinis: “tidak ada” di sini berbeda dari kondisi “Hilang”. Gigi yang tidak ada tampil pudar.</p>
-      <div className="baseline-row">
-        <label>Gigi geligi <select value={dentition} onChange={(e) => setDentition(e.target.value as Baseline['dentition'])}>
-          <option value="tetap">Tetap</option><option value="sulung">Sulung (susu)</option><option value="campuran">Campuran</option>
-        </select></label>
-        <label>Nomor gigi (FDI) <input className="mono" size={3} value={tooth} onChange={(e) => setTooth(e.target.value.replace(/\D/g, '').slice(0, 2))} /></label>
-        {PRESENCE.map(([k, label]) => (
-          <button key={k} type="button" className="btn btn-xs" disabled={!t} onClick={() => setTeeth({ ...teeth, [t]: k })}>{label}</button>
-        ))}
-      </div>
-      <ul className="items">
-        {Object.entries(teeth).filter(([, v]) => v !== 'ada').map(([k, v]) => (
-          <li key={k}>Gigi {k}: {PRESENCE.find(([p]) => p === v)?.[1]} <button className="btn btn-xs btn-ghost" onClick={() => setTeeth({ ...teeth, [k]: 'ada' })}>Batal</button></li>
-        ))}
-      </ul>
-      <div className="dialog-actions">
-        <button className="btn" onClick={onClose}>Tutup</button>
-        <button className="btn btn-primary" onClick={() => onSave({ dentition, teeth })}>Simpan keadaan awal</button>
       </div>
     </div>
   )
@@ -392,27 +381,22 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const [pick, setPick] = useState<{ tooth: number; surface: Surface } | null>(null)
   const [error, setError] = useState('')
   const [msg, setMsg] = useState('')
-  const [signing, setSigning] = useState<{ busy: boolean; error: string; warnings?: { message: string }[] } | null>(null)
+  const [signing, setSigning] = useState<{ busy: boolean; error: string; warnings?: { message: string }[]; missing?: string[] } | null>(null)
   const [billFor, setBillFor] = useState<string | null>(null) // visit just closed by Selesai -> "Lanjut ke tagihan" (#69)
   const [fixing, setFixing] = useState<Note | null>(null)
-  const [status, setStatus] = useState<ProcStatus>('selesai')
-  const [surfs, setSurfs] = useState<Surface[]>([])
-  const [procCode, setProcCode] = useState('')
-  const [procDx, setProcDx] = useState('')
   const [detailsOpen, setDetailsOpen] = useState(false) // phone: Temuan & tindakan, Tutup kunjungan, Riwayat collapsed (#70)
-  const [manualOpen, setManualOpen] = useState(false) // phone: manual code row behind "Kode lain" (#70)
-  const [extClinic, setExtClinic] = useState('')
-  const [extDate, setExtDate] = useState('')
-  const [baselineOpen, setBaselineOpen] = useState(false)
   const [asOf, setAsOf] = useState('') // '' = today; otherwise the chart as of the end of that day (read-only)
   const [procFix, setProcFix] = useState<{ p: Procedure; mode: 'ganti' | 'koreksi' } | null>(null)
-  // Chosen condition waits for "Simpan ke kunjungan hari ini"; bound to its tooth so switching teeth drops it.
-  const [pending, setPending] = useState<{ tooth: number; condition: string; whole: boolean } | null>(null)
-  const [saving, setSaving] = useState(false)
   // Table filter starts on the picked tooth; "Semua gigi" is remembered for that tooth only; no pick = all.
   const [allFor, setAllFor] = useState<number | null>(null)
   const [view, setView] = useState<'2d' | '3d'>('2d') // not persisted: 2D every time
+  // OVv2: Perawatan (tooth first, the sheet) | Pemeriksaan awal (palette: one tool, many teeth, one Simpan)
+  const [mode, setMode] = useState<'perawatan' | 'periksa'>('perawatan')
+  const exam = useExam()
   const mobile = useIsMobile()
+  const [mouthProcs, setMouthProcs] = useState<CatalogRow[]>([]) // e.g. Scaling: billed work without a tooth
+  const [stages, setStages] = useState<Record<string, { variant: string; label: string }[]>>({}) // S2 price levels, as in ToothSheet
+  const [mouthPick, setMouthPick] = useState<CatalogRow | null>(null) // mouth procedure waiting for its stage (Konsultasi / Kontrol)
   const phone = useMedia(PHONE_QUERY)
   const [legendOpen, setLegendOpen] = useState(!mobile) // phone: chart first, legend on demand
   const [tab, setTab] = useState<(typeof INNER)[number][0]>('odo')
@@ -425,7 +409,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   }, [mobile, tab])
   // 3D needs the vertical space: legends collapse on 3D, reopen on 2D; manual toggle still works in both.
   const changeView = (v: '2d' | '3d') => { setView(v); setLegendOpen(v === '2d') }
-  // View-only dentition override, dropped when the default (baseline or DOB) changes; the baseline editor is what persists.
+  // View-only dentition override, dropped when the default (baseline or DOB) changes; nothing is persisted from here.
   const defDent = chart ? `${chart.patient.id}:${chart.baseline?.dentition ?? dentitionFromDob(chart.patient.dob)}` : ''
   const [dentPick, setDentPick] = useState<{ base: string; v: Baseline['dentition'] } | null>(null)
   const dent = dentPick?.base === defDent ? dentPick.v : defDent.split(':')[1] as Baseline['dentition'] | undefined
@@ -449,8 +433,9 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
       setActivePatient({ id: c.patient.id, name: c.patient.name })
       const open = vid ?? c.visits.find((v) => v.status === 'berlangsung' && !v.notes.some((n) => n.versions.some((x) => x.signed_at)))?.id ?? null
       setVisitId(open)
-      const shown = c.visits.find((v) => v.id === open)?.notes[0]?.versions.find((x) => x.status !== 'digantikan') // draft or current signed
-      setForm(shown ? toForm(shown.soap) : EMPTY)
+      const ov = c.visits.find((v) => v.id === open)
+      const shown = ov?.notes[0]?.versions.find((x) => x.status !== 'digantikan') // draft or current signed
+      setForm(shown ? toForm(shown.soap) : { ...EMPTY, S: ov?.complaint ?? '' }) // no note yet: S starts from the desk's complaint
       setDirty(false)
     } catch (e) {
       if (want.current.patientId !== req.patientId || want.current.appointmentId !== req.appointmentId || want.current.asOf !== req.asOf) return
@@ -468,9 +453,13 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
     setDirty(false)
     setForm(EMPTY)
     setMsg('')
-    setPending(null)
   }, [patientId, appointmentId])
   useEffect(() => { load() }, [load])
+  useEffect(() => {
+    if (!can('note.write')) return
+    getCatalog().then((c) => setMouthProcs(Array.isArray(c) ? c.filter((x) => x.treat_area === 'mouth') : []), () => setMouthProcs([]))
+    getStages().then((s) => setStages(s && typeof s === 'object' && !Array.isArray(s) ? s : {}), () => setStages({}))
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const visit = chart?.visits.find((v) => v.id === visitId) ?? null
   const note = visit?.notes[0] ?? null
@@ -492,13 +481,21 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
     // treatments paint over conditions: every letter of a combination ("MOD" -> M, O, D); cancelled ones are not painted
     for (const p of [...(chart?.procedures ?? []), ...myProcs]) {
       // an external waiting for confirmation (or rejected) never paints over today's work
-      if (p.tooth === null || p.status === 'cancelled' || p.external_confirmation === 'pending' || p.external_confirmation === 'rejected') continue
-      const mark: Mark = { condition: paintCondition(p.paint_type), paint: p.paint_type, state: p.state === 'draft' ? 'draft' : 'signed', source: p.source, status: p.status }
-      for (const k of p.surfaces ? [...p.surfaces].map((s) => `t${p.tooth}-${s}`) : [`t${p.tooth}`]) m[k] = mark
+      if (p.status === 'cancelled' || p.external_confirmation === 'pending' || p.external_confirmation === 'rejected') continue
+      const v2 = p.condition ? conditionByKey(p.condition) : undefined // odontogram v2: the entry's own official symbol
+      const teeth = p.tooth !== null ? [p.tooth] : v2 && p.tooth_range ? spanTeeth(...(p.tooth_range.split('-').map(Number) as [number, number])) : []
+      if (!teeth.length) continue
+      const mark: Mark = v2 ? { condition: v2.key, symbol: v2.symbol, code: v2.code, label: `${v2.label} (${v2.code ?? '-'})`, entry: ENTRY[p.status],
+        state: p.state === 'draft' ? 'draft' : 'signed', source: p.source, status: p.status }
+        : { condition: paintCondition(p.paint_type), paint: p.paint_type, state: p.state === 'draft' ? 'draft' : 'signed', source: p.source, status: p.status }
+      for (const t of teeth) for (const k of p.surfaces && p.tooth !== null ? [...p.surfaces].map((s) => `t${t}-${s}`) : [`t${t}`]) m[k] = mark
     }
     return m
   }, [chart, mine, myProcs])
 
+  // teeth of the drawn dentition with nothing charted yet (Tandai sisa sou)
+  const emptyTeeth = (dent === 'campuran' ? [] : dent === 'sulung' ? TAXONOMY.dentitions.primary : TAXONOMY.dentitions.permanent).filter((t) => !Object.keys(marks).some((k) => k === `t${t}` || k.startsWith(`t${t}-`)))
+  const shown = mode === 'periksa' ? { ...marks, ...exam.preview } : marks
   // The record lives inside the patient: wrap every state in PatientPage (header + Profil/Keluarga/Riwayat menu).
   // review-2 P1: a billing reader continues to the payment (solid); a dentist without billing goes back to the schedule.
   const afterSelesai = <>
@@ -521,21 +518,15 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
       setMsg(e instanceof ApiError && [409, 422].includes(e.status) ? e.data?.message ?? 'Data tidak valid.' : errorText(e))
     }
   }
+  const saveMouth = (x: CatalogRow, stage?: { variant: string; label: string }) => {
+    setMouthPick(null)
+    return run(() => saveProcedure(visit!.id, { tooth: null, surfaces: null, status: 'selesai', procedure_code: x.procedure_code, ...(stage ? { variant: stage.variant } : {}) }),
+      `${x.name}${stage ? ` (${stage.label})` : ''} tersimpan (masuk tagihan saat Selesai).`)
+  }
   // selecting works anytime; picker only when editable. Same tooth: add the surface to the treatment's combination (MOD); new tooth: restart.
   const onPick = (tooth: number, surface: Surface) => {
-    setSurfs(pick?.tooth === tooth ? (surfs.includes(surface) ? surfs : [...surfs, surface]) : [surface])
+    if (mode === 'periksa' && editable) return exam.tap(tooth) // palette: the tool records, no sheet
     setPick({ tooth, surface })
-  }
-  const chosen = pick && pending?.tooth === pick.tooth ? pending : null
-  const choose = (condition: string, whole: boolean) => pick && setPending({ tooth: pick.tooth, condition, whole })
-  async function saveChosen() {
-    if (!pick || !visit || !chosen) return
-    setSaving(true)
-    await run(async () => {
-      await saveFinding(visit.id, { tooth: pick.tooth, surface: chosen.whole ? null : pick.surface, condition: chosen.condition })
-      setPending(null)
-    }, 'Temuan tersimpan sebagai draf di kunjungan hari ini.')
-    setSaving(false)
   }
   async function startVisit() {
     setStarting(true)
@@ -554,28 +545,6 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
         {starting ? 'Memulai…' : 'Mulai kunjungan'}</button>
     </div>
   )
-  // one procedure for all toggled surfaces (MOD = one row, one price); no surface = whole tooth. The catalog decides the area for known codes.
-  const surfaces = pick ? surfacesOf(pick.tooth).filter((s) => surfs.includes(s)).join('') || null : null
-  // today's chair work on this visit (any author); an external on the same site is refused, elsewhere it waits for confirmation
-  const selesaiToday = visit ? [...visit.draft_procedures, ...chart.procedures.filter((x) => x.visit_id === visit.id)].filter((x) => x.status === 'selesai') : []
-  const external = status === 'ada_di_tempat_lain'
-  const extBlocked = external && !!pick && selesaiToday.some((x) => sameSite(pick.tooth, surfaces, x))
-  const record = () => pick && visit && run(async () => {
-    const code = procCode.trim(), dx = procDx.trim().toUpperCase()
-    await saveProcedure(visit.id, { tooth: pick.tooth, surfaces, status, procedure_code: code || null, ...(dx ? { diagnosis_code: dx } : {}),
-    ...(procCode.trim() ? {} : { treat_area: surfaces ? 'surface' : 'tooth' }),
-    ...(external ? { external_clinic_name: extClinic.trim(), external_date: extDate.trim() } : {}) })
-    if (code && dx && status === 'selesai') rememberProc(me.user.id, { code, dx, label: code }) // favourite for next time
-  },
-    external && selesaiToday.length ? 'Tersimpan; menunggu konfirmasi resepsionis/asisten.' : 'Tindakan tersimpan sebagai draf.')
-  // One tap (#70): this dentist's frequent procedure + diagnosis on the picked tooth/surfaces, status selesai.
-  const quick: QuickProc[] = quickProcs(me.user.id)
-  const quickRecord = (q: QuickProc) => pick && visit && run(async () => {
-    await saveProcedure(visit.id, { tooth: pick.tooth, surfaces, status: 'selesai', procedure_code: q.code, diagnosis_code: q.dx })
-    rememberProc(me.user.id, q)
-    if (mobile) setPick(null) // phone: the sheet closes so the tabs and the Selesai bar are free again (one tap, not two)
-  }, `${q.label} gigi ${pick.tooth}${surfaces ? ` (${[...surfaces].map((sf) => surfaceLabel(pick.tooth, sf as Surface)).join('')})` : ''} tersimpan.`)
-  const myDraftAt = (whole: boolean) => pick && mine.find((d) => d.tooth === pick.tooth && d.surface === (whole ? null : pick.surface))
 
   // agent drafts still waiting for "Setujui" (Selesai is refused until none are left; the server checks too)
   const unapproved = visit ? [...(draft?.source === 'ai_draft' && !draft.approved_at ? [draft] : []),
@@ -595,7 +564,10 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
       }
       await load()
     }
-    setSigning({ busy: false, error: '' })
+    // KlinikMe-style "lengkapi dulu": every gap at once, before the PIN; on failure Selesai still checks everything itself
+    const check = await selesaiCheck(visit.id).catch(() => null)
+    const of = (level: string) => check?.items?.filter((i) => i.level === level) ?? []
+    setSigning({ busy: false, error: '', missing: of('block').map((i) => i.message), warnings: of('warn') })
   }
   async function selesai(pin?: string, reason?: string) {
     if (!visit || !draft) return
@@ -607,14 +579,17 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
       const billed = procs.some((x) => x.visit_id === visit.id && x.status === 'selesai' && x.procedure_code)
       setMsg(billed ? 'Selesai: rekam medis terkunci, pasien masuk antrean bayar.' : 'Selesai: rekam medis terkunci. Tidak ada tindakan yang ditagih.')
       setBillFor(visit.id)
-      // The chair is free too: move the appointment to done (best effort; the server checks the transition + permission).
-      if (appointmentId && can('appointment.transition')) await appointmentDone(appointmentId).catch(() => undefined)
       await load()
     } catch (e) {
       if (e instanceof ApiError && e.data?.signed) { // #55: signed, but the invoice guard kept the visit open
         setSigning(null)
         setMsg(`Rekam medis sudah ditandatangani, tetapi kunjungan belum ditutup: ${e.data.message ?? 'tagihan belum lengkap.'}`)
         await load()
+        return
+      }
+      if (e instanceof ApiError && e.data?.error === 'no_billable_work') { // nothing signed: close the dialog so the mouth buttons are reachable
+        setSigning(null)
+        setMsg(e.data.message ?? 'Belum ada tindakan selesai.')
         return
       }
       if (e instanceof ApiError && e.status === 422 && e.data?.error === 'warnings') { // SignCheck warnings: pick a reason chip
@@ -627,13 +602,10 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
 
   const items = [...chart.findings, ...mine]
   const procs = [...chart.procedures, ...myProcs]
-  const summary = findingSummary(items)
+  const summary = findingSummary(items, procs)
   const only = pick && allFor !== pick.tooth ? pick.tooth : null
   const shownItems = only ? items.filter((f) => f.tooth === only) : items
   const shownProcs = only ? procs.filter((x) => x.tooth === only) : procs
-  const needsCode = status === 'selesai' && !procCode.trim() // a finished procedure without a code can never be billed (E2E 16-11-2026)
-  const saveWhy = !visit ? 'Belum ada kunjungan aktif. Mulai kunjungan dulu.' : !editable ? readOnlyWhy
-    : !chosen ? 'Pilih kondisi terlebih dahulu' : ''
   const center: Surface | null = pick && (isAnterior(pick.tooth) ? 'I' : 'O')
   const panel = !pick ? <p className="muted tooth-empty">Pilih gigi untuk melihat detail.</p> : (
     <>
@@ -642,13 +614,13 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
         <button type="button" className="btn btn-ghost tooth-close" aria-label="Tutup detail gigi" autoFocus={mobile} onClick={() => setPick(null)}>×</button>
       </div>
       <p className="muted small" role="status">Dipilih: Gigi {pick.tooth} · {surfaceName(pick.tooth, pick.surface)} ({surfaceLabel(pick.tooth, pick.surface)})</p>
-      <div className="surf-pad" role="group" aria-label="Permukaan">
+      {!editable && <div className="surf-pad" role="group" aria-label="Permukaan">
         {PAD.map(([s, pos]) => {
           const sv = s === 'O' ? center! : s
           return <button key={pos} type="button" className={`surf surf-${pos}`} aria-pressed={pick.surface === sv} title={surfaceName(pick.tooth, sv)}
             onClick={() => setPick({ tooth: pick.tooth, surface: sv })}>{surfaceLabel(pick.tooth, sv)}</button>
         })}
-      </div>
+      </div>}
       {items.some((f) => f.tooth === pick.tooth) || procs.some((x) => x.tooth === pick.tooth) ? (
         <ul className="items tooth-findings" aria-label={`Temuan gigi ${pick.tooth}`}>
           {items.filter((f) => f.tooth === pick.tooth).map((f) => (
@@ -656,62 +628,21 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
               {f.state === 'draft' && <span className="badge badge-draft">Draf</span>}</li>
           ))}
           {procs.filter((x) => x.tooth === pick.tooth).map((x) => (
-            <li key={x.id}><StatusChip status={x.status} /> {procedureText(x)}{x.state === 'draft' && <span className="badge badge-draft">Draf</span>}</li>
+            <li key={x.id}><StatusChip status={x.status} /> {procedureText(x)}{x.state === 'draft' && <span className="badge badge-draft">Draf</span>}
+              {/* P2-5: fix a wrong pick in place = remove own draft here, pick again below */}
+              {editable && x.state === 'draft' && x.visit_id === visit?.id && x.created_by === me.user.id && (
+                <button type="button" className="btn btn-xs btn-ghost" aria-label={`Hapus draf ${procedureText(x)}`}
+                  onClick={() => run(() => discardProcedure(x.id), 'Draf dihapus.')}>Hapus</button>
+              )}</li>
           ))}
         </ul>
       ) : <p className="muted small">Belum ada temuan di gigi ini.</p>}
       {editable ? (
-        <div className="picker-pop" role="group" aria-label="Pilih kondisi">
-          <div className="quick-procs" role="group" aria-label="Tindakan cepat">
-            {quick.map((q) => (
-              <button key={q.code + q.dx} type="button" className="btn chip-quick" onClick={() => quickRecord(q)}
-                aria-label={`${q.label} (${q.code}, diagnosis ${q.dx}) di gigi ${pick.tooth}`}>
-                {q.label} <span className="mono small">{q.code}</span>
-              </button>
-            ))}
-            {mobile && <button type="button" className="btn btn-ghost" aria-expanded={manualOpen} onClick={() => setManualOpen(!manualOpen)}>Kode lain</button>}
-          </div>
-          {(!mobile || manualOpen) && <div className="cond-row" role="group" aria-label="Tindakan">
-            <span className="muted small">Tindakan:</span>
-            <label className="small">Kode ICD-9-CM <input className="mono" size={6} value={procCode} placeholder="mis. 23.2" onChange={(e) => setProcCode(e.target.value)} /></label>
-            <label className="small">Diagnosis ICD-10 <input className="mono" size={6} value={procDx} placeholder="mis. K02.1" onChange={(e) => setProcDx(e.target.value)} /></label>
-            <label className="small">Status <select value={status} onChange={(e) => setStatus(e.target.value as ProcStatus)}>
-              {CHOOSABLE.map((x) => <option key={x.key} value={x.key}>{x.label}</option>)}
-            </select></label>
-            {surfacesOf(pick.tooth).map((sf) => (
-              <button key={sf} type="button" className="btn btn-xs" aria-pressed={surfs.includes(sf)} title={surfaceName(pick.tooth, sf)}
-                onClick={() => setSurfs(surfs.includes(sf) ? surfs.filter((x) => x !== sf) : [...surfs, sf])}>{surfaceLabel(pick.tooth, sf)}</button>
-            ))}
-            {external && (
-              <>
-                <label className="small">Nama klinik lain * <input size={18} maxLength={120} value={extClinic} onChange={(e) => setExtClinic(e.target.value)} /></label>
-                <label className="small">Perkiraan tanggal * <input size={10} value={extDate} placeholder="2025 / 06/2025 / 12/06/2025" onChange={(e) => setExtDate(e.target.value)} /></label>
-                <span className="muted small">Tidak ditagih.</span>
-                {extBlocked ? <span className="form-error small" role="alert">Gigi/permukaan ini sudah dikerjakan hari ini; tidak bisa dicatat sebagai klinik lain.</span>
-                  : selesaiToday.length > 0 && <span className="notice notice-warn small">Kunjungan ini sudah ada tindakan selesai hari ini: perlu konfirmasi resepsionis/asisten.</span>}
-              </>
-            )}
-            {needsCode && <span className="muted small" id="proc-code-hint">Tindakan selesai perlu kode ICD-9-CM agar ditagih. Ketuk tindakan cepat di atas atau isi kodenya.</span>}
-            <button className="btn btn-xs btn-primary" onClick={record} aria-describedby={needsCode ? 'proc-code-hint' : undefined}
-              disabled={needsCode || extBlocked || (external && (!extClinic.trim() || !extDate.trim()))}>Simpan tindakan{surfaces ? ` (${[...surfaces].map((sf) => surfaceLabel(pick.tooth, sf as Surface)).join('')})` : ' (seluruh gigi)'}</button>
-          </div>}
-          <div className="cond-row">
-            <span className="muted small">Kondisi permukaan:</span>
-            {CONDITIONS.filter((c) => !c.whole).map((c) => <button key={c.key} type="button" className={`btn cond cond-${c.key}`} aria-pressed={chosen?.condition === c.key} onClick={() => choose(c.key, false)}>{c.label}</button>)}
-            {myDraftAt(false) && <button className="btn btn-xs btn-ghost" onClick={() => run(() => discardFinding(myDraftAt(false)!.id))}>Hapus draf permukaan</button>}
-          </div>
-          <div className="cond-row">
-            <span className="muted small">Kondisi seluruh gigi:</span>
-            {CONDITIONS.filter((c) => c.whole).map((c) => <button key={c.key} type="button" className={`btn cond cond-${c.key}`} aria-pressed={chosen?.condition === c.key} onClick={() => choose(c.key, true)}>{c.label}</button>)}
-            {myDraftAt(true) && <button className="btn btn-xs btn-ghost" onClick={() => run(() => discardFinding(myDraftAt(true)!.id))}>Hapus draf gigi</button>}
-          </div>
-        </div>
+        // OVv2 "tindakan dulu": one sheet records condition + status; Selesai = today's procedure, billed via the clinic mapping
+        <EntrySheet key={pick.tooth} tooth={pick.tooth} visitId={visit!.id} initialSurface={pick.surface === 'B' ? 'V' : pick.surface as SurfaceKey}
+          onSaved={(m) => { setMsg(m); load(); if (mobile) setPick(null) }} />
       ) : <p className="muted small">{visit ? readOnlyWhy : 'Hanya lihat: kondisi dan tindakan diisi dari kunjungan aktif yang belum Selesai.'}</p>}
       {startCtl}
-      <button type="button" className="btn btn-primary tooth-save" disabled={!!saveWhy || saving} title={saveWhy || undefined} aria-describedby={saveWhy && chosen ? 'save-why' : undefined}
-        onClick={saveChosen}>{saving ? 'Menyimpan…' : 'Simpan ke kunjungan hari ini'}</button>
-      {/* review-3: an empty choice just leaves the button disabled (title explains); other reasons stay visible */}
-      {saveWhy && chosen && <p id="save-why" className="muted small">{saveWhy}</p>}
     </>
   )
 
@@ -720,8 +651,6 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
                   <label className="small">Lihat per tanggal <DateField value={asOf} placeholder="Hari ini" max={new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' })}
                     onChange={(e) => setAsOf(e.target.value)} /></label>
                   {asOf && <button className="btn btn-xs" onClick={() => setAsOf('')}>Kembali ke hari ini</button>}
-                  <Seg label="Dentisi" value={dent ?? 'tetap'} onChange={(v) => setDentPick({ base: defDent, v })} options={[['tetap', 'Tetap'], ['sulung', 'Sulung'], ['campuran', 'Campuran']]} />
-                  <Seg label="Tampilan" value={view} onChange={changeView} options={[['2d', '2D'], ['3d', '3D']]} />
                 </div>
   )
   const odoLegend = (
@@ -731,16 +660,11 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
         </button>
         {legendOpen && (
           <div className="odo-legends" id="odo-legends">
-            <StatusLegend />
-            <Legend />
+            <OfficialLegend />
           </div>
         )}
-        {can('note.write') && (
-          <div className="baseline-row">
-            <span className="muted small">Keadaan awal: {chart.baseline ? `${chart.baseline.dentition} · versi ${chart.baseline.version}` : 'belum diisi (isi di kunjungan pertama)'}</span>
-            <button className="btn btn-xs" aria-pressed={baselineOpen} onClick={() => setBaselineOpen(!baselineOpen)}>{baselineOpen ? 'Tutup keadaan awal' : 'Isi / ubah keadaan awal'}</button>
-          </div>
-        )}
+        {/* legacy baseline (read only): the initial state is now recorded through Pemeriksaan awal */}
+        {chart.baseline && <p className="muted small">Keadaan awal lama: {chart.baseline.dentition} · versi {chart.baseline.version}</p>}
     </>
   )
   return page(
@@ -752,7 +676,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
       {billFor && !mobile && <p className="toolbar rm-done">{afterSelesai}</p>}
 
       <div role="tablist" aria-label="Bagian rekam medis" className="tabs chart-tabs">
-        {INNER.filter(([k]) => !mobile || (k !== 'plan' && k !== 'rx' && (k !== 'bill' || can('billing.read')))).map(([k, label]) => (
+        {INNER.filter(([k]) => k !== 'bill' || can('billing.read')).map(([k, label]) => (
           <button key={k} type="button" role="tab" id={`ct-${k}`} aria-selected={tab === k} aria-controls="chart-tabpanel" className={tab === k ? 'on' : undefined} onClick={() => setTab(k)}>{label}</button>
         ))}
       </div>
@@ -762,25 +686,46 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
           <section className="card span-8 odo-card" aria-label="Odontogram">
             <div className="card-head">
               <h2>Odontogram</h2>
-              {mine.length + myProcs.length > 0 && <span className="badge badge-draft">Draf: {mine.length} temuan, {myProcs.length} tindakan</span>}
+              {mine.length + myProcs.filter(isWork).length > 0 && <span className="badge badge-draft">Draf: {mine.length} temuan, {myProcs.filter(isWork).length} tindakan</span>}
               {mine.some((d) => d.source === 'ai_draft') && <span className="badge badge-ai">{AI_BADGE}</span>}
               {!mobile && odoTools}
             </div>
+            {/* OVv2-05: 2D | 3D (and the entry mode) always visible under the title, never folded away on the phone */}
+            <div className="odo-switches">
+              <Seg label="Tampilan" value={view} onChange={changeView} options={[['2d', '2D'], ['3d', '3D']]} />
+              {editable && view === '2d' && me.odontogram_exam_enabled !== false && <Seg label="Mode isi" value={mode} onChange={(m) => { setMode(m); setPick(null) }} options={[['perawatan', 'Perawatan'], ['periksa', 'Pemeriksaan awal']]} />}
+            </div>
             {chart.as_of && <p className="notice notice-warn small" role="status">Tampilan riwayat: keadaan pada akhir {chart.as_of} (WIB). Hanya baca.</p>}
             <p className={summary ? 'odo-summary' : 'odo-summary muted'} role="note" aria-label="Ringkasan temuan">{summary || 'Belum ada temuan.'}</p>
+            {editable && mouthProcs.length > 0 && (
+              // work without a tooth (Scaling ...): done today = Selesai, billed like a tooth entry
+              <div className="mouth-procs" role="group" aria-label="Tindakan seluruh mulut">
+                <span className="muted small">Tindakan seluruh mulut:</span>
+                {mouthProcs.map((x) => (
+                  <button key={x.procedure_code} type="button" className="btn" aria-pressed={mouthPick?.procedure_code === x.procedure_code}
+                    onClick={() => (stages[x.procedure_code]?.length ?? 0) > 1 ? setMouthPick(x) : saveMouth(x)}>{x.name} <code>{x.procedure_code}</code></button>
+                ))}
+              </div>
+            )}
+            {editable && mouthPick && (
+              <div className="tsheet-pick" role="radiogroup" aria-label={`Tahap ${mouthPick.name}`}>
+                <p className="small">Tahap {mouthPick.name} hari ini:</p>
+                {stages[mouthPick.procedure_code].map((s) => (
+                  <button key={s.variant} type="button" role="radio" aria-checked={false} onClick={() => saveMouth(mouthPick, s)}>{s.label}</button>
+                ))}
+              </div>
+            )}
             {mobile ? (
               <details className="odo-more">
-                <summary>Tampilan, legenda &amp; keadaan awal</summary>
+                <summary>Tampilan &amp; legenda</summary>
                 {odoTools}
                 {odoLegend}
               </details>
             ) : odoLegend}
-            {baselineOpen && <BaselineEditor value={chart.baseline} onClose={() => setBaselineOpen(false)}
-              onSave={(b) => run(async () => { await saveBaseline(p.id, { base_version: chart.baseline?.version ?? null, ...b }); setBaselineOpen(false) }, 'Keadaan awal tersimpan (versi baru).')} />}
             {view === '3d' && (
               <>
-                <Odontogram3D marks={marks} baseline={chart.baseline?.teeth} dentition={dent} selected={pick} onPick={onPick} />
-                <p className="muted small odo3d-note">Tampilan 3D hanya baca; overlay mengikuti data bagan dan legenda internal. Ketuk gigi/permukaan di 3D untuk memilih, atau pakai bagan 2D di bawah untuk input per permukaan.</p>
+                <Odontogram3D marks={shown} baseline={chart.baseline?.teeth} dentition={dent} selected={pick} onPick={onPick} />
+                <p className="muted small odo3d-note">3D hanya baca. Untuk mencatat, kembali ke 2D.</p>
               </>
             )}
             {phone ? <>
@@ -790,16 +735,20 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
                 <div key={arch} className="odo-jaw">
                   <p className="odo-jaw-head"><span id={`jaw-${arch}`}>{arch === 'upper' ? 'Rahang atas' : 'Rahang bawah'}</span> <span className="muted">kanan ← kiri pasien</span></p>
                   <div className="odo2d-wrap odo-jaw-scroll" role="group" aria-labelledby={`jaw-${arch}`} ref={(el) => centre(el, String(dent))}>
-                    <Odontogram arch={arch} wholeTooth marks={marks} baseline={chart.baseline?.teeth} dentition={dent} compact={view === '3d'} selected={pick ? `t${pick.tooth}-${pick.surface}` : null} onPick={onPick} />
+                    <Odontogram arch={arch} wholeTooth marks={shown} baseline={chart.baseline?.teeth} dentition={dent} compact={view === '3d'} selected={pick ? `t${pick.tooth}-${pick.surface}` : null} onPick={onPick} />
                   </div>
                 </div>
               ))}
             </> : (
             // ≤720px: the chart keeps its size and scrolls sideways; opens centred on the midline (11|21).
             <div className="odo2d-wrap" ref={(el) => { if (mobile) centre(el, String(dent)) }}>
-              <Odontogram marks={marks} baseline={chart.baseline?.teeth} dentition={dent} compact={view === '3d'} selected={pick ? `t${pick.tooth}-${pick.surface}` : null} onPick={onPick} />
+              <Odontogram marks={shown} baseline={chart.baseline?.teeth} dentition={dent} compact={view === '3d'} selected={pick ? `t${pick.tooth}-${pick.surface}` : null} onPick={onPick} />
             </div>
             )}
+            {/* OVv2-07: dentition under the chart, always visible (48px); default from age, the dentist can change it */}
+            <div className="dent-toggle">
+              <Seg label="Dentisi" value={dent ?? 'tetap'} onChange={(v) => setDentPick({ base: defDent, v })} options={[['tetap', 'Tetap'], ['sulung', 'Sulung'], ['campuran', 'Campuran']]} />
+            </div>
             {!editable && (visit ? <p className="muted small">{readOnlyWhy}</p> : (
               <div className="chart-cta small">
                 <p>Belum ada kunjungan aktif. Mulai kunjungan hari ini (tanpa janji juga bisa) untuk mengisi odontogram dan SOAP.</p>
@@ -809,7 +758,11 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
               </div>
             ))}
           </section>
-          {!mobile ? <aside className="card span-4 tooth-panel" aria-label="Detail gigi">{panel}</aside> : (
+          {mode === 'periksa' && editable ? (
+            <aside className="card span-4 tooth-panel exam-panel" aria-label="Pemeriksaan awal">
+              <ExamPalette exam={exam} visitId={visit!.id} emptyTeeth={emptyTeeth} onSaved={(m) => { setMsg(m); load() }} />
+            </aside>
+          ) : !mobile ? <aside className="card span-4 tooth-panel" aria-label="Detail gigi">{panel}</aside> : (
             <Presence open={!!pick} exitMs={200}>
               {pick && <ToothSheet tooth={pick.tooth} panel={panel} onClose={() => setPick(null)} trapTab={trapTab} />}
             </Presence>
@@ -894,13 +847,13 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
           </div>}
         </div>
       )}
-      {(tab === 'plan' || tab === 'rx' || (tab === 'bill' && !can('billing.read'))) && <div className="card state-card muted">Belum tersedia.</div>}
       {tab === 'bill' && can('billing.read') && <BillingTab visits={chart.visits} />}
       </div>
 
       {/* review-3 P2: on the phone the next step after Selesai sits in the bottom dock, where Selesai was */}
       {mobile && billFor && <div className="rm-actionbar rm-done">{afterSelesai}</div>}
-      {mobile && !billFor && editable && isDpjp && visit && (
+      {/* OVv2-06: the exam dock owns the bottom while Pemeriksaan awal is on (one primary: Simpan N gigi) */}
+      {mobile && !billFor && editable && isDpjp && visit && mode !== 'periksa' && (
         // Phone (#70): one sticky bar above the bottom nav, on every RM tab: Setujui while agent drafts wait, else Selesai.
         <div className="rm-actionbar">
           {unapproved > 0
@@ -910,11 +863,12 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
       )}
       <Presence open={!!(signing && visit && draft)} exitMs={200}>
         {signing && visit && draft && (
-        <SelesaiDialog busy={signing.busy} error={signing.error} warnings={signing.warnings} onClose={() => setSigning(null)} onConfirm={selesai}
+        <SelesaiDialog busy={signing.busy} error={signing.error} warnings={signing.warnings} missing={signing.missing} onClose={() => setSigning(null)} onConfirm={selesai}
           pinRequired={!!me.selesai?.pin_required} hasPin={!!me.selesai?.has_pin}
           lines={[`Catatan SOAP versi ${draft.version} (revisi ${draft.revision})${draft.soap.A.codes.length ? ' · ICD-10 ' + draft.soap.A.codes.join(', ') : ''}`,
             ...visit.draft_findings.map((f) => findingText(f) + (f.created_by !== me.user.id ? ' (draf pengguna lain)' : '')),
-            ...visit.draft_procedures.map((x) => procedureText(x) + ` · ${statusOf(x.status)?.label ?? x.status}` + (x.created_by !== me.user.id ? ' (draf pengguna lain)' : ''))]} />
+            ...visit.draft_procedures.filter(isWork).map((x) => procedureText(x) + ` · ${statusOf(x.status)?.label ?? x.status}` + (x.created_by !== me.user.id ? ' (draf pengguna lain)' : '')),
+            ...(visit.draft_procedures.some((x) => !isWork(x)) ? [`Pemeriksaan: ${visit.draft_procedures.filter((x) => !isWork(x)).length} gigi sehat (sou)`] : [])]} />
         )}
       </Presence>
       <Presence open={!!procFix} exitMs={200}>
@@ -925,8 +879,11 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
         {fixing && <CorrectionDialog note={fixing} solo={chart.solo_practice} onClose={() => setFixing(null)} onDone={async () => { setFixing(null); await load(); setMsg('Koreksi tersimpan.') }} />}
       </Presence>
     </>,
-    visit?.status === 'berlangsung' && !visit.notes.some((n) => n.versions.some((x) => x.signed_at))
-      ? <span className="visit-chip" role="note" aria-label="Status kunjungan">{visitStatusText(visit, mobile)}</span> : null,
+    <>
+      {visit?.status === 'berlangsung' && !visit.notes.some((n) => n.versions.some((x) => x.signed_at))
+        && <span className="visit-chip" role="note" aria-label="Status kunjungan">{visitStatusText(visit, mobile)}</span>}
+      {visit?.complaint && <span className="visit-note" role="note" aria-label="Keluhan pasien"><strong>Keluhan:</strong> {visit.complaint}</span>}
+    </>,
   )
 }
 

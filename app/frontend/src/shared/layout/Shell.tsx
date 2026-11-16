@@ -6,8 +6,8 @@ import { Icon, ICONS } from '../ui/Icon'
 import { Menu } from '../ui/Menu'
 import { PageStage, Presence, usePresenceClass } from '../ui/presence'
 import { useScrollHints } from '../ui/scrollHint'
-import { useDialog } from '../ui/Sheet'
-import { useIsMobile } from '../useIsMobile'
+import { Sheet, useDialog } from '../ui/Sheet'
+import { useIsMobile, useMedia } from '../useIsMobile'
 
 // Mobile bottom tabs: the first 4 of these the user may open, in order; every other nav item goes in the "Lainnya" sheet (with
 // branch + Keluar). Role-based: whoever takes payments but does not write the chart (kasir, front desk, pemilik) gets Kasir in
@@ -43,7 +43,7 @@ function Branch({ me, onSwitchBranch }: { me: Me; onSwitchBranch: (id: string) =
 
 // Shell A: sidebar (brand, clinic block, KLINIK/KLINIS/KEUANGAN nav; icon rail <=1100px; bottom nav instead at <=720px),
 // top bar (page title, search, + quick actions, bell, user menu), medical-alert ribbon slot whenever a patient is active.
-export function Shell({ me, nav, active, title = '', ribbon, badges, onSwitchBranch, onLogout, children }: {
+export function Shell({ me, nav, active, title = '', ribbon, badges, queue, onSwitchBranch, onLogout, children }: {
   me: Me
   nav: NavItem[]
   /** phone bottom-nav count per path (e.g. Jadwal: online bookings waiting); the label is read by screen readers */
@@ -51,6 +51,8 @@ export function Shell({ me, nav, active, title = '', ribbon, badges, onSwitchBra
   active: NavItem | undefined
   title?: string
   ribbon?: ReactNode
+  /** "Antrean hari ini" on desk pages: a rail on the right at ≥1281px, behind a top-bar button (sheet) below that */
+  queue?: (where: 'rail' | 'sheet') => ReactNode
   onSwitchBranch: (id: string) => void
   onLogout: () => void
   children: ReactNode
@@ -60,6 +62,8 @@ export function Shell({ me, nav, active, title = '', ribbon, badges, onSwitchBra
   useScrollHints(mobile)
   const [q, setQ] = useState('')
   const [more, setMore] = useState(false)
+  const wide = useMedia('(min-width: 1281px)')
+  const [queueOpen, setQueueOpen] = useState(false)
   const moreRef = useRef<HTMLDivElement>(null)
   useDialog(moreRef, () => setMore(false), mobile && more) // modal: focus in/trapped/back to Lainnya, Escape, no page scroll
   // Pinned top bar height -> --shell-sticky-h, so the chart's sticky patient header (allergies) sits right below it.
@@ -88,9 +92,17 @@ export function Shell({ me, nav, active, title = '', ribbon, badges, onSwitchBra
       </>}
     </Menu>
   )
+  const queueBtn = queue && !wide && (
+    // phone: icon only, so the clinic name keeps its room
+    <button type="button" className={mobile ? 'icon-btn' : 'btn queue-toggle'} aria-label={mobile ? 'Antrean hari ini' : undefined}
+      aria-haspopup="dialog" aria-expanded={queueOpen} onClick={() => setQueueOpen(true)}>
+      <Icon d={ICONS.queue} size={mobile ? undefined : 18} />{!mobile && 'Antrean'}
+    </button>
+  )
   const bell = <button type="button" className="icon-btn" disabled aria-label="Notifikasi (segera hadir)"><Icon d={ICONS.bell} /></button>
   // App re-renders on hashchange, so reading the hash here stays current.
   const route = location.hash.slice(1).split('?')[0] || '/'
+  useEffect(() => setQueueOpen(false), [route]) // the queue sheet never follows the user to another page
   const user = (
     <Menu label={`Akun ${me.user.name}`} className="shell-user" trigger={<>
       <span className="avatar" aria-hidden="true">{initials(me.user.name.replace(/^drg\.?\s*/i, ''))}</span>
@@ -146,6 +158,7 @@ export function Shell({ me, nav, active, title = '', ribbon, badges, onSwitchBra
             <header className="shell-top">
               <span className="brand-mark" aria-hidden="true"><Icon d={ICONS.tooth} /></span>
               <span className="shell-top-clinic"><strong title={me.active.tenant_name}>{me.active.tenant_name}</strong><span className="badge-synthetic">DATA SINTETIS</span></span>
+              {queueBtn}
               {quick}
               {bell}
               {user}
@@ -163,6 +176,7 @@ export function Shell({ me, nav, active, title = '', ribbon, badges, onSwitchBra
             )}
             {/* the sidebar badge hides in the icon rail (<=1100px); this short chip keeps the prototype warning visible there */}
             <span className="badge-synthetic shell-top-synthetic">DATA SINTETIS</span>
+            {queueBtn}
             {quick}
             {bell}
             {user}
@@ -172,6 +186,13 @@ export function Shell({ me, nav, active, title = '', ribbon, badges, onSwitchBra
         </div>
         <main className="shell-main" key={me.active.branch_id}><PageStage route={route}>{children}</PageStage></main>
       </div>
+      {queue && wide && <aside className="queue-rail" key={me.active.branch_id}>{queue('rail')}</aside>}
+      {queue && !wide && queueOpen && (
+        <Sheet title="Antrean hari ini" className="queue-drawer" onClose={() => setQueueOpen(false)}>
+          {/* following a link (chart, invoice, schedule) leaves the sheet behind */}
+          <div onClick={(e) => { if ((e.target as HTMLElement).closest('a')) setQueueOpen(false) }}>{queue('sheet')}</div>
+        </Sheet>
+      )}
       {mobile && (
         <nav className="bottom-nav" aria-label="Navigasi utama">
           {tabs.map((n) => link(n, <>

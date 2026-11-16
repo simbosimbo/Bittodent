@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { ApiError, errorText } from '../../shared/api/http'
 import { fmtYmdShort, num, rp, todayWib } from '../../shared/format'
 import { Kop, loadLetterhead, type Letterhead } from '../../shared/letterhead'
+import { getCatalog, ODONTOGRAM_TAXONOMY, setCatalogConditions, SymbolIcon, type CatalogRow } from '../clinical'
 import type { Me } from '../../shared/session'
 import { DateField } from '../../shared/ui/DateField'
-import { addAccount, bulkTariffs, getAccounts, getProfile, getTariffs, saveBranch, saveCategory, saveLevels, saveProfile, updateAccount, uploadLogo, uploadQris,
+import { addAccount, addTariff, bulkTariffs, getAccounts, getProfile, getTariffs, saveBranch, saveCategory, saveLevels, saveProfile, updateAccount, uploadLogo, uploadQris,
   type Account, type AccountKind, type BulkRow, type ClinicProfile, type TariffItem } from './api'
 import './settings.css'
 
@@ -127,6 +128,8 @@ function PriceTab() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const load = () => getTariffs(q.trim(), cat).then(setData, (e) => setError(errorText(e)))
+  const [catalog, setCatalog] = useState<CatalogRow[]>([])
+  useEffect(() => { getCatalog().then(setCatalog, () => setCatalog([])) }, [])
   useEffect(() => { const t = setTimeout(load, 250); return () => clearTimeout(t) }, [q, cat]) // eslint-disable-line react-hooks/exhaustive-deps
   const today = todayWib()
   const dirty = Object.keys(edits).filter((c) => Object.keys(edits[c]).length)
@@ -168,6 +171,8 @@ function PriceTab() {
       {error && <p className="form-error" role="alert">{error}</p>}
       {msg && <p className="notice" role="status">{msg}</p>}
       {sel.length > 0 && data && <BulkPanel codes={sel} items={data.items} onDone={(t) => { setSel([]); setMsg(t); load() }} onCancel={() => setSel([])} />}
+      {data && !q.trim() && !cat && <Unpriced rows={catalog.filter((c) => !data.items.some((it) => it.procedure_code === c.procedure_code))}
+        onSaved={(name) => { setMsg(`Harga ${name} tersimpan. Kunjungan yang menunggu harga bisa ditutup sekarang.`); load() }} onError={setError} />}
       {!data ? <p className="muted">Memuat…</p> : data.items.length === 0 ? <p className="muted">Tidak ada tindakan yang cocok.</p> : (
         <ul className="set-list">
           {data.items.map((it) => {
@@ -181,6 +186,9 @@ function PriceTab() {
                     <span className="muted small">{it.procedure_code}
                       {' · '}<CategoryInput item={it} categories={data.categories} onSaved={load} onError={setError} /></span></div>
                 </div>
+                <OdoMap item={it} row={catalog.find((c) => c.procedure_code === it.procedure_code)}
+                  onSaved={(r) => { setCatalog([...catalog.filter((c) => c.procedure_code !== r.procedure_code), r]); setMsg(`Pemetaan odontogram ${it.name} tersimpan.`) }}
+                  onError={setError} />
                 {levels.map((l) => {
                   const cur = it.levels.find((x) => x.variant === l.variant)
                   return (
@@ -193,6 +201,8 @@ function PriceTab() {
                     </label>
                   )
                 })}
+                <StageEditor name={it.name} initial={levels.map((l) => ({ code: l.variant, label: l.label, price_rp: l.price_rp }))} onError={setError}
+                  submit={async (ls) => { await saveLevels(it.id, it.editable_from, ls); setMsg(`Tahap ${it.name} tersimpan, berlaku ${fmtYmdShort(it.editable_from)}.`); load() }} />
                 {(later(it) || it.next) && <p className="muted small set-when">
                   {it.next ? `Harga baru berlaku ${fmtYmdShort(it.next.valid_from)}.` : ''}
                   {later(it) && edits[it.procedure_code] && Object.keys(edits[it.procedure_code]).length ? ` Perubahan berlaku ${fmtYmdShort(it.editable_from)} (hari ini sudah diubah).` : ''}
@@ -209,6 +219,43 @@ function PriceTab() {
         </div>
       )}
     </section>
+  )
+}
+
+// S2: stages / levels of one procedure (PSA kunjungan 1 / lanjutan, mahkota preparasi / pemasangan). The dentist picks the label done
+// today (never sees prices); the kasir bills that level per visit.
+type StageRow = { code: string; label: string; price_rp: number }
+function StageEditor({ name, initial, submit, onError, open = 'Atur tahap' }: {
+  name: string; initial: StageRow[]; submit: (levels: StageRow[]) => Promise<void>; onError: (m: string) => void; open?: string
+}) {
+  const [rows, setRows] = useState<{ code: string; label: string; price: string }[] | null>(null)
+  const [busy, setBusy] = useState(false)
+  if (!rows) return <button type="button" className="btn btn-ghost small" onClick={() => setRows(initial.map((l) => ({ code: l.code, label: l.label, price: l.price_rp ? String(l.price_rp) : initial.length > 1 ? '0' : '' })))}>
+    {open}{initial.length > 1 ? ` (${initial.length})` : ''}</button>
+  const set = (i: number, k: 'label' | 'price', v: string) => setRows(rows.map((r, j) => (j === i ? { ...r, [k]: k === 'price' ? v.replace(/\D/g, '') : v } : r)))
+  const fresh = () => { let n = rows.length + 1; while (rows.some((r) => r.code === `t${n}`)) n++; return `t${n}` }
+  const bad = rows.some((r) => !r.label.trim() || r.price === '')
+  async function save() {
+    setBusy(true)
+    try { await submit(rows!.map((r) => ({ code: r.code, label: r.label.trim(), price_rp: digits(r.price) }))); setRows(null) } catch (e) { onError(msgOf(e)) } finally { setBusy(false) }
+  }
+  return (
+    <fieldset className="set-stages">
+      <legend className="small">Tahap {name}, urut dari tahap pertama. Dokter memilih tahap yang dikerjakan; kasir menagih per kunjungan. Isi 0 bila gratis.</legend>
+      {rows.map((r, i) => (
+        <div key={r.code} className="set-stage-row">
+          <input aria-label={`Nama tahap ${i + 1}`} placeholder={`Tahap ${i + 1}`} maxLength={60} value={r.label} onChange={(e) => set(i, 'label', e.target.value)} />
+          <span className="set-rp"><span aria-hidden="true">Rp</span>
+            <input inputMode="numeric" aria-label={`Harga tahap ${i + 1}`} value={r.price === '' ? '' : num(digits(r.price))} onChange={(e) => set(i, 'price', e.target.value)} /></span>
+          {rows.length > 1 && <button type="button" className="btn btn-ghost" aria-label={`Hapus tahap ${i + 1}`} onClick={() => setRows(rows.filter((_, j) => j !== i))}>Hapus</button>}
+        </div>
+      ))}
+      <div className="set-dock">
+        <button type="button" className="btn btn-ghost" disabled={rows.length >= 10} onClick={() => setRows([...rows, { code: fresh(), label: '', price: '' }])}>+ Tahap</button>
+        <button type="button" className="btn" onClick={() => setRows(null)} disabled={busy}>Batal</button>
+        <button type="button" className="btn btn-primary" onClick={save} disabled={busy || bad}>{busy ? 'Menyimpan…' : 'Simpan tahap'}</button>
+      </div>
+    </fieldset>
   )
 }
 
@@ -376,5 +423,68 @@ function AddAccount({ me, onDone, onCancel }: { me: Me; onDone: (a: Account) => 
         <button className="btn btn-primary" disabled={busy || (kind === 'transfer' && (!bank.trim() || last4.length !== 4))}>Simpan</button>
       </div>
     </form>
+  )
+}
+
+/**
+ * Odontogram v2 "tindakan dulu": the odontogram condition codes this tariff item records. A dentist's "cof · Selesai" bills the item whose
+ * mapping holds cof (several items -> the dentist picks one). Unmapped conditions cannot be finished, so the owner maps them here.
+ */
+// S1: procedures the dentist can record that have no price yet. Until the owner sets one, a visit with that work cannot be closed.
+// One price, or "Bertahap" (S2) to create its stages at once so they apply today.
+function Unpriced({ rows, onSaved, onError }: { rows: CatalogRow[]; onSaved: (name: string) => void; onError: (m: string) => void }) {
+  const [price, setPrice] = useState<Record<string, string>>({})
+  const [busy, setBusy] = useState('')
+  if (!rows.length) return null
+  async function save(r: CatalogRow) {
+    setBusy(r.procedure_code)
+    try { await addTariff(r.procedure_code, r.name, digits(price[r.procedure_code])); onSaved(r.name) } catch (e) { onError(msgOf(e)) } finally { setBusy('') }
+  }
+  return (
+    <section className="card set-row" aria-label="Tindakan tanpa harga">
+      <strong>Tindakan tanpa harga ({rows.length})</strong>
+      <p className="muted small">Dokter bisa mengisi tindakan ini, tetapi kunjungan tidak bisa ditutup dan dibayar sebelum harganya diisi. Isi 0 bila memang gratis.</p>
+      {rows.map((r) => (
+        <div key={r.procedure_code} className="set-unpriced">
+          <span className="set-unpriced-name">{r.name} <span className="muted small">{r.procedure_code}</span></span>
+          <span className="set-rp"><span aria-hidden="true">Rp</span>
+            <input inputMode="numeric" aria-label={`Harga ${r.name}`} value={price[r.procedure_code] ? num(digits(price[r.procedure_code])) : ''}
+              onChange={(e) => setPrice({ ...price, [r.procedure_code]: e.target.value.replace(/\D/g, '') })} /></span>
+          <button type="button" className="btn" disabled={busy === r.procedure_code || !(price[r.procedure_code] ?? '')} onClick={() => save(r)}>Simpan</button>
+          <StageEditor name={r.name} open="Bertahap" onError={onError} initial={[{ code: 'k1', label: 'Kunjungan 1', price_rp: digits(price[r.procedure_code] ?? '') }]}
+            submit={async (ls) => { await addTariff(r.procedure_code, r.name, ls); onSaved(r.name) }} />
+        </div>
+      ))}
+    </section>
+  )
+}
+
+function OdoMap({ item, row, onSaved, onError }: { item: TariffItem; row?: CatalogRow; onSaved: (r: CatalogRow) => void; onError: (m: string) => void }) {
+  const [open, setOpen] = useState(false)
+  const [pick, setPick] = useState<string[]>(row?.conditions ?? [])
+  const [busy, setBusy] = useState(false)
+  const conds = ODONTOGRAM_TAXONOMY.conditions.filter((c) => c.code && c.code !== 'sou')
+  const mapped = row?.conditions ?? []
+  async function save() {
+    setBusy(true)
+    try { onSaved(await setCatalogConditions(item.procedure_code, pick, item.name)); setOpen(false) } catch (e) { onError(msgOf(e)) }
+    setBusy(false)
+  }
+  return (
+    <div className="set-odo">
+      <span className="muted small">Odontogram: {mapped.length ? mapped.join(', ') : 'belum dipetakan'}</span>
+      <button type="button" className="btn btn-ghost" aria-expanded={open} onClick={() => { setPick(mapped); setOpen(!open) }}>Atur odontogram</button>
+      {open && (
+        <div className="set-odo-pick" role="group" aria-label={`Kondisi odontogram yang dicatat ${item.name}`}>
+          {conds.map((c) => (
+            <label key={c.key} className="set-odo-opt"><input type="checkbox" checked={pick.includes(c.code!)}
+              onChange={(e) => setPick(e.target.checked ? [...pick, c.code!] : pick.filter((x) => x !== c.code))} />
+              <SymbolIcon symbol={c.symbol} code={c.code} /> {c.label} <code>{c.code}</code></label>
+          ))}
+          <div className="toolbar"><button type="button" className="btn" onClick={() => setOpen(false)}>Batal</button>
+            <button type="button" className="btn btn-primary" disabled={busy} onClick={save}>{busy ? 'Menyimpan…' : 'Simpan pemetaan'}</button></div>
+        </div>
+      )}
+    </div>
   )
 }

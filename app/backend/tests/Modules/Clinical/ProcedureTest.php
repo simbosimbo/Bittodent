@@ -84,8 +84,11 @@ class ProcedureTest extends TestCase
         }
         // a finished procedure needs its ICD-9-CM code: without it nothing could be billed (E2E 16-11-2026: patient left unbilled)
         $this->proc($visit, ['tooth' => 36, 'treat_area' => 'tooth', 'status' => 'selesai'])->assertUnprocessable()->assertJsonValidationErrors('procedure_code');
-        $this->sign($visit)->assertOk()->assertJsonPath('procedures_locked', 6);
-        $this->assertCount(0, $this->lines($visit));
+        // none of these is completed work: Selesai is refused (P0-4) until a billable act is added, and only that act bills
+        $this->sign($visit)->assertConflict()->assertJsonPath('error', 'no_billable_work');
+        $this->proc($visit, ['procedure_code' => '89.31', 'variant' => 'kontrol'])->assertCreated();
+        $this->sign($visit)->assertOk()->assertJsonPath('procedures_locked', 7);
+        $this->assertSame(['89.31'], $this->lines($visit)->pluck('procedure_code')->all());
     }
 
     public function test_selesai_without_code_never_slips_through_status_change_or_legacy_rows(): void
@@ -93,6 +96,7 @@ class ProcedureTest extends TestCase
         // planned without a code is fine; moving it to selesai is not (it could never be billed)
         $visit = $this->draftVisit();
         $planned = $this->proc($visit, ['tooth' => 26, 'treat_area' => 'tooth', 'status' => 'direncanakan'])->assertCreated()->json('id');
+        $this->proc($visit, ['procedure_code' => '89.31', 'variant' => 'kontrol'])->assertCreated();
         $this->sign($visit)->assertOk();
         $this->as(self::DOC)->postJson("/api/procedures/$planned/status", ['to' => 'selesai'])->assertUnprocessable()->assertJsonValidationErrors('procedure_code');
 

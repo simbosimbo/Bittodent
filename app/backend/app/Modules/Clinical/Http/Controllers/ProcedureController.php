@@ -3,10 +3,12 @@
 namespace App\Modules\Clinical\Http\Controllers;
 
 use App\Modules\Clinical\Domain\ApproxDate;
+use App\Modules\Clinical\Domain\OdontogramTaxonomy;
 use App\Modules\Clinical\Domain\ProcedureCatalog;
 use App\Modules\Clinical\Domain\ProcedureLocation;
 use App\Modules\Clinical\Domain\ProcedureSite;
 use App\Modules\Clinical\Domain\ProcedureStatus;
+use App\Modules\Clinical\Domain\Soap;
 use App\Modules\Clinical\Events\ProcedureCorrected;
 use App\Modules\Clinical\Events\ProcedureRecorded;
 use App\Modules\Clinical\Http\Requests\ProcedureHistoryRequest;
@@ -16,6 +18,7 @@ use App\Modules\Clinical\Models\ProcedureCorrectionDecision;
 use App\Modules\Clinical\Models\ProcedureDefinition;
 use App\Modules\Clinical\Models\ProcedureRecord;
 use App\Modules\Clinical\Models\Visit;
+use App\Modules\Clinical\Services\CodingSuggestions;
 use App\Modules\Clinical\Services\PatientCareSync;
 use App\Modules\Identity\Contracts\UserDirectory;
 use App\Modules\Tenancy\Contracts\DentistProfileDirectory;
@@ -24,7 +27,9 @@ use App\Shared\Audit\Audit;
 use App\Shared\Crypto\Crypto;
 use App\Shared\Http\Controller;
 use App\Shared\Tenancy\Ctx;
+use App\Shared\Terminology\OfficialIcdCode;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -59,12 +64,247 @@ class ProcedureController extends Controller
             if (! is_array($attrs)) {
                 return $attrs;
             }
+            $dup = self::duplicateOf($attrs, $visit);
+            if ($dup && ! ($d['confirm_duplicate'] ?? false)) {
+                return self::duplicate($dup);
+            }
             $p = ProcedureRecord::create([...$attrs, 'patient_id' => $visit->patient_id, 'visit_id' => $visit->id, 'state' => 'draft',
                 'source' => $d['source'] ?? 'manual', 'created_by' => $ctx->userId]);
-            Audit::log('buat', 'procedure_record', $p->id, ['tooth' => $p->tooth, 'surfaces' => $p->surfaces, ...self::externalAudit($p)]);
+            Audit::log('buat', 'procedure_record', $p->id, ['tooth' => $p->tooth, 'surfaces' => $p->surfaces, ...self::externalAudit($p),
+                ...($dup ? ['duplicate_of' => $dup->id] : [])]);
 
             return response()->json(self::out($p), 201);
         });
+    }
+
+    /**
+     * POST /api/visits/{id}/tooth-entries (odontogram v2, board 09): tooth -> condition/procedure -> surfaces -> status -> Simpan as ONE
+     * draft procedure row. Dentist only (route perm note.sign; assistants keep the draft procedure endpoint). Vocabulary comes from
+     * OdontogramTaxonomy (resources/odontogram/taxonomy.json): v2 status => procedure status, V => stored B, group => treat area.
+     * A bridge is one range row (tooth_range "34-36") with the role per tooth and the material. The usual location, provider, external
+     * and signed-visit rules apply (same attributes() as store()); a `selesai` row with a tariffed code bills on Selesai as before.
+     * Procedure first (S3): {tooth, procedure_code, status} without a condition takes the condition from the code's catalog mapping
+     * (one => it, several => 422 pick_condition, none => no odontogram symbol).
+     */
+    public function storeEntry(Request $request, string $id, TenancyDirectory $tenancy)
+    {
+        $d = $request->validate(self::entryRules());
+        $prep = self::prepareEntry($d);
+        if (! is_array($prep)) {
+            return $prep;
+        }
+        $ctx = Ctx::current();
+
+        return DB::transaction(function () use ($prep, $d, $id, $tenancy) {
+            $visit = Visit::lockForUpdate()->findOrFail($id);
+            if ($e = self::entryVisitError($visit)) {
+                return $e;
+            }
+            $r = self::insertEntry($prep, $d, $visit, $tenancy);
+
+            return $r instanceof ProcedureRecord ? response()->json(self::out($r), 201) : $r;
+        });
+    }
+
+    /**
+     * POST /api/visits/{id}/tooth-entries/batch {entries: [...]} (board OVv2-06, Pemeriksaan awal): palette mode, many teeth, ONE Simpan.
+     * All or nothing. Status Ada sebelumnya / Rencana only: an exam records the mouth, it never bills (Selesai stays in Perawatan).
+     */
+    public function storeEntries(Request $request, string $id, TenancyDirectory $tenancy)
+    {
+        $rules = ['entries' => ['required', 'array', 'min:1', 'max:64']];
+        foreach (self::entryRules('entries.*.') as $k => $r) {
+            $rules['entries.*.'.$k] = $k === 'status' ? ['required', 'string', 'in:ada_sebelumnya,rencana'] : $r;
+        }
+        $all = $request->validate($rules)['entries'];
+        $prepared = [];
+        foreach ($all as $i => $d) {
+            $prep = self::prepareEntry($d);
+            if (! is_array($prep)) {
+                return response()->json(['message' => 'Gigi '.$d['tooth'].': '.($prep->getData(true)['message'] ?? 'tidak valid.'), 'index' => $i,
+                    'errors' => $prep->getData(true)['errors'] ?? []], 422);
+            }
+            $prepared[] = [$prep, $d];
+        }
+
+        return DB::transaction(function () use ($prepared, $id, $tenancy) {
+            $visit = Visit::lockForUpdate()->findOrFail($id);
+            if ($e = self::entryVisitError($visit)) {
+                return $e;
+            }
+            $out = [];
+            foreach ($prepared as [$prep, $d]) {
+                $r = self::insertEntry($prep, $d, $visit, $tenancy);
+                if (! $r instanceof ProcedureRecord) {
+                    throw new HttpResponseException($r); // rolls the whole Simpan back
+                }
+                $out[] = self::out($r);
+            }
+
+            return response()->json(['created' => count($out), 'entries' => $out], 201);
+        });
+    }
+
+    /** Validation of one tooth entry (shared by the single and the batch endpoint; $at = the entry's path prefix). */
+    private static function entryRules(string $at = ''): array
+    {
+        $tax = OdontogramTaxonomy::class;
+
+        return [
+            'tooth' => ['required', 'integer', 'in:'.implode(',', $tax::teeth())],
+            // "tindakan dulu": a procedure without a condition takes it from the catalog mapping (prepareEntry)
+            'condition' => ['required_without:'.$at.'procedure_code', 'nullable', 'string', 'in:'.implode(',', array_keys($tax::conditions()))],
+            'status' => ['required', 'string', 'in:'.implode(',', $tax::statuses())],
+            'surfaces' => ['sometimes', 'array', 'max:5'],
+            'surfaces.*' => ['string', 'in:M,O,I,D,V,L'],
+            'procedure_code' => ['bail', 'sometimes', 'nullable', 'string', 'regex:'.Soap::ICD9CM, OfficialIcdCode::icd9cm()],
+            'variant' => ['sometimes', 'nullable', 'string', 'regex:/^[a-z0-9_]{1,10}$/'], // price level / stage (S2); unknown => waits for a price (S1)
+            'diagnosis_code' => ['bail', 'sometimes', 'nullable', 'string', 'regex:'.Soap::ICD10, OfficialIcdCode::icd10()],
+            'span_to' => ['sometimes', 'nullable', 'integer', 'in:'.implode(',', $tax::teeth())],
+            'span_roles' => ['sometimes', 'nullable', 'array'],
+            'span_roles.*' => ['string', 'in:'.implode(',', $tax::spanRoles())],
+            'material' => ['sometimes', 'nullable', 'string', 'in:'.implode(',', $tax::materials())],
+            'external_clinic_name' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'external_date' => ['sometimes', 'nullable', 'string', 'max:10'],
+            'confirm_duplicate' => ['sometimes', 'boolean'],
+        ];
+    }
+
+    /**
+     * A billable row about to double-bill: a current `selesai` row of this visit with the same code on the same site (tooth, range,
+     * quadrant, arch; overlapping surfaces). 36 O then 36 D is two fillings, not a duplicate. Only `selesai` bills, so only it counts.
+     */
+    private static function duplicateOf(array $attrs, Visit $visit): ?ProcedureRecord
+    {
+        if ($attrs['status'] !== ProcedureStatus::BILLABLE) {
+            return null;
+        }
+        $overlap = fn (?string $a, ?string $b) => $a === null || $b === null || array_intersect(str_split($a), str_split($b)) !== [];
+
+        return ProcedureRecord::where('visit_id', $visit->id)->whereIn('state', ['draft', 'final'])->where('status', ProcedureStatus::BILLABLE)
+            ->where('procedure_code', $attrs['procedure_code'])->whereNotIn('id', ProcedureRecord::whereNotNull('supersedes_id')->select('supersedes_id'))
+            ->where('tooth', $attrs['tooth'])->where('tooth_range', $attrs['tooth_range'])->where('quadrant', $attrs['quadrant'])->where('arch', $attrs['arch'])
+            ->get()->first(fn (ProcedureRecord $p) => $overlap($p->surfaces, $attrs['surfaces']));
+    }
+
+    private static function duplicate(ProcedureRecord $dup): JsonResponse
+    {
+        $def = ProcedureDefinition::where('procedure_code', $dup->procedure_code)->first();
+        $site = match (true) {
+            $dup->tooth !== null => 'di gigi '.$dup->tooth.($dup->surfaces ? ' '.$dup->surfaces : ''),
+            $dup->tooth_range !== null => 'di gigi '.$dup->tooth_range,
+            $dup->quadrant !== null => 'di kuadran '.$dup->quadrant,
+            $dup->arch !== null => 'di rahang '.$dup->arch,
+            default => '',
+        };
+
+        return response()->json(['error' => 'duplicate_procedure', 'existing_id' => $dup->id,
+            'message' => trim(($def?->layman ?? $def?->name ?? $dup->procedure_code).' sudah dicatat '.$site).' pada kunjungan ini. Tambahkan lagi?'], 409);
+    }
+
+    /** Taxonomy, span, code and diagnosis checks of one entry: [$p, $roles] or a 422. */
+    private static function prepareEntry(array $d): array|JsonResponse
+    {
+        $tax = OdontogramTaxonomy::class;
+        $bad = fn (string $f, string $m) => response()->json(['message' => $m, 'errors' => [$f => [$m]]], 422);
+        $sentCode = $d['procedure_code'] ?? null;
+        if ($sentCode !== null) {
+            $def = ProcedureDefinition::where('procedure_code', $sentCode)->first();
+            if (! $def) {
+                return $bad('procedure_code', 'Tindakan ini belum ada di katalog tindakan klinik. Minta pemilik menambahkannya di Pengaturan > Harga.');
+            }
+            $keys = array_keys(array_filter($tax::conditions(), fn ($c) => $c['code'] !== null && in_array($c['code'], $def->conditions ?? [], true)));
+            if (isset($d['condition']) && ! in_array($d['condition'], $keys, true)) {
+                return $bad('procedure_code', 'Kode tindakan bukan salah satu yang dipetakan untuk kondisi ini.');
+            }
+            if (! isset($d['condition']) && count($keys) > 1) {
+                return response()->json(['error' => 'pick_condition', 'message' => 'Pilih bahan / jenis yang dipakai.', 'candidates' => $keys,
+                    'errors' => ['condition' => ['Pilih salah satu bahan / jenis.']]], 422);
+            }
+            $d['condition'] ??= $keys[0] ?? null; // empty mapping (kontrol, trepanasi): the procedure alone, no odontogram symbol
+        }
+        $cond = ($d['condition'] ?? null) === null ? null : $tax::condition($d['condition']);
+        $span = ($cond['group'] ?? null) === 'span';
+        if ($span && empty($d['span_to'])) {
+            return $bad('span_to', 'Rentang wajib: ketuk gigi akhir rentang.');
+        }
+        if (! $span && (isset($d['span_to']) || isset($d['span_roles']) || isset($d['material']))) {
+            return $bad('span_to', 'Rentang hanya untuk kondisi rentang (bridge).');
+        }
+        $surfs = array_map(fn ($s) => $tax::storedSurface($s), $d['surfaces'] ?? []);
+        // "Tindakan dulu": a finished entry bills the clinic code mapped to its condition (Pengaturan > Harga), never a typed guess.
+        if ($d['status'] === 'selesai' && $sentCode === null) {
+            $codes = $cond['code'] ? ProcedureCatalog::codesFor($cond['code']) : [];
+            if ($codes === []) {
+                return $bad('condition', "Kondisi {$cond['label']} ({$cond['code']}) belum dipetakan ke tindakan klinik, jadi tidak bisa ditagih. Minta pemilik memetakannya di Pengaturan > Harga.");
+            }
+            if (count($codes) > 1) {
+                return response()->json(['error' => 'pick_code', 'message' => 'Pilih tindakan yang dikerjakan.', 'candidates' => ProcedureDefinition::whereIn('procedure_code', $codes)
+                    ->orderBy('procedure_code')->get(['procedure_code', 'name'])->map->only(['procedure_code', 'name'])->values(),
+                    'errors' => ['procedure_code' => ['Pilih salah satu tindakan.']]], 422);
+            }
+            $d['procedure_code'] = $codes[0];
+        }
+        // diagnosis: what the dentist sent, else the clinic rule paired with the billed code on this tooth (editable before Selesai)
+        $dx = $d['diagnosis_code'] ?? null;
+        $dxSource = $dx === null ? null : 'manual';
+        if ($dx === null && ($d['procedure_code'] ?? null) && ($dx = CodingSuggestions::forProcedure($d['procedure_code'], $d['tooth'], Ctx::current()->userId))) {
+            $dxSource = 'aturan';
+        }
+        $p = ['condition' => $d['condition'], 'diagnosis_code' => $dx, 'diagnosis_source' => $dxSource, 'status' => $tax::procedureStatus($d['status']), 'procedure_code' => $d['procedure_code'] ?? null, 'variant' => $d['variant'] ?? null,
+            'external_clinic_name' => $d['external_clinic_name'] ?? null, 'external_date' => $d['external_date'] ?? null];
+        $roles = null;
+        if ($span) {
+            $upper = fn (int $t) => in_array(intdiv($t, 10), [1, 2, 5, 6], true);
+            if ($upper($d['tooth']) !== $upper($d['span_to'])) {
+                return $bad('span_to', 'Rentang harus pada satu rahang.');
+            }
+            $p += ['tooth_range' => "{$d['tooth']}-{$d['span_to']}"];
+            $roles = $d['span_roles'] ?? null;
+            foreach (array_keys($roles ?? []) as $t) {
+                if (! in_array((int) $t, $tax::teeth(), true)) {
+                    return $bad('span_roles', 'Peran rentang hanya untuk nomor gigi FDI.');
+                }
+            }
+        } else {
+            $p += ['tooth' => $d['tooth'], 'surfaces' => $surfs ?: null];
+        }
+        if ($p['procedure_code'] === null) {
+            $p['treat_area'] = $cond['group'] === 'surface' ? 'surface' : $tax::area($cond['group']);
+        }
+
+        return [$p, $roles];
+    }
+
+    private static function entryVisitError(Visit $visit): ?JsonResponse
+    {
+        if (! Ctx::current()->coversBranch($visit->branch_id)) {
+            return Audit::denied('branch:'.$visit->branch_id);
+        }
+
+        return $visit->isSigned() ? self::locked() : null;
+    }
+
+    private static function insertEntry(array $prep, array $d, Visit $visit, TenancyDirectory $tenancy): ProcedureRecord|JsonResponse
+    {
+        [$p, $roles] = $prep;
+        $ctx = Ctx::current();
+        $attrs = self::attributes($p, $visit, $tenancy);
+        if (! is_array($attrs)) {
+            return $attrs;
+        }
+        $dup = self::duplicateOf($attrs, $visit);
+        if ($dup && ! ($d['confirm_duplicate'] ?? false)) {
+            return self::duplicate($dup);
+        }
+        $r = ProcedureRecord::create([...$attrs, 'patient_id' => $visit->patient_id, 'visit_id' => $visit->id, 'state' => 'draft',
+            'source' => 'manual', 'created_by' => $ctx->userId, 'condition' => $p['condition'],
+            'span_roles' => $roles ?: null, 'material' => $d['material'] ?? null]);
+        Audit::log('buat', 'procedure_record', $r->id, ['entry' => 'odontogram_v2', 'tooth' => $r->tooth, 'tooth_range' => $r->tooth_range,
+            'surfaces' => $r->surfaces, 'condition' => $p['condition'], 'status' => $r->status, ...self::externalAudit($r),
+            ...($dup ? ['duplicate_of' => $dup->id] : [])]);
+
+        return $r;
     }
 
     /** PATCH /api/procedures/{id}: own draft only; sent fields replace the stored ones, then location is re-checked as a whole. */
@@ -410,7 +650,7 @@ class ProcedureController extends Controller
 
         return $p->only(['id', 'visit_id', 'patient_id', 'treat_area', 'tooth', 'surfaces', 'tooth_range', 'quadrant', 'arch', 'status',
             'procedure_code', 'variant', 'diagnosis_code', 'diagnosis_source', 'provider_id', 'state', 'source', 'approved_at', 'supersedes_id', 'reason', 'replaces_id',
-            'created_by', 'finalized_by', 'finalized_at', 'external_clinic_name', 'external_date_precision', 'external_confirmation',
+            'created_by', 'finalized_by', 'finalized_at', 'condition', 'span_roles', 'material', 'external_clinic_name', 'external_date_precision', 'external_confirmation',
             'external_confirmed_by', 'external_confirmed_at', 'external_confirmation_reason'])
             + ['external_date' => $p->external_date ? substr((string) $p->external_date, 0, 10) : null]
             + ['paint_type' => $def?->paint_type ?? ProcedureCatalog::DEFAULT_PAINT, 'name' => $def?->name, 'layman' => $def?->layman];
@@ -475,6 +715,12 @@ class ProcedureController extends Controller
             return $ext;
         }
         $dx = $d['diagnosis_code'] ?? null;
+        if (! array_key_exists('diagnosis_code', $d) && $d['status'] === ProcedureStatus::BILLABLE && $code !== null) {
+            // not sent at all (explicit null = cleared on purpose): the clinic rule paired with the billed code, as for tooth entries
+            if ($dx = CodingSuggestions::forProcedure($code, isset($d['tooth']) ? (int) $d['tooth'] : null, Ctx::current()->userId)) {
+                $d['diagnosis_source'] = 'aturan';
+            }
+        }
 
         return [...$loc, ...$ext, 'status' => $d['status'], 'procedure_code' => $code, 'variant' => $d['variant'] ?? 'standar', 'provider_id' => $provider,
             // a code set through the API without a source is `manual`; no code = no source

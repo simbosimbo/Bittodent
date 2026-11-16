@@ -1,7 +1,7 @@
 /* Rekam Medis. Odontogram colours/states from design/odontogram/legend.json + odontogram.css (internal legend). */
 .card-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
 .card-head h2 { margin: 0 8px 0 0; }
-.badge { display: inline-block; font-size: 11px; font-weight: 650; border-radius: 999px; padding: 2px 9px; border: 1px solid transparent; white-space: nowrap; }
+.badge { display: inline-block; font-size: var(--font-size-xs); font-weight: 650; border-radius: 999px; padding: 2px 9px; border: 1px solid transparent; white-space: nowrap; }
 .badge-draft { color: var(--color-draft-fg); background: var(--color-draft-bg); border: 1px solid var(--color-draft-border); }
 .badge-ai { color: #6D28D9; background: #F3EEFF; border: 1px dashed #6D28D9; }
 .badge-ai::before { content: '◆ '; color: #A15C00; }
@@ -28,6 +28,8 @@
 .tooth-lock rect { fill: #111827; }
 .tooth-lock path { stroke: #111827; }
 .tooth-glyph, .tooth-letter, .tooth-number, .tooth-lock, .tooth-draft-mark, .tooth-wash { pointer-events: none; }
+/* only surfaces and the whole-tooth hit area take taps; any drawing on top (the X of an extraction) must not swallow them */
+.tooth > :not(.tooth-surface, .tooth-hit) { pointer-events: none; }
 .tooth-glyph[data-state='draft'] { stroke-dasharray: 4 2; }
 .tooth-letter { font-size: 8px; fill: var(--muted); }
 .tooth-number { font-size: 12px; font-weight: 600; fill: #1F2937; }
@@ -83,7 +85,6 @@ label.check { flex-direction: row; gap: 8px; align-items: flex-start; font-weigh
 .st-cancelled { color: #6B7280; background: #fff; text-decoration: line-through; }
 .st-superseded { color: #6B7280; background: #F3F4F6; }
 .st-tidak_dikerjakan { color: #6B7280; background: #fff; text-decoration: line-through; }
-.baseline-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
 
 /* Chart inside PatientPage */
 .chart-meta { text-align: right; }
@@ -173,11 +174,35 @@ label.check { flex-direction: row; gap: 8px; align-items: flex-start; font-weigh
 
 /* Mobile (≤720px): sticky compact header (allergies stay on screen), odontogram scrolls sideways, tooth detail = bottom sheet. */
 @media (max-width: 720px) {
+  /* Full header scrolls with the page; .patient-mini (Records.tsx) takes over once it is gone. */
   .patient-head:has(.patient-alerts) {
-    position: sticky; top: var(--shell-sticky-h, 0px); z-index: 4; margin: calc(-1 * var(--space-3)) calc(-1 * var(--space-3)) var(--space-3);
-    padding: var(--space-2) var(--space-3); background: var(--bg); border-bottom: 1px solid var(--border);
+    margin: calc(-1 * var(--space-4)) calc(-1 * var(--space-4)) var(--space-3);
+    padding: var(--space-2) var(--space-4); /* edge to edge: matches the 16px phone gutter */ background: var(--bg); border-bottom: 1px solid var(--border);
   }
   .patient-head:has(.patient-alerts) h1 { font-size: var(--font-size-lg); }
+  /* Chips that wrap to 2 lines read as cards, not stretched pills; one radius for the whole header. */
+  .patient-head .alert-chip, .patient-head .visit-chip { border-radius: var(--radius-sm); }
+  .patient-head .alert-ribbon.patient-alerts { row-gap: var(--space-2); }
+  .patient-head .alert-toggle { padding-inline: 0 var(--space-3); }
+  /* "+n obat" left, "Riwayat medis →" right, on their own row: chip rows keep an even gap. */
+  .patient-head .alert-actions { display: flex; flex-basis: 100%; align-items: center; justify-content: space-between; margin-block: -6px; }
+  .patient-head .alert-actions .alert-link { margin-block: 0; }
+  .patient-head .alert-catatan_penting { flex-basis: 100%; } /* the urgent note reads as one full line, not a squeezed pill */
+  .patient-mini {
+    position: fixed; left: 0; right: 0; top: var(--shell-sticky-h, 0px); z-index: 6; display: grid; gap: 2px;
+    padding: var(--space-1) var(--space-4) var(--space-1); background: var(--surface); border-bottom: 1px solid var(--border); box-shadow: var(--shadow-md);
+  }
+  .patient-mini[hidden] { display: none; }
+  .patient-mini-who { margin: 0; display: flex; align-items: baseline; gap: var(--space-2); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .patient-mini-who .muted { font-size: var(--font-size-xs); }
+  .alert-strip { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) 6px; min-height: 44px; width: 100%; padding: 0; border: 0; background: none; font: inherit; text-align: left; cursor: pointer; }
+  .alert-strip .alert-chip { font-size: var(--font-size-xs); padding: 2px 8px; border-radius: 8px; white-space: nowrap; }
+  .alert-strip .alert-premedikasi, .alert-strip .alert-catatan_penting { padding-block: 1px; }
+  .alert-strip-more { background: var(--color-primary-50); border-color: var(--color-primary-200); color: var(--color-primary-700); }
+  .alert-strip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--radius-sm); }
+  .alert-strip-error { margin: 0; color: var(--danger); font-weight: 600; font-size: var(--font-size-sm); }
+  .alert-sheet-list { list-style: none; margin: 0 0 var(--space-3); padding: 0; display: grid; gap: var(--space-2); }
+  .alert-sheet-list .alert-chip { display: flex; border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); font-size: var(--font-size-base); white-space: normal; }
   .patient-head:has(.patient-alerts) { flex-wrap: nowrap; }
   .patient-head:has(.patient-alerts) .patient-head-main { flex: 1 1 0; } /* ⋯ menu stays beside the name */
   .patient-head:has(.patient-alerts) .avatar-lg, .patient-head .chart-actions { display: none; } /* Buat janji: Jadwal tab */
@@ -270,3 +295,58 @@ label.check { flex-direction: row; gap: 8px; align-items: flex-start; font-weigh
   .shell-main:has(.rm-actionbar) { padding-bottom: calc(80px + 72px + env(safe-area-inset-bottom)); }
   .rm-actions-inline .btn-primary { display: none; } /* the sticky bar carries Setujui/Selesai on a phone */
 }
+
+/* Odontogram v2 entry sheet (boards OVv2-01..03): pads 56px, cards 2 columns, every target >= 48px.
+   Selected = 2px primary-800 line + primary-50 background (not teal; teal is the primary button only). */
+.tsheet { display: flex; flex-direction: column; gap: var(--space-3, 12px); }
+.tsheet button { min-height: 48px; min-width: 48px; font: inherit; cursor: pointer; }
+.tsheet button:not(.btn) { color: inherit; } /* .btn sets its own colour: inheriting put dark text on the green Simpan */
+.tsheet-tabs, .tsheet-status { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; padding: 4px; border-radius: 12px; background: var(--color-surface-2, #f1f3f5); }
+.tsheet-tabs button, .tsheet-status button { border: 0; border-radius: 9px; background: transparent; font-weight: 600; }
+.tsheet-tabs [aria-selected='true'], .tsheet-status [aria-checked='true'] { background: var(--color-primary-50, #e6f3f2); box-shadow: inset 0 0 0 2px var(--color-primary-800, #0a4f49); }
+.tsheet-pads { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.tsheet-pads button { min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; border: 1px solid var(--shells-a-color-border, #d0d5da);
+  border-radius: 10px; background: var(--color-surface, #fff); }
+.tsheet-pads button strong { font-size: 18px; }
+.tsheet-pads [aria-pressed='true'], .tsheet-card[aria-checked='true'], .tsheet-list [aria-pressed='true'], .tsheet-list [aria-checked='true'], .tsheet-pick [aria-checked='true'] {
+  border: 2px solid var(--color-primary-800, #0a4f49); background: var(--color-primary-50, #e6f3f2); }
+.tsheet-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.tsheet-card, .tsheet-list button, .tsheet-pick button { display: flex; align-items: center; gap: 8px; min-height: 72px; padding: 8px 10px; text-align: left;
+  border: 1px solid var(--shells-a-color-border, #d0d5da); border-radius: 12px; background: var(--color-surface, #fff); }
+.tsheet-list { display: flex; flex-direction: column; gap: 4px; max-height: 320px; overflow-y: auto; }
+.tsheet-list button { min-height: 52px; }
+.tsheet code, .tsheet-card code { font-size: var(--font-size-sm); color: var(--muted, #4b5563); } /* official codes stay lowercase */
+.tsheet-roles { display: flex; gap: 6px; flex-wrap: wrap; }
+.tsheet-roles button { display: flex; flex-direction: column; align-items: center; border: 1px solid var(--shells-a-color-border, #d0d5da); border-radius: 10px; background: var(--color-surface, #fff); }
+.tsheet-pick { display: flex; flex-direction: column; gap: 6px; }
+.tsheet-search { min-height: 48px; }
+.sym-icon { flex: none; color: #111; }
+
+/* Official black-and-white symbols on surfaces (data-symbol from the v2 condition); status is a line shape, never colour. */
+[data-symbol='fill'] polygon, [data-symbol='fill'] rect, rect.sym-surface[data-symbol='fill'] { fill: #111; }
+[data-symbol='hatch'] polygon, [data-symbol='hatch'] rect, rect.sym-surface[data-symbol='hatch'] { fill: url(#odo-hatch); color: #111; }
+[data-symbol='crosshatch'] polygon, [data-symbol='crosshatch'] rect, rect.sym-surface[data-symbol='crosshatch'] { fill: url(#odo-cross); color: #111; }
+[data-symbol='outline'] polygon, [data-symbol='outline'] rect, rect.sym-surface[data-symbol='outline'] { fill: none; stroke: #111; stroke-width: 3; }
+rect.sym-surface { fill: none; }
+.tooth-surface[data-entry='rencana'] polygon, .tooth-surface[data-entry='rencana'] rect, rect.sym-surface[data-planned] { fill: none; stroke: #111; stroke-width: 2.5; stroke-dasharray: 4 3; }
+.tooth-glyph-v2 { color: #111; }
+.tooth-badge { font-size: 11px; font-weight: 700; fill: #111; }
+.mouth-procs { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; }
+.mouth-procs .btn { min-height: 48px; }
+
+/* OVv2-06 Pemeriksaan awal: tool strip, Ada/Rencana, one Simpan in the dock */
+.exam { display: flex; flex-direction: column; gap: var(--space-3, 12px); }
+.exam button { min-height: 48px; min-width: 48px; font: inherit; color: inherit; cursor: pointer; }
+.exam-strip { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 6px; }
+.exam-strip button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 64px;
+  border: 1px solid var(--shells-a-color-border, #d0d5da); border-radius: 10px; background: var(--color-surface, #fff); }
+.exam-strip [aria-checked='true'], .exam-strip [aria-pressed='true'] { border: 2px solid var(--color-primary-800, #0a4f49); background: var(--color-primary-50, #e6f3f2); }
+.exam-tool { margin: 0; }
+.exam-dock { display: flex; gap: 8px; flex-wrap: wrap; position: sticky; bottom: 0; padding: 8px 0; background: var(--color-surface, #fff); }
+.exam-dock .btn-primary { flex: 1; }
+/* OVv2-07: Tetap | Sulung | Campuran under the chart, 48px targets */
+.dent-toggle { display: flex; justify-content: center; margin: 8px 0; }
+.dent-toggle .seg button { min-height: 48px; min-width: 72px; }
+/* OVv2-05: view + entry mode switches, always visible, 48px */
+.odo-switches { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin: 4px 0 8px; }
+.odo-switches .seg button { min-height: 48px; }

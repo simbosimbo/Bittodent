@@ -4,6 +4,7 @@ namespace App\Modules\Clinical\Services;
 
 use App\Modules\Clinical\Domain\ProcedureStatus;
 use App\Modules\Clinical\Events\VisitClosing;
+use App\Modules\Clinical\Http\Controllers\ProcedureController;
 use App\Modules\Clinical\Models\ClinicalNote;
 use App\Modules\Clinical\Models\ClinicalNoteVersion;
 use App\Modules\Clinical\Models\ProcedureRecord;
@@ -11,6 +12,7 @@ use App\Modules\Clinical\Models\ToothFinding;
 use App\Modules\Clinical\Models\Visit;
 use App\Modules\Scheduling\Contracts\AppointmentDirectory;
 use App\Shared\Audit\Audit;
+use App\Shared\Crypto\Crypto;
 use App\Shared\Tenancy\Ctx;
 use Illuminate\Http\JsonResponse;
 
@@ -18,6 +20,7 @@ use Illuminate\Http\JsonResponse;
 // #55: unsigned clinical work is refused (409 use_selesai) unless attendance was cancelled; Selesai signs first, then calls close().
 // Completed work needs an invoice line (Billing answers via VisitClosing). Only exception (Yohanes, 15 Nov 2026): attendance
 // cancelled (appointment cancelled/no_show, or walk-in "batalkan kehadiran") => may close without invoice, reason required.
+// Audit P0-4 (Yohanes, 16 Nov 2026): no completed work at all is refused too (409 no_billable_work); a check-up bills 89.31.
 final class VisitCloser
 {
     public function __construct(private AppointmentDirectory $appointments) {}
@@ -36,17 +39,33 @@ final class VisitCloser
             return response()->json(['error' => 'use_selesai',
                 'message' => 'Kunjungan ini punya catatan atau tindakan yang belum Selesai. Dokter penanggung jawab harus menekan Selesai.'], 409);
         }
-        $event = new VisitClosing(Ctx::current()->tenant(), $v->id, $this->completedProcedureIds($v));
+        if (! $cancelled && $this->nothingDone($v)) {
+            Audit::log('tutup_ditolak', 'visit', $v->id, ['reason' => 'no_billable_work', 'via' => $via]);
+
+            return response()->json(['error' => 'no_billable_work',
+                'message' => 'Belum ada tindakan selesai. Tambahkan Pemeriksaan gigi (Konsultasi atau Kontrol) dari Tindakan seluruh mulut, lalu tekan Selesai lagi.'], 409);
+        }
+        $done = $this->completedProcedureIds($v);
+        // Retry billing (idempotent, one line per procedure): work signed before its price existed gets its line once the owner sets one.
+        ProcedureRecord::whereIn('id', $done)->where('state', 'final')->get()->each(fn ($p) => ProcedureController::recorded($p));
+        $event = new VisitClosing(Ctx::current()->tenant(), $v->id, $done);
         event($event);
         if ($event->blocked() && ! $cancelled) {
             Audit::log('tutup_ditolak', 'visit', $v->id, ['reason' => 'invoice_required', 'procedures' => $event->unbilledProcedureIds, 'via' => $via]);
 
             return response()->json(['error' => 'invoice_required', 'procedure_ids' => $event->unbilledProcedureIds,
-                'message' => 'Kunjungan dengan tindakan selesai tidak bisa ditutup tanpa tagihan. Pastikan setiap tindakan selesai punya baris tagihan (cek tarif), lalu tekan Selesai lagi.'], 409);
+                'message' => 'Kunjungan dengan tindakan selesai tidak bisa ditutup tanpa tagihan. Ada tindakan yang belum punya harga. Minta pemilik mengisi harganya di Pengaturan Klinik > Harga, lalu tutup kunjungan lagi.'], 409);
         }
         $v->update(['status' => 'selesai', 'ended_at' => now(), 'closed_by' => Ctx::current()->userId,
-            'close_reason' => $cancelled ? trim($reason) : null, 'closed_without_invoice' => $event->blocked()]);
+            'close_reason' => $cancelled ? trim($reason) : null, 'closed_without_invoice' => $event->blocked(),
+            // the chart reads an open appointment visit's complaint live from the appointment; keep it on the visit once closed
+            ...($v->complaint_enc === null && $v->appointment_id !== null
+                ? ['complaint_enc' => Crypto::encrypt($this->appointments->complaint($v->appointment_id))] : [])]);
         Audit::log('tutup', 'visit', $v->id, ['via' => $via, 'attendance_cancelled' => $cancelled, 'without_invoice' => $event->blocked()]);
+        // janji_selesai runs inside the appointment's own -> done transition
+        if ($v->appointment_id !== null && ! $cancelled && $via !== 'janji_selesai') {
+            $this->appointments->advance($v->appointment_id, 'done');
+        }
         app(PatientCareSync::class)->push($v->patient_id); // patient list: last visit + open visit changed
 
         return null;
@@ -58,6 +77,13 @@ final class VisitCloser
         return ClinicalNoteVersion::whereIn('note_id', ClinicalNote::where('visit_id', $v->id)->select('id'))->where('state', 'draft')->exists()
             || ToothFinding::where('visit_id', $v->id)->where('state', 'draft')->exists()
             || ProcedureRecord::where('visit_id', $v->id)->where('state', 'draft')->exists();
+    }
+
+    /** No finished work to bill. Work signed and later corrected to tidak_dikerjakan (audited correction) still counts: nothing can be added after signing. */
+    public function nothingDone(Visit $v): bool
+    {
+        return $this->completedProcedureIds($v) === []
+            && ! ProcedureRecord::where('visit_id', $v->id)->whereIn('id', self::notDoneChainIds())->exists();
     }
 
     public function attendanceCancelled(Visit $v): bool

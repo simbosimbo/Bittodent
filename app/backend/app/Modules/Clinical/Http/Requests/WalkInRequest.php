@@ -14,6 +14,6 @@ class WalkInRequest extends FormRequest
 
     public function rules(): array
     {
-        return ['dentist_id' => ['nullable', 'string', 'max:36']];
+        return ['dentist_id' => ['nullable', 'string', 'max:36'], 'complaint' => ['nullable', 'string', 'max:500']];
     }
 }

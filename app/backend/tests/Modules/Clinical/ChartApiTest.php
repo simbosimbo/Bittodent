@@ -30,13 +30,14 @@ class ChartApiTest extends TestCase
         return Ctx::runAs($this->tenantA()->id, $fn);
     }
 
-    /** New visit (from a booked appointment without a visit) with a draft note at revision 1. */
+    /** New visit (from a booked appointment without a visit) with a draft note at revision 1 and a billable examination (P0-4). */
     private function draftVisit(): string
     {
         $appt = $this->inA(fn () => Appointment::whereNotIn('id', Visit::whereNotNull('appointment_id')->pluck('appointment_id'))
             ->orderBy('starts_at')->firstOrFail());
         $visit = $this->as(self::DOC)->postJson("/api/appointments/{$appt->id}/visit")->assertCreated()->json('id');
         $this->as(self::DOC)->putJson("/api/visits/$visit/note", ['soap' => self::SOAP])->assertOk()->assertJsonPath('revision', 1);
+        $this->as(self::DOC)->postJson("/api/visits/$visit/procedures", ['procedure_code' => '89.31', 'status' => 'selesai', 'diagnosis_code' => 'Z01.2'])->assertCreated();
 
         return $visit;
     }

@@ -26,7 +26,7 @@ final class PriceLookupService implements PriceLookup
             ->where(fn ($q) => $q->whereNull('valid_to')->orWhere('valid_to', '>', $d))
             ->orderByDesc('valid_from')->first() ?? throw new RuntimeException('no_tariff');
         if ($dentist === null) {
-            return ['price_rp' => $t->price_rp, 'band' => 'umum', 'name' => $t->name, 'derived' => false];
+            return ['price_rp' => $t->price_rp, 'band' => 'umum', 'name' => $t->name, 'label' => $t->level_label, 'derived' => false];
         }
         $specialist = $dentist->category === 'specialist';
         $rates = TariffRate::where('procedure_code', $procedureCode)->where('variant', $variant)->effective($d)
@@ -35,14 +35,14 @@ final class PriceLookupService implements PriceLookup
                     ->when($dentist->field !== null, fn ($q) => $q->orWhere(fn ($q) => $q->where('band', 'field')->where('field', $dentist->field)))))
             ->orderByDesc('valid_from')->get();
         if ($r = $rates->firstWhere('band', 'dentist')) { // overrides are explicit only, never derived
-            return ['price_rp' => $r->price_rp, 'band' => 'dentist', 'name' => $t->name, 'derived' => false];
+            return ['price_rp' => $r->price_rp, 'band' => 'dentist', 'name' => $t->name, 'label' => $t->level_label, 'derived' => false];
         }
         if (! $specialist) { // a general dentist never gets Spesialis/bidang prices or rules
-            return ['price_rp' => $t->price_rp, 'band' => 'umum', 'name' => $t->name, 'derived' => false];
+            return ['price_rp' => $t->price_rp, 'band' => 'umum', 'name' => $t->name, 'label' => $t->level_label, 'derived' => false];
         }
         $q = $this->resolveSpecialist($t, $rates, TariffRule::where('enabled', true)->get(), $dentist->field);
 
-        return ['price_rp' => $q['price_rp'], 'band' => $q['band'], 'name' => $t->name, 'derived' => $q['rule'] !== null];
+        return ['price_rp' => $q['price_rp'], 'band' => $q['band'], 'name' => $t->name, 'label' => $t->level_label, 'derived' => $q['rule'] !== null];
     }
 
     /**

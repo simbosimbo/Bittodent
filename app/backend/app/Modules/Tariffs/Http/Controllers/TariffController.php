@@ -53,6 +53,51 @@ class TariffController extends Controller
     }
 
     /**
+     * GET /api/tariffs/stages (perm note.write): procedures with more than one price level today -> [{variant, label}] in rank order.
+     * Labels only, never prices (D-035: the dentist picks the stage done today, the price list stays with the owner).
+     */
+    public function stages()
+    {
+        $today = now()->toDateString();
+        $rows = Tariff::where('valid_from', '<=', $today)->where(fn ($q) => $q->whereNull('valid_to')->orWhere('valid_to', '>', $today))
+            ->orderBy('procedure_code')->orderBy('level_rank')->get(['procedure_code', 'variant', 'level_label']);
+
+        return response()->json($rows->groupBy('procedure_code')->filter(fn ($g) => $g->count() > 1)
+            ->map(fn ($g) => $g->map(fn ($t) => ['variant' => $t->variant, 'label' => $t->level_label])->values()));
+    }
+
+    /**
+     * POST /api/tariffs {procedure_code, name, price_rp | levels: [{code, label, price_rp}]} (owner, perm tariff.manage): first price for a
+     * procedure that has none yet, from today: one "Standar" level, or its stages (S2) so they apply today, not from tomorrow
+     * (one version per day). Rp0 is allowed: the owner decides what is free. 409 when it exists.
+     */
+    public function store(Request $request)
+    {
+        $d = $request->validate([
+            'procedure_code' => ['required', 'string', 'max:10'],
+            'name' => ['required', 'string', 'max:120'],
+            'price_rp' => ['required_without:levels', 'prohibits:levels', 'integer', 'min:0', 'max:1000000000'],
+            'levels' => ['sometimes', 'array', 'min:1', 'max:10'],
+            'levels.*.code' => ['required', 'string', 'regex:/^[a-z0-9_]{1,10}$/', 'distinct'],
+            'levels.*.label' => ['required', 'string', 'max:60'],
+            'levels.*.price_rp' => ['required', 'integer', 'min:0', 'max:1000000000'],
+        ]);
+        $levels = $d['levels'] ?? [['code' => 'standar', 'label' => 'Standar', 'price_rp' => $d['price_rp']]];
+
+        return DB::transaction(function () use ($d, $levels) {
+            if (Tariff::where('procedure_code', $d['procedure_code'])->lockForUpdate()->exists()) {
+                return response()->json(['error' => 'exists', 'message' => 'Tindakan ini sudah punya harga. Ubah lewat daftar harga.'], 409);
+            }
+            $rows = collect($levels)->values()->map(fn ($l, $i) => Tariff::create(['procedure_code' => $d['procedure_code'], 'name' => $d['name'],
+                'variant' => $l['code'], 'level_label' => $l['label'], 'level_rank' => $i + 1, 'price_rp' => $l['price_rp'], 'valid_from' => now()->toDateString()]));
+            Audit::log('tarif_dibuat', 'tariff', $rows[0]->id, ['procedure_code' => $d['procedure_code'], 'levels' => $rows->count()]);
+
+            return response()->json(['id' => $rows[0]->id, 'procedure_code' => $d['procedure_code'], 'name' => $d['name'],
+                'levels' => $rows->map->only(['variant', 'level_label', 'price_rp'])->all()], 201);
+        });
+    }
+
+    /**
      * PUT /api/tariffs/{id}/levels {valid_from, levels: [{code, label, price_rp}]} (owner, perm tariff.manage).
      * Replaces the level set of {id}'s procedure from valid_from on: open rows get valid_to = valid_from, new rows are inserted.
      * Past versions keep their prices; invoice lines keep their own snapshot. Order = rank (last = highest).

@@ -38,6 +38,8 @@ class MeController extends Controller
             // Selesai (#55): whether this clinic asks for a PIN and whether I have one; never the hash
             'selesai' => ['pin_required' => (bool) Tenant::whereKey($ctx->tenantId)->value('selesai_pin_required'),
                 'has_pin' => $user->selesai_pin_hash !== null],
+            // RM: whether the odontogram offers the "Pemeriksaan awal" entry mode (owner setting, default on)
+            'odontogram_exam_enabled' => (bool) Tenant::whereKey($ctx->tenantId)->value('odontogram_exam_enabled'),
             'memberships' => $ctx->memberships->map(fn ($m) => [
                 'tenant_id' => $m->tenant_id, 'tenant_name' => $m->tenant->name, 'branch_id' => $m->branch_id,
                 'role' => $m->role, 'role_label' => Permissions::LABELS[$m->role],

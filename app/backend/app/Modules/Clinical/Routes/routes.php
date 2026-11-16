@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Clinical\Http\Controllers\BaselineController;
+use App\Modules\Clinical\Http\Controllers\CatalogController;
 use App\Modules\Clinical\Http\Controllers\ChartController;
 use App\Modules\Clinical\Http\Controllers\CodingSuggestionController;
 use App\Modules\Clinical\Http\Controllers\ConsentController;
@@ -17,12 +18,14 @@ Route::middleware(['auth:sanctum', '2fa', 'tenant'])->group(function () {
     Route::post('/patients/{id}/consents', [ConsentController::class, 'store'])->middleware('perm:note.write');
     Route::post('/appointments/{id}/visit', [ChartController::class, 'visitFromAppointment'])->middleware('perm:note.write');
     Route::get('/coding-suggestions', [CodingSuggestionController::class, 'index'])->middleware('perm:note.write'); // used while charting
-    Route::post('/patients/{id}/visits/walk-in', [ChartController::class, 'walkIn'])->middleware('perm:note.write');
+    Route::post('/patients/{id}/visits/walk-in', [ChartController::class, 'walkIn'])->middleware('perm:visit.register'); // "Pasien datang", P1-6
     Route::post('/visits/{id}/findings', [FindingController::class, 'store'])->middleware('perm:note.write');
     Route::patch('/findings/{id}', [FindingController::class, 'update'])->middleware('perm:note.write');
     Route::delete('/findings/{id}', [FindingController::class, 'destroy'])->middleware('perm:note.write');
     // treatments (procedure_record); a finding status route no longer exists: findings are visual conditions only
     Route::post('/visits/{id}/procedures', [ProcedureController::class, 'store'])->middleware('perm:note.write');
+    Route::post('/visits/{id}/tooth-entries', [ProcedureController::class, 'storeEntry'])->middleware('perm:note.sign'); // odontogram v2, dentist only
+    Route::post('/visits/{id}/tooth-entries/batch', [ProcedureController::class, 'storeEntries'])->middleware('perm:note.sign'); // OVv2-06 Pemeriksaan awal
     Route::patch('/procedures/{id}', [ProcedureController::class, 'update'])->middleware('perm:note.write');
     Route::post('/procedures/{id}/status', [ProcedureController::class, 'changeStatus'])->middleware('perm:note.sign');
     // unit 3: history is append-only; replacing a restoration and correcting a record are new final rows
@@ -43,8 +46,15 @@ Route::middleware(['auth:sanctum', '2fa', 'tenant'])->group(function () {
     Route::put('/visits/{id}/note', [NoteController::class, 'save'])->middleware('perm:note.write');
     // Selesai = tanda tangan + tutup (DEVIATIONS #55); throttle on top of the PIN lockout in UserDirectory
     Route::post('/visits/{id}/selesai', [NoteController::class, 'selesai'])->middleware(['perm:note.sign', 'throttle:10,1,selesai']);
+    Route::get('/visits/{id}/selesai-check', [NoteController::class, 'selesaiCheck'])->middleware('perm:note.sign');
     Route::get('/visits/{id}/signature', [NoteController::class, 'signature'])->middleware('perm:note.read');
     Route::post('/visits/{id}/approve-drafts', [NoteController::class, 'approveDrafts'])->middleware('perm:note.sign');
     Route::post('/notes/{id}/corrections', [NoteController::class, 'correct'])->middleware('perm:note.sign');
     Route::post('/correction-requests/{id}/approve', [NoteController::class, 'approve'])->middleware('perm:correction.approve');
+    // odontogram v2: condition codes <-> clinic procedure codes (a finished tooth entry bills the mapped code)
+    Route::get('/procedure-catalog', [CatalogController::class, 'index'])->middleware('perm:note.read');
+    Route::put('/procedure-catalog/{code}/conditions', [CatalogController::class, 'update'])->middleware('perm:tariff.manage');
+    // S8: default diagnosis per procedure, set by a dentist (never seeded); the ICD-10 search feeds its picker
+    Route::put('/procedure-catalog/{code}/diagnosis', [CatalogController::class, 'diagnosis'])->middleware('perm:note.sign');
+    Route::get('/icd10', [CatalogController::class, 'icd10'])->middleware('perm:note.write');
 });

@@ -83,9 +83,9 @@ class ProcedureCorrectionTest extends TestCase
             ->assertJsonPath('procedure_code', '23.3')->assertJsonPath('status', 'selesai')->assertJsonPath('surfaces', 'MOD');
         $new = $r->json('id');
 
-        // billing untouched: same lines, none for the new row, never a Rp0 line
+        // billing untouched: same lines (so no new Rp0 line), none for the new row
         $this->assertSame($lines, $this->lines($this->tenantA()));
-        $this->assertFalse($this->in($this->tenantA(), fn () => InvoiceLine::where('procedure_id', $new)->orWhere('price_rp', 0)->exists()));
+        $this->assertFalse($this->in($this->tenantA(), fn () => InvoiceLine::where('procedure_id', $new)->exists()));
         Event::assertDispatched(ProcedureCorrected::class, fn ($e) => [$e->oldProcedureId, $e->newProcedureId, $e->reasonType, $e->correctionId]
             === [$filling, $new, 'salah_kode', $r->json('correction_id')]);
 

@@ -19,6 +19,7 @@ const chipLabel = (a: PaymentAccount) => `${KIND[a.kind]}${a.bank_name ? ' ' + a
 const INV_CHIP: Record<Invoice['status'], [string, string]> = { terbuka: ['Belum lunas', 'unpaid'], lunas: ['Lunas', 'done'], void: ['Void', 'alert'] }
 type PayRow = { account: string; amount: string; key: string }
 const newRow = (amount = ''): PayRow => ({ account: '', amount, key: crypto.randomUUID() })
+const ADJ_KIND: Record<string, string> = { discount: 'Diskon', write_off: 'Penghapusan', correction: 'Koreksi' }
 const STATUS: Record<Adjustment['status'], string> = { applied: 'Berlaku', pending: 'Menunggu pemilik', approved: 'Disetujui', rejected: 'Ditolak' }
 const REASON: Record<string, string> = { tidak_dikerjakan: 'Tidak dikerjakan', salah_kode: 'Salah kode', salah_situs: 'Salah gigi/permukaan',
   salah_provider: 'Salah dokter', salah_tarif: 'Salah tarif', lainnya: 'Lainnya' }
@@ -35,7 +36,7 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
   const setInv = (i: Invoice) => setInvRaw((old) => ({ ...i, patient_name: i.patient_name ?? old?.patient_name, created_at: i.created_at ?? old?.created_at }))
   const [error, setError] = useState('')
   const [msg, setMsg] = useState('')
-  const [form, setForm] = useState({ kind: 'discount', amount: '', reason: '' })
+  const [form, setForm] = useState({ kind: 'discount', amount: '', reason: '', line: '', unit: 'rp' })
   const [accounts, setAccounts] = useState<PaymentAccount[]>([])
   const [rows, setRows] = useState<PayRow[]>([newRow()])
   const [lineForm, setLineForm] = useState<LineForm | null>(null)
@@ -62,7 +63,14 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
   useEffect(() => { paymentAccounts().then(setAccounts, () => setAccounts([])) }, [])
   // #70: the single, untouched payment row starts at the remaining balance (no typing for the usual full payment; still editable).
   const balance = inv && inv.status !== 'void' ? inv.balance_rp : 0
-  useEffect(() => { if (balance > 0) setRows((rs) => rs.length === 1 && rs[0].amount === '' ? [{ ...rs[0], amount: String(balance) }] : rs) }, [balance])
+  // It follows the balance while untouched (a discount lowers it), so Terima never asks for more than is owed; a typed amount stays.
+  const prefilled = useRef('')
+  useEffect(() => {
+    if (balance <= 0) return
+    const prev = prefilled.current // read outside the updater: StrictMode runs updaters twice
+    prefilled.current = String(balance)
+    setRows((rs) => rs.length === 1 && (rs[0].amount === '' || rs[0].amount === prev) ? [{ ...rs[0], amount: String(balance) }] : rs)
+  }, [balance])
   // review-3: the usual method (Tunai of this branch, else a clinic-wide Tunai) is preselected, so Terima is active right away.
   const tunai = accounts.find((a) => a.is_active && a.kind === 'tunai' && inv && a.branch_id === inv.branch_id)
     ?? accounts.find((a) => a.is_active && a.kind === 'tunai' && a.branch_id === null)
@@ -83,11 +91,17 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
     }
   }
 
+  // KlinikMe-style diskon: on one tindakan line or the whole bill, in Rp or % (of the line price / the balance), rounded to whole rupiah
+  const formBase = inv ? (inv.lines.find((l) => l.id === form.line)?.price_rp ?? inv.balance_rp) : 0
+  const formRp = form.unit === 'pct' ? Math.round(formBase * Number(form.amount) / 100) : Number(form.amount)
   function submit(e: FormEvent) {
     e.preventDefault()
     if (!inv) return
-    run(() => addAdjustment(inv.id, { kind: form.kind, amount_rp: Number(form.amount), reason: form.reason.trim() }),
-      (i) => i.adjustments.at(-1)?.status === 'pending' ? 'Saldo menjadi Rp0: menunggu persetujuan pemilik.' : 'Penyesuaian tersimpan.')
+    run(() => addAdjustment(inv.id, { kind: form.kind, amount_rp: formRp, reason: form.reason.trim(), ...(form.line ? { invoice_line_id: form.line } : {}) }),
+      (i) => {
+        setForm({ kind: 'discount', amount: '', reason: '', line: '', unit: 'rp' }) // saved: an empty form, so a second press cannot repeat it
+        return i.adjustments.at(-1)?.status === 'pending' ? 'Saldo menjadi Rp0: menunggu persetujuan pemilik.' : 'Penyesuaian tersimpan.'
+      })
   }
 
   // Unit 5: money goes only into a clinic account (no rekening field). Split = one POST per row, stops at the first error.
@@ -176,6 +190,7 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
           <h1 aria-label={inv.patient_name ? `Tagihan · ${inv.patient_name}` : 'Tagihan'}>{inv.patient_name ?? 'Tagihan'}</h1>
           <p className="inv-sum">
             <span className={`chip inv-chip inv-chip-${INV_CHIP[inv.status][1]}`}>{INV_CHIP[inv.status][0]}</span>
+            {inv.number && <span className="muted small">{inv.number}</span>}
             {inv.balance_rp > 0 ? <><span className="muted">Sisa</span><span className="inv-big" aria-label={`Sisa ${rp(inv.balance_rp)}`}>{rp(inv.balance_rp)}</span>
               {inv.balance_rp !== inv.lines_rp && <span className="muted small">dari {rp(inv.lines_rp)}</span>}</>
               : <span className="inv-big" aria-label={`Total ${rp(inv.lines_rp)}`}>{rp(inv.lines_rp)}</span>}
@@ -289,6 +304,7 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
           {inv.lines.map((l) => (
             <li key={l.id}>
               {l.procedure_code} {l.procedure_name}{l.tooth ? ` · gigi ${l.tooth}` : ''} · {rp(l.price_rp)}
+              {(l.discount_rp ?? 0) > 0 && <> · diskon -{rp(l.discount_rp!)} · <strong>{rp(l.price_rp - l.discount_rp!)}</strong></>}
               {(l.credit_note_numbers ?? []).length > 0 && <> · <strong>Dikoreksi — lihat {l.credit_note_numbers.join(', ')}</strong></>}
               {l.tariff_zero === 'pending' && <> · <strong>Tarif Rp0 — menunggu pemilik</strong></>}
               {l.tariff_zero === 'pending' && can('billing.approve_zero') && (
@@ -356,7 +372,7 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
           <ul>
             {inv.adjustments.map((a) => (
               <li key={a.id}>
-                {a.kind} {rp(a.amount_rp)} · {a.reason} · <strong>{STATUS[a.status]}</strong>{a.self_approved_sole_owner && ' (disetujui sendiri)'}
+                {ADJ_KIND[a.kind] ?? a.kind} {rp(a.amount_rp)}{a.invoice_line_id && ` · ${inv.lines.find((l) => l.id === a.invoice_line_id)?.procedure_name ?? 'baris'}`} · {a.reason} · <strong>{STATUS[a.status]}</strong>{a.self_approved_sole_owner && ' (disetujui sendiri)'}
                 {a.status === 'pending' && can('billing.approve_zero') && (
                   <span className="toolbar">
                     <button className="btn btn-xs" onClick={() => run(() => decideAdjustment(a.id, 'approve'), () => 'Disetujui.')}>Setujui</button>
@@ -371,7 +387,16 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
               <select aria-label="Jenis" value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value })}>
                 <option value="discount">Diskon</option><option value="write_off">Penghapusan</option>
               </select>
-              <input aria-label="Jumlah (Rp)" type="number" required value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
+              <select aria-label="Untuk" value={form.line} onChange={(e) => setForm({ ...form, line: e.target.value })}>
+                <option value="">Seluruh tagihan</option>
+                {inv.lines.map((l) => <option key={l.id} value={l.id}>{l.procedure_name}{l.tooth ? ` · gigi ${l.tooth}` : ''}</option>)}
+              </select>
+              <input aria-label={form.unit === 'pct' ? 'Jumlah (%)' : 'Jumlah (Rp)'} type="number" min={1} max={form.unit === 'pct' ? 100 : undefined} required
+                value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
+              <select aria-label="Satuan" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })}>
+                <option value="rp">Rp</option><option value="pct">%</option>
+              </select>
+              {form.unit === 'pct' && Number(form.amount) > 0 && <span className="small muted">= {rp(formRp)}</span>}
               <input aria-label="Alasan" required minLength={5} value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} />
               <button className="btn">Simpan</button>
             </form>
@@ -408,7 +433,7 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
 
 /**
  * Kwitansi (#69): a printable receipt of the money received on this invoice. Minimal: clinic + branch, patient, lines, deductions,
- * payments, balance; no own number series (the reference is the invoice id) and no tax lines. Print = the browser's print dialog,
+ * payments, balance; numbered by the invoice number (INV-YYYY-000001; older data: the invoice id) and no tax lines. Print = the browser's print dialog,
  * the rest of the page is hidden by @media print in billing.css.
  */
 export function Kwitansi({ inv, me, onClose, autoPrint = false }: { inv: Invoice; me: Me; onClose: () => void; autoPrint?: boolean }) {
@@ -437,7 +462,7 @@ export function Kwitansi({ inv, me, onClose, autoPrint = false }: { inv: Invoice
           <tr className="sum"><td>Sisa</td><td>{rp(Math.max(0, inv.balance_rp))}</td></tr>
         </tbody>
       </table>
-      <p className="muted small">Ref. tagihan {inv.id.slice(0, 8).toUpperCase()} · dicetak oleh {me.user.name}</p>
+      <p className="muted small">No. tagihan {inv.number ?? inv.id.slice(0, 8).toUpperCase()} · dicetak oleh {me.user.name}</p>
       <div className="kwitansi-actions">
         <button className="btn btn-primary" onClick={() => window.print()}>Cetak</button>
         <button className="btn btn-ghost" onClick={onClose}>Tutup</button>

@@ -33,7 +33,7 @@ class CreditNoteTest extends TestCase
         $this->assertSame($before['balance_rp'], $after['balance_rp']); // pending: nothing moves yet
         $this->assertSame([], $after['adjustments']); // no discount
         $this->assertSame(1, $this->in($this->tenantA(), fn () => InvoiceLine::where('invoice_id', $inv)->count()));
-        $this->assertFalse($this->in($this->tenantA(), fn () => InvoiceLine::where('price_rp', 0)->exists()));
+        $this->assertFalse($this->in($this->tenantA(), fn () => InvoiceLine::where('invoice_id', $inv)->where('price_rp', 0)->exists()));
 
         // pending reversal is not "handled": the visit cannot close yet, neither by desk /close nor by the DPJP's Selesai
         $this->assertEqualsCanonicalizing([$unbilled, $proc], $this->as(self::DESK)->postJson("/api/visits/$visit/close")->assertConflict()
@@ -203,18 +203,16 @@ class CreditNoteTest extends TestCase
             ->assertJsonPath('status', 'void');
     }
 
-    public function test_zero_tariff_line_is_an_anomaly_for_the_owner_not_a_correction(): void
+    // #78 (Yohanes 16 Nov 2026): a Rp0 price set by the owner is free work, approved by setting it; the invoice is lunas at Rp0.
+    public function test_zero_tariff_line_is_free_work_not_a_correction(): void
     {
         $this->in($this->tenantA(), fn () => Tariff::create(['procedure_code' => '23.01', 'name' => 'Cabut gigi susu (gratis contoh)',
             'variant' => 'gratis', 'level_label' => 'Gratis', 'price_rp' => 0, 'valid_from' => '2026-01-01']));
         [, , $inv] = $this->billed(proc: ['tooth' => 51, 'procedure_code' => '23.01', 'variant' => 'gratis']);
         $i = $this->invoice($inv);
-        $this->assertSame([0, 'pending'], [$i['lines'][0]['price_rp'], $i['lines'][0]['tariff_zero']]);
+        $this->assertSame([0, null, 'lunas', 0], [$i['lines'][0]['price_rp'], $i['lines'][0]['tariff_zero'], $i['status'], $i['balance_rp']]);
         $this->assertSame([[], []], [$i['credit_notes'], $i['adjustments']]); // not a correction
         $this->assertTrue($this->audited('tarif_nol', $this->tenantA()));
-        $this->as(self::KASIR)->postJson("/api/invoice-lines/{$i['lines'][0]['id']}/approve-zero-tariff")->assertForbidden();
-        $this->as(self::OWNER)->postJson("/api/invoice-lines/{$i['lines'][0]['id']}/approve-zero-tariff")->assertOk()
-            ->assertJsonPath('lines.0.tariff_zero', 'approved');
     }
 
     public function test_correction_adjustment_must_point_at_a_line(): void
@@ -225,9 +223,10 @@ class CreditNoteTest extends TestCase
         $this->as(self::KASIR)->postJson("/api/invoices/$inv/adjustments", $body)->assertUnprocessable()->assertJsonValidationErrors('invoice_line_id');
         $this->as(self::KASIR)->postJson("/api/invoices/$inv/adjustments", $body + ['invoice_line_id' => $line])->assertCreated()
             ->assertJsonPath('adjustments.0.invoice_line_id', $line);
+        // a discount may point at a line too (per-line discount, KlinikMe parity); it never needs one
         $this->as(self::KASIR)->postJson("/api/invoices/$inv/adjustments", ['kind' => 'discount', 'amount_rp' => 1000, 'reason' => 'Diskon',
-            'invoice_line_id' => $line])->assertUnprocessable();
-        $this->assertSame(1, $this->in($this->tenantA(), fn () => InvoiceAdjustment::count() - InvoiceAdjustment::whereNull('invoice_line_id')->count()));
+            'invoice_line_id' => $line])->assertCreated();
+        $this->assertSame(2, $this->in($this->tenantA(), fn () => InvoiceAdjustment::count() - InvoiceAdjustment::whereNull('invoice_line_id')->count()));
     }
 
     public function test_reversal_documents_are_immutable_in_the_database(): void

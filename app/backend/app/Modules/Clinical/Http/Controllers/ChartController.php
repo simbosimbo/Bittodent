@@ -18,6 +18,7 @@ use App\Modules\Patients\Contracts\PatientDirectory;
 use App\Modules\Scheduling\Contracts\AppointmentDirectory;
 use App\Modules\Tenancy\Contracts\TenancyDirectory;
 use App\Shared\Audit\Audit;
+use App\Shared\Crypto\Crypto;
 use App\Shared\Http\Controller;
 use App\Shared\Tenancy\Ctx;
 use Carbon\CarbonImmutable;
@@ -33,7 +34,7 @@ class ChartController extends Controller
      * as_of = the chart as it stood at the end of that local day (branch timezone, default Asia/Jakarta); see effectiveAt().
      * A future date is allowed and equals the current chart.
      */
-    public function show(Request $request, string $id, PatientDirectory $patients, UserDirectory $users, TenancyDirectory $tenancy)
+    public function show(Request $request, string $id, PatientDirectory $patients, UserDirectory $users, TenancyDirectory $tenancy, AppointmentDirectory $appointments)
     {
         $asOf = $request->has('as_of') ? $request->validate(['as_of' => ['required', 'date_format:Y-m-d']])['as_of'] : null;
         $cut = $asOf === null ? null : CarbonImmutable::createFromFormat('Y-m-d', $asOf,
@@ -65,9 +66,13 @@ class ChartController extends Controller
             ->merge($requests->pluck('requested_by'))->filter()->unique()->values()->all()))->pluck('name', 'id');
 
         $closer = app(VisitCloser::class);
+        // Complaint: an appointment visit reads it live from the appointment (the desk may check in after the record was opened);
+        // a walk-in keeps its own. shortcut: one lookup per open appointment visit, past visits show only their own column.
+        $complaint = fn (Visit $v) => Crypto::decrypt($v->complaint_enc)
+            ?? ($v->appointment_id !== null && $v->status === 'berlangsung' ? $appointments->complaint($v->appointment_id) : null);
         $out = $visits->map(fn (Visit $v) => [
             'id' => $v->id, 'appointment_id' => $v->appointment_id, 'branch_id' => $v->branch_id, 'started_at' => $v->started_at,
-            'status' => $v->status, 'attendance_cancelled_at' => $v->attendance_cancelled_at, 'dentist' => ['id' => $v->dentist_id, 'name' => $names[$v->dentist_id] ?? null],
+            'status' => $v->status, 'complaint' => $complaint($v), 'attendance_cancelled_at' => $v->attendance_cancelled_at, 'dentist' => ['id' => $v->dentist_id, 'name' => $names[$v->dentist_id] ?? null],
             'notes' => $notes->where('visit_id', $v->id)->values()->map(fn ($n) => self::note($n, $names, $requests->get($n->id))),
             'draft_findings' => $findings->where('visit_id', $v->id)->where('state', 'draft')->values()->map(self::finding(...)),
             'draft_procedures' => $procedures->where('visit_id', $v->id)->where('state', 'draft')->values()->map($proc),
@@ -132,7 +137,12 @@ class ChartController extends Controller
         if (! Ctx::current()->coversBranch($a['branch_id'])) {
             return Audit::denied('branch:'.$a['branch_id']);
         }
+        // Arrived patient: opening the record seats them. A booked one stays booked: a dentist may open the chart ahead of arrival,
+        // and the desk can still mark no-show. Replays repair an appointment left at checked_in.
+        $seat = fn () => $a['status'] === 'checked_in' ? $appointments->advance($id, 'in_treatment') : null;
         if ($v = Visit::where('appointment_id', $id)->first()) {
+            $seat();
+
             return response()->json(self::visit($v));
         }
         if (in_array($a['status'], ['cancelled', 'no_show'], true)) {
@@ -145,6 +155,7 @@ class ChartController extends Controller
             return response()->json(self::visit(Visit::where('appointment_id', $id)->firstOrFail()));
         }
         Audit::log('buat', 'visit', $v->id, ['appointment_id' => $id]);
+        $seat();
         $care->push($v->patient_id);
 
         return response()->json(self::visit($v), 201);
@@ -169,14 +180,16 @@ class ChartController extends Controller
             throw ValidationException::withMessages(['dentist_id' => 'Dokter gigi tidak aktif di cabang ini.']);
         }
 
-        [$v, $created] = DB::transaction(function () use ($id, $patients, $ctx, $dentist) {
+        $complaint = $request->validated('complaint');
+        [$v, $created] = DB::transaction(function () use ($id, $patients, $ctx, $dentist, $complaint) {
             $patients->lock($id); // 404 for other tenants; serializes parallel walk-ins (appointment_id NULL has no unique guard)
             if ($open = Visit::where('patient_id', $id)->where('branch_id', $ctx->branchId)->where('status', 'berlangsung')
                 ->orderByDesc('started_at')->first()) {
                 return [$open, false];
             }
             $v = Visit::create(['patient_id' => $id, 'branch_id' => $ctx->branchId, 'dentist_id' => $dentist,
-                'appointment_id' => null, 'started_at' => now(), 'status' => 'berlangsung', 'created_by' => $ctx->userId]);
+                'appointment_id' => null, 'started_at' => now(), 'status' => 'berlangsung', 'created_by' => $ctx->userId,
+                'complaint_enc' => Crypto::encrypt($complaint)]);
             Audit::log('buat', 'visit', $v->id, ['walk_in' => true, 'patient_id' => $id, 'dentist_id' => $dentist, 'branch_id' => $ctx->branchId]);
 
             return [$v, true];
