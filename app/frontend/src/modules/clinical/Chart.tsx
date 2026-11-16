@@ -18,7 +18,7 @@ import { PatientPage } from '../patients'
 import type { PatientFull } from '../patients'
 import {
   approveCorrection, approveDrafts, changeStatus, confirmExternal, correctNote, correctProcedure, discardProcedure, getChart, getDentists,
-  replaceProcedure, saveBaseline, saveNote, saveProcedure, selesaiVisit, getCatalog, type CatalogRow, startWalkInVisit, visitFromAppointment,
+  replaceProcedure, saveBaseline, saveNote, saveProcedure, selesaiVisit, getCatalog, getStages, type CatalogRow, startWalkInVisit, visitFromAppointment,
   type Baseline, type Chart, type ChartVisit, type CorrectionType, type Finding, type Note, type ProcStatus, type Procedure, type ProcedureHistoryRow,
   type Soap, type Surface, type ToothPresence, type Version,
 } from './api'
@@ -426,6 +426,8 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const exam = useExam()
   const mobile = useIsMobile()
   const [mouthProcs, setMouthProcs] = useState<CatalogRow[]>([]) // e.g. Scaling: billed work without a tooth
+  const [stages, setStages] = useState<Record<string, { variant: string; label: string }[]>>({}) // S2 price levels, as in ToothSheet
+  const [mouthPick, setMouthPick] = useState<CatalogRow | null>(null) // mouth procedure waiting for its stage (Konsultasi / Kontrol)
   const phone = useMedia(PHONE_QUERY)
   const [legendOpen, setLegendOpen] = useState(!mobile) // phone: chart first, legend on demand
   const [tab, setTab] = useState<(typeof INNER)[number][0]>('odo')
@@ -484,7 +486,11 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
     setMsg('')
   }, [patientId, appointmentId])
   useEffect(() => { load() }, [load])
-  useEffect(() => { if (can('note.write')) getCatalog().then((c) => setMouthProcs(Array.isArray(c) ? c.filter((x) => x.treat_area === 'mouth') : []), () => setMouthProcs([])) }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!can('note.write')) return
+    getCatalog().then((c) => setMouthProcs(Array.isArray(c) ? c.filter((x) => x.treat_area === 'mouth') : []), () => setMouthProcs([]))
+    getStages().then((s) => setStages(s && typeof s === 'object' && !Array.isArray(s) ? s : {}), () => setStages({}))
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const visit = chart?.visits.find((v) => v.id === visitId) ?? null
   const note = visit?.notes[0] ?? null
@@ -542,6 +548,11 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
     } catch (e) {
       setMsg(e instanceof ApiError && [409, 422].includes(e.status) ? e.data?.message ?? 'Data tidak valid.' : errorText(e))
     }
+  }
+  const saveMouth = (x: CatalogRow, stage?: { variant: string; label: string }) => {
+    setMouthPick(null)
+    return run(() => saveProcedure(visit!.id, { tooth: null, surfaces: null, status: 'selesai', procedure_code: x.procedure_code, ...(stage ? { variant: stage.variant } : {}) }),
+      `${x.name}${stage ? ` (${stage.label})` : ''} tersimpan (masuk tagihan saat Selesai).`)
   }
   // selecting works anytime; picker only when editable. Same tooth: add the surface to the treatment's combination (MOD); new tooth: restart.
   const onPick = (tooth: number, surface: Surface) => {
@@ -602,6 +613,11 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
         setSigning(null)
         setMsg(`Rekam medis sudah ditandatangani, tetapi kunjungan belum ditutup: ${e.data.message ?? 'tagihan belum lengkap.'}`)
         await load()
+        return
+      }
+      if (e instanceof ApiError && e.data?.error === 'no_billable_work') { // nothing signed: close the dialog so the mouth buttons are reachable
+        setSigning(null)
+        setMsg(e.data.message ?? 'Belum ada tindakan selesai.')
         return
       }
       if (e instanceof ApiError && e.status === 422 && e.data?.error === 'warnings') { // SignCheck warnings: pick a reason chip
@@ -713,8 +729,16 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
               <div className="mouth-procs" role="group" aria-label="Tindakan seluruh mulut">
                 <span className="muted small">Tindakan seluruh mulut:</span>
                 {mouthProcs.map((x) => (
-                  <button key={x.procedure_code} type="button" className="btn" onClick={() => run(() => saveProcedure(visit!.id, { tooth: null, surfaces: null, status: 'selesai',
-                    procedure_code: x.procedure_code }), `${x.name} tersimpan (masuk tagihan saat Selesai).`)}>{x.name} <code>{x.procedure_code}</code></button>
+                  <button key={x.procedure_code} type="button" className="btn" aria-pressed={mouthPick?.procedure_code === x.procedure_code}
+                    onClick={() => (stages[x.procedure_code]?.length ?? 0) > 1 ? setMouthPick(x) : saveMouth(x)}>{x.name} <code>{x.procedure_code}</code></button>
+                ))}
+              </div>
+            )}
+            {editable && mouthPick && (
+              <div className="tsheet-pick" role="radiogroup" aria-label={`Tahap ${mouthPick.name}`}>
+                <p className="small">Tahap {mouthPick.name} hari ini:</p>
+                {stages[mouthPick.procedure_code].map((s) => (
+                  <button key={s.variant} type="button" role="radio" aria-checked={false} onClick={() => saveMouth(mouthPick, s)}>{s.label}</button>
                 ))}
               </div>
             )}

@@ -761,6 +761,48 @@ test('#70 / P1-2 RM Selesai from an appointment: the server frees the chair, the
   expect(calls.some((c) => c.url.endsWith('/transition'))).toBe(false)
 })
 
+test('P0-4: a mouth procedure with stages asks Konsultasi / Kontrol and sends the variant; Selesai without work shows the server\'s hint', async () => {
+  const noWork = 'Belum ada tindakan selesai. Tambahkan Pemeriksaan gigi (Konsultasi atau Kontrol) dari Tindakan seluruh mulut, lalu tekan Selesai lagi.'
+  const draftNote = { id: 'n1', author_id: 'u1', created_at: '', pending_correction: null, versions: [{ id: 'nv1', version: 1, revision: 1, supersedes_id: null,
+    status: 'draf', source: 'manual', signed_by: null, signed_by_name: null, signed_at: null, reason: null, correction_request_id: null, content_hash: 'h',
+    soap: { S: 'Kontrol rutin.', O: 'Baik.', A: { codes: [], text: '' }, P: { codes: [], text: '' } } }] }
+  const posts: { url: string; body: any }[] = []
+  vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+    if (init?.method === 'POST') posts.push({ url, body: JSON.parse(init.body as string) })
+    if (url.endsWith('/selesai')) return new Response(JSON.stringify({ error: 'no_billable_work', message: noWork }), { status: 409 })
+    if (url.endsWith('/procedures')) return new Response(JSON.stringify({ id: 'x1' }), { status: 201 })
+    return new Response(JSON.stringify(url.endsWith('manifest.json') ? manifest : url.endsWith('/chart') ? { ...chart, findings, visits: [{ ...visit, notes: [draftNote] }] }
+      : url.endsWith('/procedure-catalog') ? [{ procedure_code: '89.31', name: 'Pemeriksaan gigi', treat_area: 'mouth', paint_type: 'Text', conditions: [] },
+        { procedure_code: '96.54', name: 'Scaling', treat_area: 'mouth', paint_type: 'Text', conditions: [] }]
+      : url.endsWith('/tariffs/stages') ? { '89.31': [{ variant: 'standar', label: 'Konsultasi' }, { variant: 'kontrol', label: 'Kontrol' }] }
+      : url.endsWith('/alerts') ? alerts : full), { status: 200 })
+  }))
+  window.Tooth3D = mockTooth3D
+  render(<ChartPage patientId="p1" me={me} />)
+
+  await screen.findByRole('region', { name: 'Odontogram' })
+  fireEvent.click(screen.getByRole('tab', { name: 'Catatan Klinis' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Selesai' }))
+  const dlg = screen.getByRole('dialog')
+  fireEvent.click(within(dlg).getByRole('checkbox'))
+  fireEvent.click(within(dlg).getByRole('button', { name: 'Selesai' }))
+  expect(await screen.findByText(noWork)).toBeInTheDocument()
+  expect(screen.queryByRole('dialog')).toBeNull() // closed: the mouth buttons are reachable
+
+  fireEvent.click(screen.getByRole('tab', { name: 'Odontogram' }))
+  const mouth = within(await screen.findByRole('group', { name: 'Tindakan seluruh mulut' }))
+  fireEvent.click(await mouth.findByRole('button', { name: /Pemeriksaan gigi/ }))
+  expect(posts.some((p) => p.url.endsWith('/procedures'))).toBe(false) // 2 stages: asked first
+  fireEvent.click(within(screen.getByRole('radiogroup', { name: 'Tahap Pemeriksaan gigi' })).getByRole('radio', { name: 'Kontrol' }))
+  await waitFor(() => expect(posts.filter((p) => p.url.endsWith('/procedures')).map((p) => p.body)).toEqual([
+    { tooth: null, surfaces: null, status: 'selesai', procedure_code: '89.31', variant: 'kontrol' }]))
+  expect(screen.queryByRole('radiogroup', { name: 'Tahap Pemeriksaan gigi' })).toBeNull()
+
+  fireEvent.click(mouth.getByRole('button', { name: /Scaling/ })) // one level: saved at once, no variant
+  await waitFor(() => expect(posts.filter((p) => p.url.endsWith('/procedures'))[1]?.body).toEqual(
+    { tooth: null, surfaces: null, status: 'selesai', procedure_code: '96.54' }))
+})
+
 test('P1-1: the desk\'s complaint shows as Keluhan in the header and starts S only while the visit has no note', async () => {
   const { unmount } = renderChart({ visits: [{ ...visit, complaint: 'Gigi ngilu kalau minum dingin' }] })
   expect(await screen.findByRole('note', { name: 'Keluhan pasien' })).toHaveTextContent('Keluhan: Gigi ngilu kalau minum dingin')
