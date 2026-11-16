@@ -41,7 +41,7 @@ export type Span = { from: number; to: number; roles: Record<number, SpanRole>; 
 export type ToothEntry = {
   tooth: number; condition?: string; status: EntryStatus; surfaces?: SurfaceKey[]; procedure_code?: string | null; variant?: string
   span_to?: number; span_roles?: Record<number, SpanRole>; material?: Material | null
-  external_clinic_name?: string; external_date?: string
+  external_clinic_name?: string; external_date?: string; confirm_duplicate?: boolean
 }
 
 export const conditionsIn = (g: ConditionGroup) => TAXONOMY.conditions.filter((c) => c.group === g)

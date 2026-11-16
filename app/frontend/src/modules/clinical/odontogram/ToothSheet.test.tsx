@@ -74,3 +74,33 @@ test('S2: a finished procedure with several stages needs the stage done today, a
   fireEvent.click(simpan())
   await waitFor(() => expect(saveToothEntry).toHaveBeenCalledWith('v1', expect.objectContaining({ tooth: 36, variant: 'p2', status: 'selesai' })))
 })
+
+const dupError = () => new ApiError(409, { error: 'duplicate_procedure', existing_id: 'p1',
+  message: 'Pencabutan gigi sudah dicatat di gigi 46 pada kunjungan ini. Tambahkan lagi?' })
+
+test('duplicate: a 409 asks in the sheet; Tambah lagi resends the same entry with confirm_duplicate', async () => {
+  vi.mocked(saveToothEntry).mockRejectedValueOnce(dupError())
+  const onSaved = vi.fn()
+  render(<ToothSheet tooth={46} visitId="v1" onSaved={onSaved} />)
+  fireEvent.click(await screen.findByRole('radio', { name: /Pencabutan gigi/ }))
+  fireEvent.click(simpan())
+  const ask = within(await screen.findByRole('alertdialog'))
+  ask.getByText('Pencabutan gigi sudah dicatat di gigi 46 pada kunjungan ini. Tambahkan lagi?')
+  expect(simpan()).toBeDisabled()
+  expect(onSaved).not.toHaveBeenCalled()
+  fireEvent.click(ask.getByRole('button', { name: 'Tambah lagi' }))
+  await waitFor(() => expect(saveToothEntry).toHaveBeenLastCalledWith('v1', { tooth: 46, procedure_code: '23.09', status: 'selesai', confirm_duplicate: true }))
+  await waitFor(() => expect(onSaved).toHaveBeenCalled())
+  expect(screen.queryByRole('alertdialog')).toBeNull()
+})
+
+test('duplicate: Batal closes the question and sends nothing', async () => {
+  vi.mocked(saveToothEntry).mockRejectedValueOnce(dupError())
+  render(<ToothSheet tooth={46} visitId="v1" onSaved={() => undefined} />)
+  fireEvent.click(await screen.findByRole('radio', { name: /Pencabutan gigi/ }))
+  fireEvent.click(simpan())
+  fireEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Batal' }))
+  expect(screen.queryByRole('alertdialog')).toBeNull()
+  expect(saveToothEntry).toHaveBeenCalledTimes(1)
+  expect(simpan()).toBeEnabled()
+})

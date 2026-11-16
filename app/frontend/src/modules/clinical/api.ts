@@ -102,11 +102,12 @@ export const visitFromAppointment = (appointmentId: string) => api<{ id: string 
 export const saveFinding = (visitId: string, body: { tooth: number; surface: Surface | null; condition: string }) =>
   api<Finding>(`/api/visits/${visitId}/findings`, { method: 'POST', body })
 export const saveProcedure = (visitId: string, body: { tooth: number | null; surfaces: string | null; status: ProcStatus; procedure_code: string | null; variant?: string; diagnosis_code?: string | null; treat_area?: TreatArea
-  external_clinic_name?: string; external_date?: string }) =>
+  external_clinic_name?: string; external_date?: string; confirm_duplicate?: boolean }) =>
   api<Procedure>(`/api/visits/${visitId}/procedures`, { method: 'POST', body })
 /**
  * Odontogram v2 "tindakan dulu" (POST /visits/{id}/tooth-entries): one Simpan = one draft row. Selesai bills the clinic code mapped to
- * the condition: 422 {error:'pick_code', candidates} when several fit (send the chosen procedure_code again), 422 on `condition` when unmapped.
+ * the condition: 422 {error:'pick_code', candidates} when several fit (send the chosen procedure_code again), 422 on `condition` when unmapped,
+ * 409 {error:'duplicate_procedure', message, existing_id} when it is already billed on this site this visit (send again with confirm_duplicate).
  */
 export const saveToothEntry = (visitId: string, body: import('./odontogram/taxonomy').ToothEntry) =>
   api<Procedure>(`/api/visits/${visitId}/tooth-entries`, { method: 'POST', body })

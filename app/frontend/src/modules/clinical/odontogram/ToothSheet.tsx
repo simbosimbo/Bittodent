@@ -35,6 +35,8 @@ export function ToothSheet({ tooth, visitId, initialSurface, onSaved }: {
   const [ext, setExt] = useState({ clinic: '', date: '' })
   const [codeFor, setCodeFor] = useState<Record<string, string>>({})
   const [pick, setPick] = useState<Pick | null>(null)
+  // 409 duplicate_procedure: the same billable procedure is already on this site in this visit; ask before billing it twice
+  const [dup, setDup] = useState<{ key: string; message: string } | null>(null)
   // S2: stage/level per procedure (PSA kunjungan 1 / lanjutan, mahkota preparasi / pasang). Labels only; the owner sets them in Harga.
   const [stages, setStages] = useState<Record<string, { variant: string; label: string }[]>>({})
   const [catalog, setCatalog] = useState<CatalogRow[]>([])
@@ -75,6 +77,7 @@ export function ToothSheet({ tooth, visitId, initialSurface, onSaved }: {
 
   const choose = (k: string) => {
     setPick(null)
+    setDup(null)
     setVariantFor({})
     setError('')
     if (tab === 'tooth') {
@@ -86,20 +89,22 @@ export function ToothSheet({ tooth, visitId, initialSurface, onSaved }: {
       setStatus(defaultStatus(conditionByKey(k)))
     }
   }
-  const pickProc = (r: CatalogRow) => { setProc(r); setCond(null); setServerBahan([]); setVariantFor({}); setError(''); setStatus('selesai') }
-  const switchTab = (t: Tab) => { setTab(t); setCond(null); setConds([]); setPick(null); setProc(null); setServerBahan([]); setQ(''); setError('') }
+  const pickProc = (r: CatalogRow) => { setDup(null); setProc(r); setCond(null); setServerBahan([]); setVariantFor({}); setError(''); setStatus('selesai') }
+  const switchTab = (t: Tab) => { setDup(null); setTab(t); setCond(null); setConds([]); setPick(null); setProc(null); setServerBahan([]); setQ(''); setError('') }
   const spanEndsHere = useMemo(() => spanEnds(tooth), [tooth])
 
-  async function save(chosenCodes = codeFor) {
+  async function save(chosenCodes = codeFor, confirmKey?: string) {
     setBusy(true)
     setError('')
+    setDup(null)
     const saved: string[] = []
     try {
       for (const k of chosen) {
         const external = status === 'klinik_lain' ? { external_clinic_name: ext.clinic.trim(), external_date: ext.date.trim() } : {}
         const what = tab === 'proc' ? { procedure_code: k, ...(cond ? { condition: cond } : {}) }
           : { condition: k, ...(chosenCodes[k] ? { procedure_code: chosenCodes[k] } : {}) }
-        const base = { tooth, status, ...what, ...(status === 'selesai' && variantFor[k] ? { variant: variantFor[k] } : {}), ...external }
+        const base = { tooth, status, ...what, ...(status === 'selesai' && variantFor[k] ? { variant: variantFor[k] } : {}), ...external,
+          ...(k === confirmKey ? { confirm_duplicate: true } : {}) }
         try {
           await saveToothEntry(visitId, onSurface ? { ...base, surfaces: pads }
             : tab === 'span' ? { ...base, span_to: spanTo!, span_roles: roles, material: material || null } : base)
@@ -112,6 +117,11 @@ export function ToothSheet({ tooth, visitId, initialSurface, onSaved }: {
           }
           if (e instanceof ApiError && e.status === 422 && e.data?.error === 'pick_condition') { // catalog changed since it loaded
             setServerBahan(e.data.candidates ?? [])
+            return
+          }
+          if (e instanceof ApiError && e.status === 409 && e.data?.error === 'duplicate_procedure') {
+            setDup({ key: k, message: e.data.message })
+            setConds((cs) => cs.filter((x) => !saved.includes(x)))
             return
           }
           throw e
@@ -237,9 +247,18 @@ export function ToothSheet({ tooth, visitId, initialSurface, onSaved }: {
             onClick={() => setVariantFor({ ...variantFor, [k]: s.variant })}>{s.label}</button>)}
         </div>
       ))}
+      {dup && (
+        <div className="notice notice-warn" role="alertdialog" aria-labelledby="tsheet-dup">
+          <p id="tsheet-dup">{dup.message}</p>
+          <div className="dialog-actions">
+            <button type="button" className="btn" autoFocus onClick={() => setDup(null)}>Batal</button>
+            <button type="button" className="btn btn-primary" disabled={busy} onClick={() => save(codeFor, dup.key)}>Tambah lagi</button>
+          </div>
+        </div>
+      )}
       {error && <p className="form-error" role="alert">{error}</p>}
       {missing && !pick && <p className="muted small" id="tsheet-why">{missing}</p>}
-      <button type="button" className="btn btn-primary btn-block" disabled={busy || !!missing || !!pick} aria-describedby={missing ? 'tsheet-why' : undefined}
+      <button type="button" className="btn btn-primary btn-block" disabled={busy || !!missing || !!pick || !!dup} aria-describedby={missing ? 'tsheet-why' : undefined}
         onClick={() => save()}>{busy ? 'Menyimpan…' : `Simpan ${where}${codes ? ' ' + codes : ''}`}</button>
     </section>
   )
