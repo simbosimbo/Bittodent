@@ -72,6 +72,8 @@ export function findingSummary(items: { condition: string }[], procs: Procedure[
   return [...legacy, ...v2].join(' · ')
 }
 const FREE_EDIT_MS = 48 * 3600 * 1000
+// "sehat (sou)" is an exam finding stored as a procedure_record row: drawn and signed, never counted or listed as work (audit P2-3)
+const isWork = (p: Procedure) => p.condition !== 'sehat'
 const INNER = [['odo', 'Odontogram'], ['notes', 'Catatan Klinis'], ['bill', 'Billing']] as const
 // Surface keypad (sketch): lingual/palatal top, M left, O/I centre, D right, buccal/labial bottom. Labels come from surfaceLabel.
 const PAD: [Surface, string][] = [['L', 'top'], ['M', 'left'], ['O', 'center'], ['D', 'right'], ['B', 'bottom']]
@@ -676,7 +678,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
           <section className="card span-8 odo-card" aria-label="Odontogram">
             <div className="card-head">
               <h2>Odontogram</h2>
-              {mine.length + myProcs.length > 0 && <span className="badge badge-draft">Draf: {mine.length} temuan, {myProcs.length} tindakan</span>}
+              {mine.length + myProcs.filter(isWork).length > 0 && <span className="badge badge-draft">Draf: {mine.length} temuan, {myProcs.filter(isWork).length} tindakan</span>}
               {mine.some((d) => d.source === 'ai_draft') && <span className="badge badge-ai">{AI_BADGE}</span>}
               {!mobile && odoTools}
             </div>
@@ -857,7 +859,8 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
           pinRequired={!!me.selesai?.pin_required} hasPin={!!me.selesai?.has_pin}
           lines={[`Catatan SOAP versi ${draft.version} (revisi ${draft.revision})${draft.soap.A.codes.length ? ' · ICD-10 ' + draft.soap.A.codes.join(', ') : ''}`,
             ...visit.draft_findings.map((f) => findingText(f) + (f.created_by !== me.user.id ? ' (draf pengguna lain)' : '')),
-            ...visit.draft_procedures.map((x) => procedureText(x) + ` · ${statusOf(x.status)?.label ?? x.status}` + (x.created_by !== me.user.id ? ' (draf pengguna lain)' : ''))]} />
+            ...visit.draft_procedures.filter(isWork).map((x) => procedureText(x) + ` · ${statusOf(x.status)?.label ?? x.status}` + (x.created_by !== me.user.id ? ' (draf pengguna lain)' : '')),
+            ...(visit.draft_procedures.some((x) => !isWork(x)) ? [`Pemeriksaan: ${visit.draft_procedures.filter((x) => !isWork(x)).length} gigi sehat (sou)`] : [])]} />
         )}
       </Presence>
       <Presence open={!!procFix} exitMs={200}>

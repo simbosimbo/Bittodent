@@ -726,6 +726,28 @@ test('RM > Billing tab is hidden without billing.read', async () => {
   expect(document.body).not.toHaveTextContent('Belum tersedia')
 })
 
+// --- Audit P2-3: "sehat (sou)" from Pemeriksaan awal is a finding, not work (synthetic data) ---
+const draftRow = (id: string, tooth: number, condition: string, status: string, code: string | null, name: string | null, created_by = 'u1') => ({
+  id, visit_id: 'v1', treat_area: 'tooth', tooth, surfaces: null, tooth_range: null, quadrant: null, arch: null, status, procedure_code: code, variant: 'standar',
+  diagnosis_code: null, provider_id: 'u1', state: 'draft', source: 'manual', supersedes_id: null, created_by, finalized_at: null, paint_type: 'Text', name, layman: null,
+  external_clinic_name: null, external_date: null, external_date_precision: null, external_confirmation: 'not_required', condition })
+const draftSoap = { id: 'n1', author_id: 'u1', created_at: '2026-01-05T03:00:00Z', pending_correction: null, versions: [{ id: 'nv1', version: 1, revision: 1,
+  supersedes_id: null, status: 'draf', source: 'manual', signed_by: null, signed_by_name: null, signed_at: null, reason: null, correction_request_id: null,
+  content_hash: 'h', soap: { S: 'Ngilu.', O: 'Sisa akar.', A: { codes: ['K08.3'], text: '' }, P: { codes: [], text: '' } } }] }
+
+test('P2-3: sou entries are drawn but not counted as tindakan, and Selesai lists only real work plus one sou summary', async () => {
+  const drafts = [draftRow('s1', 11, 'sehat', 'ada_di_klinik_ini', null, null), draftRow('s2', 21, 'sehat', 'ada_di_klinik_ini', null, null),
+    draftRow('x1', 46, 'hilang', 'selesai', '23.09', 'Pencabutan gigi')]
+  renderChart({ findings: [], procedure_drafts: drafts, visits: [{ ...visit, notes: [draftSoap], draft_procedures: drafts }] })
+  const odo = await screen.findByRole('region', { name: 'Odontogram' })
+  expect(within(odo).getByText(/^Draf:/)).toHaveTextContent('Draf: 0 temuan, 1 tindakan')
+  expect(document.getElementById('t11')).toHaveAttribute('data-state', 'draft') // still saved and drawn
+  fireEvent.click(screen.getByRole('tab', { name: 'Catatan Klinis' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Selesai' }))
+  const items = [...screen.getByRole('dialog').querySelectorAll('.sign-list li')].map((li) => li.textContent)
+  expect(items.slice(1)).toEqual(['Gigi 46: Pencabutan gigi (ICD-9-CM 23.09) · Selesai', 'Pemeriksaan: 2 gigi sehat (sou)'])
+})
+
 // --- #70 Dokter mode: one-tap procedure, SOAP template, Selesai saves first, phone sticky bar (synthetic data) ---
 function dokterChart(w: number, appt?: string) {
   localStorage.clear()
