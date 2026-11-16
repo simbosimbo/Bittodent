@@ -357,10 +357,10 @@ label.check input { min-height: 0; }
 .fab:focus-visible { outline: 3px solid var(--color-primary-200); outline-offset: 2px; }
 
 @media (max-width: 720px) {
-  /* Phone type scale: body 15, secondary 14, captions 13; one gap (12) and one page gutter (16). */
-  :root { --shells-a-font-size: 15px; --font-size-base: 15px; --font-size-sm: 14px; --font-size-xs: 13px; --shells-a-font-title: 22px; --shells-a-space-gap: 12px; }
+  /* Phone type scale (compact, owner reference 2026-11-16): body 14, secondary 13, captions 12; one gap (12) and one page gutter (16). */
+  :root { --shells-a-font-size: 14px; --font-size-base: 14px; --font-size-sm: 13px; --font-size-xs: 12px; --shells-a-font-title: 20px; --shells-a-space-gap: 12px; }
   .shell-top { flex-wrap: nowrap; gap: var(--space-1); height: 56px; min-height: 56px; padding: 0 8px 0 16px; }
-  .shell-top-clinic strong { font-size: 16px; font-weight: 700; }
+  .shell-top-clinic strong { font-size: 15px; font-weight: 700; }
   .shell-top-title { font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .shell-top .badge-synthetic { font-size: 12px; line-height: 16px; padding: 0 6px; }
   .shell-top .aps { flex: 1 1 auto; min-width: 0; }
