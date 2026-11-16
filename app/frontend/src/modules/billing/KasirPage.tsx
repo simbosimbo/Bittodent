@@ -7,7 +7,7 @@ import { RowLink } from '../../shared/ui/RowLink'
 import { SectionTitle } from '../../shared/ui/SectionTitle'
 import { StatusDot } from '../../shared/ui/StatusDot'
 import { errorText } from '../../shared/api/http'
-import { fmtTime, rp } from '../../shared/format'
+import { fmtDay, fmtTime, rp } from '../../shared/format'
 import { getDailyRevenue, kasirList, type DailyRevenue, type KasirList, type KasirRow } from './api'
 import './billing.css'
 
@@ -16,17 +16,20 @@ import './billing.css'
 const total = (r: KasirRow) => r.lines_rp - r.adjustments_rp - r.credit_notes_rp
 const FILTERS = { semua: 'Semua', belum: 'Belum', bpjs: 'BPJS', tempo: 'Tempo' } as const
 type Filter = keyof typeof FILTERS
+const item = (i: NonNullable<KasirRow['items']>[number]) => `${i.name ?? `Kode ${i.code}`}${i.tooth ? ` · gigi ${i.tooth}` : ''}`
 const wibDay = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date(iso))
 
 function Row({ r, today }: { r: KasirRow; today: string }) {
   const open = r.status === 'terbuka'
   const old = open && wibDay(r.created_at) !== today
-  const meta = [old ? 'Tempo' : fmtTime(r.created_at), (r.items ?? []).join(', '), r.payer_type === 'bpjs' ? 'BPJS' : r.payer_type === 'asuransi' ? 'Asuransi' : '']
+  // Row 2 = what was billed ("Tumpatan 26" = procedure + tooth); row 3 = when the bill was made (or Tempo + its day) · payer.
+  const when = old ? `Tempo · ${fmtDay(r.created_at)}` : fmtTime(r.created_at)
+  const payer = r.payer_type === 'bpjs' ? 'BPJS' : r.payer_type === 'asuransi' ? 'Asuransi' : 'Umum'
   return (
     <li>
       <RowLink href={`#/tagihan/${r.visit_id}`} aria-label={`${r.patient_name ?? 'Pasien'}, ${open ? 'belum bayar' : r.status}, ${rp(open ? r.balance_rp : total(r))}`}
-        title={r.patient_name ?? 'Pasien'} sub={meta.filter(Boolean).join(' · ')}
-        aside={<><StatusDot status={r.status}>{open ? 'Belum bayar' : r.status === 'lunas' ? 'Lunas' : 'Void'}</StatusDot><strong className="tabular-nums">{rp(open ? r.balance_rp : total(r))}</strong></>} />
+        title={r.patient_name ?? 'Pasien'} what={(r.items ?? []).map(item).join(', ') || undefined} sub={<span className="tabular-nums">{when} · {payer}</span>}
+        aside={<><strong className="tabular-nums">{rp(open ? r.balance_rp : total(r))}</strong><StatusDot status={r.status}>{open ? 'Belum bayar' : r.status === 'lunas' ? 'Lunas' : 'Void'}</StatusDot></>} />
     </li>
   )
 }

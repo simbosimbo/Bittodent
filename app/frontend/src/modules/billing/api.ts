@@ -72,7 +72,7 @@ export const getDailyRevenue = () => api<DailyRevenue>('/api/billing/daily-reven
 
 /** Kasir worklist (#69): every open invoice of the active branch + today's; newest first. */
 export type KasirRow = { id: string; visit_id: string; patient_id: string; patient_name: string | null; status: Invoice['status']; created_at: string
-  payer_type?: 'umum' | 'asuransi' | 'bpjs'; items?: string[]
+  payer_type?: 'umum' | 'asuransi' | 'bpjs'; items?: { name: string | null; code: string | null; tooth: number | null }[]
   lines_rp: number; adjustments_rp: number; credit_notes_rp: number; payments_rp: number; refunds_rp: number; balance_rp: number }
 /** KL06 cashier shift (own, active branch). methods = per kind (+ bank for edc/transfer); live while open, frozen at close. */
 export type ShiftMethod = { kind: PaymentAccount['kind']; bank_name: string | null; amount_rp: number; count: number }

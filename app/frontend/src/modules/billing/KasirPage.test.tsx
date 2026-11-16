@@ -4,7 +4,7 @@ import type { KasirRow } from './api'
 
 const row = (id: string, status: KasirRow['status'], balance: number, name: string | null, extra: Partial<KasirRow> = {}): KasirRow => ({ id, visit_id: `v-${id}`,
   patient_id: `p-${id}`, patient_name: name, status, created_at: '2026-11-15T03:00:00Z', lines_rp: 150000, adjustments_rp: 0, credit_notes_rp: 0,
-  payments_rp: 150000 - balance, refunds_rp: 0, balance_rp: balance, payer_type: 'umum', items: ['Tumpatan 26'], ...extra })
+  payments_rp: 150000 - balance, refunds_rp: 0, balance_rp: balance, payer_type: 'umum', items: [{ name: 'Tumpatan', code: null, tooth: 26 }], ...extra })
 const list = vi.fn()
 vi.mock('./api', async (orig) => ({ ...(await orig<typeof import('./api')>()), kasirList: () => list(),
   getDailyRevenue: () => Promise.resolve({ date: '2026-11-15', branch_id: 'b1', amount_rp: 2150000, payment_count: 4 }) }))
@@ -12,14 +12,16 @@ const { default: KasirPage } = await import('./KasirPage')
 
 test('Kasir (KL01): cards with KPI; open ones first, each card opens its tagihan; filters BPJS and Tempo', async () => {
   list.mockResolvedValue({ date: '2026-11-15', branch_id: 'b1', invoices: [row('a', 'terbuka', 150000, 'Sari Contoh'),
-    row('h', 'terbuka', 400000, 'Hendra Contoh', { payer_type: 'bpjs', items: ['Scaling'] }),
+    row('h', 'terbuka', 400000, 'Hendra Contoh', { payer_type: 'bpjs', items: [{ name: 'Scaling', code: null, tooth: null }, { name: null, code: '23.2', tooth: 37 }] }),
     row('t', 'terbuka', 250000, 'Budi Contoh', { created_at: '2026-11-10T03:00:00Z' }), row('b', 'lunas', 0, 'Dewi Contoh')] })
   render(<KasirPage />)
   const open = await screen.findByRole('region', { name: 'Belum bayar · 3' })
   expect(await screen.findByText('Rp2.150.000')).toBeInTheDocument() // diterima hari ini
   const sari = within(open).getByRole('link', { name: /Sari Contoh, belum bayar, Rp150.000/ })
   expect(sari).toHaveAttribute('href', '#/tagihan/v-a')
-  expect(sari).toHaveTextContent('Tumpatan 26')
+  expect(sari).toHaveTextContent('Sari ContohTumpatan · gigi 2610.00 · UmumRp150.000Belum bayar') // who → what → when · payer; money first on the right
+  expect(within(open).getByRole('link', { name: /Budi Contoh/ })).toHaveTextContent('Tempo · 10 Nov 2026 · Umum')
+  expect(within(open).getByRole('link', { name: /Hendra Contoh/ })).toHaveTextContent('Scaling, Kode 23.2 · gigi 37') // bare code and tooth get a word
   expect(within(screen.getByRole('region', { name: 'Lunas / void hari ini · 1' })).getByRole('link', { name: /Dewi Contoh/ })).toHaveAttribute('href', '#/tagihan/v-b')
   fireEvent.click(screen.getByRole('button', { name: 'BPJS' }))
   expect(screen.getAllByRole('listitem').map((l) => l.textContent)).toEqual([expect.stringContaining('Hendra Contoh')])

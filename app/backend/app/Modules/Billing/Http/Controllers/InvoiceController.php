@@ -61,9 +61,9 @@ class InvoiceController extends Controller
                 ->orWhere(fn ($q) => $q->where('created_at', '>=', $day->utc())->where('created_at', '<', $day->addDay()->utc())))
             ->orderByDesc('created_at')->limit(100)->get();
         $people = collect($patients->namesByIds($rows->pluck('patient_id')->unique()->values()->all()))->keyBy('id');
-        // KL01 card line "Tumpatan 26 · Scaling": names + tooth of the billed lines, one query for the whole list.
+        // KL01 card line: name, code and tooth of the billed lines kept apart (the client labels them), one query for the whole list.
         $items = InvoiceLine::whereIn('invoice_id', $rows->pluck('id'))->orderBy('created_at')->get(['invoice_id', 'procedure_name', 'procedure_code', 'tooth'])
-            ->groupBy('invoice_id')->map(fn ($ls) => $ls->map(fn ($l) => trim(($l->procedure_name ?? $l->procedure_code).' '.$l->tooth))->values());
+            ->groupBy('invoice_id')->map(fn ($ls) => $ls->map(fn ($l) => ['name' => $l->procedure_name, 'code' => $l->procedure_code, 'tooth' => $l->tooth])->values());
         Audit::log('baca', 'invoice_list', null, ['branch_id' => $ctx->branchId, 'date' => $day->toDateString(), 'count' => $rows->count()]);
 
         return response()->json(['date' => $day->toDateString(), 'branch_id' => $ctx->branchId,

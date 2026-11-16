@@ -68,7 +68,7 @@ class PatientJourneyTest extends TestCase
 
         // 6. kasir: the visit is in the queue with one line per finished procedure, pays in full
         $row = collect($this->as($kasir)->getJson('/api/billing/invoices')->assertOk()->json('invoices'))->firstWhere('visit_id', $visit);
-        $this->assertSame(['terbuka', ['Tumpatan (contoh) (1 permukaan) 36']], [$row['status'], $row['items']]);
+        $this->assertSame(['terbuka', 'Tumpatan (contoh) (1 permukaan)', 36], [$row['status'], $row['items'][0]['name'], $row['items'][0]['tooth']]);
         $cash = collect($this->as($kasir)->getJson('/api/payment-accounts')->json())->firstWhere('name', 'Kas Kemang')['id'];
         $this->as($kasir)->postJson("/api/invoices/{$row['id']}/payments", ['payment_account_id' => $cash, 'amount_rp' => $row['balance_rp']])->assertCreated()->assertJsonPath('status', 'lunas');
 
@@ -119,7 +119,7 @@ class PatientJourneyTest extends TestCase
         $this->as($doc)->putJson("/api/visits/$visit/note", ['soap' => ['S' => 'Tambal.', 'O' => 'Karies 46 OD.']])->assertOk();
         $this->as($doc)->postJson("/api/visits/$visit/selesai", ['revision' => 1, 'confirm' => true, 'accept_warnings' => true, 'reason' => 'Diagnosis ditulis di catatan.'])->assertOk();
         $row = collect($this->as('kasir@senyum.test')->getJson('/api/billing/invoices')->assertOk()->json('invoices'))->firstWhere('visit_id', $visit);
-        $this->assertStringContainsString('('.$stages[1]['label'].')', $row['items'][0]);
+        $this->assertStringContainsString('('.$stages[1]['label'].')', $row['items'][0]['name']);
         $this->assertSame(350000, $row['balance_rp']);
         $this->assertReconciled();
     }
@@ -136,7 +136,7 @@ class PatientJourneyTest extends TestCase
         $this->as($doc)->postJson("/api/visits/$visit/selesai", ['revision' => 1, 'confirm' => true, 'accept_warnings' => true, 'reason' => 'Diagnosis ditulis di catatan.'])->assertOk();
         $row = collect($this->as('kasir@senyum.test')->getJson('/api/billing/invoices')->assertOk()->json('invoices'))->firstWhere('visit_id', $visit);
         $this->assertCount(1, $row['items']);
-        $this->assertStringContainsString('46', $row['items'][0]);
+        $this->assertSame(46, $row['items'][0]['tooth']);
         $this->assertSame(150000, $row['balance_rp']);
         $this->assertReconciled();
     }
