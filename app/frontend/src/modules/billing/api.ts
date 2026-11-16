@@ -1,6 +1,6 @@
 import { api } from '../../shared/api/http'
 
-export type Adjustment = { id: string; kind: string; amount_rp: number; reason: string; created_at: string
+export type Adjustment = { id: string; kind: string; amount_rp: number; reason: string; created_at: string; invoice_line_id?: string | null
   status: 'applied' | 'pending' | 'approved' | 'rejected'; self_approved_sole_owner: boolean }
 /** Clinic-owned payment destination (unit 5): the only payment methods; owner manages them. */
 export type PaymentAccount = { id: string; branch_id: string | null; name: string; kind: 'tunai' | 'qris' | 'edc' | 'transfer' | 'bpjs' | 'asuransi'
@@ -18,8 +18,8 @@ export type Refund = { id: string; credit_note_id: string; payment_id: string; p
 export type CorrectionReview = { id: string; procedure_correction_id: string; reason_type: string; new_procedure_id: string
   billable_code: string | null; status: 'perlu_tinjau' | 'selesai' }
 export type InvoiceLine = { id: string; procedure_code: string; procedure_name: string; tooth: number | null; price_rp: number
-  credited_rp: number; credit_note_numbers: string[]; tariff_zero: 'pending' | 'approved' | null; correction_reviews: CorrectionReview[] }
-export type Invoice = { id: string; visit_id: string; branch_id: string; status: 'terbuka' | 'lunas' | 'void'
+  credited_rp: number; discount_rp?: number; credit_note_numbers: string[]; tariff_zero: 'pending' | 'approved' | null; correction_reviews: CorrectionReview[] }
+export type Invoice = { id: string; number?: string | null; visit_id: string; branch_id: string; status: 'terbuka' | 'lunas' | 'void'
   patient_name?: string | null; created_at?: string
   lines_rp: number; adjustments_rp: number; credit_notes_rp: number; payments_rp: number; refunds_rp: number; balance_rp: number; overpaid_rp: number
   lines: InvoiceLine[]; credit_notes: CreditNote[]; voids: { id: string; reason: string; created_at: string; status: DocStatus }[]
@@ -36,7 +36,7 @@ export const invoiceForVisit = (visitId: string) => api<Invoice>(`/api/visits/${
 export const invoiceStatuses = (visitIds: string[]) =>
   api<{ statuses: Record<string, Invoice['status']> }>(`/api/billing/invoice-status?visit_ids=${visitIds.map(encodeURIComponent).join(',')}`)
 /** 201 = applied; 202 = brings the balance to Rp0, waits for an owner (unit 4). */
-export const addAdjustment = (invoiceId: string, body: { kind: string; amount_rp: number; reason: string }) =>
+export const addAdjustment = (invoiceId: string, body: { kind: string; amount_rp: number; reason: string; invoice_line_id?: string }) =>
   api<Invoice>(`/api/invoices/${invoiceId}/adjustments`, { method: 'POST', body })
 /** Owner only (billing.approve_zero). 403 conflict_of_interest: own work while another owner exists. */
 export const decideAdjustment = (adjustmentId: string, decision: 'approve' | 'reject', reason?: string) =>

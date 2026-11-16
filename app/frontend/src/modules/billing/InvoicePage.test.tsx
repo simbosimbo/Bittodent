@@ -84,7 +84,7 @@ test('kasir creates a full credit note: shows the number waiting for the owner; 
 test('paid invoice: no void form', async () => {
   current = { ...inv, payments: [{ id: 'p1', payment_account_id: 'k1', amount_rp: 1000, paid_at: '', refunded_rp: 0, account: { name: 'Kas', kind: 'tunai', bank_name: null, account_last4: null } }] }
   render(<InvoicePage visitId="v1" me={me(['billing.read', 'billing.adjust'])} />)
-  await screen.findByText('Tumpatan', { exact: false })
+  await screen.findAllByText('Tumpatan', { exact: false }) // the line and its option in the discount form
   expect(screen.queryByRole('button', { name: 'Void tagihan' })).toBeNull()
 })
 
@@ -202,4 +202,20 @@ test('#70 kwitansi right after paying still names the patient (payment response 
   fireEvent.click(within(paid).getByRole('button', { name: 'Cetak' }))
   expect(print).toHaveBeenCalled() // KL05 Cetak goes straight to the print dialog
   expect(screen.getByRole('region', { name: 'Kwitansi' })).toHaveTextContent('Telah diterima dari Sari Contoh')
+})
+
+test('KlinikMe-style diskon: on one line, in %, sent as whole rupiah with the line; the line shows its discount and the number shows', async () => {
+  const addAdjustment = vi.spyOn(await import('./api'), 'addAdjustment')
+  current = { ...inv, number: 'INV-2026-000007', adjustments: [], lines: [{ ...line, discount_rp: 25000 }] }
+  render(<InvoicePage visitId="v1" me={me(['billing.read', 'billing.adjust'])} />)
+  expect(await screen.findByText('INV-2026-000007')).toBeInTheDocument()
+  expect(screen.getByText(/diskon -Rp\s?25\.000/)).toBeInTheDocument()
+  fireEvent.change(screen.getByRole('combobox', { name: 'Untuk' }), { target: { value: 'l1' } })
+  fireEvent.change(screen.getByRole('combobox', { name: 'Satuan' }), { target: { value: 'pct' } })
+  fireEvent.change(screen.getByLabelText('Jumlah (%)'), { target: { value: '15' } })
+  fireEvent.change(screen.getByLabelText('Alasan'), { target: { value: 'Pasien lama' } })
+  expect(screen.getByText(/= Rp\s?15\.000/)).toBeInTheDocument()
+  addAdjustment.mockResolvedValueOnce(current)
+  fireEvent.click(screen.getByRole('button', { name: 'Simpan' }))
+  await waitFor(() => expect(addAdjustment).toHaveBeenCalledWith('i1', { kind: 'discount', amount_rp: 15000, reason: 'Pasien lama', invoice_line_id: 'l1' }))
 })

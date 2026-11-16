@@ -223,9 +223,10 @@ class CreditNoteTest extends TestCase
         $this->as(self::KASIR)->postJson("/api/invoices/$inv/adjustments", $body)->assertUnprocessable()->assertJsonValidationErrors('invoice_line_id');
         $this->as(self::KASIR)->postJson("/api/invoices/$inv/adjustments", $body + ['invoice_line_id' => $line])->assertCreated()
             ->assertJsonPath('adjustments.0.invoice_line_id', $line);
+        // a discount may point at a line too (per-line discount, KlinikMe parity); it never needs one
         $this->as(self::KASIR)->postJson("/api/invoices/$inv/adjustments", ['kind' => 'discount', 'amount_rp' => 1000, 'reason' => 'Diskon',
-            'invoice_line_id' => $line])->assertUnprocessable();
-        $this->assertSame(1, $this->in($this->tenantA(), fn () => InvoiceAdjustment::count() - InvoiceAdjustment::whereNull('invoice_line_id')->count()));
+            'invoice_line_id' => $line])->assertCreated();
+        $this->assertSame(2, $this->in($this->tenantA(), fn () => InvoiceAdjustment::count() - InvoiceAdjustment::whereNull('invoice_line_id')->count()));
     }
 
     public function test_reversal_documents_are_immutable_in_the_database(): void
