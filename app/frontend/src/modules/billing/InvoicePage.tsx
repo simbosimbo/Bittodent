@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type ComponentProps, type FormEvent } from 'react'
+import { Button, buttonVariants, Card, Chip, Input, inputVariants, ToggleButton, ToggleButtonGroup } from '@heroui/react'
 import { ApiError, errorText } from '../../shared/api/http'
 import { fmtDateTime, rp } from '../../shared/format'
 import { PageSkeleton } from '../../shared/ui/Skeleton'
@@ -6,6 +7,7 @@ import { Kop, useLetterhead } from '../../shared/letterhead'
 import type { Me } from '../../shared/session'
 import { addAdjustment, addCreditNote, addPayment, addRefund, approveZeroTariff, billFromCorrection, decideAdjustment, decideCreditNote, decideRefund, decideVoid, invoiceForVisit,
   paymentAccounts, reviewCorrection, voidInvoice, type Adjustment, type Invoice, type InvoiceLine, type PaymentAccount } from './api'
+import { Note } from './ui'
 import './billing.css'
 
 const KIND: Record<PaymentAccount['kind'], string> = { tunai: 'Tunai', qris: 'QRIS', edc: 'Debit', transfer: 'Transfer', bpjs: 'BPJS', asuransi: 'Asuransi' }
@@ -16,7 +18,7 @@ const accountLabel = (a: Pick<PaymentAccount, 'name' | 'kind' | 'bank_name' | 'a
   `${a.name} (${KIND[a.kind]}${a.bank_name ? ' ' + a.bank_name : ''}${a.account_last4 ? ' ··' + a.account_last4 : ''})`
 /** Short chip label (#70): "Tunai", "QRIS", "EDC BCA", "Transfer BCA"; the full account sits in the tooltip. */
 const chipLabel = (a: PaymentAccount) => `${KIND[a.kind]}${a.bank_name ? ' ' + a.bank_name : ''}`
-const INV_CHIP: Record<Invoice['status'], [string, string]> = { terbuka: ['Belum lunas', 'unpaid'], lunas: ['Lunas', 'done'], void: ['Void', 'alert'] }
+const INV_CHIP: Record<Invoice['status'], [string, 'warning' | 'success' | 'danger']> = { terbuka: ['Belum lunas', 'warning'], lunas: ['Lunas', 'success'], void: ['Void', 'danger'] }
 type PayRow = { account: string; amount: string; key: string }
 const newRow = (amount = ''): PayRow => ({ account: '', amount, key: crypto.randomUUID() })
 const ADJ_KIND: Record<string, string> = { discount: 'Diskon', write_off: 'Penghapusan', correction: 'Koreksi' }
@@ -181,29 +183,31 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
   const amt = rp(split ? rows.reduce((t, r) => t + Number(r.amount || 0), 0) : Number(rows[0].amount || 0))
   const payLabel = split || !sel ? `Terima ${amt}` : sel.kind === 'qris' ? 'Sudah dibayar'
     : ['edc', 'transfer'].includes(sel.kind) ? `Terima ${KIND[sel.kind].toLowerCase()} ${sel.bank_name ?? sel.name} ${amt}` : `Terima ${amt}`
-  if (!inv) return error ? <div className="card state-card">{error}</div> : <PageSkeleton variant="invoice" label="Memuat tagihan…" />
+  if (!inv) return error ? <Card className="state-card">{error}</Card> : <PageSkeleton variant="invoice" label="Memuat tagihan…" />
+  const owe = (yes: () => Promise<Invoice>, no: () => Promise<Invoice>, okYes: string, okNo: string) =>
+    <Decide yes={() => run(yes, () => okYes)} no={() => run(no, () => okNo)} />
   return (
-    <>
+    <div className="billing">
       {/* #70 decluttered: name, status, sisa (big) and the payment; every secondary amount sits in "Rincian" (non-zero only). */}
       <div className="page-head inv-head">
         <div>
           <h1 aria-label={inv.patient_name ? `Tagihan · ${inv.patient_name}` : 'Tagihan'}>{inv.patient_name ?? 'Tagihan'}</h1>
           <p className="inv-sum">
-            <span className={`chip inv-chip inv-chip-${INV_CHIP[inv.status][1]}`}>{INV_CHIP[inv.status][0]}</span>
-            {inv.number && <span className="muted small">{inv.number}</span>}
-            {inv.balance_rp > 0 ? <><span className="muted">Sisa</span><span className="inv-big" aria-label={`Sisa ${rp(inv.balance_rp)}`}>{rp(inv.balance_rp)}</span>
-              {inv.balance_rp !== inv.lines_rp && <span className="muted small">dari {rp(inv.lines_rp)}</span>}</>
+            <Chip className="inv-chip" variant="soft" color={INV_CHIP[inv.status][1]}>{INV_CHIP[inv.status][0]}</Chip>
+            {inv.number && <span className="text-sm text-muted">{inv.number}</span>}
+            {inv.balance_rp > 0 ? <><span className="text-muted">Sisa</span><span className="inv-big" aria-label={`Sisa ${rp(inv.balance_rp)}`}>{rp(inv.balance_rp)}</span>
+              {inv.balance_rp !== inv.lines_rp && <span className="text-sm text-muted">dari {rp(inv.lines_rp)}</span>}</>
               : <span className="inv-big" aria-label={`Total ${rp(inv.lines_rp)}`}>{rp(inv.lines_rp)}</span>}
           </p>
         </div>
       </div>
-      {msg && <p className="notice" role="status">{msg}</p>}
-      {error && <p className="form-error" role="alert">{error}</p>}
+      {msg && <Note status="success" role="status" className="mb-3">{msg}</Note>}
+      {error && <Note status="danger" role="alert" className="mb-3">{error}</Note>}
       {paidNow && inv.status === 'lunas' && !receipt && <PaidPanel inv={inv} me={me} onPrint={() => setReceipt(true)} />}
       {inv.payments.length > 0 && inv.status !== 'void' && (receipt ? <Kwitansi inv={inv} me={me} autoPrint={paidNow} onClose={() => setReceipt(false)} />
-        : !(paidNow && inv.status === 'lunas') && <p className="kwitansi-actions"><button className="btn" onClick={() => setReceipt(true)}>Kwitansi</button>
-          <a className="btn btn-ghost" href="#/kasir">Kembali ke Kasir</a></p>)}
-      <div className="card inv-pay">
+        : !(paidNow && inv.status === 'lunas') && <p className="kwitansi-actions"><Button variant="secondary" onPress={() => setReceipt(true)}>Kwitansi</Button>
+          <a className={buttonVariants({ variant: 'ghost' })} href="#/kasir">Kembali ke Kasir</a></p>)}
+      <Card className="inv-pay mb-3">
         <h2 className="sr-only">Pembayaran</h2>
         {inv.payments.length > 0 && (
           <details className="inv-fold">
@@ -212,27 +216,27 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
           </details>
         )}
         {(inv.overpaid_rp ?? 0) > 0 && (
-          <p className="notice" role="note">Kelebihan bayar {rp(inv.overpaid_rp)} — buat refund
+          <Note status="warning" role="note">Kelebihan bayar {rp(inv.overpaid_rp)} — buat refund
             {can('billing.adjust') && !refund && overpaidLeft > 0 && refundNotes.length > 0 && refundPays.length > 0 && (
-              <> <button className="btn btn-xs" onClick={() => setRefundPick({ payment: refundPays[0].id, note: refundNotes[0].id, amount: '', reason: '' })}>Refund</button></>
+              <> <Button size="sm" variant="secondary" onPress={() => setRefundPick({ payment: refundPays[0].id, note: refundNotes[0].id, amount: '', reason: '' })}>Refund</Button></>
             )}
-          </p>
+          </Note>
         )}
         {refund && (
-          <form onSubmit={submitRefund} className="toolbar" aria-label="Form refund">
-            <select aria-label="Pembayaran asal" value={refund.payment} onChange={(e) => setRefundPick({ ...refund, payment: e.target.value })}>
+          <form onSubmit={submitRefund} className={ROW} aria-label="Form refund">
+            <Select aria-label="Pembayaran asal" value={refund.payment} onChange={(e) => setRefundPick({ ...refund, payment: e.target.value })}>
               {refundPays.map((p) => <option key={p.id} value={p.id}>{accountLabel(p.account)} · {rp(p.amount_rp)}</option>)}
-            </select>
-            <input aria-label="Akun refund" disabled value={accountLabel(refundPays.find((p) => p.id === refund.payment)?.account ?? inv.payments[0].account)} />
-            <select aria-label="Nota kredit refund" value={refund.note} onChange={(e) => setRefundPick({ ...refund, note: e.target.value })}>
+            </Select>
+            <Input className={FIELD} aria-label="Akun refund" disabled value={accountLabel(refundPays.find((p) => p.id === refund.payment)?.account ?? inv.payments[0].account)} />
+            <Select aria-label="Nota kredit refund" value={refund.note} onChange={(e) => setRefundPick({ ...refund, note: e.target.value })}>
               {refundNotes.map((n) => <option key={n.id} value={n.id}>{n.number} · {rp(n.amount_rp)}</option>)}
-            </select>
-            <input aria-label="Jumlah refund (Rp)" type="number" min={1} max={refundMax(refund.payment, refund.note)} required value={refund.amount}
+            </Select>
+            <Input className={FIELD} aria-label="Jumlah refund (Rp)" type="number" min={1} max={refundMax(refund.payment, refund.note)} required value={refund.amount}
               onChange={(e) => setRefund({ ...refund, amount: e.target.value })} />
-            <input aria-label="Alasan refund" required minLength={10} value={refund.reason} onChange={(e) => setRefund({ ...refund, reason: e.target.value })} />
-            <button className="btn">Ajukan refund</button>
-            <button type="button" className="btn btn-ghost" onClick={() => setRefund(null)}>Batal</button>
-            <span className="muted small">Refund hanya ke akun pembayaran asal dan menunggu persetujuan pemilik.</span>
+            <Input className={FIELD} aria-label="Alasan refund" required minLength={10} value={refund.reason} onChange={(e) => setRefund({ ...refund, reason: e.target.value })} />
+            <Button type="submit" variant="secondary">Ajukan refund</Button>
+            <Button variant="ghost" onPress={() => setRefund(null)}>Batal</Button>
+            <span className="text-sm text-muted">Refund hanya ke akun pembayaran asal dan menunggu persetujuan pemilik.</span>
           </form>
         )}
         {refunds.length > 0 && (
@@ -241,63 +245,60 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
               <li key={r.id}>
                 Refund {rp(r.amount_rp)} · {accountLabel(inv.payments.find((p) => p.id === r.payment_id)?.account ?? { name: 'Akun asal', kind: r.method, bank_name: null, account_last4: null })}
                 {' '}· {r.reason} · <strong>{REFUND_STATUS[r.status]}</strong>{r.self_approved_sole_owner && ' (disetujui sendiri)'}
-                {r.status === 'pending' && can('billing.approve_reversal') && (
-                  <span className="toolbar">
-                    <button className="btn btn-xs" onClick={() => run(() => decideRefund(r.id, 'approve'), () => 'Refund disetujui.')}>Setujui</button>
-                    <button className="btn btn-xs" onClick={() => run(() => decideRefund(r.id, 'reject'), () => 'Refund ditolak.')}>Tolak</button>
-                  </span>
-                )}
+                {r.status === 'pending' && can('billing.approve_reversal') && owe(() => decideRefund(r.id, 'approve'), () => decideRefund(r.id, 'reject'), 'Refund disetujui.', 'Refund ditolak.')}
               </li>
             ))}
           </ul>
         )}
         {can('billing.adjust') && inv.balance_rp > 0 && (
-          <form onSubmit={pay}>
+          <form onSubmit={pay} className="flex flex-col gap-3">
             {!split ? <>
-              <div className="pay-kinds" role="radiogroup" aria-label="Metode bayar" title="Hanya akun milik klinik; transfer hanya ke rekening klinik.">
-                {kinds.map((k) => (
-                  <button key={k} type="button" role="radio" aria-checked={curKind === k} className="pay-kind" onClick={() => pickKind(k)}>
-                    <strong>{KIND[k]}</strong><span className="muted small">{KIND_HINT[k]}</span>
-                  </button>
-                ))}
+              <div title="Hanya akun milik klinik; transfer hanya ke rekening klinik.">
+                <ToggleButtonGroup aria-label="Metode bayar" selectionMode="single" disallowEmptySelection isDetached className="grid w-full grid-cols-2 gap-2"
+                  selectedKeys={curKind ? [curKind] : []} onSelectionChange={(k) => { const v = [...k][0]; if (v) pickKind(v as PaymentAccount['kind']) }}>
+                  {kinds.map((k) => (
+                    <ToggleButton key={k} id={k} className="pay-kind"><strong>{KIND[k]}</strong><span className="text-sm text-muted">{KIND_HINT[k]}</span></ToggleButton>
+                  ))}
+                </ToggleButtonGroup>
               </div>
               {curKind && banks.length > 1 && (
-                <div className="inv-method" role="radiogroup" aria-label="Pilih bank">
-                  {banks.map((a) => <button key={a.id} type="button" role="radio" aria-checked={rows[0].account === a.id} title={accountLabel(a)} className="chip-method"
-                    onClick={() => setRows([{ ...rows[0], account: a.id }])}>{a.bank_name ?? a.name}</button>)}
-                </div>
+                <ToggleButtonGroup aria-label="Pilih bank" selectionMode="single" disallowEmptySelection isDetached className="flex-wrap gap-2"
+                  selectedKeys={rows[0].account ? [rows[0].account] : []} onSelectionChange={(k) => { const v = [...k][0]; if (v) setRows([{ ...rows[0], account: String(v) }]) }}>
+                  {banks.map((a) => <ToggleButton key={a.id} id={a.id} className="pick" aria-description={accountLabel(a)}>{a.bank_name ?? a.name}</ToggleButton>)}
+                </ToggleButtonGroup>
               )}
-              {sel?.kind === 'transfer' && sel.account_last4 && <p className="muted small">Rekening klinik {sel.bank_name} ··{sel.account_last4}</p>}
+              {sel?.kind === 'transfer' && sel.account_last4 && <p className="text-sm text-muted">Rekening klinik {sel.bank_name} ··{sel.account_last4}</p>}
               {sel?.kind === 'qris' && <div className="pay-qris">{sel.has_qris_image && <img src={`/api/payment-accounts/${sel.id}/qris-image`} alt={`QRIS ${sel.name}`} />}
-                <p className="notice">Minta pasien memindai QRIS{sel.has_qris_image ? '' : ' cabang (foto QRIS belum diunggah di Pengaturan)'}, lalu konfirmasi.</p></div>}
-            </> : rows.map((r, n) => (              <div className="toolbar" key={r.key}>
-                <select aria-label={`Metode ${n + 1}`} required value={r.account} onChange={(e) => setRows(rows.map((x) => x === r ? { ...x, account: e.target.value } : x))}>
+                <Note>Minta pasien memindai QRIS{sel.has_qris_image ? '' : ' cabang (foto QRIS belum diunggah di Pengaturan)'}, lalu konfirmasi.</Note></div>}
+            </> : rows.map((r, n) => (
+              <div className={ROW} key={r.key}>
+                <Select aria-label={`Metode ${n + 1}`} required value={r.account} onChange={(e) => setRows(rows.map((x) => x === r ? { ...x, account: e.target.value } : x))}>
                   <option value="">Pilih akun klinik…</option>
                   {payable.map((a) => <option key={a.id} value={a.id}>{accountLabel(a)}</option>)}
-                </select>
-                <input aria-label={`Jumlah ${n + 1} (Rp)`} type="number" min={1} required value={r.amount} onChange={(e) => setRows(rows.map((x) => x === r ? { ...x, amount: e.target.value } : x))} />
-                {rows.length > 1 && <button type="button" className="btn btn-xs" onClick={() => setRows(rows.filter((x) => x !== r))}>Hapus</button>}
+                </Select>
+                <Input className={FIELD} aria-label={`Jumlah ${n + 1} (Rp)`} type="number" min={1} required value={r.amount} onChange={(e) => setRows(rows.map((x) => x === r ? { ...x, amount: e.target.value } : x))} />
+                {rows.length > 1 && <Button size="sm" variant="ghost" onPress={() => setRows(rows.filter((x) => x !== r))}>Hapus</Button>}
               </div>
             ))}
-            {!split && <label className="inv-amount">Jumlah dibayar (Rp)<input type="number" min={1} required inputMode="numeric" value={rows[0].amount}
+            {!split && <label className="inv-amount">Jumlah dibayar (Rp)<Input type="number" min={1} required inputMode="numeric" value={rows[0].amount}
               onChange={(e) => setRows([{ ...rows[0], amount: e.target.value }])} /></label>}
             {!split && sel?.kind === 'tunai' && (
               <div className="pay-cash">
-                <label>Uang diterima<input type="number" min={0} inputMode="numeric" value={cash} onChange={(e) => setCash(e.target.value)} /></label>
-                <p>Kembalian <strong>{rp(Math.max(0, Number(cash || 0) - Number(rows[0].amount || 0)))}</strong></p>
+                <label className="inv-amount">Uang diterima<Input type="number" min={0} inputMode="numeric" value={cash} onChange={(e) => setCash(e.target.value)} /></label>
+                <p>Kembalian <strong className="tabular-nums">{rp(Math.max(0, Number(cash || 0) - Number(rows[0].amount || 0)))}</strong></p>
               </div>
             )}
-            {split && <p className="muted small">Total {rp(rows.reduce((t, r) => t + Number(r.amount || 0), 0))} dari sisa {rp(inv.balance_rp)}</p>}
-            <div className="toolbar pay-submit">
-              {split ? <button type="button" className="btn" onClick={() => setRows([...rows, newRow()])}>Tambah metode (split)</button>
-                : <button type="button" className="btn btn-ghost" onClick={() => setSplit(true)}>Pecah pembayaran</button>}
-              <button className="btn btn-primary" disabled={busy || !!payBlock}>{busy ? 'Memproses…' : payLabel}</button>
+            {split && <p className="text-sm text-muted">Total {rp(rows.reduce((t, r) => t + Number(r.amount || 0), 0))} dari sisa {rp(inv.balance_rp)}</p>}
+            <div className={`${ROW} pay-submit`}>
+              {split ? <Button variant="secondary" onPress={() => setRows([...rows, newRow()])}>Tambah metode (split)</Button>
+                : <Button variant="ghost" onPress={() => setSplit(true)}>Pecah pembayaran</Button>}
+              <Button type="submit" variant="primary" isDisabled={busy || !!payBlock}>{busy ? 'Memproses…' : payLabel}</Button>
             </div>
-            {payBlock && <p className="muted small" id="pay-hint">{payBlock}</p>}
+            {payBlock && <p className="text-sm text-muted" id="pay-hint">{payBlock}</p>}
           </form>
         )}
-      </div>
-      <details className="card inv-lines" open={!!lineForm || inv.lines.some((l) => l.tariff_zero === 'pending' || (l.correction_reviews ?? []).some((r) => r.status === 'perlu_tinjau'))}>
+      </Card>
+      <details className="inv-lines inv-panel" open={!!lineForm || inv.lines.some((l) => l.tariff_zero === 'pending' || (l.correction_reviews ?? []).some((r) => r.status === 'perlu_tinjau'))}>
         <summary>{inv.lines.length} tindakan · {rp(inv.lines_rp)}</summary>
         <h2 className="sr-only">Tindakan</h2>
         <ul>
@@ -308,35 +309,35 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
               {(l.credit_note_numbers ?? []).length > 0 && <> · <strong>Dikoreksi — lihat {l.credit_note_numbers.join(', ')}</strong></>}
               {l.tariff_zero === 'pending' && <> · <strong>Tarif Rp0 — menunggu pemilik</strong></>}
               {l.tariff_zero === 'pending' && can('billing.approve_zero') && (
-                <> <button className="btn btn-xs" onClick={() => run(() => approveZeroTariff(l.id), () => 'Tarif Rp0 disetujui.')}>Setujui tarif Rp0</button></>
+                <> <Button size="sm" variant="secondary" onPress={() => run(() => approveZeroTariff(l.id), () => 'Tarif Rp0 disetujui.')}>Setujui tarif Rp0</Button></>
               )}
               {(l.correction_reviews ?? []).filter((r) => r.status === 'perlu_tinjau').map((r) => (
                 <span key={r.id}> · <strong>Perlu tinjau koreksi ({REASON[r.reason_type] ?? r.reason_type})</strong>
                   {can('billing.adjust') && inv.status !== 'void' && <>
-                    {r.billable_code && <> <button className="btn btn-xs" onClick={() => run(() => billFromCorrection(inv.id, r.procedure_correction_id), () => 'Kode yang benar ditagih; baris lama tetap.')}>Tagih kode yang benar</button></>}
-                    {' '}<button className="btn btn-xs btn-ghost" onClick={() => setLineForm({ line: l, mode: 'review', amount: '', type: '', reason: '', correction: null, reviewId: r.id })}>Tandai ditinjau</button>
+                    {r.billable_code && <> <Button size="sm" variant="secondary" onPress={() => run(() => billFromCorrection(inv.id, r.procedure_correction_id), () => 'Kode yang benar ditagih; baris lama tetap.')}>Tagih kode yang benar</Button></>}
+                    {' '}<Button size="sm" variant="ghost" onPress={() => setLineForm({ line: l, mode: 'review', amount: '', type: '', reason: '', correction: null, reviewId: r.id })}>Tandai ditinjau</Button>
                   </>}
                 </span>
               ))}
               {can('billing.adjust') && inv.status !== 'void' && l.price_rp - (l.credited_rp ?? 0) > 0 && (
-                <> <button className="btn btn-xs" onClick={() => openCredit(l)}>Nota kredit</button></>
+                <> <Button size="sm" variant="secondary" onPress={() => openCredit(l)}>Nota kredit</Button></>
               )}
             </li>
           ))}
         </ul>
         {lineForm && (
-          <form onSubmit={submitLine} className="toolbar" aria-label={lineForm.mode === 'credit' ? 'Form nota kredit' : 'Form tinjau koreksi'}>
-            <span className="small">{lineForm.line.procedure_code} {lineForm.line.procedure_name}</span>
+          <form onSubmit={submitLine} className={ROW} aria-label={lineForm.mode === 'credit' ? 'Form nota kredit' : 'Form tinjau koreksi'}>
+            <span className="text-sm">{lineForm.line.procedure_code} {lineForm.line.procedure_name}</span>
             {lineForm.mode === 'credit' && <>
-              <input aria-label="Jumlah nota kredit (Rp)" type="number" min={1} required value={lineForm.amount} onChange={(e) => setLineForm({ ...lineForm, amount: e.target.value })} />
-              <select aria-label="Jenis koreksi" value={lineForm.type} onChange={(e) => setLineForm({ ...lineForm, type: e.target.value })}>
+              <Input className={FIELD} aria-label="Jumlah nota kredit (Rp)" type="number" min={1} required value={lineForm.amount} onChange={(e) => setLineForm({ ...lineForm, amount: e.target.value })} />
+              <Select aria-label="Jenis koreksi" value={lineForm.type} onChange={(e) => setLineForm({ ...lineForm, type: e.target.value })}>
                 {Object.entries(REASON).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-              </select>
+              </Select>
             </>}
-            <input aria-label="Alasan koreksi" required minLength={5} value={lineForm.reason} onChange={(e) => setLineForm({ ...lineForm, reason: e.target.value })} />
-            <button className="btn">{lineForm.mode === 'credit' ? 'Buat nota kredit' : 'Simpan'}</button>
-            <button type="button" className="btn btn-ghost" onClick={() => setLineForm(null)}>Batal</button>
-            {lineForm.mode === 'credit' && <span className="muted small">Penuh (sisa baris) menunggu persetujuan pemilik.</span>}
+            <Input className={FIELD} aria-label="Alasan koreksi" required minLength={5} value={lineForm.reason} onChange={(e) => setLineForm({ ...lineForm, reason: e.target.value })} />
+            <Button type="submit" variant="secondary">{lineForm.mode === 'credit' ? 'Buat nota kredit' : 'Simpan'}</Button>
+            <Button variant="ghost" onPress={() => setLineForm(null)}>Batal</Button>
+            {lineForm.mode === 'credit' && <span className="text-sm text-muted">Penuh (sisa baris) menunggu persetujuan pemilik.</span>}
           </form>
         )}
         <dl className="inv-breakdown" aria-label="Rincian">
@@ -346,93 +347,90 @@ export default function InvoicePage({ visitId, me }: { visitId: string; me: Me }
         </dl>
       </details>
       {/* #70: one primary per page (Terima pembayaran); corrections fold under "Lainnya". */}
-      <details className="card inv-more">
+      <details className="inv-more inv-panel">
         <summary title="Penyesuaian, nota kredit, void">Lainnya</summary>
         {(inv.credit_notes ?? []).length > 0 && (
-          <div className="card">
+          <section className="inv-sub">
             <h2>Nota kredit</h2>
             <ul>
               {inv.credit_notes.map((n) => (
                 <li key={n.id}>
                   <strong>{n.number}</strong> · {rp(n.amount_rp)} · {n.is_full ? 'penuh' : 'sebagian'} · {REASON[n.reason_type] ?? n.reason_type} · {n.reason}
                   {' '}· <strong>{n.status === 'pending' ? 'Menunggu persetujuan' : n.status === 'rejected' ? 'Ditolak' : 'Disetujui'}</strong>{n.self_approved_sole_owner && ' (disetujui sendiri)'}
-                  {n.status === 'pending' && can('billing.approve_reversal') && (
-                    <span className="toolbar">
-                      <button className="btn btn-xs" onClick={() => run(() => decideCreditNote(n.id, 'approve'), () => `${n.number} disetujui.`)}>Setujui</button>
-                      <button className="btn btn-xs" onClick={() => run(() => decideCreditNote(n.id, 'reject'), () => `${n.number} ditolak.`)}>Tolak</button>
-                    </span>
-                  )}
+                  {n.status === 'pending' && can('billing.approve_reversal') && owe(() => decideCreditNote(n.id, 'approve'), () => decideCreditNote(n.id, 'reject'), `${n.number} disetujui.`, `${n.number} ditolak.`)}
                 </li>
               ))}
             </ul>
-          </div>
+          </section>
         )}
-        <div className="card">
+        <section className="inv-sub">
           <h2>Penyesuaian</h2>
           <ul>
             {inv.adjustments.map((a) => (
               <li key={a.id}>
                 {ADJ_KIND[a.kind] ?? a.kind} {rp(a.amount_rp)}{a.invoice_line_id && ` · ${inv.lines.find((l) => l.id === a.invoice_line_id)?.procedure_name ?? 'baris'}`} · {a.reason} · <strong>{STATUS[a.status]}</strong>{a.self_approved_sole_owner && ' (disetujui sendiri)'}
-                {a.status === 'pending' && can('billing.approve_zero') && (
-                  <span className="toolbar">
-                    <button className="btn btn-xs" onClick={() => run(() => decideAdjustment(a.id, 'approve'), () => 'Disetujui.')}>Setujui</button>
-                    <button className="btn btn-xs" onClick={() => run(() => decideAdjustment(a.id, 'reject'), () => 'Ditolak.')}>Tolak</button>
-                  </span>
-                )}
+                {a.status === 'pending' && can('billing.approve_zero') && owe(() => decideAdjustment(a.id, 'approve'), () => decideAdjustment(a.id, 'reject'), 'Disetujui.', 'Ditolak.')}
               </li>
             ))}
           </ul>
           {can('billing.adjust') && (
-            <form onSubmit={submit} className="toolbar">
-              <select aria-label="Jenis" value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value })}>
+            <form onSubmit={submit} className={ROW}>
+              <Select aria-label="Jenis" value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value })}>
                 <option value="discount">Diskon</option><option value="write_off">Penghapusan</option>
-              </select>
-              <select aria-label="Untuk" value={form.line} onChange={(e) => setForm({ ...form, line: e.target.value })}>
+              </Select>
+              <Select aria-label="Untuk" value={form.line} onChange={(e) => setForm({ ...form, line: e.target.value })}>
                 <option value="">Seluruh tagihan</option>
                 {inv.lines.map((l) => <option key={l.id} value={l.id}>{l.procedure_name}{l.tooth ? ` · gigi ${l.tooth}` : ''}</option>)}
-              </select>
-              <input aria-label={form.unit === 'pct' ? 'Jumlah (%)' : 'Jumlah (Rp)'} type="number" min={1} max={form.unit === 'pct' ? 100 : undefined} required
+              </Select>
+              <Input className={FIELD} aria-label={form.unit === 'pct' ? 'Jumlah (%)' : 'Jumlah (Rp)'} type="number" min={1} max={form.unit === 'pct' ? 100 : undefined} required
                 value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
-              <select aria-label="Satuan" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })}>
+              <Select aria-label="Satuan" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })}>
                 <option value="rp">Rp</option><option value="pct">%</option>
-              </select>
-              {form.unit === 'pct' && Number(form.amount) > 0 && <span className="small muted">= {rp(formRp)}</span>}
-              <input aria-label="Alasan" required minLength={5} value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} />
-              <button className="btn">Simpan</button>
+              </Select>
+              {form.unit === 'pct' && Number(form.amount) > 0 && <span className="text-sm text-muted">= {rp(formRp)}</span>}
+              <Input className={FIELD} aria-label="Alasan" required minLength={5} value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} />
+              <Button type="submit" variant="secondary">Simpan</Button>
             </form>
           )}
-        </div>
+        </section>
         {((inv.voids ?? []).length > 0 || (can('billing.adjust') && inv.status !== 'void' && inv.payments.length === 0)) && (
-          <div className="card">
+          <section className="inv-sub">
             <h2>Void tagihan</h2>
             <ul>
               {(inv.voids ?? []).map((v) => (
                 <li key={v.id}>{v.reason} · <strong>{v.status === 'pending' ? 'Menunggu persetujuan' : v.status === 'rejected' ? 'Ditolak' : 'Dibatalkan (void)'}</strong>
-                  {v.status === 'pending' && can('billing.approve_reversal') && (
-                    <span className="toolbar">
-                      <button className="btn btn-xs" onClick={() => run(() => decideVoid(v.id, 'approve'), () => 'Tagihan dibatalkan (void).')}>Setujui</button>
-                      <button className="btn btn-xs" onClick={() => run(() => decideVoid(v.id, 'reject'), () => 'Pembatalan ditolak.')}>Tolak</button>
-                    </span>
-                  )}
+                  {v.status === 'pending' && can('billing.approve_reversal') && owe(() => decideVoid(v.id, 'approve'), () => decideVoid(v.id, 'reject'), 'Tagihan dibatalkan (void).', 'Pembatalan ditolak.')}
                 </li>
               ))}
             </ul>
             {can('billing.adjust') && inv.status !== 'void' && inv.payments.length === 0 && !(inv.voids ?? []).some((v) => v.status === 'pending') && (
-              <form onSubmit={submitVoid} className="toolbar">
-                <input aria-label="Alasan void" required minLength={10} value={voidReason} onChange={(e) => setVoidReason(e.target.value)} />
-                <button className="btn">Void tagihan</button>
-                <span className="muted small">Hanya tagihan tanpa pembayaran. Sudah dibayar: pakai nota kredit lalu refund.</span>
+              <form onSubmit={submitVoid} className={ROW}>
+                <Input className={FIELD} aria-label="Alasan void" required minLength={10} value={voidReason} onChange={(e) => setVoidReason(e.target.value)} />
+                <Button type="submit" variant="danger-soft">Void tagihan</Button>
+                <span className="text-sm text-muted">Hanya tagihan tanpa pembayaran. Sudah dibayar: pakai nota kredit lalu refund.</span>
               </form>
             )}
-          </div>
+          </section>
         )}
       </details>
-    </>
+    </div>
   )
 }
 
+const ROW = 'flex flex-wrap items-center gap-2'
+const FIELD = 'min-w-0 max-w-full flex-[1_1_140px]'
+
+/** Native select (keeps the phone's own picker) in the HeroUI field look. shortcut: Pro NativeSelect does not resolve from its symlinked folder yet, switch when it does. */
+const Select = (p: ComponentProps<'select'>) => <select {...p} className={`${inputVariants()} ${FIELD}`} />
+
+/** Owner decision: Setujui / Tolak side by side. */
+const Decide = ({ yes, no }: { yes: () => void; no: () => void }) => (
+  <span className="ml-1 inline-flex gap-2"><Button size="sm" variant="secondary" onPress={yes}>Setujui</Button><Button size="sm" variant="ghost" onPress={no}>Tolak</Button></span>
+)
+
 /**
- * Kwitansi (#69): a printable receipt of the money received on this invoice. Minimal: clinic + branch, patient, lines, deductions,
+ * Kwitansi (#69)
+: a printable receipt of the money received on this invoice. Minimal: clinic + branch, patient, lines, deductions,
  * payments, balance; numbered by the invoice number (INV-YYYY-000001; older data: the invoice id) and no tax lines. Print = the browser's print dialog,
  * the rest of the page is hidden by @media print in billing.css.
  */
@@ -442,12 +440,12 @@ export function Kwitansi({ inv, me, onClose, autoPrint = false }: { inv: Invoice
   const deductions = inv.adjustments_rp + (inv.credit_notes_rp ?? 0)
   const lastPaid = inv.payments.map((p) => p.paid_at).sort().at(-1)
   return (
-    <section className={`card kwitansi paper-${l?.receipt_paper_mm ?? 80}`} aria-label="Kwitansi">
+    <Card className={`kwitansi mb-3 paper-${l?.receipt_paper_mm ?? 80}`} role="region" aria-label="Kwitansi">
       {l && <Kop l={l} branchId={inv.branch_id} />}
       <div className="kwitansi-head">
         <div>
           <h2>KWITANSI</h2>
-          <p className="muted small">{me.active.tenant_name}{me.active.branch_name ? ` · ${me.active.branch_name}` : ''}</p>
+          <p className="text-sm text-muted">{me.active.tenant_name}{me.active.branch_name ? ` · ${me.active.branch_name}` : ''}</p>
         </div>
         {inv.status === 'lunas' && <span className="kwitansi-stamp">LUNAS</span>}
       </div>
@@ -462,12 +460,12 @@ export function Kwitansi({ inv, me, onClose, autoPrint = false }: { inv: Invoice
           <tr className="sum"><td>Sisa</td><td>{rp(Math.max(0, inv.balance_rp))}</td></tr>
         </tbody>
       </table>
-      <p className="muted small">No. tagihan {inv.number ?? inv.id.slice(0, 8).toUpperCase()} · dicetak oleh {me.user.name}</p>
+      <p className="text-sm text-muted">No. tagihan {inv.number ?? inv.id.slice(0, 8).toUpperCase()} · dicetak oleh {me.user.name}</p>
       <div className="kwitansi-actions">
-        <button className="btn btn-primary" onClick={() => window.print()}>Cetak</button>
-        <button className="btn btn-ghost" onClick={onClose}>Tutup</button>
+        <Button variant="primary" onPress={() => window.print()}>Cetak</Button>
+        <Button variant="ghost" onPress={onClose}>Tutup</Button>
       </div>
-    </section>
+    </Card>
   )
 }
 
@@ -480,15 +478,15 @@ function PaidPanel({ inv, me, onPrint }: { inv: Invoice; me: Me; onPrint: () => 
   const methods = [...new Set(inv.payments.map((p) => (p.account ? chipLabel(p.account as PaymentAccount) : '')))].filter(Boolean).join(' + ')
   const text = `Kuitansi ${me.active.tenant_name}: pembayaran ${rp(paid)} diterima ${fmtDateTime(new Date().toISOString())}. Ref ${inv.id.slice(0, 8).toUpperCase()}. Terima kasih.`
   return (
-    <section className="card paid" aria-label="Pembayaran diterima">
+    <Card className="paid mb-3" role="region" aria-label="Pembayaran diterima">
       <h2>Pembayaran diterima</h2>
       <p className="inv-big">{rp(paid)}</p>
-      <p className="muted">{inv.patient_name ?? 'Pasien'} · Lunas{methods && ` · ${methods}`}</p>
-      <div className="paid-actions">
-        <button className="btn" onClick={onPrint}>Cetak</button>
-        <a className="btn" href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noopener noreferrer">WhatsApp</a>
+      <p className="text-muted">{inv.patient_name ?? 'Pasien'} · Lunas{methods && ` · ${methods}`}</p>
+      <div className="grid grid-cols-2 gap-2">
+        <Button variant="secondary" fullWidth onPress={onPrint}>Cetak</Button>
+        <a className={buttonVariants({ variant: 'secondary', fullWidth: true })} href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noopener noreferrer">WhatsApp</a>
       </div>
-      <a className="btn btn-primary btn-block" href="#/kasir">Selesai</a>
-    </section>
+      <a className={buttonVariants({ variant: 'primary', fullWidth: true })} href="#/kasir">Selesai</a>
+    </Card>
   )
 }

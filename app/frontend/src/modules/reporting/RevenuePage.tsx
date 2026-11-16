@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
+import { Avatar, Button, Card, ToggleButton, ToggleButtonGroup } from '@heroui/react'
 import { errorText } from '../../shared/api/http'
 import { fmtDateTime, fmtYmdShort, initials, rp } from '../../shared/format'
 import { Kop, useLetterhead } from '../../shared/letterhead'
 import type { Me } from '../../shared/session'
+import { Presence } from '../../shared/ui/presence'
+import { Sheet } from '../../shared/ui/Sheet'
 import { revenueReport, type Period, type RevenueReport } from './api'
 import './reporting.css'
 
@@ -55,29 +58,28 @@ export default function RevenuePage({ me }: { me: Me }) {
     <div className="rev">
       <div className="page-head">
         <div>
-          {view !== 'ringkasan' && <button className="btn btn-link" onClick={() => setView(view === 'jenis' ? 'ringkasan' : 'jenis')}>← Kembali</button>}
+          {view !== 'ringkasan' && <Button variant="ghost" className="-ml-3" onPress={() => setView(view === 'jenis' ? 'ringkasan' : 'jenis')}>← Kembali</Button>}
           <h1>{view === 'ringkasan' || view === 'jenis' ? 'Laporan' : t?.title}</h1>
-          <p className="muted small">{range}{r && ` · Cabang ${r.branch.name}`}</p>
+          <p className="text-sm text-muted">{range}{r && ` · Cabang ${r.branch.name}`}</p>
         </div>
-        <span className="toolbar">
-          {view === 'ringkasan' && <button className="btn" onClick={() => setView('jenis')}>Jenis</button>}
-          <button className="btn" onClick={() => setSheet(true)} disabled={!r}>Unduh</button>
+        <span className="flex flex-wrap gap-2">
+          {view === 'ringkasan' && <Button variant="secondary" onPress={() => setView('jenis')}>Jenis</Button>}
+          <Button variant="secondary" onPress={() => setSheet(true)} isDisabled={!r}>Unduh</Button>
         </span>
       </div>
-      <div className="rev-chips" role="radiogroup" aria-label="Periode">
-        {(Object.keys(PERIODS) as Period[]).map((p) => (
-          <button key={p} type="button" role="radio" aria-checked={period === p} className="chip-method" onClick={() => setPeriod(p)}>{PERIODS[p]}</button>
-        ))}
-      </div>
-      {error ? <div className="card state-card" role="alert">{error}</div> : !r ? <div className="card state-card muted">Memuat laporan…</div> : view === 'ringkasan' ? <>
+      <ToggleButtonGroup aria-label="Periode" selectionMode="single" disallowEmptySelection isDetached className="mb-3 flex-wrap gap-2"
+        selectedKeys={[period]} onSelectionChange={(k) => { const p = [...k][0]; if (p) setPeriod(p as Period) }}>
+        {(Object.keys(PERIODS) as Period[]).map((p) => <ToggleButton key={p} id={p} className="pick">{PERIODS[p]}</ToggleButton>)}
+      </ToggleButtonGroup>
+      {error ? <Card className="state-card" role="alert">{error}</Card> : !r ? <Card className="state-card text-muted">Memuat laporan…</Card> : view === 'ringkasan' ? <>
         <div className="rev-kpi">
-          <div className="card"><span className="muted small">Pendapatan</span><strong>{jt(r.revenue_rp)}</strong>
-            {delta !== null && <span className="small muted">{delta >= 0 ? '+' : ''}{delta}% vs periode sebelumnya</span>}</div>
-          <div className="card"><span className="muted small">Transaksi</span><strong>{r.transactions}</strong></div>
-          <div className="card"><span className="muted small">Piutang</span><strong>{jt(r.receivable_rp)}</strong>
-            <span className="small muted">{r.receivable_patients} pasien</span></div>
+          <Card className="gap-1"><span className="text-sm text-muted">Pendapatan</span><strong>{jt(r.revenue_rp)}</strong>
+            {delta !== null && <span className="text-sm text-muted">{delta >= 0 ? '+' : ''}{delta}% vs periode sebelumnya</span>}</Card>
+          <Card className="gap-1"><span className="text-sm text-muted">Transaksi</span><strong>{r.transactions}</strong></Card>
+          <Card className="gap-1"><span className="text-sm text-muted">Piutang</span><strong>{jt(r.receivable_rp)}</strong>
+            <span className="text-sm text-muted">{r.receivable_patients} pasien</span></Card>
         </div>
-        <section className="card" aria-labelledby="rev-7">
+        <Card role="region" aria-labelledby="rev-7">
           <h2 id="rev-7">Pendapatan 7 hari</h2>
           <ol className="rev-bars">
             {r.daily.map((d) => (
@@ -85,53 +87,51 @@ export default function RevenuePage({ me }: { me: Me }) {
                 <span className="rev-val">{d.amount_rp ? jt(d.amount_rp).replace('Rp', '').trim() : '0'}</span>
                 <span className="sr-only">{fmtYmdShort(d.date)}: {rp(d.amount_rp)}</span>
                 <span className="rev-bar" aria-hidden="true" style={{ height: `${Math.round((d.amount_rp / max) * 100)}%` }} />
-                <span className="small muted" aria-hidden="true">{DAY[new Date(d.date + 'T00:00:00Z').getUTCDay()]}</span>
+                <span className="text-sm text-muted" aria-hidden="true">{DAY[new Date(d.date + 'T00:00:00Z').getUTCDay()]}</span>
               </li>
             ))}
           </ol>
-        </section>
+        </Card>
         {r.shift_differences.map((s) => (
-          <section key={s.closed_at} className="card rev-diff" aria-label="Selisih kas">
-            <div><strong>Selisih kas {fmtDateTime(s.closed_at)}</strong><span className="muted small">{s.user_name}{s.reason && ` · ${s.reason}`}</span></div>
-            <strong>{s.difference_rp < 0 ? '- ' : '+ '}{rp(Math.abs(s.difference_rp))}</strong>
-          </section>
+          <Card key={s.closed_at} className="rev-diff" role="region" aria-label="Selisih kas">
+            <div><strong>Selisih kas {fmtDateTime(s.closed_at)}</strong><span className="text-sm text-muted">{s.user_name}{s.reason && ` · ${s.reason}`}</span></div>
+            <strong className="tabular-nums">{s.difference_rp < 0 ? '- ' : '+ '}{rp(Math.abs(s.difference_rp))}</strong>
+          </Card>
         ))}
       </> : view === 'jenis' ? (
         <ul className="rev-cards">
           {([['metode', 'Pendapatan', 'Per metode dan bank'], ['dokter', 'Per dokter', r.by_doctor.slice(0, 3).map((d) => d.name).join(', ') || 'Belum ada'],
             ['tindakan', 'Per tindakan', r.by_procedure.slice(0, 3).map((p) => p.name).join(', ') || 'Belum ada'],
             ['piutang', 'Piutang', `${r.receivable_patients} pasien, ${jt(r.receivable_rp)}`]] as [View, string, string][]).map(([v, name, sub]) => (
-            <li key={v}><button className="rev-card" onClick={() => setView(v)}><strong>{name}</strong><span className="muted small">{sub}</span></button></li>
+            <li key={v}><Button className="rev-card" onPress={() => setView(v)}><strong>{name}</strong><span className="text-sm text-muted">{sub}</span></Button></li>
           ))}
-          <li><a className="rev-card" href="#/laporan/integritas"><strong>Integritas</strong><span className="muted small">Per dokter: koreksi, diskon, tanpa tagihan</span></a></li>
+          <li><a className="rev-card" href="#/laporan/integritas"><strong>Integritas</strong><span className="text-sm text-muted">Per dokter: koreksi, diskon, tanpa tagihan</span></a></li>
         </ul>
       ) : (
         <ul className="rev-cards">
-          {view === 'piutang' && <li className="card"><span className="muted small">Total piutang</span> <strong>{jt(r.receivable_rp)}</strong> · {r.receivable_patients} pasien</li>}
-          {t!.rows.length === 0 ? <li className="muted">Belum ada data di periode ini.</li> : t!.rows.map((row, i) => (
+          {view === 'piutang' && <li className="rev-row"><span className="text-sm text-muted">Total piutang</span> <strong>{jt(r.receivable_rp)}</strong> · {r.receivable_patients} pasien</li>}
+          {t!.rows.length === 0 ? <li className="text-muted">Belum ada data di periode ini.</li> : t!.rows.map((row, i) => (
             <li key={i} className="rev-row">
-              {view !== 'metode' && view !== 'tindakan' && <span className="avatar" aria-hidden="true">{initials(String(row[0]))}</span>}
-              <span className="grow"><strong>{row[0]}</strong><span className="muted small">{view === 'dokter' ? `${row[1]} tindakan · ${row[2]} pasien`
+              {view !== 'metode' && view !== 'tindakan' && <Avatar size="sm" color="accent" variant="soft" className="flex shrink-0" aria-hidden="true"><Avatar.Fallback>{initials(String(row[0]))}</Avatar.Fallback></Avatar>}
+              <span className="grow"><strong>{row[0]}</strong><span className="text-sm text-muted">{view === 'dokter' ? `${row[1]} tindakan · ${row[2]} pasien`
                 : view === 'piutang' ? `${row[1]} hari · ${row[2]}` : `${row[1]} ${view === 'metode' ? 'transaksi' : 'tindakan'}`}</span></span>
               <strong>{jt(Number(row.at(-1)))}</strong>
             </li>
           ))}
         </ul>
       )}
-      {sheet && t && (
-        <div className="overlay" onClick={() => setSheet(false)}>
-          <div className="card dialog" role="dialog" aria-modal="true" aria-labelledby="dl-title" onClick={(e) => e.stopPropagation()}>
-            <h2 id="dl-title">Unduh laporan</h2>
-            <p className="muted small">{t.title} · {range} · {r!.branch.name}</p>
-            <div className="dialog-actions">
-              <button className="btn" onClick={() => { download(); setSheet(false) }}>Excel</button>
-              <button className="btn btn-primary" onClick={() => { setSheet(false); setA4(true) }}>Unduh PDF</button>
+      <Presence open={sheet && !!t}>
+        {t && (
+          <Sheet title="Unduh laporan" onClose={() => setSheet(false)} className="rev">
+            <p className="text-sm text-muted">{t.title} · {range} · {r!.branch.name}</p>
+            <div className="my-3 grid grid-cols-2 gap-2">
+              <Button variant="secondary" fullWidth onPress={() => { download(); setSheet(false) }}>Excel</Button>
+              <Button variant="primary" fullWidth onPress={() => { setSheet(false); setA4(true) }}>Unduh PDF</Button>
             </div>
-            <p className="muted small">PDF lewat dialog cetak: pilih "Simpan sebagai PDF".</p>
-            <button className="btn btn-ghost btn-block" onClick={() => setSheet(false)}>Batal</button>
-          </div>
-        </div>
-      )}
+            <p className="text-sm text-muted">PDF lewat dialog cetak: pilih "Simpan sebagai PDF".</p>
+          </Sheet>
+        )}
+      </Presence>
       {r && t && (
         <section className="a4" aria-hidden="true">
           <header>{l ? <Kop l={l} branchId={r.branch.id} /> : <strong>{me.active.tenant_name}</strong>}<span>Cabang {r.branch.name}</span></header>

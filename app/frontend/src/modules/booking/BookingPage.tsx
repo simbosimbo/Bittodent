@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { Avatar, Button, buttonVariants, Card, Input, TextArea, ToggleButton } from '@heroui/react'
 import { ApiError } from '../../shared/api/http'
 import { getInfo, resendOtp, startBooking, verifyOtp, type Booked, type Challenge, type Info, type Slot } from './api'
-import { apiMessage, longDate, Page, SlotPicker, StatusChip, Summary, timeRange } from './parts'
+import { apiMessage, longDate, Page, Problem, SlotPicker, StatusChip, Summary, timeRange } from './parts'
 
 type Step = 'dokter' | 'layanan' | 'jadwal' | 'data' | 'otp' | 'selesai'
 const STEPS: Step[] = ['dokter', 'layanan', 'jadwal', 'data', 'otp']
@@ -31,10 +32,10 @@ export default function BookingPage({ slug }: { slug: string }) {
     return () => clearTimeout(t)
   }, [wait])
 
-  if (loadError) return <Page clinic="Bittodent"><div className="bk-card" role="alert">{loadError}</div></Page>
+  if (loadError) return <Page clinic="Bittodent"><Problem>{loadError}</Problem></Page>
   if (!info) return <Page clinic="Bittodent"><p className="bk-muted">Memuat…</p></Page>
   if (!info.clinic.online_booking_enabled)
-    return <Page clinic={info.clinic.name}><div className="bk-card bk-state"><h1>Booking online belum dibuka</h1><p className="bk-muted">Hubungi klinik.</p></div></Page>
+    return <Page clinic={info.clinic.name}><Card className="bk-card bk-state"><h1>Booking online belum dibuka</h1><p className="bk-muted">Hubungi klinik.</p></Card></Page>
 
   const dentist = info.dentists.find((d) => d.id === dentistId)
   const service = info.services.find((s) => s.id === serviceId)
@@ -102,32 +103,32 @@ export default function BookingPage({ slug }: { slug: string }) {
   if (step === 'selesai' && result)
     return (
       <Page clinic={info.clinic.name} aside={summary}>
-        <div className="bk-card bk-done">
+        <Card className="bk-card bk-done">
           <h1 ref={heading} tabIndex={-1}>{TITLE.selesai}</h1>
           <StatusChip status={result.status} />
           <p className="bk-label">Kode booking</p>
           <p className="bk-code">{result.code}</p>
-          <a className="bk-btn bk-btn-primary bk-btn-block" href={`#/book/${slug}/manage/${result.manage_token}`}>Kelola</a>
-        </div>
+          <a className={buttonVariants({ variant: 'primary', fullWidth: true })} href={`#/book/${slug}/manage/${result.manage_token}`}>Kelola</a>
+        </Card>
       </Page>
     )
 
   return (
     <Page clinic={info.clinic.name} aside={step !== 'dokter' && summary}>
       <div className="bk-head">
-        {index > 0 && step !== 'otp' && <button type="button" className="bk-btn bk-btn-ghost" onClick={() => go(STEPS[index - 1])}>‹ Kembali</button>}
+        {index > 0 && step !== 'otp' && <Button variant="ghost" className="-ml-3" onPress={() => go(STEPS[index - 1])}>‹ Kembali</Button>}
         <p className="bk-step">Langkah {index + 1} dari {STEPS.length}</p>
         <h1 ref={heading} tabIndex={-1}>{TITLE[step]}</h1>
       </div>
-      <div aria-live="assertive">{error && <p className="bk-error" role="alert">{error}</p>}</div>
+      <div aria-live="assertive">{error && <Problem>{error}</Problem>}</div>
 
       {step === 'dokter' && (
         <div className="bk-list">
           {info.dentists.length === 0 && <p className="bk-muted">Belum ada dokter.</p>}
           {info.dentists.map((d) => (
-            <button key={d.id} type="button" className="bk-option" aria-pressed={d.id === dentistId} onClick={() => { setDentistId(d.id); setSlot(null); go('layanan') }}>
-              <span className="bk-avatar" aria-hidden="true">{d.name.replace(/^drg\.\s*/, '').slice(0, 1)}</span>{d.name}
-            </button>
+            <ToggleButton key={d.id} className="bk-option" isSelected={d.id === dentistId} onChange={() => { setDentistId(d.id); setSlot(null); go('layanan') }}>
+              <Avatar size="sm" color="accent" variant="soft" className="flex shrink-0" aria-hidden="true"><Avatar.Fallback>{d.name.replace(/^drg\.\s*/, '').slice(0, 1)}</Avatar.Fallback></Avatar>{d.name}
+            </ToggleButton>
           ))}
         </div>
       )}
@@ -135,40 +136,44 @@ export default function BookingPage({ slug }: { slug: string }) {
       {step === 'layanan' && (
         <div className="bk-list">
           {info.services.map((s) => (
-            <button key={s.id} type="button" className="bk-option" aria-pressed={s.id === serviceId} onClick={() => { setServiceId(s.id); setSlot(null); go('jadwal') }}>
+            <ToggleButton key={s.id} className="bk-option" isSelected={s.id === serviceId} onChange={() => { setServiceId(s.id); setSlot(null); go('jadwal') }}>
               <span className="grow">{s.name}</span><small>{s.duration_minutes} mnt</small>
-            </button>
+            </ToggleButton>
           ))}
         </div>
       )}
 
       {step === 'jadwal' && (
-        <div className="bk-card">
+        <Card className="bk-card">
           <SlotPicker slug={slug} dentistId={dentistId} serviceId={serviceId} value={slot} onChange={setSlot} />
-          <button type="button" className="bk-btn bk-btn-primary bk-btn-block" disabled={!slot} onClick={() => go('data')}>Lanjut</button>
-        </div>
+          <Button variant="primary" fullWidth isDisabled={!slot} onPress={() => go('data')}>Lanjut</Button>
+        </Card>
       )}
 
       {step === 'data' && (
-        <form className="bk-card" onSubmit={sendCode} noValidate>
-          <label className="bk-field">Nama lengkap<input autoComplete="name" required maxLength={100} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></label>
-          <label className="bk-field">Nomor WhatsApp<input type="tel" inputMode="tel" autoComplete="tel" required placeholder="08xx" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></label>
-          <label className="bk-field">Keluhan (opsional)<textarea rows={3} maxLength={200} value={form.complaint} onChange={(e) => setForm({ ...form, complaint: e.target.value })} /></label>
-          <button className="bk-btn bk-btn-primary bk-btn-block" disabled={busy}>{busy ? 'Mengirim…' : 'Kirim kode'}</button>
+        <form onSubmit={sendCode} noValidate>
+          <Card className="bk-card">
+            <label className="bk-field">Nama lengkap<Input fullWidth autoComplete="name" required maxLength={100} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></label>
+            <label className="bk-field">Nomor WhatsApp<Input fullWidth type="tel" inputMode="tel" autoComplete="tel" required placeholder="08xx" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></label>
+            <label className="bk-field">Keluhan (opsional)<TextArea fullWidth rows={3} maxLength={200} value={form.complaint} onChange={(e) => setForm({ ...form, complaint: e.target.value })} /></label>
+            <Button type="submit" variant="primary" fullWidth isDisabled={busy}>{busy ? 'Mengirim…' : 'Kirim kode'}</Button>
+          </Card>
         </form>
       )}
 
       {step === 'otp' && challenge && (
-        <form className="bk-card" onSubmit={verify} noValidate>
-          <p className="bk-muted">Dikirim ke WhatsApp {challenge.phone_masked}</p>
-          <label className="bk-field">Kode 6 angka
-            <input className="bk-otp" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} />
-          </label>
-          <button className="bk-btn bk-btn-primary bk-btn-block" disabled={busy}>{busy ? 'Memeriksa…' : 'Verifikasi'}</button>
-          <div className="bk-row">
-            <button type="button" className="bk-btn bk-btn-ghost" disabled={wait > 0} onClick={resend}>{wait > 0 ? `Kirim ulang (${wait})` : 'Kirim ulang'}</button>
-            <button type="button" className="bk-btn bk-btn-ghost" onClick={() => go('data')}>Ganti nomor</button>
-          </div>
+        <form onSubmit={verify} noValidate>
+          <Card className="bk-card">
+            <p className="bk-muted">Dikirim ke WhatsApp {challenge.phone_masked}</p>
+            <label className="bk-field">Kode 6 angka
+              <Input fullWidth className="bk-otp" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} />
+            </label>
+            <Button type="submit" variant="primary" fullWidth isDisabled={busy}>{busy ? 'Memeriksa…' : 'Verifikasi'}</Button>
+            <div className="bk-row">
+              <Button variant="ghost" isDisabled={wait > 0} onPress={resend}>{wait > 0 ? `Kirim ulang (${wait})` : 'Kirim ulang'}</Button>
+              <Button variant="ghost" onPress={() => go('data')}>Ganti nomor</Button>
+            </div>
+          </Card>
         </form>
       )}
     </Page>

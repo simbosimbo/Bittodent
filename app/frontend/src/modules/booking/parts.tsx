@@ -1,6 +1,8 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { Alert, Card, Chip, ToggleButton } from '@heroui/react'
 import { ApiError } from '../../shared/api/http'
 import { fmtTime, todayWib } from '../../shared/format'
+import { markScroll } from '../../shared/ui/scrollHint'
 import { getSlots, type Slot } from './api'
 import './booking.css'
 
@@ -39,12 +41,12 @@ export function Page({ clinic, children, aside }: { clinic: string; children: Re
 
 export function Summary({ rows, title = 'Ringkasan' }: { rows: [string, ReactNode][]; title?: string }) {
   return (
-    <section className="bk-card" aria-label={title}>
+    <Card className="bk-card" role="region" aria-label={title}>
       <h2 className="bk-card-title">{title}</h2>
       <dl className="bk-kv">
         {rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v ?? '–'}</dd></div>)}
       </dl>
-    </section>
+    </Card>
   )
 }
 
@@ -60,6 +62,8 @@ export function SlotPicker({ slug, dentistId, serviceId, value, onChange, near }
   })
   const [slots, setSlots] = useState<Slot[] | null>(null)
   const [error, setError] = useState('')
+  const strip = useRef<HTMLDivElement>(null)
+  useEffect(() => { if (strip.current) markScroll(strip.current) }, []) // edge fade + "more" marker for the date strip
   useEffect(() => {
     let live = true
     setSlots(null)
@@ -70,21 +74,21 @@ export function SlotPicker({ slug, dentistId, serviceId, value, onChange, near }
 
   return (
     <>
-      <div className="bk-dates" role="group" aria-label="Tanggal">
+      <div className="bk-dates" role="group" aria-label="Tanggal" ref={strip} onScroll={(e) => markScroll(e.currentTarget)}>
         {Array.from({ length: DAYS + 1 }, (_, i) => addDays(today, i)).map((d) => (
-          <button key={d} type="button" aria-pressed={d === date} aria-label={dayFmt({ weekday: 'long', day: 'numeric', month: 'long' })(d)} onClick={() => setDate(d)}>
+          <ToggleButton key={d} className="bk-date" isSelected={d === date} aria-label={dayFmt({ weekday: 'long', day: 'numeric', month: 'long' })(d)} onChange={() => setDate(d)}>
             <small>{i18nDay(d, today)}</small>{dayMonth(d)}
-          </button>
+          </ToggleButton>
         ))}
       </div>
       <div aria-live="polite">
-        {error ? <p className="bk-error" role="alert">{error}</p>
+        {error ? <Problem>{error}</Problem>
           : slots === null ? <p className="bk-muted">Memuat jam…</p>
           : slots.length === 0 ? <p className="bk-muted">Tidak ada jam kosong.</p>
           : (
             <div className="bk-slots" role="group" aria-label="Jam">
               {slots.map((s) => (
-                <button key={s.starts_at} type="button" aria-pressed={value?.starts_at === s.starts_at} onClick={() => onChange(s)}>{s.time}</button>
+                <ToggleButton key={s.starts_at} className="bk-slot" isSelected={value?.starts_at === s.starts_at} onChange={() => onChange(s)}>{s.time}</ToggleButton>
               ))}
             </div>
           )}
@@ -95,6 +99,16 @@ export function SlotPicker({ slug, dentistId, serviceId, value, onChange, near }
 
 const i18nDay = (d: string, today: string) => d === today ? 'Hari ini' : d === addDays(today, 1) ? 'Besok' : weekday(d)
 
+const CHIP: Record<string, ['warning' | 'accent' | 'danger', string]> = { pending_confirmation: ['warning', 'Menunggu konfirmasi'], booked: ['accent', 'Terkonfirmasi'],
+  cancelled: ['danger', 'Dibatalkan'], rejected: ['danger', 'Ditolak'] }
 export const StatusChip = ({ status }: { status: string }) => (
-  <span className={`bk-chip bk-chip-${status}`}>{({ pending_confirmation: 'Menunggu konfirmasi', booked: 'Terkonfirmasi', cancelled: 'Dibatalkan', rejected: 'Ditolak' } as Record<string, string>)[status] ?? status}</span>
+  <Chip variant="soft" color={CHIP[status]?.[0] ?? 'default'}>{CHIP[status]?.[1] ?? status}</Chip>
+)
+
+/** Error or notice block (HeroUI Alert); errors are announced. */
+export const Problem = ({ children }: { children: ReactNode }) => (
+  <Alert status="danger" role="alert"><Alert.Indicator /><Alert.Content><Alert.Description>{children}</Alert.Description></Alert.Content></Alert>
+)
+export const Notice = ({ children }: { children: ReactNode }) => (
+  <Alert status="success"><Alert.Indicator /><Alert.Content><Alert.Description>{children}</Alert.Description></Alert.Content></Alert>
 )

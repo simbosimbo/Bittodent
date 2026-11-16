@@ -1,5 +1,6 @@
-/* Laporan on a phone (ReportPage renders these only when useIsMobile; desktop keeps the tables). */
+/* Laporan on HeroUI. Phone (ReportPage renders these only when useIsMobile; desktop keeps the tables). */
 .report-error { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.report .table-scroll { overflow-x: auto; overscroll-behavior-x: contain; } /* desktop too: the Koreksi table is wider than the page */
 @media (max-width: 720px) {
   .report-range { display: grid; gap: var(--space-3); margin-bottom: var(--space-4); }
   .report-range label { margin: 0; }
@@ -25,28 +26,28 @@
   .report-pager { display: grid; gap: var(--space-2); }
   .report-pager .muted { text-align: center; }
   /* Alerts + approval lists: one block per item, 44px links/buttons. */
-  .report-m .card > ul:not(.report-cards) { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-2); }
-  .report-m .card > ul:not(.report-cards) > li { padding: var(--space-2) 0; border-top: 1px solid var(--border); overflow-wrap: anywhere; }
-  .report-m .card li a, .report-m .card > p a { display: inline-flex; align-items: center; min-height: 44px; }
+  .report-m [data-slot='card'] > ul:not(.report-cards) { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-2); }
+  .report-m [data-slot='card'] > ul:not(.report-cards) > li { padding: var(--space-2) 0; border-top: 1px solid var(--border); overflow-wrap: anywhere; }
+  .report-m [data-slot='card'] li a, .report-m [data-slot='card'] > p a { display: inline-flex; align-items: center; min-height: 44px; }
+  .report :is(.button, .input), .rev :is(.button, .toggle-button) { min-height: 44px; }
+  .rev .button--primary, .rev .pick { min-height: 48px; }
 }
 
 /* KL07-KL09 revenue report */
-.rev-chips { display: flex; gap: var(--space-2); flex-wrap: wrap; margin-bottom: var(--space-3); }
-.rev-chips .chip-method { min-height: 48px; }
+.rev .pick[data-selected='true'] { background: var(--accent); color: var(--accent-foreground); }
 .rev-kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-3); margin-bottom: var(--space-3); }
-.rev-kpi .card { display: flex; flex-direction: column; gap: 4px; }
 .rev-kpi strong { font-size: var(--font-size-2xl); font-variant-numeric: tabular-nums; }
 .rev-bars { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; height: 140px; align-items: end; }
 .rev-bars li { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; gap: 4px; }
-.rev-bar { width: 100%; min-height: 2px; border-radius: 6px 6px 0 0; background: var(--color-primary-700); }
-.rev-diff { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); margin-top: var(--space-3); }
+.rev-bar { width: 100%; min-height: 2px; border-radius: 6px 6px 0 0; background: var(--accent); }
+.rev-diff { flex-direction: row; justify-content: space-between; align-items: center; gap: var(--space-3); margin-top: var(--space-3); }
 .rev-diff div { display: flex; flex-direction: column; gap: 2px; }
 .rev-cards { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
-.rev-card { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; min-height: 72px; padding: var(--space-3); text-align: left;
-  border: 1px solid var(--shells-a-color-border); border-radius: var(--radius-md, 12px); background: var(--color-surface, #fff); font: inherit; color: inherit;
+.rev-card { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; height: auto; min-height: 72px; padding: var(--space-3); text-align: left;
+  border: 1px solid var(--border); border-radius: 16px; background: var(--surface); font: inherit; color: var(--foreground); white-space: normal;
   text-decoration: none; cursor: pointer; justify-content: center; }
-.rev-row { display: flex; align-items: center; gap: var(--space-3); min-height: 64px; padding: var(--space-3); border: 1px solid var(--shells-a-color-border);
-  border-radius: var(--radius-md, 12px); background: var(--color-surface, #fff); font-variant-numeric: tabular-nums; }
+.rev-row { display: flex; align-items: center; gap: var(--space-3); min-height: 64px; padding: var(--space-3); border: 1px solid var(--border);
+  border-radius: 16px; background: var(--surface); font-variant-numeric: tabular-nums; }
 .rev-row .grow { display: flex; flex-direction: column; gap: 2px; }
 .a4 { display: none; }
 @media print {
@@ -62,6 +63,7 @@
 }
 /* ui review */
 .rev { max-width: 960px; }
-.rev-card:focus-visible { outline: 2px solid var(--color-primary-700); outline-offset: 2px; }
+.rev-card:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.rev-kpi strong, .rev-row strong:last-child { font-variant-numeric: tabular-nums; }
 .rev-val { font-size: var(--font-size-xs); color: var(--muted, #555); font-variant-numeric: tabular-nums; white-space: nowrap; }
-@media (max-width: 520px) { .rev-kpi { grid-template-columns: 1fr 1fr; } .rev-kpi .card:first-child { grid-column: 1 / -1; } }
+@media (max-width: 520px) { .rev-kpi { grid-template-columns: 1fr 1fr; } .rev-kpi > :first-child { grid-column: 1 / -1; } }

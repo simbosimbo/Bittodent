@@ -30,6 +30,8 @@ test('KL07: KPI with delta, 7 bars, cash difference; period chips reload', async
 
 test('KL08/KL09: kinds -> per dokter cards; PDF prints the A4 page with the clinic letterhead', async () => {
   const print = vi.spyOn(window, 'print').mockImplementation(() => {})
+  // the download sheet (HeroUI / React Aria Sheet) reads matchMedia, which jsdom lacks
+  vi.stubGlobal('matchMedia', (q: string) => ({ media: q, matches: false, addEventListener() {}, removeEventListener() {} }))
   render(<RevenuePage me={me} />)
   fireEvent.click(await screen.findByRole('button', { name: 'Jenis' }))
   expect(screen.getByRole('link', { name: /Integritas/ })).toHaveAttribute('href', '#/laporan/integritas')

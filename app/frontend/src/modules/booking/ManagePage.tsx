@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
+import { Button, buttonVariants, Card } from '@heroui/react'
 import { ApiError } from '../../shared/api/http'
 import { cancelBooking, getBooking, rescheduleBooking, type Manage, type Slot } from './api'
-import { apiMessage, longDate, Page, SlotPicker, StatusChip, Summary, timeRange } from './parts'
+import { apiMessage, longDate, Notice, Page, Problem, SlotPicker, StatusChip, Summary, timeRange } from './parts'
 
 export default function ManagePage({ slug, token }: { slug: string; token: string }) {
   const [data, setData] = useState<Manage | null>(null)
@@ -17,7 +18,7 @@ export default function ManagePage({ slug, token }: { slug: string; token: strin
       e instanceof ApiError && e.status === 410 ? 'Tautan sudah kedaluwarsa.' : e instanceof ApiError && e.status === 404 ? 'Tautan tidak berlaku.' : apiMessage(e)))
   }, [slug, token])
 
-  if (gone) return <Page clinic="Bittodent"><div className="bk-card bk-state" role="alert"><h1>{gone}</h1><a className="bk-btn bk-btn-primary" href={`#/book/${slug}`}>Buat booking baru</a></div></Page>
+  if (gone) return <Page clinic="Bittodent"><Card className="bk-card bk-state" role="alert"><h1>{gone}</h1><a className={buttonVariants({ variant: 'primary' })} href={`#/book/${slug}`}>Buat booking baru</a></Card></Page>
   if (!data) return <Page clinic="Bittodent"><p className="bk-muted">Memuat…</p></Page>
 
   async function run(fn: () => Promise<Manage>, done: string) {
@@ -49,32 +50,32 @@ export default function ManagePage({ slug, token }: { slug: string; token: strin
     }>
       <div className="bk-head"><h1>Kelola booking</h1></div>
       <div aria-live="polite">
-        {error && <p className="bk-error" role="alert">{error}</p>}
-        {notice && <p className="bk-notice">{notice}</p>}
+        {error && <Problem>{error}</Problem>}
+        {notice && <Notice>{notice}</Notice>}
       </div>
-      {!data.can_change ? <div className="bk-card"><p className="bk-muted">Booking ini tidak bisa diubah.</p></div>
+      {!data.can_change ? <Card className="bk-card"><p className="bk-muted">Booking ini tidak bisa diubah.</p></Card>
         : mode === 'cancel' ? (
-          <div className="bk-card">
+          <Card className="bk-card">
             <h2 className="bk-card-title">Batalkan booking ini?</h2>
             <div className="bk-row">
-              <button type="button" className="bk-btn bk-btn-danger" disabled={busy} onClick={() => run(() => cancelBooking(slug, token), 'Booking dibatalkan.')}>Ya, batalkan</button>
-              <button type="button" className="bk-btn" onClick={() => setMode('view')}>Tidak</button>
+              <Button variant="danger" isDisabled={busy} onPress={() => run(() => cancelBooking(slug, token), 'Booking dibatalkan.')}>Ya, batalkan</Button>
+              <Button variant="secondary" onPress={() => setMode('view')}>Tidak</Button>
             </div>
-          </div>
+          </Card>
         ) : mode === 'move' && data.dentist && data.service ? (
-          <div className="bk-card">
+          <Card className="bk-card">
             <h2 className="bk-card-title">Jadwal baru</h2>
             <SlotPicker slug={slug} dentistId={data.dentist.id} serviceId={data.service.id} value={slot} onChange={setSlot} near={data.starts_at} />
             <div className="bk-row">
-              <button type="button" className="bk-btn bk-btn-primary" disabled={!slot || busy}
-                onClick={() => run(() => rescheduleBooking(slug, token, slot!.starts_at), 'Jadwal diubah. Menunggu konfirmasi klinik.')}>Simpan jadwal</button>
-              <button type="button" className="bk-btn" onClick={() => setMode('view')}>Batal</button>
+              <Button variant="primary" isDisabled={!slot || busy}
+                onPress={() => run(() => rescheduleBooking(slug, token, slot!.starts_at), 'Jadwal diubah. Menunggu konfirmasi klinik.')}>Simpan jadwal</Button>
+              <Button variant="secondary" onPress={() => setMode('view')}>Batal</Button>
             </div>
-          </div>
+          </Card>
         ) : (
           <div className="bk-row">
-            <button type="button" className="bk-btn" onClick={() => { setNotice(''); setMode('move') }}>Jadwal ulang</button>
-            <button type="button" className="bk-btn bk-btn-danger" onClick={() => { setNotice(''); setMode('cancel') }}>Batalkan</button>
+            <Button variant="secondary" onPress={() => { setNotice(''); setMode('move') }}>Jadwal ulang</Button>
+            <Button variant="danger-soft" onPress={() => { setNotice(''); setMode('cancel') }}>Batalkan</Button>
           </div>
         )}
     </Page>

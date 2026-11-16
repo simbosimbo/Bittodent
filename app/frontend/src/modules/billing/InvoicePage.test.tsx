@@ -134,8 +134,8 @@ test('kwitansi is not offered before any payment', async () => {
 test('#70 Tagihan: Terima pembayaran is the only primary and comes first; corrections fold under "Lainnya"', async () => {
   render(<InvoicePage visitId="v1" me={me(['billing.read', 'billing.adjust'])} />)
   const terima = await screen.findByRole('button', { name: /^Terima / })
-  await waitFor(() => expect(document.querySelectorAll('.btn-primary')).toHaveLength(1))
-  expect(document.querySelector('.btn-primary')).toBe(terima)
+  await waitFor(() => expect(document.querySelectorAll('.button--primary')).toHaveLength(1))
+  expect(document.querySelector('.button--primary')).toBe(terima)
   const more = document.querySelector('details.inv-more') as HTMLDetailsElement
   expect(more.open).toBe(false)
   expect(more.querySelector('summary')?.textContent).toMatch(/^Lainnya/)

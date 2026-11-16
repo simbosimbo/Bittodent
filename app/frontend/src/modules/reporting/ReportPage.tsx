@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
+import { Alert as HAlert, Button, Card } from '@heroui/react'
 import { errorText } from '../../shared/api/http'
 import { fmtDateTime, num, rp, todayWib } from '../../shared/format'
 import { DateField } from '../../shared/ui/DateField'
@@ -35,7 +36,7 @@ const cell = (k: Key, v: number) => (k.endsWith('_rp') ? rp(Math.round(v)) : num
 
 /** Section error with a retry (each section loads on its own; one failure never blanks the page). */
 const Retry = ({ msg, onRetry }: { msg: string; onRetry: () => void }) => (
-  <div className="form-error report-error" role="alert">{msg} <button type="button" className="btn" onClick={onRetry}>Coba lagi</button></div>
+  <HAlert status="danger" role="alert"><HAlert.Indicator /><HAlert.Content><HAlert.Description className="report-error">{msg} <Button size="sm" variant="secondary" onPress={onRetry}>Coba lagi</Button></HAlert.Description></HAlert.Content></HAlert>
 )
 
 /** Phone card: name + one key figure, the rest as label:value pairs. */
@@ -85,10 +86,10 @@ export default function ReportPage() {
   )
 
   return (
-    <div className={mobile ? 'report-m' : undefined}>
-      <div className="page-head"><div><h1>Laporan per dokter</h1><p className="muted small">Hanya pemilik. Setiap pembukaan laporan tercatat di audit.</p></div></div>
-      <div className="card">
-        <div className={mobile ? 'report-range' : 'toolbar'}>
+    <div className={'report' + (mobile ? ' report-m' : '')}>
+      <div className="page-head"><div><h1>Laporan per dokter</h1><p className="text-sm text-muted">Hanya pemilik. Setiap pembukaan laporan tercatat di audit.</p></div></div>
+      <Card className="mb-3">
+        <div className={mobile ? 'report-range' : 'flex flex-wrap items-end gap-3'}>
           <label>Dari <DateField value={range.from} onChange={(e) => setRange({ ...range, from: e.target.value })} /></label>
           <label>Sampai <DateField value={range.to} onChange={(e) => setRange({ ...range, to: e.target.value })} /></label>
         </div>
@@ -117,10 +118,10 @@ export default function ReportPage() {
             </tbody>
           </table></div>
         )}
-        <p className="muted small">Luar &amp; tanpa tagihan = dokter pelaksana tindakan; diskon = dokter kunjungan; baris Rp0 (gratis) = dokter baris tagihan (bukan koreksi, bukan diskon); batal = janji dibatalkan/tidak datang atau kehadiran dibatalkan.</p>
-      </div>
+        <p className="text-sm text-muted">Luar &amp; tanpa tagihan = dokter pelaksana tindakan; diskon = dokter kunjungan; baris Rp0 (gratis) = dokter baris tagihan (bukan koreksi, bukan diskon); batal = janji dibatalkan/tidak datang atau kehadiran dibatalkan.</p>
+      </Card>
 
-      <div className="card">
+      <Card className="mb-3">
         <h2>Koreksi &amp; pembalikan</h2>
         {repError ? repRetry : !report ? <p className="muted">Memuat…</p> : mobile ? (
           <ul className="report-cards" aria-label="Koreksi per dokter">
@@ -141,13 +142,13 @@ export default function ReportPage() {
             </tbody>
           </table></div>
         )}
-        <p className="muted small">Koreksi klinis = dokter pelaksana tindakan asli (jumlah = yang berlaku; nilai = harga baris tertagih tindakan itu). Nota kredit &amp; refund = dokter baris tagihan; void = dokter kunjungan. Nota kredit dan void tidak pernah dihitung sebagai Rp0.</p>
-      </div>
+        <p className="text-sm text-muted">Koreksi klinis = dokter pelaksana tindakan asli (jumlah = yang berlaku; nilai = harga baris tertagih tindakan itu). Nota kredit &amp; refund = dokter baris tagihan; void = dokter kunjungan. Nota kredit dan void tidak pernah dihitung sebagai Rp0.</p>
+      </Card>
 
-      <div className="card">
+      <Card className="mb-3">
         <h2>Peringatan</h2>
         {repError ? repRetry : !report ? <p className="muted">Memuat…</p> : report.alerts.length === 0 && <p className="muted">Tidak ada peringatan pada rentang ini.</p>}
-        <ul>
+        <ul className="report-list">
           {report?.alerts.map((a) => (
             <li key={a.kind + a.ref_id}>
               <strong>{ALERT[a.kind]}</strong> · {a.patient_name ?? '—'} · {a.dentist_name ?? '—'} · {a.at ? fmtDateTime(a.at) + ' WIB' : ''}
@@ -156,15 +157,15 @@ export default function ReportPage() {
             </li>
           ))}
         </ul>
-      </div>
+      </Card>
 
       <CorrectionApprovals />
 
       <ReversalApprovals />
 
-      <div className="card">
+      <Card className="mb-3">
         <h2>Audit log</h2>
-        <p className="muted small">Tidak dapat dihapus atau diubah. Koreksi tercatat sebagai baris baru.</p>
+        <p className="text-sm text-muted">Tidak dapat dihapus atau diubah. Koreksi tercatat sebagai baris baru.</p>
         {audError ? <Retry msg={audError} onRetry={() => setAudTry(audTry + 1)} /> : mobile ? (
           !audit ? <p className="muted">Memuat…</p> : audit.data.length === 0 ? <p className="muted">Belum ada catatan audit.</p> : (
             <ul className="report-cards" aria-label="Audit log">
@@ -191,18 +192,18 @@ export default function ReportPage() {
         </>}
         {audit && !audError && (mobile ? (
           <div className="report-pager">
-            <span className="muted small">Halaman {audit.page} dari {audit.last_page} · {num(audit.total)} catatan</span>
-            <button className="btn" disabled={page <= 1} onClick={() => setPage(page - 1)}>Sebelumnya</button>
-            <button className="btn" disabled={page >= audit.last_page} onClick={() => setPage(page + 1)}>Berikutnya</button>
+            <span className="text-sm text-muted">Halaman {audit.page} dari {audit.last_page} · {num(audit.total)} catatan</span>
+            <Button variant="secondary" fullWidth isDisabled={page <= 1} onPress={() => setPage(page - 1)}>Sebelumnya</Button>
+            <Button variant="secondary" fullWidth isDisabled={page >= audit.last_page} onPress={() => setPage(page + 1)}>Berikutnya</Button>
           </div>
         ) : (
-          <div className="toolbar">
-            <button className="btn btn-xs" disabled={page <= 1} onClick={() => setPage(page - 1)}>Sebelumnya</button>
-            <span className="muted small">Halaman {audit.page} dari {audit.last_page} · {audit.total} catatan</span>
-            <button className="btn btn-xs" disabled={page >= audit.last_page} onClick={() => setPage(page + 1)}>Berikutnya</button>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <Button size="sm" variant="secondary" isDisabled={page <= 1} onPress={() => setPage(page - 1)}>Sebelumnya</Button>
+            <span className="text-sm text-muted">Halaman {audit.page} dari {audit.last_page} · {audit.total} catatan</span>
+            <Button size="sm" variant="secondary" isDisabled={page >= audit.last_page} onPress={() => setPage(page + 1)}>Berikutnya</Button>
           </div>
         ))}
-      </div>
+      </Card>
     </div>
   )
 }
