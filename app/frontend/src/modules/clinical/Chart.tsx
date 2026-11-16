@@ -9,7 +9,8 @@ import { fmtDateTime, fmtDay, fmtTime } from '../../shared/format'
 import type { Me } from '../../shared/session'
 import { ToothSheet as EntrySheet } from './odontogram/ToothSheet'
 import { OfficialLegend } from './odontogram/OfficialLegend'
-import { conditionByKey, spanTeeth, type SurfaceKey } from './odontogram/taxonomy'
+import { ExamPalette, useExam } from './odontogram/ExamPalette'
+import { conditionByKey, spanTeeth, TAXONOMY, type SurfaceKey } from './odontogram/taxonomy'
 // procedure status -> v2 entry status (line shape on the chart)
 const ENTRY: Partial<Record<string, Mark['entry']>> = { ada_di_klinik_ini: 'ada_sebelumnya', ada_di_tempat_lain: 'klinik_lain', direncanakan: 'rencana', selesai: 'selesai' }
 import { PHONE_QUERY, useIsMobile, useMedia } from '../../shared/useIsMobile'
@@ -341,8 +342,8 @@ function Items({ findings, procedures, visits, canMove, onMove, onDiscard, onFix
 function Seg<T extends string>({ label, value, options, onChange }: { label: string; value: T; options: [T, string][]; onChange: (v: T) => void }) {
   return (
     <div className="seg-field">
-      <span className="seg-label" id={`seg-${label}`}>{label}</span>
-      <div className="seg" role="radiogroup" aria-labelledby={`seg-${label}`}>
+      <span className="seg-label" id={`seg-${label.replace(/\s+/g, '-')}`}>{label}</span>
+      <div className="seg" role="radiogroup" aria-labelledby={`seg-${label.replace(/\s+/g, '-')}`}>
         {options.map(([k, text]) => (
           <button key={k} type="button" role="radio" aria-checked={value === k} className={value === k ? 'is-on' : ''} onClick={() => onChange(k)}>{text}</button>
         ))}
@@ -407,6 +408,9 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   // Table filter starts on the picked tooth; "Semua gigi" is remembered for that tooth only; no pick = all.
   const [allFor, setAllFor] = useState<number | null>(null)
   const [view, setView] = useState<'2d' | '3d'>('2d') // not persisted: 2D every time
+  // OVv2: Perawatan (tooth first, the sheet) | Pemeriksaan awal (palette: one tool, many teeth, one Simpan)
+  const [mode, setMode] = useState<'perawatan' | 'periksa'>('perawatan')
+  const exam = useExam()
   const mobile = useIsMobile()
   const [mouthProcs, setMouthProcs] = useState<CatalogRow[]>([]) // e.g. Scaling: billed work without a tooth
   const phone = useMedia(PHONE_QUERY)
@@ -466,7 +470,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
     setMsg('')
   }, [patientId, appointmentId])
   useEffect(() => { load() }, [load])
-  useEffect(() => { if (can('note.write')) getCatalog().then((c) => setMouthProcs(c.filter((x) => x.treat_area === 'mouth')), () => setMouthProcs([])) }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (can('note.write')) getCatalog().then((c) => setMouthProcs(Array.isArray(c) ? c.filter((x) => x.treat_area === 'mouth') : []), () => setMouthProcs([])) }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const visit = chart?.visits.find((v) => v.id === visitId) ?? null
   const note = visit?.notes[0] ?? null
@@ -500,6 +504,9 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
     return m
   }, [chart, mine, myProcs])
 
+  // teeth of the drawn dentition with nothing charted yet (Tandai sisa sou)
+  const emptyTeeth = (dent === 'sulung' ? TAXONOMY.dentitions.primary : TAXONOMY.dentitions.permanent).filter((t) => !Object.keys(marks).some((k) => k === `t${t}` || k.startsWith(`t${t}-`)))
+  const shown = mode === 'periksa' ? { ...marks, ...exam.preview } : marks
   // The record lives inside the patient: wrap every state in PatientPage (header + Profil/Keluarga/Riwayat menu).
   // review-2 P1: a billing reader continues to the payment (solid); a dentist without billing goes back to the schedule.
   const afterSelesai = <>
@@ -524,6 +531,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   }
   // selecting works anytime; picker only when editable. Same tooth: add the surface to the treatment's combination (MOD); new tooth: restart.
   const onPick = (tooth: number, surface: Surface) => {
+    if (mode === 'periksa' && editable) return exam.tap(tooth) // palette: the tool records, no sheet
     setPick({ tooth, surface })
   }
   async function startVisit() {
@@ -640,6 +648,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
                   {asOf && <button className="btn btn-xs" onClick={() => setAsOf('')}>Kembali ke hari ini</button>}
                   <Seg label="Dentisi" value={dent ?? 'tetap'} onChange={(v) => setDentPick({ base: defDent, v })} options={[['tetap', 'Tetap'], ['sulung', 'Sulung'], ['campuran', 'Campuran']]} />
                   <Seg label="Tampilan" value={view} onChange={changeView} options={[['2d', '2D'], ['3d', '3D']]} />
+                  {editable && <Seg label="Mode isi" value={mode} onChange={(m) => { setMode(m); setPick(null) }} options={[['perawatan', 'Perawatan'], ['periksa', 'Pemeriksaan awal']]} />}
                 </div>
   )
   const odoLegend = (
@@ -706,7 +715,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
               onSave={(b) => run(async () => { await saveBaseline(p.id, { base_version: chart.baseline?.version ?? null, ...b }); setBaselineOpen(false) }, 'Keadaan awal tersimpan (versi baru).')} />}
             {view === '3d' && (
               <>
-                <Odontogram3D marks={marks} baseline={chart.baseline?.teeth} dentition={dent} selected={pick} onPick={onPick} />
+                <Odontogram3D marks={shown} baseline={chart.baseline?.teeth} dentition={dent} selected={pick} onPick={onPick} />
                 <p className="muted small odo3d-note">Tampilan 3D hanya baca; overlay mengikuti data bagan dan legenda internal. Ketuk gigi/permukaan di 3D untuk memilih, atau pakai bagan 2D di bawah untuk input per permukaan.</p>
               </>
             )}
@@ -717,14 +726,14 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
                 <div key={arch} className="odo-jaw">
                   <p className="odo-jaw-head"><span id={`jaw-${arch}`}>{arch === 'upper' ? 'Rahang atas' : 'Rahang bawah'}</span> <span className="muted">kanan ← kiri pasien</span></p>
                   <div className="odo2d-wrap odo-jaw-scroll" role="group" aria-labelledby={`jaw-${arch}`} ref={(el) => centre(el, String(dent))}>
-                    <Odontogram arch={arch} wholeTooth marks={marks} baseline={chart.baseline?.teeth} dentition={dent} compact={view === '3d'} selected={pick ? `t${pick.tooth}-${pick.surface}` : null} onPick={onPick} />
+                    <Odontogram arch={arch} wholeTooth marks={shown} baseline={chart.baseline?.teeth} dentition={dent} compact={view === '3d'} selected={pick ? `t${pick.tooth}-${pick.surface}` : null} onPick={onPick} />
                   </div>
                 </div>
               ))}
             </> : (
             // ≤720px: the chart keeps its size and scrolls sideways; opens centred on the midline (11|21).
             <div className="odo2d-wrap" ref={(el) => { if (mobile) centre(el, String(dent)) }}>
-              <Odontogram marks={marks} baseline={chart.baseline?.teeth} dentition={dent} compact={view === '3d'} selected={pick ? `t${pick.tooth}-${pick.surface}` : null} onPick={onPick} />
+              <Odontogram marks={shown} baseline={chart.baseline?.teeth} dentition={dent} compact={view === '3d'} selected={pick ? `t${pick.tooth}-${pick.surface}` : null} onPick={onPick} />
             </div>
             )}
             {!editable && (visit ? <p className="muted small">{readOnlyWhy}</p> : (
@@ -736,7 +745,11 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
               </div>
             ))}
           </section>
-          {!mobile ? <aside className="card span-4 tooth-panel" aria-label="Detail gigi">{panel}</aside> : (
+          {mode === 'periksa' && editable ? (
+            <aside className="card span-4 tooth-panel exam-panel" aria-label="Pemeriksaan awal">
+              <ExamPalette exam={exam} visitId={visit!.id} emptyTeeth={emptyTeeth} onSaved={(m) => { setMsg(m); load() }} />
+            </aside>
+          ) : !mobile ? <aside className="card span-4 tooth-panel" aria-label="Detail gigi">{panel}</aside> : (
             <Presence open={!!pick} exitMs={200}>
               {pick && <ToothSheet tooth={pick.tooth} panel={panel} onClose={() => setPick(null)} trapTab={trapTab} />}
             </Presence>
@@ -827,7 +840,8 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
 
       {/* review-3 P2: on the phone the next step after Selesai sits in the bottom dock, where Selesai was */}
       {mobile && billFor && <div className="rm-actionbar rm-done">{afterSelesai}</div>}
-      {mobile && !billFor && editable && isDpjp && visit && (
+      {/* OVv2-06: the exam dock owns the bottom while Pemeriksaan awal is on (one primary: Simpan N gigi) */}
+      {mobile && !billFor && editable && isDpjp && visit && mode !== 'periksa' && (
         // Phone (#70): one sticky bar above the bottom nav, on every RM tab: Setujui while agent drafts wait, else Selesai.
         <div className="rm-actionbar">
           {unapproved > 0

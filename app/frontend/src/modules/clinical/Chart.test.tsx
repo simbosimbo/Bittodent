@@ -257,6 +257,35 @@ test('OVv2-01 tindakan dulu: tooth -> Permukaan pad -> condition card -> status 
   expect(await screen.findByText(/Gigi 26 L cof tersimpan/)).toBeInTheDocument()
 })
 
+test('OVv2-06 Pemeriksaan awal: tool once, tap many teeth (tap again = remove), MOD pad, Tandai sisa sou, ONE Simpan', async () => {
+  renderChart({ visits: [visit], findings: [] })
+  await screen.findByRole('region', { name: 'Odontogram' })
+  fireEvent.click(radio('Mode isi', 'Pemeriksaan awal'))
+  const exam = within(screen.getByRole('complementary', { name: 'Pemeriksaan awal' }))
+  expect(within(exam.getByRole('radiogroup', { name: 'Alat' })).getByRole('radio', { name: 'Gigi hilang (mis)' })).toHaveAttribute('aria-checked', 'true')
+  fireEvent.click(document.getElementById('t18-O')!)
+  fireEvent.click(document.getElementById('t28-O')!)
+  fireEvent.click(document.getElementById('t28-O')!) // tap again = remove
+  expect(document.getElementById('t18')).toHaveAttribute('data-state', 'draft') // the unsaved entry is drawn
+  expect(document.getElementById('t28')).toHaveAttribute('data-state', 'empty')
+  fireEvent.click(exam.getByRole('radio', { name: 'Sisa akar (rrx)' }))
+  fireEvent.click(document.getElementById('t48-O')!)
+  fireEvent.click(exam.getByRole('radio', { name: 'Tambalan amalgam (amf)' }))
+  fireEvent.click(document.getElementById('t47-O')!)
+  const pad = within(exam.getByRole('group', { name: 'Permukaan gigi 47' }))
+  for (const k of ['M', 'O', 'D']) fireEvent.click(pad.getAllByRole('button').find((b) => b.querySelector('strong')!.textContent === k)!)
+  expect(screen.queryByRole('region', { name: /^Isi gigi/ })).toBeNull() // no tooth sheet in palette mode
+  fireEvent.click(exam.getByRole('button', { name: 'Tandai sisa sou (29)' }))
+  const save = exam.getByRole('button', { name: 'Simpan 32 gigi' })
+  fireEvent.click(save)
+  await waitFor(() => expect(postsTo('/tooth-entries/batch')).toHaveLength(1))
+  const sent = JSON.parse(postsTo('/tooth-entries/batch')[0][1]!.body as string).entries
+  expect(sent).toHaveLength(32)
+  expect(sent.slice(0, 3)).toEqual([{ tooth: 18, condition: 'hilang', status: 'ada_sebelumnya' }, { tooth: 48, condition: 'sisa_akar', status: 'ada_sebelumnya' },
+    { tooth: 47, condition: 'tambalan_amalgam', status: 'ada_sebelumnya', surfaces: ['M', 'O', 'D'] }])
+  expect(sent.filter((e: { condition: string }) => e.condition === 'sehat')).toHaveLength(29)
+})
+
 test('no active visit: the tooth panel is read-only (no entry sheet, no POST) and points to today\'s appointment', async () => {
   renderChart()
   await screen.findByRole('region', { name: 'Odontogram' })

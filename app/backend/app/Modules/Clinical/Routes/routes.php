@@ -25,6 +25,7 @@ Route::middleware(['auth:sanctum', '2fa', 'tenant'])->group(function () {
     // treatments (procedure_record); a finding status route no longer exists: findings are visual conditions only
     Route::post('/visits/{id}/procedures', [ProcedureController::class, 'store'])->middleware('perm:note.write');
     Route::post('/visits/{id}/tooth-entries', [ProcedureController::class, 'storeEntry'])->middleware('perm:note.sign'); // odontogram v2, dentist only
+    Route::post('/visits/{id}/tooth-entries/batch', [ProcedureController::class, 'storeEntries'])->middleware('perm:note.sign'); // OVv2-06 Pemeriksaan awal
     Route::patch('/procedures/{id}', [ProcedureController::class, 'update'])->middleware('perm:note.write');
     Route::post('/procedures/{id}/status', [ProcedureController::class, 'changeStatus'])->middleware('perm:note.sign');
     // unit 3: history is append-only; replacing a restoration and correcting a record are new final rows

@@ -125,4 +125,25 @@ class ToothEntryTest extends TestCase
         $post(['tooth' => 47, 'surfaces' => ['O'], 'condition' => 'sealant'])->assertCreated()->assertJsonPath('procedure_code', '23.2');
         $this->assertContains('cof', collect($this->as(self::DOC)->getJson('/api/procedure-catalog')->assertOk()->json())->firstWhere('procedure_code', '23.2')['conditions']);
     }
+
+    public function test_pemeriksaan_awal_saves_many_teeth_in_one_simpan_all_or_nothing_and_never_bills(): void
+    {
+        $v = $this->visit();
+        $url = "/api/visits/{$v->id}/tooth-entries/batch";
+        $before = $this->inA(fn () => ProcedureRecord::where('visit_id', $v->id)->count());
+        $mouth = [['tooth' => 18, 'condition' => 'hilang', 'status' => 'ada_sebelumnya'], ['tooth' => 48, 'condition' => 'sisa_akar', 'status' => 'ada_sebelumnya'],
+            ['tooth' => 47, 'condition' => 'tambalan_amalgam', 'status' => 'ada_sebelumnya', 'surfaces' => ['M', 'O', 'D']],
+            ['tooth' => 36, 'condition' => 'karies', 'status' => 'rencana', 'surfaces' => ['O']], ['tooth' => 11, 'condition' => 'sehat', 'status' => 'ada_sebelumnya']];
+        $this->as(self::DOC)->postJson($url, ['entries' => $mouth])->assertCreated()->assertJsonPath('created', 5)
+            ->assertJsonPath('entries.2.surfaces', 'MOD')->assertJsonPath('entries.4.condition', 'sehat');
+        $this->assertSame($before + 5, $this->inA(fn () => ProcedureRecord::where('visit_id', $v->id)->count()));
+        // one bad entry: nothing is saved
+        $this->as(self::DOC)->postJson($url, ['entries' => [['tooth' => 17, 'condition' => 'hilang', 'status' => 'ada_sebelumnya'],
+            ['tooth' => 34, 'condition' => 'jembatan_logam', 'status' => 'rencana']]])->assertUnprocessable()->assertJsonPath('index', 1);
+        // an exam never bills: Selesai belongs to Perawatan
+        $this->as(self::DOC)->postJson($url, ['entries' => [['tooth' => 26, 'condition' => 'tambalan_komposit', 'status' => 'selesai', 'surfaces' => ['O']]]])
+            ->assertUnprocessable()->assertJsonValidationErrors('entries.0.status');
+        $this->assertSame($before + 5, $this->inA(fn () => ProcedureRecord::where('visit_id', $v->id)->count()));
+        $this->as('asisten@senyum.test')->postJson($url, ['entries' => $mouth])->assertForbidden();
+    }
 }

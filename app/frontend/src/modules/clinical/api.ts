@@ -109,6 +109,9 @@ export const saveProcedure = (visitId: string, body: { tooth: number | null; sur
  */
 export const saveToothEntry = (visitId: string, body: import('./odontogram/taxonomy').ToothEntry) =>
   api<Procedure>(`/api/visits/${visitId}/tooth-entries`, { method: 'POST', body })
+/** OVv2-06 Pemeriksaan awal: many teeth, ONE Simpan, all or nothing; status Ada sebelumnya / Rencana only (never bills). */
+export const saveToothEntries = (visitId: string, entries: import('./odontogram/taxonomy').ToothEntry[]) =>
+  api<{ created: number }>(`/api/visits/${visitId}/tooth-entries/batch`, { method: 'POST', body: { entries } })
 export type CatalogRow = { procedure_code: string; name: string; treat_area: TreatArea; paint_type: string; conditions: string[] }
 /** Clinic procedure catalog with the mapped odontogram condition codes (dentist reads; owner edits in Pengaturan > Harga). */
 export const getCatalog = () => api<CatalogRow[]>('/api/procedure-catalog')

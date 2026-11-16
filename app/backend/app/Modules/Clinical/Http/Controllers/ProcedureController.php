@@ -29,6 +29,7 @@ use App\Shared\Http\Controller;
 use App\Shared\Tenancy\Ctx;
 use App\Shared\Terminology\OfficialIcdCode;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -80,8 +81,69 @@ class ProcedureController extends Controller
      */
     public function storeEntry(Request $request, string $id, TenancyDirectory $tenancy)
     {
+        $d = $request->validate(self::entryRules());
+        $prep = self::prepareEntry($d);
+        if (! is_array($prep)) {
+            return $prep;
+        }
+        $ctx = Ctx::current();
+
+        return DB::transaction(function () use ($prep, $d, $id, $tenancy) {
+            $visit = Visit::lockForUpdate()->findOrFail($id);
+            if ($e = self::entryVisitError($visit)) {
+                return $e;
+            }
+            $r = self::insertEntry($prep, $d, $visit, $tenancy);
+
+            return $r instanceof ProcedureRecord ? response()->json(self::out($r), 201) : $r;
+        });
+    }
+
+    /**
+     * POST /api/visits/{id}/tooth-entries/batch {entries: [...]} (board OVv2-06, Pemeriksaan awal): palette mode, many teeth, ONE Simpan.
+     * All or nothing. Status Ada sebelumnya / Rencana only: an exam records the mouth, it never bills (Selesai stays in Perawatan).
+     */
+    public function storeEntries(Request $request, string $id, TenancyDirectory $tenancy)
+    {
+        $rules = ['entries' => ['required', 'array', 'min:1', 'max:64']];
+        foreach (self::entryRules() as $k => $r) {
+            $rules['entries.*.'.$k] = $k === 'status' ? ['required', 'string', 'in:ada_sebelumnya,rencana'] : $r;
+        }
+        $all = $request->validate($rules)['entries'];
+        $prepared = [];
+        foreach ($all as $i => $d) {
+            $prep = self::prepareEntry($d);
+            if (! is_array($prep)) {
+                return response()->json(['message' => 'Gigi '.$d['tooth'].': '.($prep->getData(true)['message'] ?? 'tidak valid.'), 'index' => $i,
+                    'errors' => $prep->getData(true)['errors'] ?? []], 422);
+            }
+            $prepared[] = [$prep, $d];
+        }
+
+        return DB::transaction(function () use ($prepared, $id, $tenancy) {
+            $visit = Visit::lockForUpdate()->findOrFail($id);
+            if ($e = self::entryVisitError($visit)) {
+                return $e;
+            }
+            $out = [];
+            foreach ($prepared as [$prep, $d]) {
+                $r = self::insertEntry($prep, $d, $visit, $tenancy);
+                if (! $r instanceof ProcedureRecord) {
+                    throw new HttpResponseException($r); // rolls the whole Simpan back
+                }
+                $out[] = self::out($r);
+            }
+
+            return response()->json(['created' => count($out), 'entries' => $out], 201);
+        });
+    }
+
+    /** Validation of one tooth entry (shared by the single and the batch endpoint). */
+    private static function entryRules(): array
+    {
         $tax = OdontogramTaxonomy::class;
-        $d = $request->validate([
+
+        return [
             'tooth' => ['required', 'integer', 'in:'.implode(',', $tax::teeth())],
             'condition' => ['required', 'string', 'in:'.implode(',', array_keys($tax::conditions()))],
             'status' => ['required', 'string', 'in:'.implode(',', $tax::statuses())],
@@ -95,7 +157,13 @@ class ProcedureController extends Controller
             'material' => ['sometimes', 'nullable', 'string', 'in:'.implode(',', $tax::materials())],
             'external_clinic_name' => ['sometimes', 'nullable', 'string', 'max:120'],
             'external_date' => ['sometimes', 'nullable', 'string', 'max:10'],
-        ]);
+        ];
+    }
+
+    /** Taxonomy, span, code and diagnosis checks of one entry: [$p, $roles] or a 422. */
+    private static function prepareEntry(array $d): array|JsonResponse
+    {
+        $tax = OdontogramTaxonomy::class;
         $cond = $tax::condition($d['condition']);
         $span = $cond['group'] === 'span';
         $bad = fn (string $f, string $m) => response()->json(['message' => $m, 'errors' => [$f => [$m]]], 422);
@@ -150,28 +218,34 @@ class ProcedureController extends Controller
         if ($p['procedure_code'] === null) {
             $p['treat_area'] = $cond['group'] === 'surface' ? 'surface' : $tax::area($cond['group']);
         }
+
+        return [$p, $roles];
+    }
+
+    private static function entryVisitError(Visit $visit): ?JsonResponse
+    {
+        if (! Ctx::current()->coversBranch($visit->branch_id)) {
+            return Audit::denied('branch:'.$visit->branch_id);
+        }
+
+        return $visit->isSigned() ? self::locked() : null;
+    }
+
+    private static function insertEntry(array $prep, array $d, Visit $visit, TenancyDirectory $tenancy): ProcedureRecord|JsonResponse
+    {
+        [$p, $roles] = $prep;
         $ctx = Ctx::current();
+        $attrs = self::attributes($p, $visit, $tenancy);
+        if (! is_array($attrs)) {
+            return $attrs;
+        }
+        $r = ProcedureRecord::create([...$attrs, 'patient_id' => $visit->patient_id, 'visit_id' => $visit->id, 'state' => 'draft',
+            'source' => 'manual', 'created_by' => $ctx->userId, 'condition' => $d['condition'],
+            'span_roles' => $roles ?: null, 'material' => $d['material'] ?? null]);
+        Audit::log('buat', 'procedure_record', $r->id, ['entry' => 'odontogram_v2', 'tooth' => $r->tooth, 'tooth_range' => $r->tooth_range,
+            'surfaces' => $r->surfaces, 'condition' => $d['condition'], 'status' => $r->status, ...self::externalAudit($r)]);
 
-        return DB::transaction(function () use ($p, $d, $id, $ctx, $tenancy, $roles) {
-            $visit = Visit::lockForUpdate()->findOrFail($id);
-            if (! $ctx->coversBranch($visit->branch_id)) {
-                return Audit::denied('branch:'.$visit->branch_id);
-            }
-            if ($visit->isSigned()) {
-                return self::locked();
-            }
-            $attrs = self::attributes($p, $visit, $tenancy);
-            if (! is_array($attrs)) {
-                return $attrs;
-            }
-            $r = ProcedureRecord::create([...$attrs, 'patient_id' => $visit->patient_id, 'visit_id' => $visit->id, 'state' => 'draft',
-                'source' => 'manual', 'created_by' => $ctx->userId, 'condition' => $d['condition'],
-                'span_roles' => $roles ?: null, 'material' => $d['material'] ?? null]);
-            Audit::log('buat', 'procedure_record', $r->id, ['entry' => 'odontogram_v2', 'tooth' => $r->tooth, 'tooth_range' => $r->tooth_range,
-                'surfaces' => $r->surfaces, 'condition' => $d['condition'], 'status' => $r->status, ...self::externalAudit($r)]);
-
-            return response()->json(self::out($r), 201);
-        });
+        return $r;
     }
 
     /** PATCH /api/procedures/{id}: own draft only; sent fields replace the stored ones, then location is re-checked as a whole. */
