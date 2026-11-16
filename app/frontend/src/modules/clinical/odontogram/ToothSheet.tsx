@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import { ApiError, errorText } from '../../../shared/api/http'
 import { saveToothEntry } from '../api'
-import { toothAnatomicalName } from '../legend'
 import { SymbolDefs, SymbolIcon } from './symbols'
 import { conditionByKey, conditionsIn, defaultRoles, padLabel, padsFor, spanEnds, spanTeeth, TAXONOMY, type Condition, type EntryStatus,
   type Material, type SpanRole, type SurfaceKey } from './taxonomy'
@@ -95,7 +94,6 @@ export function ToothSheet({ tooth, visitId, initialSurface, onSaved }: {
   return (
     <section className="tsheet" aria-label={`Isi gigi ${tooth}`}>
       <svg width="0" height="0" aria-hidden="true" style={{ position: 'absolute' }}><SymbolDefs /></svg>
-      <p className="muted small">{toothAnatomicalName(tooth)}</p>
       <div className="tsheet-tabs" role="tablist" aria-label="Cara isi">
         {TABS.map(([k, label]) => <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => switchTab(k)}>{label}</button>)}
       </div>
