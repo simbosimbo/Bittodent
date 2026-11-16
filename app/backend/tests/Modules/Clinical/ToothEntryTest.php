@@ -126,6 +126,28 @@ class ToothEntryTest extends TestCase
         $this->assertContains('cof', collect($this->as(self::DOC)->getJson('/api/procedure-catalog')->assertOk()->json())->firstWhere('procedure_code', '23.2')['conditions']);
     }
 
+    public function test_procedure_first_takes_the_condition_from_the_catalog_mapping(): void
+    {
+        $v = $this->visit();
+        $post = fn (array $b) => $this->as(self::DOC)->postJson("/api/visits/{$v->id}/tooth-entries", $b + ['status' => 'selesai']);
+        $post(['tooth' => 46, 'procedure_code' => '23.09'])->assertCreated()->assertJsonPath('condition', 'hilang')
+            ->assertJsonPath('treat_area', 'tooth')->assertJsonPath('status', 'selesai');
+        // several materials: the dentist picks one, listed as taxonomy keys
+        $pick = $post(['tooth' => 36, 'procedure_code' => '23.2', 'surfaces' => ['O']])->assertUnprocessable()->assertJsonPath('error', 'pick_condition');
+        $this->assertSame(['tambalan_amalgam', 'tambalan_komposit', 'tambalan_gic'], $pick->json('candidates'));
+        $post(['tooth' => 36, 'procedure_code' => '23.2', 'condition' => 'tambalan_komposit', 'surfaces' => ['M', 'O']])->assertCreated()
+            ->assertJsonPath('condition', 'tambalan_komposit')->assertJsonPath('surfaces', 'MO');
+        $post(['tooth' => 35, 'procedure_code' => '23.2', 'condition' => 'karies', 'surfaces' => ['O']])->assertUnprocessable()->assertJsonValidationErrors('procedure_code');
+        $post(['tooth' => 35, 'procedure_code' => '23.2', 'condition' => 'tambalan_gic'])->assertUnprocessable()->assertJsonValidationErrors('surfaces');
+        $post(['tooth' => 35, 'procedure_code' => '24.99'])->assertUnprocessable()->assertJsonValidationErrors('procedure_code'); // not in the clinic catalog
+        $post(['tooth' => 35])->assertUnprocessable()->assertJsonValidationErrors('condition');
+        // empty mapping (e.g. trepanasi): the procedure alone, no odontogram symbol
+        $this->as('pemilik@senyum.test')->putJson('/api/procedure-catalog/24.0/conditions', ['conditions' => [], 'name' => 'Trepanasi (uji)'])->assertOk()
+            ->assertJsonPath('treat_area', 'tooth');
+        $post(['tooth' => 21, 'procedure_code' => '24.0'])->assertCreated()->assertJsonPath('condition', null)->assertJsonPath('treat_area', 'tooth')
+            ->assertJsonPath('procedure_code', '24.0');
+    }
+
     public function test_pemeriksaan_awal_saves_many_teeth_in_one_simpan_all_or_nothing_and_never_bills(): void
     {
         $v = $this->visit();

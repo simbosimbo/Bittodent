@@ -94,6 +94,22 @@ class PatientJourneyTest extends TestCase
         $this->assertSame(350000, $row['balance_rp']);
     }
 
+    // S3: the dentist records the procedure (cabut 46), the odontogram fills itself ("hilang"), and the kasir bills it (audit P0-2).
+    public function test_cabut_recorded_as_a_procedure_fills_the_odontogram_and_bills(): void
+    {
+        $doc = 'dokter@senyum.test';
+        $patient = $this->as('depan@senyum.test')->postJson('/api/patients', ['name' => 'Dodi Uji Cabut', 'dob' => '1979-11-20', 'sex' => 'laki_laki'])->assertCreated()->json('id');
+        $visit = $this->as($doc)->postJson("/api/patients/$patient/visits/walk-in")->assertCreated()->json('id');
+        $this->as($doc)->postJson("/api/visits/$visit/tooth-entries", ['tooth' => 46, 'procedure_code' => '23.09', 'status' => 'selesai'])
+            ->assertCreated()->assertJsonPath('condition', 'hilang')->assertJsonPath('status', 'selesai');
+        $this->as($doc)->putJson("/api/visits/$visit/note", ['soap' => ['S' => 'Gigi goyang.', 'O' => 'Gigi 46 goyang derajat 3.']])->assertOk();
+        $this->as($doc)->postJson("/api/visits/$visit/selesai", ['revision' => 1, 'confirm' => true, 'accept_warnings' => true, 'reason' => 'Diagnosis ditulis di catatan.'])->assertOk();
+        $row = collect($this->as('kasir@senyum.test')->getJson('/api/billing/invoices')->assertOk()->json('invoices'))->firstWhere('visit_id', $visit);
+        $this->assertCount(1, $row['items']);
+        $this->assertStringContainsString('46', $row['items'][0]);
+        $this->assertSame(150000, $row['balance_rp']);
+    }
+
     // S2: an unpriced procedure can get its stages at creation, so they apply today (not from tomorrow).
     public function test_owner_prices_a_new_procedure_with_stages_today(): void
     {

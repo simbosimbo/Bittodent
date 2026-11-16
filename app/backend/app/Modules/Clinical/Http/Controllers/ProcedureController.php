@@ -78,6 +78,8 @@ class ProcedureController extends Controller
      * OdontogramTaxonomy (resources/odontogram/taxonomy.json): v2 status => procedure status, V => stored B, group => treat area.
      * A bridge is one range row (tooth_range "34-36") with the role per tooth and the material. The usual location, provider, external
      * and signed-visit rules apply (same attributes() as store()); a `selesai` row with a tariffed code bills on Selesai as before.
+     * Procedure first (S3): {tooth, procedure_code, status} without a condition takes the condition from the code's catalog mapping
+     * (one => it, several => 422 pick_condition, none => no odontogram symbol).
      */
     public function storeEntry(Request $request, string $id, TenancyDirectory $tenancy)
     {
@@ -106,7 +108,7 @@ class ProcedureController extends Controller
     public function storeEntries(Request $request, string $id, TenancyDirectory $tenancy)
     {
         $rules = ['entries' => ['required', 'array', 'min:1', 'max:64']];
-        foreach (self::entryRules() as $k => $r) {
+        foreach (self::entryRules('entries.*.') as $k => $r) {
             $rules['entries.*.'.$k] = $k === 'status' ? ['required', 'string', 'in:ada_sebelumnya,rencana'] : $r;
         }
         $all = $request->validate($rules)['entries'];
@@ -138,14 +140,15 @@ class ProcedureController extends Controller
         });
     }
 
-    /** Validation of one tooth entry (shared by the single and the batch endpoint). */
-    private static function entryRules(): array
+    /** Validation of one tooth entry (shared by the single and the batch endpoint; $at = the entry's path prefix). */
+    private static function entryRules(string $at = ''): array
     {
         $tax = OdontogramTaxonomy::class;
 
         return [
             'tooth' => ['required', 'integer', 'in:'.implode(',', $tax::teeth())],
-            'condition' => ['required', 'string', 'in:'.implode(',', array_keys($tax::conditions()))],
+            // "tindakan dulu": a procedure without a condition takes it from the catalog mapping (prepareEntry)
+            'condition' => ['required_without:'.$at.'procedure_code', 'nullable', 'string', 'in:'.implode(',', array_keys($tax::conditions()))],
             'status' => ['required', 'string', 'in:'.implode(',', $tax::statuses())],
             'surfaces' => ['sometimes', 'array', 'max:5'],
             'surfaces.*' => ['string', 'in:M,O,I,D,V,L'],
@@ -165,9 +168,25 @@ class ProcedureController extends Controller
     private static function prepareEntry(array $d): array|JsonResponse
     {
         $tax = OdontogramTaxonomy::class;
-        $cond = $tax::condition($d['condition']);
-        $span = $cond['group'] === 'span';
         $bad = fn (string $f, string $m) => response()->json(['message' => $m, 'errors' => [$f => [$m]]], 422);
+        $sentCode = $d['procedure_code'] ?? null;
+        if ($sentCode !== null) {
+            $def = ProcedureDefinition::where('procedure_code', $sentCode)->first();
+            if (! $def) {
+                return $bad('procedure_code', 'Tindakan ini belum ada di katalog tindakan klinik. Minta pemilik menambahkannya di Pengaturan > Harga.');
+            }
+            $keys = array_keys(array_filter($tax::conditions(), fn ($c) => $c['code'] !== null && in_array($c['code'], $def->conditions ?? [], true)));
+            if (isset($d['condition']) && ! in_array($d['condition'], $keys, true)) {
+                return $bad('procedure_code', 'Kode tindakan bukan salah satu yang dipetakan untuk kondisi ini.');
+            }
+            if (! isset($d['condition']) && count($keys) > 1) {
+                return response()->json(['error' => 'pick_condition', 'message' => 'Pilih bahan / jenis yang dipakai.', 'candidates' => $keys,
+                    'errors' => ['condition' => ['Pilih salah satu bahan / jenis.']]], 422);
+            }
+            $d['condition'] ??= $keys[0] ?? null; // empty mapping (kontrol, trepanasi): the procedure alone, no odontogram symbol
+        }
+        $cond = ($d['condition'] ?? null) === null ? null : $tax::condition($d['condition']);
+        $span = ($cond['group'] ?? null) === 'span';
         if ($span && empty($d['span_to'])) {
             return $bad('span_to', 'Rentang wajib: ketuk gigi akhir rentang.');
         }
@@ -176,21 +195,17 @@ class ProcedureController extends Controller
         }
         $surfs = array_map(fn ($s) => $tax::storedSurface($s), $d['surfaces'] ?? []);
         // "Tindakan dulu": a finished entry bills the clinic code mapped to its condition (Pengaturan > Harga), never a typed guess.
-        if ($d['status'] === 'selesai') {
+        if ($d['status'] === 'selesai' && $sentCode === null) {
             $codes = $cond['code'] ? ProcedureCatalog::codesFor($cond['code']) : [];
-            $sent = $d['procedure_code'] ?? null;
             if ($codes === []) {
                 return $bad('condition', "Kondisi {$cond['label']} ({$cond['code']}) belum dipetakan ke tindakan klinik, jadi tidak bisa ditagih. Minta pemilik memetakannya di Pengaturan > Harga.");
             }
-            if ($sent !== null && ! in_array($sent, $codes, true)) {
-                return $bad('procedure_code', 'Kode tindakan bukan salah satu yang dipetakan untuk kondisi ini.');
-            }
-            if ($sent === null && count($codes) > 1) {
+            if (count($codes) > 1) {
                 return response()->json(['error' => 'pick_code', 'message' => 'Pilih tindakan yang dikerjakan.', 'candidates' => ProcedureDefinition::whereIn('procedure_code', $codes)
                     ->orderBy('procedure_code')->get(['procedure_code', 'name'])->map->only(['procedure_code', 'name'])->values(),
                     'errors' => ['procedure_code' => ['Pilih salah satu tindakan.']]], 422);
             }
-            $d['procedure_code'] = $sent ?? $codes[0];
+            $d['procedure_code'] = $codes[0];
         }
         // diagnosis: what the dentist sent, else the clinic rule paired with the billed code on this tooth (editable before Selesai)
         $dx = $d['diagnosis_code'] ?? null;
@@ -198,7 +213,7 @@ class ProcedureController extends Controller
         if ($dx === null && ($d['procedure_code'] ?? null) && ($dx = CodingSuggestions::forProcedure($d['procedure_code'], $d['tooth'], Ctx::current()->userId))) {
             $dxSource = 'aturan';
         }
-        $p = ['diagnosis_code' => $dx, 'diagnosis_source' => $dxSource, 'status' => $tax::procedureStatus($d['status']), 'procedure_code' => $d['procedure_code'] ?? null, 'variant' => $d['variant'] ?? null,
+        $p = ['condition' => $d['condition'], 'diagnosis_code' => $dx, 'diagnosis_source' => $dxSource, 'status' => $tax::procedureStatus($d['status']), 'procedure_code' => $d['procedure_code'] ?? null, 'variant' => $d['variant'] ?? null,
             'external_clinic_name' => $d['external_clinic_name'] ?? null, 'external_date' => $d['external_date'] ?? null];
         $roles = null;
         if ($span) {
@@ -241,10 +256,10 @@ class ProcedureController extends Controller
             return $attrs;
         }
         $r = ProcedureRecord::create([...$attrs, 'patient_id' => $visit->patient_id, 'visit_id' => $visit->id, 'state' => 'draft',
-            'source' => 'manual', 'created_by' => $ctx->userId, 'condition' => $d['condition'],
+            'source' => 'manual', 'created_by' => $ctx->userId, 'condition' => $p['condition'],
             'span_roles' => $roles ?: null, 'material' => $d['material'] ?? null]);
         Audit::log('buat', 'procedure_record', $r->id, ['entry' => 'odontogram_v2', 'tooth' => $r->tooth, 'tooth_range' => $r->tooth_range,
-            'surfaces' => $r->surfaces, 'condition' => $d['condition'], 'status' => $r->status, ...self::externalAudit($r)]);
+            'surfaces' => $r->surfaces, 'condition' => $p['condition'], 'status' => $r->status, ...self::externalAudit($r)]);
 
         return $r;
     }
