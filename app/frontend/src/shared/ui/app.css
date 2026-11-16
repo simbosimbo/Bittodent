@@ -1,5 +1,5 @@
 /* Entry CSS. Layer order while screens migrate:
-   legacy-base (bare element rules: label, input, h1 …) < HeroUI components < bittodent (house radius) < legacy (class rules; HeroUI shares names like .card/.menu/.chip, legacy markup must keep its look).
+   legacy-base (bare element rules: label, input, h1 …) < HeroUI components < bittodent (house radius) < legacy (class rules; HeroUI shares some class names with the legacy CSS, legacy markup must keep its look).
    shortcut: legacy layers stay until every screen uses HeroUI; delete them then. */
 @layer theme, base, legacy-base, components, bittodent, legacy, utilities;
 

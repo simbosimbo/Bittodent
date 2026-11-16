@@ -17,7 +17,8 @@ const out = arg('out', fileURLToPath(new URL('../../../screenshots/ui-audit', im
 const chrome = process.env.CHROME ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 
 const measure = ({ phone, width }) => {
-  const vis = (e) => { const r = e.getBoundingClientRect(); const c = getComputedStyle(e); return r.width > 0 && r.height > 0 && c.visibility !== 'hidden' && r.bottom > 0 }
+  // 1x1 boxes are screen-reader-only controls (e.g. HeroUI Sheet's hidden Dismiss), not touch targets
+  const vis = (e) => { const r = e.getBoundingClientRect(); const c = getComputedStyle(e); return r.width > 1 && r.height > 1 && c.visibility !== 'hidden' && r.bottom > 0 }
   const label = (e) => (e.getAttribute('aria-label') || e.textContent || e.tagName).trim().replace(/\s+/g, ' ').slice(0, 40)
   const small = phone
     ? [...document.querySelectorAll('a[href],button,input:not([type=hidden]),select,textarea,[role=button],[role=tab],[role=link]')]
