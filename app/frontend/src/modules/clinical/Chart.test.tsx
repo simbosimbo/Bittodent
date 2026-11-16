@@ -58,12 +58,12 @@ const finding = (id: string, tooth: number, surface: string | null, condition: s
 const findings = [finding('f1', 16, 'O', 'karies', 'kondisi_pantau'), finding('f2', 26, 'L', 'tambalan', 'direncanakan', '23.2'), finding('f3', 11, 'I', 'karies', 'kondisi_pantau')]
 const childDob = `${new Date().getFullYear() - 9}-01-01`
 
-function renderChart(over: Record<string, unknown> = {}) {
+function renderChart(over: Record<string, unknown> = {}, m: Me = me) {
   const c = { ...chart, findings, ...over }
   window.Tooth3D = mockTooth3D
   vi.stubGlobal('fetch', vi.fn(async (url: string) => new Response(JSON.stringify(
     url.endsWith('manifest.json') ? manifest : url.endsWith('/chart') ? c : url.endsWith('/alerts') ? alerts : full), { status: 200 })))
-  return render(<ChartPage patientId="p1" me={me} />)
+  return render(<ChartPage patientId="p1" me={m} />)
 }
 const radio = (group: string, name: string) => within(screen.getByRole('radiogroup', { name: group })).getByRole('radio', { name })
 const show3d = async () => { fireEvent.click(radio('Tampilan', '3D')); await waitFor(() => expect(document.querySelector('.t3')).not.toBeNull()) }
@@ -292,6 +292,16 @@ test('OVv2-06 Pemeriksaan awal: tool once, tap many teeth (tap again = remove), 
   expect(sent.slice(0, 3)).toEqual([{ tooth: 18, condition: 'hilang', status: 'ada_sebelumnya' }, { tooth: 48, condition: 'sisa_akar', status: 'ada_sebelumnya' },
     { tooth: 47, condition: 'tambalan_amalgam', status: 'ada_sebelumnya', surfaces: ['M', 'O', 'D'] }])
   expect(sent.filter((e: { condition: string }) => e.condition === 'sehat')).toHaveLength(29)
+})
+
+test('owner switched Pemeriksaan awal off: no Mode isi switch, a tapped tooth opens the Perawatan sheet', async () => {
+  renderChart({ visits: [visit], findings: [] }, { ...me, odontogram_exam_enabled: false })
+  await screen.findByRole('region', { name: 'Odontogram' })
+  expect(screen.getByRole('radiogroup', { name: 'Tampilan' })).toBeInTheDocument()
+  expect(screen.queryByRole('radiogroup', { name: 'Mode isi' })).toBeNull()
+  expect(screen.queryByText('Pemeriksaan awal')).toBeNull()
+  fireEvent.click(document.getElementById('t16-O')!)
+  expect(screen.getByRole('region', { name: 'Isi gigi 16' })).toBeInTheDocument()
 })
 
 test('OVv2-07 campuran: default from age (9 th), toggle under the chart, 55 under 15, same symbols on primary teeth, no blanket sou', async () => {

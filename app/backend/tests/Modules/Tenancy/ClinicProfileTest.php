@@ -35,6 +35,22 @@ class ClinicProfileTest extends TestCase
         $this->as('dokter@ceria.test')->putJson("/api/settings/branches/{$b->id}", ['address' => 'x'])->assertNotFound();
     }
 
+    public function test_owner_switches_off_the_exam_mode_audited_and_per_clinic(): void
+    {
+        $this->as(self::OWNER)->getJson('/api/settings/clinic')->assertOk()->assertJsonPath('odontogram_exam_enabled', true);
+        $this->as('dokter@senyum.test')->getJson('/api/me')->assertOk()->assertJsonPath('odontogram_exam_enabled', true);
+        foreach (['dokter@senyum.test', 'asisten@senyum.test'] as $who) {
+            $this->as($who)->putJson('/api/settings/clinic', ['odontogram_exam_enabled' => false])->assertForbidden();
+        }
+        $this->as(self::OWNER)->putJson('/api/settings/clinic', ['odontogram_exam_enabled' => 'mati'])->assertUnprocessable()->assertJsonValidationErrors('odontogram_exam_enabled');
+        $this->as(self::OWNER)->putJson('/api/settings/clinic', ['odontogram_exam_enabled' => false])->assertOk()
+            ->assertJsonPath('odontogram_exam_enabled', false)->assertJsonPath('selesai_pin_required', false);
+        $this->as('dokter@senyum.test')->getJson('/api/me')->assertJsonPath('odontogram_exam_enabled', false);
+        $audit = Ctx::runAs($this->tenantA()->id, fn () => AuditEvent::where('action', 'ubah_pengaturan')->sole()->detail);
+        $this->assertEquals(['field' => 'odontogram_exam_enabled', 'from' => true, 'to' => false], $audit);
+        $this->as('dokter@ceria.test')->getJson('/api/me')->assertJsonPath('odontogram_exam_enabled', true); // the other clinic keeps it on
+    }
+
     public function test_validation_and_rbac(): void
     {
         $this->as(self::OWNER)->putJson('/api/settings/clinic', [])->assertUnprocessable();

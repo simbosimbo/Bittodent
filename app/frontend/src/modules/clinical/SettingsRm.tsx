@@ -4,7 +4,7 @@ import type { Me } from '../../shared/session'
 import { getClinicSettings, saveClinicSettings, setSelesaiPin } from './api'
 
 // Pengaturan RM (#55): the one place for the owner's clinic settings (GET/PUT /api/settings/clinic, settings.manage): tenggat koreksi
-// (jam) + "Wajibkan PIN saat Selesai". Whoever may press Selesai sets / changes their own PIN here too (no reporting.read needed).
+// (jam) + "Wajibkan PIN saat Selesai" + "Mode Pemeriksaan awal". Whoever may press Selesai sets / changes their own PIN here too (no reporting.read needed).
 export default function SettingsRmPage({ me, onChanged }: { me: Me; onChanged: () => void }) {
   const canManage = me.permissions.includes('settings.manage')
   const canSign = me.permissions.includes('note.sign')
@@ -20,11 +20,12 @@ export default function SettingsRmPage({ me, onChanged }: { me: Me; onChanged: (
 function ClinicSettingsForm({ onChanged }: { onChanged: () => void }) {
   const [hours, setHours] = useState('')
   const [pin, setPin] = useState(false)
+  const [exam, setExam] = useState(true)
   const [loaded, setLoaded] = useState(false)
   const [msg, setMsg] = useState('')
   const [error, setError] = useState('')
   useEffect(() => {
-    getClinicSettings().then((s) => { setHours(String(s.correction_window_hours)); setPin(s.selesai_pin_required); setLoaded(true) }, (e) => setError(errorText(e)))
+    getClinicSettings().then((s) => { setHours(String(s.correction_window_hours)); setPin(s.selesai_pin_required); setExam(s.odontogram_exam_enabled); setLoaded(true) }, (e) => setError(errorText(e)))
   }, [])
   async function save(e: FormEvent) {
     e.preventDefault()
@@ -32,9 +33,10 @@ function ClinicSettingsForm({ onChanged }: { onChanged: () => void }) {
     const n = Number(hours)
     if (!Number.isInteger(n) || n < 1 || n > 720) return setError('Tenggat koreksi 1–720 jam.')
     try {
-      const s = await saveClinicSettings({ correction_window_hours: n, selesai_pin_required: pin })
+      const s = await saveClinicSettings({ correction_window_hours: n, selesai_pin_required: pin, odontogram_exam_enabled: exam })
       setHours(String(s.correction_window_hours))
       setPin(s.selesai_pin_required)
+      setExam(s.odontogram_exam_enabled)
       setError('')
       setMsg('Pengaturan tersimpan.')
       onChanged()
@@ -47,6 +49,8 @@ function ClinicSettingsForm({ onChanged }: { onChanged: () => void }) {
       <p className="muted small">Bawaan 48 jam (2×24 jam) sejak tindakan difinalkan. Lewat tenggat, koreksi menunggu persetujuan pemilik. Setiap koreksi disimpan sebagai versi baru dengan alasannya; versi lama tetap tersimpan.</p>
       <label className="check"><input type="checkbox" disabled={!loaded} checked={pin} onChange={(e) => setPin(e.target.checked)} /> Wajibkan PIN saat Selesai</label>
       <p className="muted small">Bawaan: mati. Bila nyala, dokter memasukkan PIN 6 angka miliknya setiap menekan Selesai.</p>
+      <label className="check"><input type="checkbox" disabled={!loaded} checked={exam} onChange={(e) => setExam(e.target.checked)} /> Tampilkan mode Pemeriksaan awal di odontogram</label>
+      <p className="muted small">Bawaan: nyala, tidak wajib. Bila mati, odontogram hanya diisi dari tindakan (mode Perawatan).</p>
       {error && <p className="form-error" role="alert">{error}</p>}
       {msg && <p className="notice" role="status">{msg}</p>}
       <div className="toolbar"><button className="btn btn-primary" disabled={!loaded}>Simpan pengaturan</button></div>

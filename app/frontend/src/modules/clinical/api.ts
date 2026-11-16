@@ -80,8 +80,9 @@ export type PendingCorrection = { id: string; reason_type: CorrectionType; reaso
 export const pendingCorrections = () => api<PendingCorrection[]>('/api/procedure-corrections/pending')
 export const decideCorrection = (id: string, decision: 'approve' | 'reject', reason?: string) =>
   api(`/api/procedure-corrections/${id}/${decision}`, { method: 'POST', body: { reason: reason || null } })
-/** Owner only (settings.manage): free-edit window for procedure corrections (hours, default 48) + PIN at Selesai (default off). */
-export type ClinicSettings = { correction_window_hours: number; selesai_pin_required: boolean }
+/** Owner only (settings.manage): free-edit window for procedure corrections (hours, default 48) + PIN at Selesai (default off)
+ *  + Pemeriksaan awal entry mode (default on). */
+export type ClinicSettings = { correction_window_hours: number; selesai_pin_required: boolean; odontogram_exam_enabled: boolean }
 export const getClinicSettings = () => api<ClinicSettings>('/api/settings/clinic')
 export const saveClinicSettings = (body: Partial<ClinicSettings>) => api<ClinicSettings>('/api/settings/clinic', { method: 'PUT', body })
 /** Own 6-digit Selesai PIN: first set without current_pin; change needs it. 403 wrong current PIN / locked. */

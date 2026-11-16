@@ -720,7 +720,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
             {/* OVv2-05: 2D | 3D (and the entry mode) always visible under the title, never folded away on the phone */}
             <div className="odo-switches">
               <Seg label="Tampilan" value={view} onChange={changeView} options={[['2d', '2D'], ['3d', '3D']]} />
-              {editable && view === '2d' && <Seg label="Mode isi" value={mode} onChange={(m) => { setMode(m); setPick(null) }} options={[['perawatan', 'Perawatan'], ['periksa', 'Pemeriksaan awal']]} />}
+              {editable && view === '2d' && me.odontogram_exam_enabled !== false && <Seg label="Mode isi" value={mode} onChange={(m) => { setMode(m); setPick(null) }} options={[['perawatan', 'Perawatan'], ['periksa', 'Pemeriksaan awal']]} />}
             </div>
             {chart.as_of && <p className="notice notice-warn small" role="status">Tampilan riwayat: keadaan pada akhir {chart.as_of} (WIB). Hanya baca.</p>}
             <p className={summary ? 'odo-summary' : 'odo-summary muted'} role="note" aria-label="Ringkasan temuan">{summary || 'Belum ada temuan.'}</p>

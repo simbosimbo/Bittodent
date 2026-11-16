@@ -2,8 +2,8 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { expect, test, vi } from 'vitest'
 import type { Me } from '../../shared/session'
 
-const getClinicSettings = vi.fn().mockResolvedValue({ correction_window_hours: 48, selesai_pin_required: false })
-const saveClinicSettings = vi.fn().mockResolvedValue({ correction_window_hours: 48, selesai_pin_required: true })
+const getClinicSettings = vi.fn().mockResolvedValue({ correction_window_hours: 48, selesai_pin_required: false, odontogram_exam_enabled: true })
+const saveClinicSettings = vi.fn().mockResolvedValue({ correction_window_hours: 48, selesai_pin_required: true, odontogram_exam_enabled: false })
 const setSelesaiPin = vi.fn().mockResolvedValue({ has_pin: true })
 vi.mock('./api', async (orig) => ({ ...(await orig<typeof import('./api')>()),
   getClinicSettings: () => getClinicSettings(), saveClinicSettings: (...a: unknown[]) => saveClinicSettings(...a),
@@ -12,7 +12,7 @@ const { default: SettingsRmPage } = await import('./SettingsRm')
 
 const me = (permissions: string[], selesai = { pin_required: false, has_pin: false }) => ({ permissions, selesai } as unknown as Me)
 
-test('owner edits tenggat koreksi and the PIN requirement (default off) in one form, and sees no own-PIN form', async () => {
+test('owner edits tenggat koreksi, the PIN requirement (default off) and the Pemeriksaan awal mode (default on) in one form, and sees no own-PIN form', async () => {
   const onChanged = vi.fn()
   render(<SettingsRmPage me={me(['settings.manage'])} onChanged={onChanged} />)
   const box = await screen.findByLabelText('Wajibkan PIN saat Selesai')
@@ -27,9 +27,12 @@ test('owner edits tenggat koreksi and the PIN requirement (default off) in one f
   expect(await screen.findByRole('alert')).toHaveTextContent('1–720 jam')
   expect(saveClinicSettings).not.toHaveBeenCalled()
   fireEvent.change(hours, { target: { value: '72' } })
+  const exam = screen.getByLabelText('Tampilkan mode Pemeriksaan awal di odontogram')
+  expect(exam).toBeChecked()
   fireEvent.click(box)
+  fireEvent.click(exam)
   fireEvent.click(save)
-  await waitFor(() => expect(saveClinicSettings).toHaveBeenCalledWith({ correction_window_hours: 72, selesai_pin_required: true }))
+  await waitFor(() => expect(saveClinicSettings).toHaveBeenCalledWith({ correction_window_hours: 72, selesai_pin_required: true, odontogram_exam_enabled: false }))
   await waitFor(() => expect(onChanged).toHaveBeenCalled())
 })
 
