@@ -85,6 +85,13 @@ Angka uang di kanan baris 1 (14/600, `tabular-nums`). Info keselamatan (alergi/p
 
 **Sheet detail:** judul = nama (18/600) + status; lalu pasangan label–nilai (label 12/500 muted di atas, nilai 14/400), urut: waktu, tindakan/keluhan, kursi, dokter, catatan; aksi di bawah.
 
+### Sumber inspirasi komponen (aturan pemilik)
+
+- **HP:** Mobbin MCP, platform mobile (iOS/Android).
+- **Desktop:** Mobbin MCP, platform web.
+- Pola saja, bukan salinan layar. Kanvas Bittodent tetap menang bila bertentangan. 21st.dev dipakai sebagai pelengkap.
+- Bila Mobbin MCP belum terotorisasi di sesi, catat di laporan; jangan menebak isi Mobbin.
+
 ### Inspirasi 21st.dev (pola, bukan kode; dilihat 2026-11-16)
 
 - **Baris daftar:** bingkai 1px tipis, radius 12, satu baris ringkas: badge status kecil (11–12px, latar lembut, tanpa bingkai tebal), nama 500–600, meta di kanan muted, chevron. Banyak baris bertumpuk dengan jarak 8px terlihat rapi tanpa tombol.
