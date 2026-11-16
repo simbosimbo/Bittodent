@@ -748,6 +748,23 @@ test('P2-3: sou entries are drawn but not counted as tindakan, and Selesai lists
   expect(items.slice(1)).toEqual(['Gigi 46: Pencabutan gigi (ICD-9-CM 23.09) · Selesai', 'Pemeriksaan: 2 gigi sehat (sou)'])
 })
 
+test('P2-5 phone: the tooth sheet lists this visit\'s drafts with Hapus for my own; Hapus discards it and the sheet stays open to pick again', async () => {
+  vi.stubGlobal('matchMedia', (q: string) => ({ media: q, matches: 412 <= Number(q.match(/(\d+)px/)?.[1] ?? 0), addEventListener() {}, removeEventListener() {} }))
+  const mineRow = draftRow('x1', 46, 'hilang', 'selesai', '23.09', 'Pencabutan gigi')
+  const other = draftRow('x2', 46, 'karies', 'ada_di_klinik_ini', null, 'Karies', 'u9') // another user's draft: theirs to discard
+  const signed = { ...draftRow('f9', 46, 'tambalan_komposit', 'selesai', '23.2', 'Tambalan komposit'), state: 'final', finalized_at: '2026-01-04T03:00:00Z' }
+  renderChart({ findings: [], procedures: [signed], procedure_drafts: [mineRow, other], visits: [{ ...visit, draft_procedures: [mineRow, other] }] })
+  await screen.findByRole('region', { name: 'Odontogram' })
+  fireEvent.click(document.getElementById('t46-O')!)
+  const list = within(screen.getByRole('list', { name: 'Temuan gigi 46' }))
+  expect(list.getAllByRole('button').map((b) => b.getAttribute('aria-label'))).toEqual(['Hapus draf Gigi 46: Pencabutan gigi (ICD-9-CM 23.09)'])
+  fireEvent.click(list.getByRole('button', { name: /Hapus draf/ }))
+  await waitFor(() => expect(vi.mocked(fetch).mock.calls.filter(([, i]) => (i as RequestInit | undefined)?.method === 'DELETE').map(([u]) => u))
+    .toEqual(['/api/procedures/x1']))
+  expect(await screen.findByText('Draf dihapus.')).toBeInTheDocument()
+  expect(screen.getByRole('region', { name: 'Isi gigi 46' })).toBeInTheDocument() // same sheet: pick the right one now
+})
+
 // --- #70 Dokter mode: one-tap procedure, SOAP template, Selesai saves first, phone sticky bar (synthetic data) ---
 function dokterChart(w: number, appt?: string) {
   localStorage.clear()

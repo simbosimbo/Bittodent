@@ -625,7 +625,12 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
               {f.state === 'draft' && <span className="badge badge-draft">Draf</span>}</li>
           ))}
           {procs.filter((x) => x.tooth === pick.tooth).map((x) => (
-            <li key={x.id}><StatusChip status={x.status} /> {procedureText(x)}{x.state === 'draft' && <span className="badge badge-draft">Draf</span>}</li>
+            <li key={x.id}><StatusChip status={x.status} /> {procedureText(x)}{x.state === 'draft' && <span className="badge badge-draft">Draf</span>}
+              {/* P2-5: fix a wrong pick in place = remove own draft here, pick again below */}
+              {editable && x.state === 'draft' && x.visit_id === visit?.id && x.created_by === me.user.id && (
+                <button type="button" className="btn btn-xs btn-ghost" aria-label={`Hapus draf ${procedureText(x)}`}
+                  onClick={() => run(() => discardProcedure(x.id), 'Draf dihapus.')}>Hapus</button>
+              )}</li>
           ))}
         </ul>
       ) : <p className="muted small">Belum ada temuan di gigi ini.</p>}
