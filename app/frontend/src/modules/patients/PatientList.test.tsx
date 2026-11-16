@@ -55,8 +55,8 @@ test('long names wrap (no ellipsis/nowrap rule), initials avatar, No. RM from th
   expect(rule).toMatch(/white-space:\s*normal/)
   expect(css).not.toMatch(/\.pl-name[^{]*\{[^}]*(ellipsis|nowrap)/)
   const row = name.closest('tr')!
-  expect(within(row).getByText('NA')).toHaveClass('avatar')
-  expect(within(screen.getByText('Sari Sintetis').closest('tr')!).getByText('SS')).toHaveClass('avatar')
+  expect(within(row).getByText('NA')).toBeInTheDocument() // initials avatar
+  expect(within(screen.getByText('Sari Sintetis').closest('tr')!).getByText('SS')).toBeInTheDocument()
   expect(within(screen.getByText('Sari Sintetis').closest('tr')!).getByText('BT-000214')).toBeInTheDocument()
   expect(within(screen.getByText('Budi Contoh').closest('tr')!).getByText('BT-000215')).toBeInTheDocument()
   expect(row.querySelectorAll('td')[1]).toHaveTextContent('Belum ada') // p3 has no mrn: no invented number
@@ -69,13 +69,14 @@ test('table: last visit in Asia/Jakarta, dentist, care status chip; honest dashe
   const r1 = rowOf('Sari Sintetis').querySelectorAll('td')
   expect(r1[3]).toHaveTextContent('14 Nov 2026') // 17:30 UTC on the 13th = 00:30 WIB on the 14th
   expect(r1[4]).toHaveTextContent('drg. Andi Contoh')
-  expect(within(r1[5] as HTMLElement).getByText('Dalam perawatan')).toHaveClass('chip', 'chip-aktif')
-  expect(within(rowOf('Budi Contoh')).getByText('Perlu kontrol')).toHaveClass('chip', 'chip-kontrol')
+  const care = (el: HTMLElement, text: string) => within(el).getByText(text).closest('[data-care]')!.getAttribute('data-care')
+  expect(care(r1[5] as HTMLElement, 'Dalam perawatan')).toBe('dalam_perawatan')
+  expect(care(rowOf('Budi Contoh'), 'Perlu kontrol')).toBe('perlu_kontrol')
   const r3 = rowOf('Nadia Anak Contoh Wijaya Utama').querySelectorAll('td')
   expect(r3[3]).toHaveTextContent('Belum ada')
   expect(r3[3]).not.toHaveTextContent(/\d/) // no fabricated date
   expect(r3[4]).toHaveTextContent('Belum ada')
-  expect(within(r3[5] as HTMLElement).getByText('Tidak aktif')).toHaveClass('chip-neutral')
+  expect(care(r3[5] as HTMLElement, 'Tidak aktif')).toBe('tidak_aktif')
   expect(screen.queryByText('Aktif')).toBeNull() // admin status is not the list status
 })
 
@@ -83,10 +84,11 @@ test('allergy chips from the list payload only (no /alerts per row)', async () =
   const f = list()
   await screen.findByText('Sari Sintetis')
   const r1 = rowOf('Sari Sintetis')
-  expect(within(r1).getByText('Penisilin')).toHaveClass('chip', 'chip-alergi')
-  expect(within(r1).getByText('Lateks')).toHaveClass('chip-alergi')
+  const allergies = within(r1).getByText('Alergi:').parentElement!
   expect(within(r1).getByText('Alergi:')).toHaveClass('sr-only')
-  expect(rowOf('Budi Contoh').querySelector('.chip-alergi')).toBeNull()
+  expect(allergies).toContainElement(within(r1).getByText('Penisilin'))
+  expect(allergies).toContainElement(within(r1).getByText('Lateks'))
+  expect(within(rowOf('Budi Contoh')).queryByText('Alergi:')).toBeNull()
   expect(f.mock.calls.some(([u]) => String(u).includes('/alerts'))).toBe(false)
 })
 
@@ -128,7 +130,7 @@ test('rows without care fields (older API) show dashes and do not crash', async 
   const cells = rowOf('Tanpa Status').querySelectorAll('td')
   expect(cells[3]).toHaveTextContent('Belum ada')
   expect(cells[5]).toHaveTextContent('Belum ada')
-  expect(document.querySelector('.chip')).toBeNull()
+  expect(document.querySelector('[data-care]')).toBeNull()
 })
 
 const viewport = (w: number) => vi.stubGlobal('matchMedia', (q: string) => ({ media: q, matches: w <= 720, addEventListener() {}, removeEventListener() {} }))
@@ -139,23 +141,47 @@ test('390px: cards instead of the table; Rekam Medis link works without opening 
   const cards = await screen.findByRole('list', { name: 'Daftar pasien' })
   expect(document.querySelector('.pl-table')).toBeNull()
   expect(within(cards).getAllByRole('listitem')).toHaveLength(3)
-  const card = within(cards).getByText('Sari Sintetis').closest('li')!
-  expect(card).toHaveTextContent('Perempuan')
-  expect(card).toHaveTextContent('BT-000214')
-  expect(within(card).getByText('Dalam perawatan')).toHaveClass('chip-aktif')
-  expect(card).toHaveTextContent('Terakhir: 14 Nov 2026 · drg. Andi Contoh')
-  expect(card).toHaveTextContent(/No\. RM BT-000214 · \d+ th · Perempuan/)
-  expect(within(card).getByText('Penisilin')).toHaveClass('chip-alergi')
+  const item = within(cards).getByText('Sari Sintetis').closest('li')!
+  expect(item).toHaveTextContent('Perempuan')
+  expect(item).toHaveTextContent('BT-000214')
+  expect(within(item).getByText('Dalam perawatan').closest('[data-care]')).toHaveAttribute('data-care', 'dalam_perawatan')
+  expect(item).toHaveTextContent('Terakhir: 14 Nov 2026 · drg. Andi Contoh')
+  expect(item).toHaveTextContent(/No\. RM BT-000214 · \d+ th · Perempuan/)
+  expect(within(item).getByText('Alergi:').parentElement).toContainElement(within(item).getByText('Penisilin'))
   const never = within(cards).getByText('Nadia Anak Contoh Wijaya Utama').closest('li')!
   expect(never).toHaveTextContent('Belum ada kunjungan')
-  expect(within(never).getByText('Tidak aktif')).toHaveClass('chip-neutral')
-  expect(within(card).getByRole('link', { name: 'Sari Sintetis' })).toHaveAttribute('href', '#/pasien/p1')
-  const rm = within(card).getByRole('link', { name: 'Rekam Medis Sari Sintetis' })
+  expect(within(never).getByText('Tidak aktif').closest('[data-care]')).toHaveAttribute('data-care', 'tidak_aktif')
+  expect(within(item).getByRole('link', { name: 'Sari Sintetis' })).toHaveAttribute('href', '#/pasien/p1')
+  const rm = within(item).getByRole('link', { name: 'Rekam Medis Sari Sintetis' })
   expect(rm).toHaveAttribute('href', '#/rekam-medis/p1')
   fireEvent.click(rm)
   expect(location.hash).not.toBe('#/pasien/p1')
   fireEvent.click(within(cards).getByText('Budi Contoh').closest('li')!)
   expect(location.hash).toBe('#/pasien/p2')
+})
+
+test('390px: the whole card body is one link named by the patient (PD08 touch target), meta as its description', async () => {
+  viewport(390)
+  list()
+  const cards = await screen.findByRole('list', { name: 'Daftar pasien' })
+  const link = within(cards).getByRole('link', { name: 'Sari Sintetis' })
+  expect(link).toHaveAccessibleDescription(/No\. RM BT-000214/)
+  expect(link).toContainElement(within(cards).getByText('SS'))
+  expect(link).toContainElement(within(cards).getAllByText('Dalam perawatan')[0])
+})
+
+test('390px, dentist: "Pasien saya" chip is the default dentist filter; "Semua dokter" lifts it', async () => {
+  viewport(390)
+  const f = serve()
+  render(<PatientList canCreate={false} meId="d1" />)
+  const mine = await screen.findByRole('button', { name: 'Pasien saya' })
+  await waitFor(() => expect(mine).toHaveAttribute('aria-pressed', 'true'))
+  await waitFor(() => expect(f.mock.calls.some(([u]) => String(u).includes('dentist_id=d1'))).toBe(true))
+  expect(await screen.findByText('Sari Sintetis')).toBeInTheDocument()
+  expect(screen.queryByText('Budi Contoh')).toBeNull()
+  expect(screen.queryByRole('combobox', { name: 'Dokter' })).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: 'Semua dokter' }))
+  expect(await screen.findByText('Budi Contoh')).toBeInTheDocument()
 })
 
 test('390px: title "Pasien" with a loaded count, short placeholder, FAB only with patient.create', async () => {
@@ -169,7 +195,7 @@ test('390px: title "Pasien" with a loaded count, short placeholder, FAB only wit
   const fab = screen.getByRole('link', { name: 'Pasien baru' })
   expect(fab).toHaveClass('fab')
   expect(fab).toHaveAttribute('href', '#/pasien/baru')
-  expect(document.querySelector('.pl-toolbar .btn-primary')).toBeNull()
+  expect(screen.getAllByRole('link', { name: 'Pasien baru' })).toHaveLength(1) // FAB only, no toolbar button
   unmount()
   render(<PatientList canCreate={false} />)
   await screen.findByRole('list', { name: 'Daftar pasien' })

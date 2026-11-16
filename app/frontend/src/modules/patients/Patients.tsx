@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Avatar, Button, buttonVariants, Card, Chip, Label, SearchField, ToggleButton } from '@heroui/react'
 import { PageSkeleton } from '../../shared/ui/Skeleton'
 import { errorText } from '../../shared/api/http'
 import { initials, TZ } from '../../shared/format'
@@ -57,117 +58,141 @@ export function usePatientSearch(q: string, delay = 300, filter: ListFilter = {}
 }
 
 // Care status (derived server-side by Patients\Domain\CareStatus); admin patient.status is not shown on the list.
-const CARE: Record<string, [string, string]> = {
-  dalam_perawatan: ['Dalam perawatan', 'chip-aktif'], perlu_kontrol: ['Perlu kontrol', 'chip-kontrol'], tidak_aktif: ['Tidak aktif', 'chip-neutral'],
+const CARE: Record<string, [string, ChipColor]> = {
+  dalam_perawatan: ['Dalam perawatan', 'accent'], perlu_kontrol: ['Perlu kontrol', 'warning'], tidak_aktif: ['Tidak aktif', 'default'],
 }
+type ChipColor = 'default' | 'accent' | 'success' | 'warning' | 'danger'
 // Value not in the API (no visit yet; mrn on old draft rows): say so instead of inventing values.
 const Missing = () => <><span aria-hidden="true">—</span><span className="sr-only">Belum ada</span></>
 const day = (iso: string) => new Intl.DateTimeFormat('id-ID', { timeZone: TZ, day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(iso))
-const Care = ({ s }: { s?: string }) => s ? <span className={'chip ' + (CARE[s]?.[1] ?? 'chip-neutral')}>{CARE[s]?.[0] ?? s}</span> : null
+const Care = ({ s }: { s?: string }) => s
+  ? <Chip size="sm" variant="soft" color={CARE[s]?.[1] ?? 'default'} className="pl-chip" data-care={s}>{CARE[s]?.[0] ?? s}</Chip> : null
 const Allergies = ({ a }: { a?: string[] }) => a?.length
-  ? <span className="pl-allergies"><span className="sr-only">Alergi: </span>{a.map((x) => <span key={x} className="chip chip-alergi">{x}</span>)}</span>
+  ? <span className="pl-allergies"><span className="sr-only">Alergi: </span>{a.map((x) => <Chip key={x} size="sm" variant="soft" color="danger" className="pl-chip pl-alergi">{x}</Chip>)}</span>
   : null
+const Initials = ({ name }: { name: string }) => (
+  <Avatar size="sm" color="accent" variant="soft" className="pl-avatar" aria-hidden="true"><Avatar.Fallback>{initials(name) || '?'}</Avatar.Fallback></Avatar>
+)
 
-export function PatientList({ canCreate, canChart = false, initialQ = '' }: { canCreate: boolean; canChart?: boolean; initialQ?: string }) {
+/** `meId`: the signed-in user; when they are a dentist the phone list offers "Pasien saya" (PD08) and starts there. */
+export function PatientList({ canCreate, canChart = false, initialQ = '', meId }: { canCreate: boolean; canChart?: boolean; initialQ?: string; meId?: string }) {
   const [q, setQ] = useState(initialQ)
   useEffect(() => { setQ(initialQ) }, [initialQ])
   const [care, setCare] = useState('')
-  const [dentist, setDentist] = useState('')
+  const [picked, setDentist] = useState<string | null>(null) // null = not chosen yet
   const [dentists, setDentists] = useState<{ id: string; name: string }[]>([])
-  const { rows, next, error, loading, more } = usePatientSearch(q, 300, { care_status: care, dentist_id: dentist })
   const mobile = useIsMobile()
+  const mine = !!meId && dentists.some((d) => d.id === meId)
+  const dentist = picked ?? (mobile && mine ? meId! : '')
+  const { rows, next, error, loading, more } = usePatientSearch(q, 300, { care_status: care, dentist_id: dentist })
   useEffect(() => { getDentists().then((r) => setDentists(r.data), () => setDentists([])) }, [])
   // Filters run on the server (whole list, not just the loaded page): no counts, the API has no totals.
   const filters: [string, string][] = [['', 'Semua'], ...Object.entries(CARE).map(([k, [label]]): [string, string] => [k, label])]
   const filtered = !!(care || dentist)
-  return (
+  const chips = (label: string, items: [string, string][], value: string, set: (k: string) => void) => (
+    <div className="pl-filters" role="group" aria-label={label}>
+      {items.map(([k, text]) => <ToggleButton key={k} className="pl-filt" isSelected={value === k} onChange={() => set(k)}>{text}</ToggleButton>)}
+    </div>
+  )
+  const body = (
     <>
-      <div className="page-head pl-head">
-        <h1 className="shell-dup-title">{mobile ? 'Pasien' : 'Daftar Pasien'}</h1>
-        {/* Loaded rows only (the API has no total): "+" when more pages exist. */}
-        {mobile && rows && <span className="muted" aria-live="polite">{rows.length}{next ? '+' : ''} pasien</span>}
-      </div>
-      <div className="card">
-        <div className="pl-toolbar">
-          <label className="pl-search">Cari pasien
-            <span className="pl-search-box"><Icon d={ICONS.search} size={18} />
-              <input type="search" placeholder={mobile ? 'Cari nama atau No. RM' : 'Awalan nama, No. RM, atau NIK / no. HP lengkap'} value={q} onChange={(e) => setQ(e.target.value)} /></span>
-          </label>
-          <label className="pl-dentist">Dokter
-            <select value={dentist} onChange={(e) => setDentist(e.target.value)}>
+      <div className="pl-toolbar">
+        <SearchField className="pl-search" value={q} onChange={setQ} variant={mobile ? 'primary' : 'secondary'}>
+          <Label className={mobile ? 'sr-only' : 'pl-label'}>Cari pasien</Label>
+          <SearchField.Group className="pl-field"><SearchField.SearchIcon />
+            <SearchField.Input placeholder={mobile ? 'Cari nama atau No. RM' : 'Awalan nama, No. RM, atau NIK / no. HP lengkap'} /></SearchField.Group>
+        </SearchField>
+        {!(mobile && mine) && (
+          <div className="pl-dentist">
+            <Label htmlFor="pl-dentist" className="pl-label">Dokter</Label>
+            {/* shortcut: native select styled as a HeroUI field; Pro NativeSelect does not resolve under vitest/vite from the linked install (see report). */}
+            <select id="pl-dentist" className="pl-field pl-select" value={dentist} onChange={(e) => setDentist(e.target.value)}>
               <option value="">Semua dokter</option>
               {dentists.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
-          </label>
-          {canCreate && (mobile
-            ? <a className="fab" href="#/pasien/baru" aria-label="Pasien baru"><Icon d={ICONS.plus} size={26} /></a>
-            : <a className="btn btn-primary" href="#/pasien/baru">Pasien baru</a>)}
-        </div>
-        <div className="pl-filters" role="group" aria-label="Saring status perawatan">
-          {filters.map(([k, label]) => (
-            <button key={k} type="button" aria-pressed={care === k} onClick={() => setCare(k)}>{label}</button>
-          ))}
-        </div>
-        {error ? <p className="state-card error">{error}</p>
-          : !rows ? <PageSkeleton variant="list" />
-          : rows.length === 0 ? <p className="state-card muted">{q ? `Tidak ada pasien yang cocok dengan “${q}”.` : filtered ? 'Tidak ada pasien dengan saringan ini.' : 'Belum ada pasien.'}</p>
-          : mobile ? (
-            // Mobile: one card per patient instead of the wide table; same row/link rules.
-            <ul className={'pl-cards' + (loading ? ' is-loading' : '')} aria-label="Daftar pasien">
+          </div>
+        )}
+        {canCreate && (mobile
+          ? <a className="fab" href="#/pasien/baru" aria-label="Pasien baru"><Icon d={ICONS.plus} size={26} /></a>
+          : <a className={buttonVariants({ variant: 'primary' }) + ' pl-new'} href="#/pasien/baru">Pasien baru</a>)}
+      </div>
+      {mobile && mine && chips('Saring dokter', [[meId!, 'Pasien saya'], ['', 'Semua dokter']], dentist, setDentist)}
+      {chips('Saring status perawatan', filters, care, setCare)}
+      {/* Loaded rows only (the API has no total): "+" when more pages exist. */}
+      {mobile && rows && rows.length > 0 && <p className="pl-sum" aria-live="polite">{rows.length}{next ? '+' : ''} pasien</p>}
+      {error ? <p className="state-card error">{error}</p>
+        : !rows ? <PageSkeleton variant="list" />
+        : rows.length === 0 ? <p className="state-card muted">{q ? `Tidak ada pasien yang cocok dengan “${q}”.` : filtered ? 'Tidak ada pasien dengan saringan ini.' : 'Belum ada pasien.'}</p>
+        : mobile ? (
+          // Phone (PD08): one card per patient; the whole card body is one link (≥44px), Rekam Medis is its own button below.
+          <ul className={'pl-cards' + (loading ? ' is-loading' : '')} aria-label="Daftar pasien">
+            {rows.map((p) => (
+              <li key={p.id} onClick={() => (location.hash = '/pasien/' + p.id)}>
+                <Card className="pl-hit">
+                  <a href={'#/pasien/' + p.id} className="pl-hit-main" aria-labelledby={'pl-n-' + p.id} aria-describedby={'pl-m-' + p.id}>
+                    <Initials name={p.name} />
+                    <span className="pl-card-body">
+                      <span id={'pl-n-' + p.id} className="pl-name-text">{p.name}</span>
+                      <span id={'pl-m-' + p.id} className="pl-meta">
+                        <span><span className="pl-mrn">{p.mrn ? <>No. RM <strong>{p.mrn}</strong></> : 'No. RM belum ada'}</span>
+                          {[age(p.dob), p.sex && (SEX[p.sex] ?? p.sex), PAYER[p.payer_type] ?? p.payer_type].filter(Boolean).map((x) => ' · ' + x)}</span>
+                        <span>{p.last_visit_at ? `Terakhir: ${day(p.last_visit_at)}${p.last_dentist_name ? ' · ' + p.last_dentist_name : ''}` : 'Belum ada kunjungan'}</span>
+                      </span>
+                      {(p.care_status || !!p.allergies?.length) && <span className="pl-chips"><Care s={p.care_status} /><Allergies a={p.allergies} /></span>}
+                    </span>
+                    <span className="pl-chevron" aria-hidden="true"><Icon d={ICONS.right} size={18} /></span>
+                  </a>
+                  {canChart && <a className={buttonVariants({ variant: 'tertiary' }) + ' pl-rm'} href={'#/rekam-medis/' + p.id}
+                    aria-label={'Rekam Medis ' + p.name} onClick={(e) => e.stopPropagation()}>Rekam Medis</a>}
+                </Card>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <table className={'table pl-table' + (loading ? ' is-loading' : '')}>
+            <thead><tr><th className="pl-col-name">Pasien</th><th>No. RM</th><th>Umur</th><th>Kunjungan terakhir</th><th>Dokter</th><th>Status</th><th><span className="sr-only">Aksi</span></th></tr></thead>
+            <tbody>
               {rows.map((p) => (
-                <li key={p.id} onClick={() => (location.hash = '/pasien/' + p.id)}>
-                  <span className="avatar" aria-hidden="true">{initials(p.name) || '?'}</span>
-                  <div className="pl-card-body">
-                    <a href={'#/pasien/' + p.id} className="strong pl-name-text">{p.name}</a>
-                    <span className="muted small"><span className="pl-mrn">{p.mrn ? <>No. RM <strong>{p.mrn}</strong></> : 'No. RM belum ada'}</span>
-                      {[age(p.dob), p.sex && (SEX[p.sex] ?? p.sex), PAYER[p.payer_type] ?? p.payer_type].filter(Boolean).map((x) => ' · ' + x)}</span>
-                    <Allergies a={p.allergies} />
-                    <Care s={p.care_status} />
-                    <span className="muted small">{p.last_visit_at ? `Terakhir: ${day(p.last_visit_at)}${p.last_dentist_name ? ' · ' + p.last_dentist_name : ''}` : 'Belum ada kunjungan'}</span>
+                <tr key={p.id} onClick={() => (location.hash = '/pasien/' + p.id)}>
+                  <td><div className="pl-name">
+                    <Initials name={p.name} />
+                    <span><a href={'#/pasien/' + p.id} className="strong pl-name-text">{p.name}</a>
+                      <span className="muted small pl-payer">{PAYER[p.payer_type] ?? p.payer_type}</span>
+                      <Allergies a={p.allergies} /></span>
+                  </div></td>
+                  <td className={p.mrn ? 'nowrap' : 'muted'}>{p.mrn ?? <Missing />}</td>
+                  <td title={p.dob ? 'Lahir ' + dob(p.dob) : undefined}>{age(p.dob) || <Missing />}</td>
+                  <td className={p.last_visit_at ? undefined : 'muted'}>{p.last_visit_at ? day(p.last_visit_at) : <Missing />}</td>
+                  <td className={p.last_dentist_name ? undefined : 'muted'}>{p.last_dentist_name ?? <Missing />}</td>
+                  <td>{p.care_status ? <Care s={p.care_status} /> : <Missing />}</td>
+                  <td className="cell-action">
                     {canChart && <a className="btn-link row-action" href={'#/rekam-medis/' + p.id}
                       aria-label={'Rekam Medis ' + p.name} onClick={(e) => e.stopPropagation()}>Rekam Medis</a>}
-                  </div>
-                  <span className="pl-chevron" aria-hidden="true"><Icon d={ICONS.right} size={18} /></span>
-                </li>
+                    <span className="pl-chevron" aria-hidden="true"><Icon d={ICONS.right} size={18} /></span>
+                  </td>
+                </tr>
               ))}
-            </ul>
-          ) : (
-            <table className={'table pl-table' + (loading ? ' is-loading' : '')}>
-              <thead><tr><th className="pl-col-name">Pasien</th><th>No. RM</th><th>Umur</th><th>Kunjungan terakhir</th><th>Dokter</th><th>Status</th><th><span className="sr-only">Aksi</span></th></tr></thead>
-              <tbody>
-                {rows.map((p) => (
-                  <tr key={p.id} onClick={() => (location.hash = '/pasien/' + p.id)}>
-                    <td><div className="pl-name">
-                      <span className="avatar" aria-hidden="true">{initials(p.name) || '?'}</span>
-                      <span><a href={'#/pasien/' + p.id} className="strong pl-name-text">{p.name}</a>
-                        <span className="muted small pl-payer">{PAYER[p.payer_type] ?? p.payer_type}</span>
-                        <Allergies a={p.allergies} /></span>
-                    </div></td>
-                    <td className={p.mrn ? 'nowrap' : 'muted'}>{p.mrn ?? <Missing />}</td>
-                    <td title={p.dob ? 'Lahir ' + dob(p.dob) : undefined}>{age(p.dob) || <Missing />}</td>
-                    <td className={p.last_visit_at ? undefined : 'muted'}>{p.last_visit_at ? day(p.last_visit_at) : <Missing />}</td>
-                    <td className={p.last_dentist_name ? undefined : 'muted'}>{p.last_dentist_name ?? <Missing />}</td>
-                    <td>{p.care_status ? <Care s={p.care_status} /> : <Missing />}</td>
-                    <td className="cell-action">
-                      {canChart && <a className="btn-link row-action" href={'#/rekam-medis/' + p.id}
-                        aria-label={'Rekam Medis ' + p.name} onClick={(e) => e.stopPropagation()}>Rekam Medis</a>}
-                      <span className="pl-chevron" aria-hidden="true"><Icon d={ICONS.right} size={18} /></span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        {next && <button className="btn btn-block" onClick={more}>Muat lebih banyak</button>}
-      </div>
+            </tbody>
+          </table>
+        )}
+      {next && <Button variant="secondary" fullWidth className="pl-more" onPress={more}>Muat lebih banyak</Button>}
     </>
+  )
+  return (
+    <div className={mobile ? 'pl-page' : undefined}>
+      <div className="page-head pl-head">
+        <h1 className="shell-dup-title">{mobile ? 'Pasien' : 'Daftar Pasien'}</h1>
+      </div>
+      {/* Phone: no outer card (PD08), the patient cards sit on the page. Desktop keeps the one card around toolbar + table. */}
+      {mobile ? body : <Card className="pl-panel">{body}</Card>}
+    </div>
   )
 }
 
 export function PatientDetail({ id, canChart = false }: { id: string; canChart?: boolean }) {
   return (
     <PatientPage id={id} tab="pasien" canChart={canChart}
-      actions={canChart ? <a className="btn btn-primary" href={`#/rekam-medis/${id}`}>Rekam Medis</a> : undefined}>
+      actions={canChart ? <a className={buttonVariants({ variant: 'primary' })} href={`#/rekam-medis/${id}`}>Rekam Medis</a> : undefined}>
       {(p) => {
         const masked = p.nik?.includes('*')
         const rows: [string, string][] = [
@@ -178,7 +203,7 @@ export function PatientDetail({ id, canChart = false }: { id: string; canChart?:
           ['Alamat', p.address ?? '—'],
           ['Penjamin', [PAYER[p.payer_type] ?? p.payer_type, p.payer_name, p.payer_member_no, p.payer_class].filter(Boolean).join(' · ')],
         ]
-        return <div className="card"><dl className="details">{rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd className={k.startsWith('NIK') ? 'mono' : ''}>{v}</dd></div>)}</dl></div>
+        return <Card className="pt-card"><dl className="details">{rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd className={k.startsWith('NIK') ? 'mono' : ''}>{v}</dd></div>)}</dl></Card>
       }}
     </PatientPage>
   )

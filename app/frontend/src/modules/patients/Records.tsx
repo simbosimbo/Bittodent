@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { Avatar, Button, Card, Chip } from '@heroui/react'
 import { ApiError, errorText } from '../../shared/api/http'
 import { setActivePatient } from '../../shared/activePatient'
 import { fmtDateTime, initials } from '../../shared/format'
@@ -28,13 +29,13 @@ export function PatientPage({ id, tab, canChart, actions, alerts, status, childr
     getPatient(id).then((x) => { if (!live) return; setP(x); setActivePatient({ id: x.id, name: x.name }) }, (e) => { if (live) setError(e?.status === 404 ? 'Pasien tidak ditemukan.' : errorText(e)) })
     return () => { live = false }
   }, [id])
-  if (error) return <div className="card state-card error">{error} <a href="#/pasien">Kembali</a></div>
+  if (error) return <Card className="state-card error">{error} <a href="#/pasien">Kembali</a></Card>
   if (!p) return <PageSkeleton variant="record" />
   return (
     <>
       <nav className="crumbs small" aria-label="Breadcrumb"><a href="#/pasien">Daftar Pasien</a> <span aria-hidden="true">›</span> <span aria-current="page">{p.name}</span></nav>
       <div className="patient-head" ref={head}>
-        <span className="avatar avatar-lg" aria-hidden="true">{initials(p.name)}</span>
+        <Avatar size="lg" color="accent" variant="soft" className="pt-avatar-lg" aria-hidden="true"><Avatar.Fallback>{initials(p.name)}</Avatar.Fallback></Avatar>
         <div className="patient-head-main">
           <div className="patient-head-title">
             <h1>{p.name}</h1>
@@ -97,36 +98,36 @@ export function FamilyPage({ id, canChart }: { id: string; canChart: boolean }) 
     return () => { live = false }
   }, [id])
   return (
-    <PatientPage id={id} tab="keluarga" canChart={canChart}>{() => error ? <div className="card state-card error">{error}</div> : !f ? <PageSkeleton variant="record" /> : (
+    <PatientPage id={id} tab="keluarga" canChart={canChart}>{() => error ? <Card className="state-card error">{error}</Card> : !f ? <PageSkeleton variant="record" /> : (
       <div className="grid-2 gap">
-        <div className="card">
+        <Card className="pt-card">
           <h2>Anggota keluarga {f.household?.name && <span className="muted">· {f.household.name}</span>}</h2>
           {!f.household ? <p className="muted empty">Belum tergabung dalam keluarga.</p> : (
             <ul className="member-list">
               {f.household.members.map((m) => (
                 <li key={m.id} className={m.id === id ? 'is-self' : undefined}>
-                  <span className="avatar" aria-hidden="true">{m.name.charAt(0)}</span>
+                  <Avatar size="sm" color="accent" variant="soft" className="pl-avatar" aria-hidden="true"><Avatar.Fallback>{m.name.charAt(0)}</Avatar.Fallback></Avatar>
                   <div className="grow"><div className="strong">{m.name}</div><div className="muted small">{dob(m.dob)} {age(m.dob)}</div></div>
-                  {f.guarantor?.id === m.id && <span className="chip chip-done">Penanggung biaya</span>}
-                  {m.id === id ? <span className="chip chip-neutral">Pasien ini</span> : <a href={'#/keluarga/' + m.id} className="member-switch">Jadikan aktif</a>}
+                  {f.guarantor?.id === m.id && <Chip size="sm" variant="soft" color="success" className="pl-chip">Penanggung biaya</Chip>}
+                  {m.id === id ? <Chip size="sm" variant="soft" className="pl-chip">Pasien ini</Chip> : <a href={'#/keluarga/' + m.id} className="member-switch">Jadikan aktif</a>}
                 </li>
               ))}
             </ul>
           )}
-        </div>
+        </Card>
         <div className="stack">
-          <div className="card">
+          <Card className="pt-card">
             <h2>Penanggung biaya</h2>
             <p>{f.guarantor ? <a href={'#/pasien/' + f.guarantor.id} className="strong guarantor-link">{f.guarantor.name}</a> : 'Bayar sendiri'}</p>
-          </div>
-          <div className="card">
-            <h2>Wali {f.is_minor && <span className="chip chip-checked_in">Pasien di bawah umur</span>}</h2>
+          </Card>
+          <Card className="pt-card">
+            <h2>Wali {f.is_minor && <Chip size="sm" variant="soft" color="warning" className="pl-chip">Pasien di bawah umur</Chip>}</h2>
             {f.guardians.length === 0 ? <p className="muted empty">{f.is_minor ? 'Belum ada wali tercatat.' : 'Tidak ada wali.'}</p> : (
               <dl className="details">
                 {f.guardians.map((g) => <div key={g.id}><dt>{REL[g.relationship] ?? g.relationship}</dt><dd>{g.name}{g.phone && <span className="muted small"> · {g.phone}</span>}</dd></div>)}
               </dl>
             )}
-          </div>
+          </Card>
         </div>
       </div>
     )}</PatientPage>
@@ -172,11 +173,11 @@ export function MedicalHistoryPage({ id, canChart, canEdit }: { id: string; canC
   const c = h?.current
   return (
     <PatientPage id={id} tab="riwayat-medis" canChart={canChart}
-      actions={canEdit && h && !edit ? <button className="btn btn-primary" onClick={start}>{c ? 'Perbarui riwayat medis' : 'Isi riwayat medis'}</button> : undefined}>
-      {() => error ? <div className="card state-card error">{error}</div> : !h ? <PageSkeleton variant="record" /> : (
+      actions={canEdit && h && !edit ? <Button onPress={start}>{c ? 'Perbarui riwayat medis' : 'Isi riwayat medis'}</Button> : undefined}>
+      {() => error ? <Card className="state-card error">{error}</Card> : !h ? <PageSkeleton variant="record" /> : (
         <div className="grid-2 gap">
           {edit ? (
-            <form className="card" onSubmit={save}>
+            <Card className="pt-card"><form onSubmit={save}>
               <h2>Perbarui riwayat medis</h2>
               <p className="muted small">Satu baris per butir. Menyimpan membuat versi baru; versi lama tidak diubah.</p>
               {(['allergies', 'problems', 'medications'] as const).map((k) => (
@@ -186,10 +187,10 @@ export function MedicalHistoryPage({ id, canChart, canEdit }: { id: string; canC
               <label>Catatan penting<textarea rows={2} maxLength={500} value={edit.urgent_note} onChange={(e) => setEdit({ ...edit, urgent_note: e.target.value })} /></label>
               <label className="check"><input type="checkbox" checked={edit.premed} onChange={(e) => setEdit({ ...edit, premed: e.target.checked })} /> Perlu premedikasi sebelum tindakan</label>
               {msg && <p className="form-error">{msg}</p>}
-              <div className="dialog-actions"><button type="button" className="btn" onClick={() => setEdit(null)}>Batal</button><button className="btn btn-primary">Simpan versi baru</button></div>
-            </form>
+              <div className="dialog-actions"><Button variant="secondary" className="pt-btn" onPress={() => setEdit(null)}>Batal</Button><Button type="submit" className="pt-btn">Simpan versi baru</Button></div>
+            </form></Card>
           ) : (
-            <div className="card">
+            <Card className="pt-card">
               <h2>Riwayat medis terkini {c && <span className="muted">· versi {c.version}</span>}</h2>
               {msg && <p className="muted">{msg}</p>}
               {!c ? <p className="muted empty">Belum diisi.</p> : (
@@ -201,21 +202,21 @@ export function MedicalHistoryPage({ id, canChart, canEdit }: { id: string; canC
                   <div><dt>Obat rutin</dt><dd><List items={c.medications} /></dd></div>
                 </dl>
               )}
-            </div>
+            </Card>
           )}
-          <div className="card">
+          <Card className="pt-card">
             <h2>Versi</h2>
             {h.history.length === 0 ? <p className="muted empty">Belum ada versi.</p> : (
               <ol className="version-list">
                 {h.history.map((v) => (
                   <li key={v.id}>
-                    <div className="strong">Versi {v.version} {v.id === c?.id ? <span className="chip chip-done">Berlaku</span> : <span className="chip chip-neutral">Digantikan</span>}</div>
+                    <div className="strong">Versi {v.version} {v.id === c?.id ? <Chip size="sm" variant="soft" color="success" className="pl-chip">Berlaku</Chip> : <Chip size="sm" variant="soft" className="pl-chip">Digantikan</Chip>}</div>
                     <div className="muted small">{fmtDateTime(v.created_at)} · {v.allergies.length} alergi · {v.problems.length} kondisi · {v.medications.length} obat{v.premedication_required ? ' · premedikasi' : ''}</div>
                   </li>
                 ))}
               </ol>
             )}
-          </div>
+          </Card>
         </div>
       )}
     </PatientPage>

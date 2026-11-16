@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { Button, Card, Checkbox, Input, ToggleButton, ToggleButtonGroup } from '@heroui/react'
 import { ApiError, errorText } from '../../shared/api/http'
 import { fmtYmdShort, num, rp, todayWib } from '../../shared/format'
 import { Kop, loadLetterhead, type Letterhead } from '../../shared/letterhead'
@@ -20,20 +21,41 @@ export const SETTINGS_PERMS = TABS.map((t) => t.perm).join('|')
 const msgOf = (e: unknown) => e instanceof ApiError && [409, 422].includes(e.status) ? e.data?.message ?? 'Data tidak valid.' : errorText(e)
 
 export default function ClinicSettingsPage({ me, tab, onChanged }: { me: Me; tab: string; onChanged: () => void }) {
-  const tabs = TABS.filter((t) => me.permissions.includes(t.perm))
-  const cur = tabs.find((t) => t.key === tab) ?? tabs[0]
+  const allowed = TABS.filter((t) => me.permissions.includes(t.perm))
+  const cur = allowed.find((t) => t.key === tab) ?? allowed[0]
   if (!cur) return null
   return (
-    <>
+    <div className="set-page">
       <div className="page-head"><h1>Pengaturan Klinik</h1></div>
-      <nav className="tabs set-tabs" aria-label="Pengaturan Klinik">
-        {tabs.map((t) => <a key={t.key} href={`#/pengaturan-klinik${t.key ? '/' + t.key : ''}`} className={t === cur ? 'on' : undefined}
+      <nav className="set-tabs" aria-label="Pengaturan Klinik">
+        {allowed.map((t) => <a key={t.key} href={`#/pengaturan-klinik${t.key ? '/' + t.key : ''}`} className={t === cur ? 'on' : undefined}
           aria-current={t === cur ? 'page' : undefined}>{t.label}</a>)}
       </nav>
       {cur.key === '' && <ProfileTab onChanged={onChanged} />}
       {cur.key === 'harga' && <PriceTab />}
       {cur.key === 'pembayaran' && <PaymentTab me={me} />}
-    </>
+    </div>
+  )
+}
+
+/** File picker as a HeroUI Button: the input stays hidden (no 1px focus target), the button opens it. */
+function FilePick({ children, onPick }: { children: ReactNode; onPick: (f: File | undefined) => void }) {
+  const ref = useRef<HTMLInputElement>(null)
+  return <>
+    <Button variant="secondary" onPress={() => ref.current?.click()}>{children}</Button>
+    <input ref={ref} type="file" accept={IMG} hidden onChange={(e) => onPick(e.target.files?.[0])} />
+  </>
+}
+
+/** One-of-n choice as a HeroUI ToggleButtonGroup (radiogroup + radios). */
+function Seg<K extends string | number>({ label, value, options, onChange, className }: {
+  label: string; value: K; options: [K, string][]; onChange: (k: K) => void; className?: string
+}) {
+  return (
+    <ToggleButtonGroup aria-label={label} selectionMode="single" disallowEmptySelection className={'set-seg ' + (className ?? '')}
+      selectedKeys={[String(value)]} onSelectionChange={(keys) => { const k = options.find(([o]) => keys.has(String(o))); if (k) onChange(k[0]) }}>
+      {options.map(([k, text], i) => <ToggleButton key={String(k)} id={String(k)}>{i > 0 && <ToggleButtonGroup.Separator />}{text}</ToggleButton>)}
+    </ToggleButtonGroup>
   )
 }
 
@@ -76,41 +98,38 @@ function ProfileTab({ onChanged }: { onChanged: () => void }) {
   const kop: Letterhead = { name: p.name, phone: p.phone, email: p.email, npwp: p.npwp, license_no: p.license_no, receipt_paper_mm: p.receipt_paper_mm,
     has_logo: p.has_logo, branches: p.branches.map((b) => ({ ...b, address: b.address || p.address, phone: b.phone || p.phone })) }
   return (
-    <form className="card set-form" onSubmit={save} noValidate>
+    <Card className="set-card"><form className="set-form" onSubmit={save} noValidate>
       <div className="set-logo">
         {p.has_logo ? <img src={`/api/clinic/logo?v=${logoV}`} alt="Logo klinik" /> : <span className="muted small">Belum ada logo</span>}
-        <label className="btn">{p.has_logo ? 'Ganti logo' : 'Unggah logo'}<input type="file" accept={IMG} className="sr-only" onChange={(e) => pickLogo(e.target.files?.[0])} /></label>
+        <FilePick onPick={pickLogo}>{p.has_logo ? 'Ganti logo' : 'Unggah logo'}</FilePick>
         <span className="muted small">Satu logo untuk semua cabang. PNG/JPG/WebP, maks 1 MB, rasio 1:1.</span>
       </div>
       {FIELDS.map(([k, label, type]) => (
         <label key={k}>{label}{type === 'date' ? <DateField value={(p[k] as string | null) ?? ''} onChange={(e) => set(k, e.target.value)} />
-          : <input type={type} value={(p[k] as string | null) ?? ''} required={k === 'name'} inputMode={k === 'phone' ? 'tel' : undefined}
+          : <Input type={type} value={(p[k] as string | null) ?? ''} required={k === 'name'} inputMode={k === 'phone' ? 'tel' : undefined}
             onChange={(e) => set(k, e.target.value)} />}</label>
       ))}
       {p.branches.length > 0 && <h2 className="set-sub">Cabang</h2>}
       {p.branches.map((b, i) => (
         <fieldset key={b.id} className="set-branch">
           <legend>{b.name}</legend>
-          <label>Alamat cabang<input value={b.address ?? ''} placeholder={p.address ?? 'Sama dengan alamat klinik'}
+          <label>Alamat cabang<Input value={b.address ?? ''} placeholder={p.address ?? 'Sama dengan alamat klinik'}
             onChange={(e) => setP({ ...p, branches: p.branches.map((x, j) => j === i ? { ...x, address: e.target.value } : x) })} /></label>
-          <label>Telepon cabang<input type="tel" inputMode="tel" value={b.phone ?? ''}
+          <label>Telepon cabang<Input type="tel" inputMode="tel" value={b.phone ?? ''}
             onChange={(e) => setP({ ...p, branches: p.branches.map((x, j) => j === i ? { ...x, phone: e.target.value } : x) })} /></label>
         </fieldset>
       ))}
       <h2 className="set-sub">Struk dan printer</h2>
-      <div className="set-seg" role="radiogroup" aria-label="Lebar kertas struk">
-        {([58, 80] as const).map((mm) => <button key={mm} type="button" role="radio" aria-checked={p.receipt_paper_mm === mm} className={p.receipt_paper_mm === mm ? 'on' : ''}
-          onClick={() => setP({ ...p, receipt_paper_mm: mm })}>{mm} mm</button>)}
-      </div>
+      <Seg label="Lebar kertas struk" value={p.receipt_paper_mm} options={[[58, '58 mm'], [80, '80 mm']]} onChange={(mm) => setP({ ...p, receipt_paper_mm: mm })} />
       <p className="muted small">Struk dicetak lewat dialog cetak perangkat: pilih printer thermal atau printer sistem (A4) di sana.</p>
       {kop.branches.length > 0 && <h2 className="set-sub">Pratinjau kop</h2>}
       <div className="set-kops">
-        {kop.branches.map((b) => <div key={b.id} className="card" aria-label={`Pratinjau kop ${b.name}`}><Kop l={kop} branchId={b.id} logoVersion={logoV} /></div>)}
+        {kop.branches.map((b) => <Card key={b.id} className="set-kop" aria-label={`Pratinjau kop ${b.name}`}><Kop l={kop} branchId={b.id} logoVersion={logoV} /></Card>)}
       </div>
       {error && <p className="form-error" role="alert">{error}</p>}
       {msg && <p className="notice" role="status">{msg}</p>}
-      <div className="set-dock"><button className="btn btn-primary" disabled={busy}>{busy ? 'Menyimpan…' : 'Simpan profil'}</button></div>
-    </form>
+      <div className="set-dock"><Button type="submit" isDisabled={busy}>{busy ? 'Menyimpan…' : 'Simpan profil'}</Button></div>
+    </form></Card>
   )
 }
 
@@ -160,11 +179,11 @@ function PriceTab() {
   return (
     <section className="set-prices" aria-label="Daftar harga">
       <div className="set-filter">
-        <input type="search" aria-label="Cari tindakan" placeholder="Cari tindakan atau kode" value={q} onChange={(e) => setQ(e.target.value)} />
+        <Input type="search" aria-label="Cari tindakan" placeholder="Cari tindakan atau kode" value={q} onChange={(e) => setQ(e.target.value)} />
         {data && data.categories.length > 0 && (
           <div className="set-chips" role="group" aria-label="Kategori">
-            {['', ...data.categories].map((c) => <button key={c || 'semua'} type="button" className={`set-chip${cat === c ? ' on' : ''}`}
-              aria-pressed={cat === c} onClick={() => setCat(c)}>{c ? c.replace(/_/g, ' ') : 'Semua'}</button>)}
+            {['', ...data.categories].map((c) => <ToggleButton key={c || 'semua'} className="set-chip" isSelected={cat === c}
+              onChange={() => setCat(c)}>{c ? c.replace(/_/g, ' ') : 'Semua'}</ToggleButton>)}
           </div>
         )}
       </div>
@@ -178,10 +197,11 @@ function PriceTab() {
           {data.items.map((it) => {
             const levels = it.next && it.next.valid_from === it.editable_from ? it.next.levels : it.levels
             return (
-              <li key={it.procedure_code} className="card set-row">
+              <li key={it.procedure_code}><Card className="set-row">
                 <div className="set-row-head">
-                  <label className="set-pick"><input type="checkbox" checked={sel.includes(it.procedure_code)} aria-label={`Pilih ${it.name}`}
-                    onChange={(e) => setSel(e.target.checked ? [...sel, it.procedure_code] : sel.filter((c) => c !== it.procedure_code))} /></label>
+                  <Checkbox className="set-pick" isSelected={sel.includes(it.procedure_code)} aria-label={`Pilih ${it.name}`}
+                    onChange={(on) => setSel(on ? [...sel, it.procedure_code] : sel.filter((c) => c !== it.procedure_code))}>
+                    <Checkbox.Content><Checkbox.Control><Checkbox.Indicator /></Checkbox.Control></Checkbox.Content></Checkbox>
                   <div className="set-row-name"><strong>{it.name}</strong>
                     <span className="muted small">{it.procedure_code}
                       {' · '}<CategoryInput item={it} categories={data.categories} onSaved={load} onError={setError} /></span></div>
@@ -196,7 +216,7 @@ function PriceTab() {
                       <span>{levels.length > 1 || l.label !== 'Standar' ? l.label : 'Harga'}
                         {cur && cur.price_rp !== l.price_rp && <span className="muted small"> · kini {rp(cur.price_rp)}</span>}</span>
                       <span className="set-rp"><span aria-hidden="true">Rp</span>
-                        <input inputMode="numeric" aria-label={`Harga ${it.name}${levels.length > 1 ? ' ' + l.label : ''}`}
+                        <Input inputMode="numeric" aria-label={`Harga ${it.name}${levels.length > 1 ? ' ' + l.label : ''}`}
                           value={num(priceOf(it, l.variant, l.price_rp))} onChange={(e) => edit(it, l.variant, l.price_rp, digits(e.target.value))} /></span>
                     </label>
                   )
@@ -207,15 +227,15 @@ function PriceTab() {
                   {it.next ? `Harga baru berlaku ${fmtYmdShort(it.next.valid_from)}.` : ''}
                   {later(it) && edits[it.procedure_code] && Object.keys(edits[it.procedure_code]).length ? ` Perubahan berlaku ${fmtYmdShort(it.editable_from)} (hari ini sudah diubah).` : ''}
                 </p>}
-              </li>
+              </Card></li>
             )
           })}
         </ul>
       )}
       {dirty.length > 0 && (
         <div className="set-dock set-dock-fixed">
-          <button type="button" className="btn" onClick={() => setEdits({})} disabled={busy}>Batal</button>
-          <button type="button" className="btn btn-primary" onClick={saveAll} disabled={busy}>{busy ? 'Menyimpan…' : `Simpan ${dirty.length} harga`}</button>
+          <Button variant="secondary" onPress={() => setEdits({})} isDisabled={busy}>Batal</Button>
+          <Button onPress={saveAll} isDisabled={busy}>{busy ? 'Menyimpan…' : `Simpan ${dirty.length} harga`}</Button>
         </div>
       )}
     </section>
@@ -230,8 +250,8 @@ function StageEditor({ name, initial, submit, onError, open = 'Atur tahap' }: {
 }) {
   const [rows, setRows] = useState<{ code: string; label: string; price: string }[] | null>(null)
   const [busy, setBusy] = useState(false)
-  if (!rows) return <button type="button" className="btn btn-ghost small" onClick={() => setRows(initial.map((l) => ({ code: l.code, label: l.label, price: l.price_rp ? String(l.price_rp) : initial.length > 1 ? '0' : '' })))}>
-    {open}{initial.length > 1 ? ` (${initial.length})` : ''}</button>
+  if (!rows) return <Button variant="ghost" className="set-link" onPress={() => setRows(initial.map((l) => ({ code: l.code, label: l.label, price: l.price_rp ? String(l.price_rp) : initial.length > 1 ? '0' : '' })))}>
+    {open}{initial.length > 1 ? ` (${initial.length})` : ''}</Button>
   const set = (i: number, k: 'label' | 'price', v: string) => setRows(rows.map((r, j) => (j === i ? { ...r, [k]: k === 'price' ? v.replace(/\D/g, '') : v } : r)))
   const fresh = () => { let n = rows.length + 1; while (rows.some((r) => r.code === `t${n}`)) n++; return `t${n}` }
   const bad = rows.some((r) => !r.label.trim() || r.price === '')
@@ -244,16 +264,16 @@ function StageEditor({ name, initial, submit, onError, open = 'Atur tahap' }: {
       <legend className="small">Tahap {name}, urut dari tahap pertama. Dokter memilih tahap yang dikerjakan; kasir menagih per kunjungan. Isi 0 bila gratis.</legend>
       {rows.map((r, i) => (
         <div key={r.code} className="set-stage-row">
-          <input aria-label={`Nama tahap ${i + 1}`} placeholder={`Tahap ${i + 1}`} maxLength={60} value={r.label} onChange={(e) => set(i, 'label', e.target.value)} />
+          <Input aria-label={`Nama tahap ${i + 1}`} placeholder={`Tahap ${i + 1}`} maxLength={60} value={r.label} onChange={(e) => set(i, 'label', e.target.value)} />
           <span className="set-rp"><span aria-hidden="true">Rp</span>
-            <input inputMode="numeric" aria-label={`Harga tahap ${i + 1}`} value={r.price === '' ? '' : num(digits(r.price))} onChange={(e) => set(i, 'price', e.target.value)} /></span>
-          {rows.length > 1 && <button type="button" className="btn btn-ghost" aria-label={`Hapus tahap ${i + 1}`} onClick={() => setRows(rows.filter((_, j) => j !== i))}>Hapus</button>}
+            <Input inputMode="numeric" aria-label={`Harga tahap ${i + 1}`} value={r.price === '' ? '' : num(digits(r.price))} onChange={(e) => set(i, 'price', e.target.value)} /></span>
+          {rows.length > 1 && <Button variant="ghost" aria-label={`Hapus tahap ${i + 1}`} onPress={() => setRows(rows.filter((_, j) => j !== i))}>Hapus</Button>}
         </div>
       ))}
       <div className="set-dock">
-        <button type="button" className="btn btn-ghost" disabled={rows.length >= 10} onClick={() => setRows([...rows, { code: fresh(), label: '', price: '' }])}>+ Tahap</button>
-        <button type="button" className="btn" onClick={() => setRows(null)} disabled={busy}>Batal</button>
-        <button type="button" className="btn btn-primary" onClick={save} disabled={busy || bad}>{busy ? 'Menyimpan…' : 'Simpan tahap'}</button>
+        <Button variant="ghost" isDisabled={rows.length >= 10} onPress={() => setRows([...rows, { code: fresh(), label: '', price: '' }])}>+ Tahap</Button>
+        <Button variant="secondary" onPress={() => setRows(null)} isDisabled={busy}>Batal</Button>
+        <Button onPress={save} isDisabled={busy || bad}>{busy ? 'Menyimpan…' : 'Simpan tahap'}</Button>
       </div>
     </fieldset>
   )
@@ -296,19 +316,13 @@ function BulkPanel({ codes, items, onDone, onCancel }: { codes: string[]; items:
     setBusy(false)
   }
   return (
-    <div className="card set-bulk" role="region" aria-label="Ubah massal">
+    <Card className="set-bulk" role="region" aria-label="Ubah massal">
       <p><strong>{codes.length} tindakan dipilih</strong> <span className="muted small">· berlaku {fmtYmdShort(from)}</span></p>
       <div className="set-bulk-row">
-        <div className="set-seg" role="group" aria-label="Arah">
-          <button type="button" aria-pressed={!down} className={!down ? 'on' : ''} onClick={() => { setDown(false); setPreview(null) }}>Naik</button>
-          <button type="button" aria-pressed={down} className={down ? 'on' : ''} onClick={() => { setDown(true); setPreview(null) }}>Turun</button>
-        </div>
-        <input inputMode="numeric" aria-label="Besar perubahan" value={value} onChange={(e) => { setValue(e.target.value.replace(/\D/g, '')); setPreview(null) }} />
-        <div className="set-seg" role="group" aria-label="Satuan">
-          <button type="button" aria-pressed={kind === 'percent'} className={kind === 'percent' ? 'on' : ''} onClick={() => { setKind('percent'); setPreview(null) }}>%</button>
-          <button type="button" aria-pressed={kind === 'amount'} className={kind === 'amount' ? 'on' : ''} onClick={() => { setKind('amount'); setPreview(null) }}>Rp</button>
-        </div>
-        <select aria-label="Pembulatan" value={rounding} onChange={(e) => { setRounding(e.target.value); setPreview(null) }}>
+        <Seg label="Arah" value={down ? 'turun' : 'naik'} options={[['naik', 'Naik'], ['turun', 'Turun']]} onChange={(k) => { setDown(k === 'turun'); setPreview(null) }} />
+        <Input inputMode="numeric" aria-label="Besar perubahan" value={value} onChange={(e) => { setValue(e.target.value.replace(/\D/g, '')); setPreview(null) }} />
+        <Seg label="Satuan" value={kind} options={[['percent', '%'], ['amount', 'Rp']]} onChange={(k) => { setKind(k); setPreview(null) }} />
+        <select className="set-select" aria-label="Pembulatan" value={rounding} onChange={(e) => { setRounding(e.target.value); setPreview(null) }}>
           {ROUNDING.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
         </select>
       </div>
@@ -317,12 +331,12 @@ function BulkPanel({ codes, items, onDone, onCancel }: { codes: string[]; items:
           {r.variant !== 'standar' ? ` (${r.variant})` : ''}: {rp(r.old_rp)} → <strong>{rp(r.new_rp)}</strong></li>))}
         {preview.length > 6 && <li className="muted">+{preview.length - 6} harga lain</li>}</ul>}
       {error && <p className="form-error" role="alert">{error}</p>}
-      <div className="toolbar">
-        <button type="button" className="btn" onClick={onCancel}>Batal</button>
-        {preview ? <button type="button" className="btn btn-primary" disabled={busy} onClick={() => go(false)}>Terapkan {preview.length} harga</button>
-          : <button type="button" className="btn btn-primary" disabled={busy || !digits(value)} onClick={() => go(true)}>Pratinjau</button>}
+      <div className="set-actions">
+        <Button variant="secondary" onPress={onCancel}>Batal</Button>
+        {preview ? <Button isDisabled={busy} onPress={() => go(false)}>Terapkan {preview.length} harga</Button>
+          : <Button isDisabled={busy || !digits(value)} onPress={() => go(true)}>Pratinjau</Button>}
       </div>
-    </div>
+    </Card>
   )
 }
 
@@ -360,7 +374,7 @@ function PaymentTab({ me }: { me: Me }) {
           {KINDS.map((k) => {
             const rows = list.filter((a) => a.kind === k.key)
             return (
-              <li key={k.key} className="card set-acc-group">
+              <li key={k.key}><Card className="set-acc-group">
                 <h2 className="set-sub">{k.label}</h2>
                 {rows.length === 0 && <p className="muted small">Belum ada. {k.hint}.</p>}
                 {rows.map((a) => (
@@ -369,19 +383,18 @@ function PaymentTab({ me }: { me: Me }) {
                       <span className="muted small">{[a.bank_name, a.account_last4 && `•••• ${a.account_last4}`, branchName(a.branch_id), !a.is_active && 'Nonaktif'].filter(Boolean).join(' · ')}</span></div>
                     {a.kind === 'qris' && <>
                       {a.has_qris_image && <img className="set-qris" src={`/api/payment-accounts/${a.id}/qris-image?v=${ver}`} alt={`Foto QRIS ${a.name}`} />}
-                      <label className="btn btn-ghost">{a.has_qris_image ? 'Ganti foto QRIS' : 'Unggah foto QRIS'}
-                        <input type="file" accept={IMG} className="sr-only" onChange={(e) => pickQris(a, e.target.files?.[0])} /></label>
+                      <FilePick onPick={(f) => pickQris(a, f)}>{a.has_qris_image ? 'Ganti foto QRIS' : 'Unggah foto QRIS'}</FilePick>
                     </>}
-                    <button type="button" className="btn btn-ghost" onClick={() => toggle(a)}>{a.is_active ? 'Nonaktifkan' : 'Aktifkan'}</button>
+                    <Button variant="ghost" onPress={() => toggle(a)}>{a.is_active ? 'Nonaktifkan' : 'Aktifkan'}</Button>
                   </div>
                 ))}
-              </li>
+              </Card></li>
             )
           })}
         </ul>
       )}
       {adding ? <AddAccount me={me} onDone={(a) => { setAdding(false); setMsg(`${a.name} ditambahkan.`); load() }} onCancel={() => setAdding(false)} />
-        : <div className="set-dock"><button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>Tambah metode</button></div>}
+        : <div className="set-dock"><Button onPress={() => setAdding(true)}>Tambah metode</Button></div>}
     </section>
   )
 }
@@ -406,23 +419,20 @@ function AddAccount({ me, onDone, onCancel }: { me: Me; onDone: (a: Account) => 
     setBusy(false)
   }
   return (
-    <form className="card set-form" onSubmit={submit} noValidate aria-label="Tambah metode pembayaran">
-      <div className="set-seg set-kinds" role="radiogroup" aria-label="Jenis">
-        {KINDS.map((k) => <button key={k.key} type="button" role="radio" aria-checked={kind === k.key} className={kind === k.key ? 'on' : ''}
-          onClick={() => setKind(k.key)}>{k.label}</button>)}
-      </div>
-      {needsBank && <label>Bank<input value={bank} onChange={(e) => setBank(e.target.value)} placeholder="mis. BCA" /></label>}
-      {kind === 'transfer' && <label>4 angka terakhir rekening<input inputMode="numeric" maxLength={4} value={last4}
+    <Card className="set-card"><form className="set-form" onSubmit={submit} noValidate aria-label="Tambah metode pembayaran">
+      <Seg label="Jenis" className="set-kinds" value={kind} options={KINDS.map((k): [AccountKind, string] => [k.key, k.label])} onChange={setKind} />
+      {needsBank && <label>Bank<Input value={bank} onChange={(e) => setBank(e.target.value)} placeholder="mis. BCA" /></label>}
+      {kind === 'transfer' && <label>4 angka terakhir rekening<Input inputMode="numeric" maxLength={4} value={last4}
         onChange={(e) => setLast4(e.target.value.replace(/\D/g, '').slice(0, 4))} /></label>}
-      <label>Nama (opsional)<input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nama yang tampil di kasir" /></label>
-      {me.branches.length > 1 && <label>Cabang<select value={branch} onChange={(e) => setBranch(e.target.value)}>
+      <label>Nama (opsional)<Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nama yang tampil di kasir" /></label>
+      {me.branches.length > 1 && <label>Cabang<select className="set-select" value={branch} onChange={(e) => setBranch(e.target.value)}>
         <option value="">Semua cabang</option>{me.branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select></label>}
       {error && <p className="form-error" role="alert">{error}</p>}
-      <div className="toolbar">
-        <button type="button" className="btn" onClick={onCancel}>Batal</button>
-        <button className="btn btn-primary" disabled={busy || (kind === 'transfer' && (!bank.trim() || last4.length !== 4))}>Simpan</button>
+      <div className="set-actions">
+        <Button variant="secondary" onPress={onCancel}>Batal</Button>
+        <Button type="submit" isDisabled={busy || (kind === 'transfer' && (!bank.trim() || last4.length !== 4))}>Simpan</Button>
       </div>
-    </form>
+    </form></Card>
   )
 }
 
@@ -441,21 +451,21 @@ function Unpriced({ rows, onSaved, onError }: { rows: CatalogRow[]; onSaved: (na
     try { await addTariff(r.procedure_code, r.name, digits(price[r.procedure_code])); onSaved(r.name) } catch (e) { onError(msgOf(e)) } finally { setBusy('') }
   }
   return (
-    <section className="card set-row" aria-label="Tindakan tanpa harga">
+    <Card className="set-row" role="region" aria-label="Tindakan tanpa harga">
       <strong>Tindakan tanpa harga ({rows.length})</strong>
       <p className="muted small">Dokter bisa mengisi tindakan ini, tetapi kunjungan tidak bisa ditutup dan dibayar sebelum harganya diisi. Isi 0 bila memang gratis.</p>
       {rows.map((r) => (
         <div key={r.procedure_code} className="set-unpriced">
           <span className="set-unpriced-name">{r.name} <span className="muted small">{r.procedure_code}</span></span>
           <span className="set-rp"><span aria-hidden="true">Rp</span>
-            <input inputMode="numeric" aria-label={`Harga ${r.name}`} value={price[r.procedure_code] ? num(digits(price[r.procedure_code])) : ''}
+            <Input inputMode="numeric" aria-label={`Harga ${r.name}`} value={price[r.procedure_code] ? num(digits(price[r.procedure_code])) : ''}
               onChange={(e) => setPrice({ ...price, [r.procedure_code]: e.target.value.replace(/\D/g, '') })} /></span>
-          <button type="button" className="btn" disabled={busy === r.procedure_code || !(price[r.procedure_code] ?? '')} onClick={() => save(r)}>Simpan</button>
+          <Button variant="secondary" isDisabled={busy === r.procedure_code || !(price[r.procedure_code] ?? '')} onPress={() => save(r)}>Simpan</Button>
           <StageEditor name={r.name} open="Bertahap" onError={onError} initial={[{ code: 'k1', label: 'Kunjungan 1', price_rp: digits(price[r.procedure_code] ?? '') }]}
             submit={async (ls) => { await addTariff(r.procedure_code, r.name, ls); onSaved(r.name) }} />
         </div>
       ))}
-    </section>
+    </Card>
   )
 }
 
@@ -473,16 +483,17 @@ function OdoMap({ item, row, onSaved, onError }: { item: TariffItem; row?: Catal
   return (
     <div className="set-odo">
       <span className="muted small">Odontogram: {mapped.length ? mapped.join(', ') : 'belum dipetakan'}</span>
-      <button type="button" className="btn btn-ghost" aria-expanded={open} onClick={() => { setPick(mapped); setOpen(!open) }}>Atur odontogram</button>
+      <Button variant="ghost" className="set-link" aria-expanded={open} onPress={() => { setPick(mapped); setOpen(!open) }}>Atur odontogram</Button>
       {open && (
         <div className="set-odo-pick" role="group" aria-label={`Kondisi odontogram yang dicatat ${item.name}`}>
           {conds.map((c) => (
-            <label key={c.key} className="set-odo-opt"><input type="checkbox" checked={pick.includes(c.code!)}
-              onChange={(e) => setPick(e.target.checked ? [...pick, c.code!] : pick.filter((x) => x !== c.code))} />
-              <SymbolIcon symbol={c.symbol} code={c.code} /> {c.label} <code>{c.code}</code></label>
+            <Checkbox key={c.key} className="set-odo-opt" isSelected={pick.includes(c.code!)}
+              onChange={(on) => setPick(on ? [...pick, c.code!] : pick.filter((x) => x !== c.code))}>
+              <Checkbox.Content><Checkbox.Control><Checkbox.Indicator /></Checkbox.Control>
+                <SymbolIcon symbol={c.symbol} code={c.code} /> {c.label} <code>{c.code}</code></Checkbox.Content></Checkbox>
           ))}
-          <div className="toolbar"><button type="button" className="btn" onClick={() => setOpen(false)}>Batal</button>
-            <button type="button" className="btn btn-primary" disabled={busy} onClick={save}>{busy ? 'Menyimpan…' : 'Simpan pemetaan'}</button></div>
+          <div className="set-actions"><Button variant="secondary" onPress={() => setOpen(false)}>Batal</Button>
+            <Button isDisabled={busy} onPress={save}>{busy ? 'Menyimpan…' : 'Simpan pemetaan'}</Button></div>
         </div>
       )}
     </div>

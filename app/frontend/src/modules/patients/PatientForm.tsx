@@ -1,4 +1,5 @@
 import { cloneElement, useState, type FormEvent, type InputHTMLAttributes, type ReactElement, type ReactNode } from 'react'
+import { Button, buttonVariants, Card } from '@heroui/react'
 import { DateField } from '../../shared/ui/DateField'
 import { ApiError, errorText } from '../../shared/api/http'
 import { createPatient } from './api'
@@ -52,14 +53,14 @@ export default function PatientForm() {
     <label className={errors[k] ? 'has-error' : ''}>
       <span id={`pf-${k}`}>{label}</span>
       {cloneElement(input, { 'aria-labelledby': `pf-${k}`, 'aria-invalid': errors[k] ? true : undefined, 'aria-describedby': errors[k] ? `pf-${k}-error` : undefined })}
-      {errors[k] && <span id={`pf-${k}-error`} className="field-error" role="alert">{errors[k]}</span>}
+      {errors[k] && <span id={`pf-${k}-error`} className="pt-error" role="alert">{errors[k]}</span>}
     </label>
   )
 
   return (
     <>
       <div className="page-head"><div><a href="#/pasien" className="muted small">← Daftar pasien</a><h1 className="shell-dup-title">Pasien Baru</h1></div></div>
-      <form className="card form" onSubmit={submit} noValidate>
+      <Card className="pt-card"><form className="form" onSubmit={submit} noValidate>
         <h2>Identitas</h2>
         <div className="grid-2">
           {field('name', 'Nama lengkap *', <input value={f.name} onChange={set('name')} maxLength={200} />)}
@@ -81,10 +82,10 @@ export default function PatientForm() {
         </div>
         {error && <p className="form-error" role="alert">{error}</p>}
         <div className="dialog-actions">
-          <a className="btn" href="#/pasien">Batal</a>
-          <button className="btn btn-primary" disabled={busy}>{busy ? 'Menyimpan…' : 'Simpan pasien'}</button>
+          <a className={buttonVariants({ variant: 'secondary' }) + ' pt-btn'} href="#/pasien">Batal</a>
+          <Button type="submit" className="pt-btn" isDisabled={busy}>{busy ? 'Menyimpan…' : 'Simpan pasien'}</Button>
         </div>
-      </form>
+      </form></Card>
     </>
   )
 }
