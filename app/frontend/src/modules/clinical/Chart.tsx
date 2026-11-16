@@ -72,7 +72,7 @@ export function findingSummary(items: { condition: string }[], procs: Procedure[
   return [...legacy, ...v2].join(' · ')
 }
 const FREE_EDIT_MS = 48 * 3600 * 1000
-const INNER = [['odo', 'Odontogram'], ['notes', 'Catatan Klinis'], ['plan', 'Rencana Perawatan'], ['rx', 'Resep'], ['bill', 'Billing']] as const
+const INNER = [['odo', 'Odontogram'], ['notes', 'Catatan Klinis'], ['bill', 'Billing']] as const
 // Surface keypad (sketch): lingual/palatal top, M left, O/I centre, D right, buccal/labial bottom. Labels come from surfaceLabel.
 const PAD: [Surface, string][] = [['L', 'top'], ['M', 'left'], ['O', 'center'], ['D', 'right'], ['B', 'bottom']]
 
@@ -703,7 +703,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
       {billFor && !mobile && <p className="toolbar rm-done">{afterSelesai}</p>}
 
       <div role="tablist" aria-label="Bagian rekam medis" className="tabs chart-tabs">
-        {INNER.filter(([k]) => !mobile || (k !== 'plan' && k !== 'rx' && (k !== 'bill' || can('billing.read')))).map(([k, label]) => (
+        {INNER.filter(([k]) => k !== 'bill' || can('billing.read')).map(([k, label]) => (
           <button key={k} type="button" role="tab" id={`ct-${k}`} aria-selected={tab === k} aria-controls="chart-tabpanel" className={tab === k ? 'on' : undefined} onClick={() => setTab(k)}>{label}</button>
         ))}
       </div>
@@ -876,7 +876,6 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
           </div>}
         </div>
       )}
-      {(tab === 'plan' || tab === 'rx' || (tab === 'bill' && !can('billing.read'))) && <div className="card state-card muted">Belum tersedia.</div>}
       {tab === 'bill' && can('billing.read') && <BillingTab visits={chart.visits} />}
       </div>
 

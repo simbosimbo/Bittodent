@@ -532,8 +532,8 @@ test('active visit: panel offers conditions; inner tab Catatan Klinis shows SOAP
   expect(screen.getByRole('heading', { name: 'Catatan SOAP' })).toBeInTheDocument()
   expect(screen.getByRole('heading', { name: 'Riwayat kunjungan' })).toBeInTheDocument()
   expect(screen.queryByRole('region', { name: 'Odontogram' })).toBeNull()
-  fireEvent.click(screen.getByRole('tab', { name: 'Resep' }))
-  expect(document.body).toHaveTextContent('Belum tersedia')
+  expect(screen.queryByRole('tab', { name: 'Resep' })).toBeNull() // hidden until the feature exists (audit P2-4)
+  expect(screen.queryByRole('tab', { name: 'Rencana Perawatan' })).toBeNull()
   fireEvent.click(screen.getByRole('tab', { name: 'Odontogram' }))
   expect(screen.getByRole('region', { name: 'Odontogram' })).toBeInTheDocument()
 })
@@ -706,12 +706,11 @@ test('Selesai offers "Lanjut ke tagihan" to billing readers; RM > Billing lists 
   expect(screen.getByRole('link', { name: 'Buka tagihan' })).toHaveAttribute('href', '#/tagihan/v1')
 })
 
-test('RM > Billing without billing.read stays "Belum tersedia"', async () => {
+test('RM > Billing tab is hidden without billing.read', async () => {
   renderChart({ visits: [visit] })
   await screen.findByRole('region', { name: 'Odontogram' })
-  fireEvent.click(screen.getByRole('tab', { name: 'Billing' }))
-  expect(document.body).toHaveTextContent('Belum tersedia')
-  expect(screen.queryByRole('link', { name: 'Buka tagihan' })).toBeNull()
+  expect(screen.queryByRole('tab', { name: 'Billing' })).toBeNull()
+  expect(document.body).not.toHaveTextContent('Belum tersedia')
 })
 
 // --- #70 Dokter mode: one-tap procedure, SOAP template, Selesai saves first, phone sticky bar (synthetic data) ---

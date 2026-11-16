@@ -36,14 +36,14 @@ const cssAt = (w: number) => {
 
 afterEach(() => { act(() => setActivePatient(null)); vi.unstubAllGlobals(); location.hash = ''; document.head.querySelectorAll('style').forEach((s) => s.remove()) })
 
-test('NAV: ten items; Rekam Medis leads to the patient list without a patient, to /rekam-medis/p1 with one; no Keluarga / Riwayat Medis', () => {
-  expect(hrefs(null)).toEqual({ Beranda: '/', Jadwal: '/jadwal', Antrean: '/antrean', Pasien: '/pasien',
-    'Rekam Medis': '/pasien', Resep: '/resep', 'Pengaturan RM': '/pengaturan-rm', Kasir: '/kasir', 'Pengaturan Klinik': '/pengaturan-klinik', Laporan: '/laporan' })
+test('NAV: eight items (no Antrean / Resep until they exist); Rekam Medis leads to the patient list without a patient, to /rekam-medis/p1 with one; no Keluarga / Riwayat Medis', () => {
+  expect(hrefs(null)).toEqual({ Beranda: '/', Jadwal: '/jadwal', Pasien: '/pasien',
+    'Rekam Medis': '/pasien', 'Pengaturan RM': '/pengaturan-rm', Kasir: '/kasir', 'Pengaturan Klinik': '/pengaturan-klinik', Laporan: '/laporan' })
   expect(hrefs({ id: 'p1' })['Rekam Medis']).toBe('/rekam-medis/p1')
   expect(NAV.map((n) => n.path)).not.toContain('/keluarga')
   expect(NAV.map((n) => n.path)).not.toContain('/riwayat-medis')
   // Kasir needs billing.read, Laporan reporting.read (owner), Pengaturan RM note.sign|settings.manage: this dentist sees none of them.
-  expect(visible(dentist).map((n) => n.label)).toEqual(['Beranda', 'Jadwal', 'Antrean', 'Pasien', 'Rekam Medis', 'Resep'])
+  expect(visible(dentist).map((n) => n.label)).toEqual(['Beranda', 'Jadwal', 'Pasien', 'Rekam Medis'])
 })
 
 test('clinicSubtitle: the address from Pengaturan Klinik (/api/me), branch name until one is filled in (no hardcoded map)', () => {
@@ -86,7 +86,7 @@ test('1440px sidebar: Bittodent brand, clinic block, KLINIK / KLINIS / KEUANGAN 
   expect(side).not.toHaveTextContent('Cabang aktif')
   const nav = screen.getByRole('navigation', { name: 'Modul utama' })
   expect([...nav.children].map((c) => c.textContent?.trim())).toEqual(
-    ['KLINIK', 'Beranda', 'Jadwal', 'Antrean', 'Pasien', 'KLINIS', 'Rekam Medis', 'Resep', 'KEUANGAN', 'Kasir', 'Laporan'])
+    ['KLINIK', 'Beranda', 'Jadwal', 'Pasien', 'KLINIS', 'Rekam Medis', 'KEUANGAN', 'Kasir', 'Laporan'])
   expect(nav).not.toHaveTextContent('Pasien aktif')
   expect(within(nav).getByRole('link', { name: 'Rekam Medis' })).toHaveAttribute('href', '#/rekam-medis/p1')
   expect(within(nav).getByRole('link', { name: 'Rekam Medis' })).toHaveAttribute('aria-current', 'page')
@@ -111,7 +111,7 @@ test('1280px sidebar: icon rail (no labels, captions, brand word or clinic block
   expect(within(side).getByText('DATA SINTETIS')).not.toBeVisible()
   const nav = screen.getByRole('navigation', { name: 'Modul utama' })
   for (const c of ['KLINIK', 'KLINIS', 'KEUANGAN', 'Beranda', 'Rekam Medis', 'Laporan']) expect(within(nav).getByText(c)).not.toBeVisible()
-  expect(within(nav).getAllByRole('link').map((a) => a.getAttribute('title'))).toEqual(['Beranda', 'Jadwal', 'Antrean', 'Pasien', 'Rekam Medis', 'Resep', 'Kasir', 'Laporan'])
+  expect(within(nav).getAllByRole('link').map((a) => a.getAttribute('title'))).toEqual(['Beranda', 'Jadwal', 'Pasien', 'Rekam Medis', 'Kasir', 'Laporan'])
   expect(within(nav).getByRole('link', { name: 'Beranda' })).toHaveAttribute('href', '#/')
   expect(within(nav).getByRole('link', { name: 'Rekam Medis' })).toHaveAttribute('aria-current', 'page')
   expect(within(document.querySelector('header.shell-top') as HTMLElement).getByText('DATA SINTETIS')).toBeVisible()
@@ -173,7 +173,7 @@ test('390px: no sidebar; header has clinic + DATA SINTETIS; bottom nav 4 tabs + 
 
   fireEvent.click(within(bottom).getByRole('button', { name: 'Lainnya' }))
   const sheet = screen.getByRole('dialog', { name: 'Menu lainnya' })
-  expect(within(sheet).getAllByRole('link').map((a) => a.textContent?.trim())).toEqual(['Antrean', 'Resep', 'Kasir', 'Laporan'])
+  expect(within(sheet).getAllByRole('link').map((a) => a.textContent?.trim())).toEqual(['Kasir', 'Laporan'])
   expect(sheet).not.toHaveTextContent(/Keluarga|Riwayat Medis/)
   expect(within(sheet).getByRole('combobox', { name: 'Cabang aktif' })).toBeInTheDocument()
   fireEvent.click(within(sheet).getByRole('button', { name: 'Keluar' }))
@@ -220,15 +220,15 @@ test('390px without an active patient: Rekam Medis tab leads to the patient list
   expect(within(screen.getByRole('navigation', { name: 'Navigasi utama' })).getByRole('link', { name: 'Rekam Medis' })).toHaveAttribute('href', '#/pasien')
 })
 
-test('placeholder routes render "Segera hadir"', async () => {
+test.each(['/antrean', '/resep'])('old link %s to an unbuilt screen lands on Beranda', async (h) => {
   viewport(1280)
   document.cookie = 'XSRF-TOKEN=abc'
   vi.stubGlobal('fetch', vi.fn(async (url: string) => new Response(JSON.stringify(url === '/api/me' ? me : {}), { status: url === '/api/me' ? 200 : 404 })))
-  location.hash = '/antrean'
+  location.hash = h
   render(<App />)
-  expect(await screen.findByText('Segera hadir')).toBeInTheDocument()
-  expect(screen.getByRole('heading', { level: 1, name: 'Antrean' })).toBeInTheDocument()
-  expect(screen.getByRole('link', { name: 'Antrean' })).toHaveAttribute('aria-current', 'page')
+  await vi.waitFor(() => expect(location.hash).toBe('#/'))
+  expect(await screen.findByRole('heading', { level: 1, name: 'Beranda' })).toBeInTheDocument()
+  expect(screen.queryByRole('link', { name: /Antrean|Resep/ })).toBeNull()
   document.cookie = 'XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 GMT'
 })
 
