@@ -85,6 +85,13 @@ Angka uang di kanan baris 1 (14/600, `tabular-nums`). Info keselamatan (alergi/p
 
 **Sheet detail:** judul = nama (18/600) + status; lalu pasangan label–nilai (label 12/500 muted di atas, nilai 14/400), urut: waktu, tindakan/keluhan, kursi, dokter, catatan; aksi di bawah.
 
+### Inspirasi 21st.dev (pola, bukan kode; dilihat 2026-11-16)
+
+- **Baris daftar:** bingkai 1px tipis, radius 12, satu baris ringkas: badge status kecil (11–12px, latar lembut, tanpa bingkai tebal), nama 500–600, meta di kanan muted, chevron. Banyak baris bertumpuk dengan jarak 8px terlihat rapi tanpa tombol.
+- **Kartu ringkasan (tagihan/order):** judul + badge status di kanan atas; garis pemisah tipis; pasangan label–nilai per baris (label kiri 400, nilai kanan, `tabular-nums`).
+- **Sheet/drawer:** pegangan tarik di atas, judul 600 + satu baris keterangan muted, isi berupa kisi/daftar, tombol tutup × di kanan atas, aksi di bawah.
+- **Pilih jam (booking):** daftar slot bertepi tipis, slot terpilih solid; kalender dan slot berdampingan di desktop, bertumpuk di HP.
+
 ## Radius (jangan terlalu bulat)
 
 Skala rumah di `app.css`: field 10px, tombol 12px, kartu/popover/modal 16px, chip 12px. Jangan menambah `rounded-full`, `rounded-3xl`, atau radius di atas 16px, kecuali tombol ikon bulat yang memang bulat di kanvas (tombol "+", avatar). Jangan menimpa radius per komponen; ubah skala di `app.css` (milik koordinator) bila perlu.
