@@ -321,3 +321,6 @@ rect.sym-surface { fill: none; }
 /* OVv2-07: Tetap | Sulung | Campuran under the chart, 48px targets */
 .dent-toggle { display: flex; justify-content: center; margin: 8px 0; }
 .dent-toggle .seg button { min-height: 48px; min-width: 72px; }
+/* OVv2-05: view + entry mode switches, always visible, 48px */
+.odo-switches { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin: 4px 0 8px; }
+.odo-switches .seg button { min-height: 48px; }

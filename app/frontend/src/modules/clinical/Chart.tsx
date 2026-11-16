@@ -646,8 +646,6 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
                   <label className="small">Lihat per tanggal <DateField value={asOf} placeholder="Hari ini" max={new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Jakarta' })}
                     onChange={(e) => setAsOf(e.target.value)} /></label>
                   {asOf && <button className="btn btn-xs" onClick={() => setAsOf('')}>Kembali ke hari ini</button>}
-                  <Seg label="Tampilan" value={view} onChange={changeView} options={[['2d', '2D'], ['3d', '3D']]} />
-                  {editable && <Seg label="Mode isi" value={mode} onChange={(m) => { setMode(m); setPick(null) }} options={[['perawatan', 'Perawatan'], ['periksa', 'Pemeriksaan awal']]} />}
                 </div>
   )
   const odoLegend = (
@@ -691,6 +689,11 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
               {mine.some((d) => d.source === 'ai_draft') && <span className="badge badge-ai">{AI_BADGE}</span>}
               {!mobile && odoTools}
             </div>
+            {/* OVv2-05: 2D | 3D (and the entry mode) always visible under the title, never folded away on the phone */}
+            <div className="odo-switches">
+              <Seg label="Tampilan" value={view} onChange={changeView} options={[['2d', '2D'], ['3d', '3D']]} />
+              {editable && view === '2d' && <Seg label="Mode isi" value={mode} onChange={(m) => { setMode(m); setPick(null) }} options={[['perawatan', 'Perawatan'], ['periksa', 'Pemeriksaan awal']]} />}
+            </div>
             {chart.as_of && <p className="notice notice-warn small" role="status">Tampilan riwayat: keadaan pada akhir {chart.as_of} (WIB). Hanya baca.</p>}
             <p className={summary ? 'odo-summary' : 'odo-summary muted'} role="note" aria-label="Ringkasan temuan">{summary || 'Belum ada temuan.'}</p>
             {editable && mouthProcs.length > 0 && (
@@ -715,7 +718,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
             {view === '3d' && (
               <>
                 <Odontogram3D marks={shown} baseline={chart.baseline?.teeth} dentition={dent} selected={pick} onPick={onPick} />
-                <p className="muted small odo3d-note">Tampilan 3D hanya baca; overlay mengikuti data bagan dan legenda internal. Ketuk gigi/permukaan di 3D untuk memilih, atau pakai bagan 2D di bawah untuk input per permukaan.</p>
+                <p className="muted small odo3d-note">3D hanya baca. Untuk mencatat, kembali ke 2D.</p>
               </>
             )}
             {phone ? <>

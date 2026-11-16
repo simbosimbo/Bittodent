@@ -70,6 +70,13 @@ const show3d = async () => { fireEvent.click(radio('Tampilan', '3D')); await wai
 const teeth2d = () => [...document.querySelectorAll<SVGElement>('.odontogram .tooth')].map((e) => Number(e.dataset.tooth))
 const teeth3d = () => [...new Set([...document.querySelectorAll<HTMLElement>('.t3')].map((e) => Number(e.dataset.tooth)))]
 
+test('OVv2-05 phone: 2D | 3D and Mode isi sit under the title, never inside the folded tools', async () => {
+  vi.stubGlobal('matchMedia', (q: string) => ({ media: q, matches: true, addEventListener() {}, removeEventListener() {} }))
+  renderChart({ visits: [visit] })
+  await screen.findByRole('radiogroup', { name: 'Tampilan' })
+  for (const g of ['Tampilan', 'Mode isi']) expect(screen.getByRole('radiogroup', { name: g }).closest('details')).toBeNull()
+})
+
 test('Tampilan: default 2D without 3D mount; 3D mounts and 2D unmounts it again', async () => {
   renderChart()
   await screen.findByRole('radiogroup', { name: 'Tampilan' })
@@ -80,7 +87,7 @@ test('Tampilan: default 2D without 3D mount; 3D mounts and 2D unmounts it again'
   await show3d()
   expect(radio('Tampilan', '3D')).toHaveAttribute('aria-checked', 'true')
   expect(document.querySelector('.odontogram')).toHaveClass('is-compact') // 2D stays for per-surface input
-  expect(document.body).toHaveTextContent('Tampilan 3D hanya baca')
+  expect(document.body).toHaveTextContent('3D hanya baca. Untuk mencatat, kembali ke 2D.') // OVv2-05 wording
   fireEvent.click(radio('Tampilan', '2D'))
   expect(document.querySelector('.odo3d')).toBeNull()
 })
