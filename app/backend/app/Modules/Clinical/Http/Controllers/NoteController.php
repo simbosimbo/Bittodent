@@ -157,6 +157,41 @@ class NoteController extends Controller
         });
     }
 
+    /**
+     * GET /api/visits/{id}/selesai-check: everything Selesai would refuse (block) or ask a reason for (warn), listed at once
+     * before the dentist presses Selesai. Read-only; Selesai re-checks all of it. Prices stay out (Clinical never reads Tariffs).
+     */
+    public function selesaiCheck(string $id, VisitCloser $closer)
+    {
+        $visit = Visit::findOrFail($id);
+        $note = ClinicalNote::where('visit_id', $id)->orderBy('created_at')->first();
+        $draft = $note?->versions->firstWhere('state', 'draft');
+        $item = fn (string $level, string $rule, string $message) => compact('level', 'rule', 'message');
+        $items = [];
+        if ($visit->status !== 'berlangsung') {
+            $items[] = $item('block', 'visit_closed', 'Kunjungan sudah ditutup.');
+        }
+        if (! $draft) {
+            $items[] = $item('block', 'no_draft', 'Catatan SOAP belum ditulis.');
+        }
+        if ($n = count(array_merge(...array_values(self::unapproved($id, $draft))))) {
+            $items[] = $item('block', 'unapproved_drafts', "$n draf dari agen belum disetujui. Tekan Setujui dulu.");
+        }
+        if (! $closer->attendanceCancelled($visit) && $closer->nothingDone($visit)) {
+            $items[] = $item('block', 'no_billable_work', 'Belum ada tindakan selesai. Tambahkan Pemeriksaan gigi (Konsultasi atau Kontrol) dari Tindakan seluruh mulut.');
+        }
+        $procedures = ProcedureRecord::where('visit_id', $id)->where('state', 'draft')->orderBy('id')->get();
+        $check = SignCheck::run(ToothFinding::where('visit_id', $id)->where('state', 'draft')->get(), $procedures, $draft?->soap() ?? [], $visit->patient_id);
+        foreach ($check['blocks'] as $b) {
+            $items[] = $item('block', $b['rule'], $b['message']);
+        }
+        foreach ($check['warnings'] as $w) {
+            $items[] = $item('warn', $w['rule'], $w['message']);
+        }
+
+        return response()->json(['ready' => ! collect($items)->contains('level', 'block'), 'items' => $items]);
+    }
+
     /** Inside a savepoint: lock drafts, bill, sign with the encounter hash, then close (throws a non-invoice refusal to roll back). */
     private function signAndClose(Visit $visit, ClinicalNoteVersion $draft, $procedures, VisitCloser $closer, array $warningAudit)
     {

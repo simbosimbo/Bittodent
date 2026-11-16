@@ -18,7 +18,7 @@ import { PatientPage } from '../patients'
 import type { PatientFull } from '../patients'
 import {
   approveCorrection, approveDrafts, changeStatus, confirmExternal, correctNote, correctProcedure, discardProcedure, getChart, getDentists,
-  replaceProcedure, saveNote, saveProcedure, selesaiVisit, getCatalog, getStages, type CatalogRow, startWalkInVisit, visitFromAppointment,
+  replaceProcedure, saveNote, saveProcedure, selesaiVisit, selesaiCheck, getCatalog, getStages, type CatalogRow, startWalkInVisit, visitFromAppointment,
   type Baseline, type Chart, type ChartVisit, type CorrectionType, type Finding, type Note, type ProcStatus, type Procedure, type ProcedureHistoryRow,
   type Soap, type Surface, type Version,
 } from './api'
@@ -381,7 +381,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
   const [pick, setPick] = useState<{ tooth: number; surface: Surface } | null>(null)
   const [error, setError] = useState('')
   const [msg, setMsg] = useState('')
-  const [signing, setSigning] = useState<{ busy: boolean; error: string; warnings?: { message: string }[] } | null>(null)
+  const [signing, setSigning] = useState<{ busy: boolean; error: string; warnings?: { message: string }[]; missing?: string[] } | null>(null)
   const [billFor, setBillFor] = useState<string | null>(null) // visit just closed by Selesai -> "Lanjut ke tagihan" (#69)
   const [fixing, setFixing] = useState<Note | null>(null)
   const [detailsOpen, setDetailsOpen] = useState(false) // phone: Temuan & tindakan, Tutup kunjungan, Riwayat collapsed (#70)
@@ -564,7 +564,10 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
       }
       await load()
     }
-    setSigning({ busy: false, error: '' })
+    // KlinikMe-style "lengkapi dulu": every gap at once, before the PIN; on failure Selesai still checks everything itself
+    const check = await selesaiCheck(visit.id).catch(() => null)
+    const of = (level: string) => check?.items?.filter((i) => i.level === level) ?? []
+    setSigning({ busy: false, error: '', missing: of('block').map((i) => i.message), warnings: of('warn') })
   }
   async function selesai(pin?: string, reason?: string) {
     if (!visit || !draft) return
@@ -860,7 +863,7 @@ export default function ChartPage({ patientId, appointmentId, me }: { patientId:
       )}
       <Presence open={!!(signing && visit && draft)} exitMs={200}>
         {signing && visit && draft && (
-        <SelesaiDialog busy={signing.busy} error={signing.error} warnings={signing.warnings} onClose={() => setSigning(null)} onConfirm={selesai}
+        <SelesaiDialog busy={signing.busy} error={signing.error} warnings={signing.warnings} missing={signing.missing} onClose={() => setSigning(null)} onConfirm={selesai}
           pinRequired={!!me.selesai?.pin_required} hasPin={!!me.selesai?.has_pin}
           lines={[`Catatan SOAP versi ${draft.version} (revisi ${draft.revision})${draft.soap.A.codes.length ? ' · ICD-10 ' + draft.soap.A.codes.join(', ') : ''}`,
             ...visit.draft_findings.map((f) => findingText(f) + (f.created_by !== me.user.id ? ' (draf pengguna lain)' : '')),

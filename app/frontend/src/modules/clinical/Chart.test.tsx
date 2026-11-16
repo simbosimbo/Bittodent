@@ -708,7 +708,7 @@ test('Selesai offers "Lanjut ke tagihan" to billing readers; RM > Billing lists 
   await screen.findByRole('region', { name: 'Odontogram' })
   fireEvent.click(screen.getByRole('tab', { name: 'Catatan Klinis' }))
   fireEvent.click(await screen.findByRole('button', { name: 'Selesai' }))
-  const dlg = screen.getByRole('dialog')
+  const dlg = await screen.findByRole('dialog')
   fireEvent.click(within(dlg).getByRole('checkbox'))
   fireEvent.click(within(dlg).getByRole('button', { name: 'Selesai' }))
   expect(await screen.findByRole('link', { name: 'Lanjut ke tagihan' })).toHaveAttribute('href', '#/tagihan/v1')
@@ -744,7 +744,7 @@ test('P2-3: sou entries are drawn but not counted as tindakan, and Selesai lists
   expect(document.getElementById('t11')).toHaveAttribute('data-state', 'draft') // still saved and drawn
   fireEvent.click(screen.getByRole('tab', { name: 'Catatan Klinis' }))
   fireEvent.click(await screen.findByRole('button', { name: 'Selesai' }))
-  const items = [...screen.getByRole('dialog').querySelectorAll('.sign-list li')].map((li) => li.textContent)
+  const items = [...(await screen.findByRole('dialog')).querySelectorAll('.sign-list li')].map((li) => li.textContent)
   expect(items.slice(1)).toEqual(['Gigi 46: Pencabutan gigi (ICD-9-CM 23.09) · Selesai', 'Pemeriksaan: 2 gigi sehat (sou)'])
 })
 
@@ -834,7 +834,7 @@ test('P0-4: a mouth procedure with stages asks Konsultasi / Kontrol and sends th
   await screen.findByRole('region', { name: 'Odontogram' })
   fireEvent.click(screen.getByRole('tab', { name: 'Catatan Klinis' }))
   fireEvent.click(await screen.findByRole('button', { name: 'Selesai' }))
-  const dlg = screen.getByRole('dialog')
+  const dlg = await screen.findByRole('dialog')
   fireEvent.click(within(dlg).getByRole('checkbox'))
   fireEvent.click(within(dlg).getByRole('button', { name: 'Selesai' }))
   expect(await screen.findByText(noWork)).toBeInTheDocument()

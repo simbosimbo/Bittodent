@@ -139,6 +139,9 @@ export const saveNote = (visitId: string, body: { revision: number | null; soap:
   api<{ revision: number }>(`/api/visits/${visitId}/note`, { method: 'PUT', body })
 /** Selesai = tanda tangan elektronik + tutup kunjungan (DPJP only). Server stores its own attestation text; pin only when the clinic requires it. */
 export const ATTESTATION = 'Dengan menekan Selesai, saya menyatakan catatan ini benar.'
+/** Everything Selesai would refuse (block) or ask a reason for (warn), listed before pressing it. Read-only. */
+export type SelesaiCheckItem = { level: 'block' | 'warn'; rule: string; message: string }
+export const selesaiCheck = (visitId: string) => api<{ ready: boolean; items: SelesaiCheckItem[] }>(`/api/visits/${visitId}/selesai-check`)
 export const selesaiVisit = (visitId: string, body: { revision: number; confirm: true; pin?: string; accept_warnings?: boolean; reason?: string }) =>
   api<{ signature_hash: string; signed_at: string }>(`/api/visits/${visitId}/selesai`, { method: 'POST', body })
 /** "Setujui" agent drafts (all pending on the visit, or the given ids). Selesai refuses unapproved ones (422 unapproved_drafts). */

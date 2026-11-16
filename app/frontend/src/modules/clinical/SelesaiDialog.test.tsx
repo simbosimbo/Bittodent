@@ -50,3 +50,14 @@ test('#70 SignCheck warnings: listed, a reason chip (no typing) enables "Selesai
   fireEvent.click(go)
   expect(onConfirm).toHaveBeenCalledWith(undefined, 'Diagnosis tercatat di Asesmen SOAP.')
 })
+
+test('KlinikMe-style checklist: every missing item is listed at once and Selesai stays off until none are left', () => {
+  render(<SelesaiDialog lines={lines} pinRequired={false} hasPin={false} busy={false} error="" onConfirm={() => {}} onClose={() => {}}
+    missing={['Belum ada tindakan selesai.', 'Gigi 16: nomor gigi FDI tidak dikenal.']} />)
+  const alert = screen.getByRole('alert')
+  expect(alert).toHaveTextContent('Belum bisa Selesai. Lengkapi dulu:')
+  expect(alert).toHaveTextContent('Belum ada tindakan selesai.')
+  expect(alert).toHaveTextContent('Gigi 16: nomor gigi FDI tidak dikenal.')
+  fireEvent.click(screen.getByRole('checkbox'))
+  expect(screen.getByRole('button', { name: 'Selesai' })).toBeDisabled()
+})

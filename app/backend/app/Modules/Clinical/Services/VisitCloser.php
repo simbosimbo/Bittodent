@@ -38,14 +38,13 @@ final class VisitCloser
             return response()->json(['error' => 'use_selesai',
                 'message' => 'Kunjungan ini punya catatan atau tindakan yang belum Selesai. Dokter penanggung jawab harus menekan Selesai.'], 409);
         }
-        $done = $this->completedProcedureIds($v);
-        // Work signed and later corrected to tidak_dikerjakan (correction flow only, audited) still closes: nothing can be added after signing.
-        if (! $cancelled && $done === [] && ! ProcedureRecord::where('visit_id', $v->id)->whereIn('id', self::notDoneChainIds())->exists()) {
+        if (! $cancelled && $this->nothingDone($v)) {
             Audit::log('tutup_ditolak', 'visit', $v->id, ['reason' => 'no_billable_work', 'via' => $via]);
 
             return response()->json(['error' => 'no_billable_work',
                 'message' => 'Belum ada tindakan selesai. Tambahkan Pemeriksaan gigi (Konsultasi atau Kontrol) dari Tindakan seluruh mulut, lalu tekan Selesai lagi.'], 409);
         }
+        $done = $this->completedProcedureIds($v);
         // Retry billing (idempotent, one line per procedure): work signed before its price existed gets its line once the owner sets one.
         ProcedureRecord::whereIn('id', $done)->where('state', 'final')->get()->each(fn ($p) => ProcedureController::recorded($p));
         $event = new VisitClosing(Ctx::current()->tenant(), $v->id, $done);
@@ -74,6 +73,13 @@ final class VisitCloser
         return ClinicalNoteVersion::whereIn('note_id', ClinicalNote::where('visit_id', $v->id)->select('id'))->where('state', 'draft')->exists()
             || ToothFinding::where('visit_id', $v->id)->where('state', 'draft')->exists()
             || ProcedureRecord::where('visit_id', $v->id)->where('state', 'draft')->exists();
+    }
+
+    /** No finished work to bill. Work signed and later corrected to tidak_dikerjakan (audited correction) still counts: nothing can be added after signing. */
+    public function nothingDone(Visit $v): bool
+    {
+        return $this->completedProcedureIds($v) === []
+            && ! ProcedureRecord::where('visit_id', $v->id)->whereIn('id', self::notDoneChainIds())->exists();
     }
 
     public function attendanceCancelled(Visit $v): bool

@@ -46,6 +46,7 @@ Route::middleware(['auth:sanctum', '2fa', 'tenant'])->group(function () {
     Route::put('/visits/{id}/note', [NoteController::class, 'save'])->middleware('perm:note.write');
     // Selesai = tanda tangan + tutup (DEVIATIONS #55); throttle on top of the PIN lockout in UserDirectory
     Route::post('/visits/{id}/selesai', [NoteController::class, 'selesai'])->middleware(['perm:note.sign', 'throttle:10,1,selesai']);
+    Route::get('/visits/{id}/selesai-check', [NoteController::class, 'selesaiCheck'])->middleware('perm:note.sign');
     Route::get('/visits/{id}/signature', [NoteController::class, 'signature'])->middleware('perm:note.read');
     Route::post('/visits/{id}/approve-drafts', [NoteController::class, 'approveDrafts'])->middleware('perm:note.sign');
     Route::post('/notes/{id}/corrections', [NoteController::class, 'correct'])->middleware('perm:note.sign');
