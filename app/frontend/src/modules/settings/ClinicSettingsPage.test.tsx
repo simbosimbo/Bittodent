@@ -113,3 +113,16 @@ test('Harga: the owner maps a tariff item to odontogram condition codes (tindaka
   await waitFor(() => expect(cat.setCatalogConditions).toHaveBeenCalledWith('23.2', ['amf', 'cof', 'fis'], 'Tumpatan (contoh)'))
   expect(await within(row).findByText('Odontogram: amf, cof, fis')).toBeInTheDocument()
 })
+
+test('S2: owner adds a stage to a procedure and saves the level set as a new version', async () => {
+  render(<ClinicSettingsPage me={me(OWNER)} tab="harga" onChanged={() => {}} />)
+  fireEvent.click((await screen.findAllByRole('button', { name: /Atur tahap/ }))[0])
+  fireEvent.click(screen.getByRole('button', { name: '+ Tahap' }))
+  const n = screen.getAllByRole('textbox', { name: /Nama tahap/ }).length
+  fireEvent.change(screen.getByRole('textbox', { name: `Nama tahap ${n}` }), { target: { value: 'Kunjungan lanjutan' } })
+  fireEvent.change(screen.getByRole('textbox', { name: `Harga tahap ${n}` }), { target: { value: '0' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Simpan tahap' }))
+  await waitFor(() => expect(m.saveLevels).toHaveBeenCalled())
+  const levels = vi.mocked(m.saveLevels).mock.calls.at(-1)![2]
+  expect(levels.at(-1)).toEqual({ code: expect.stringMatching(/^t\d+$/), label: 'Kunjungan lanjutan', price_rp: 0 })
+})

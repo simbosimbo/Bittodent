@@ -109,6 +109,8 @@ export const saveProcedure = (visitId: string, body: { tooth: number | null; sur
  */
 export const saveToothEntry = (visitId: string, body: import('./odontogram/taxonomy').ToothEntry) =>
   api<Procedure>(`/api/visits/${visitId}/tooth-entries`, { method: 'POST', body })
+/** S2: procedures with more than one price level -> stage labels in order (never prices; the dentist picks what was done today). */
+export const getStages = () => api<Record<string, { variant: string; label: string }[]>>('/api/tariffs/stages')
 /** OVv2-06 Pemeriksaan awal: many teeth, ONE Simpan, all or nothing; status Ada sebelumnya / Rencana only (never bills). */
 export const saveToothEntries = (visitId: string, entries: import('./odontogram/taxonomy').ToothEntry[]) =>
   api<{ created: number }>(`/api/visits/${visitId}/tooth-entries/batch`, { method: 'POST', body: { entries } })

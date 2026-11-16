@@ -6,7 +6,7 @@ import { getCatalog, ODONTOGRAM_TAXONOMY, setCatalogConditions, SymbolIcon, type
 import type { Me } from '../../shared/session'
 import { DateField } from '../../shared/ui/DateField'
 import { addAccount, addTariff, bulkTariffs, getAccounts, getProfile, getTariffs, saveBranch, saveCategory, saveLevels, saveProfile, updateAccount, uploadLogo, uploadQris,
-  type Account, type AccountKind, type BulkRow, type ClinicProfile, type TariffItem } from './api'
+  type Account, type AccountKind, type BulkRow, type ClinicProfile, type Level, type TariffItem } from './api'
 import './settings.css'
 
 // Pengaturan Klinik (DEVIATIONS #71). Each tab follows its own permission (owner only today: settings.manage / tariff.manage /
@@ -201,6 +201,7 @@ function PriceTab() {
                     </label>
                   )
                 })}
+                <StageEditor item={it} levels={levels} onSaved={(m) => { setMsg(m); load() }} onError={setError} />
                 {(later(it) || it.next) && <p className="muted small set-when">
                   {it.next ? `Harga baru berlaku ${fmtYmdShort(it.next.valid_from)}.` : ''}
                   {later(it) && edits[it.procedure_code] && Object.keys(edits[it.procedure_code]).length ? ` Perubahan berlaku ${fmtYmdShort(it.editable_from)} (hari ini sudah diubah).` : ''}
@@ -217,6 +218,44 @@ function PriceTab() {
         </div>
       )}
     </section>
+  )
+}
+
+// S2: stages / levels of one procedure (PSA kunjungan 1 / lanjutan, mahkota preparasi / pemasangan). The dentist picks the label done
+// today (never sees prices); the kasir bills that level per visit. Saved as a new version of the level set (editable_from).
+function StageEditor({ item, levels, onSaved, onError }: { item: TariffItem; levels: Level[]; onSaved: (m: string) => void; onError: (m: string) => void }) {
+  const [rows, setRows] = useState<{ code: string; label: string; price: string }[] | null>(null)
+  const [busy, setBusy] = useState(false)
+  if (!rows) return <button type="button" className="btn btn-ghost small" onClick={() => setRows(levels.map((l) => ({ code: l.variant, label: l.label, price: String(l.price_rp) })))}>
+    Atur tahap{levels.length > 1 ? ` (${levels.length})` : ''}</button>
+  const set = (i: number, k: 'label' | 'price', v: string) => setRows(rows.map((r, j) => (j === i ? { ...r, [k]: k === 'price' ? v.replace(/\D/g, '') : v } : r)))
+  const fresh = () => { let n = rows.length + 1; while (rows.some((r) => r.code === `t${n}`)) n++; return `t${n}` }
+  const bad = rows.some((r) => !r.label.trim() || r.price === '')
+  async function save() {
+    setBusy(true)
+    try {
+      await saveLevels(item.id, item.editable_from, rows!.map((r) => ({ code: r.code, label: r.label.trim(), price_rp: digits(r.price) })))
+      setRows(null)
+      onSaved(`Tahap ${item.name} tersimpan, berlaku ${fmtYmdShort(item.editable_from)}.`)
+    } catch (e) { onError(msgOf(e)) } finally { setBusy(false) }
+  }
+  return (
+    <fieldset className="set-stages">
+      <legend className="small">Tahap {item.name} (urut dari tahap pertama). Dokter memilih tahap yang dikerjakan; kasir menagih per kunjungan. Isi 0 bila tahap itu gratis.</legend>
+      {rows.map((r, i) => (
+        <div key={r.code} className="set-price">
+          <input aria-label={`Nama tahap ${i + 1}`} maxLength={60} value={r.label} onChange={(e) => set(i, 'label', e.target.value)} />
+          <span className="set-rp"><span aria-hidden="true">Rp</span>
+            <input inputMode="numeric" aria-label={`Harga tahap ${i + 1}`} value={r.price} onChange={(e) => set(i, 'price', e.target.value)} /></span>
+          {rows.length > 1 && <button type="button" className="btn btn-ghost" aria-label={`Hapus tahap ${i + 1}`} onClick={() => setRows(rows.filter((_, j) => j !== i))}>Hapus</button>}
+        </div>
+      ))}
+      <div className="set-dock">
+        <button type="button" className="btn btn-ghost" disabled={rows.length >= 10} onClick={() => setRows([...rows, { code: fresh(), label: '', price: '' }])}>+ Tahap</button>
+        <button type="button" className="btn" onClick={() => setRows(null)} disabled={busy}>Batal</button>
+        <button type="button" className="btn btn-primary" onClick={save} disabled={busy || bad}>{busy ? 'Menyimpan…' : 'Simpan tahap'}</button>
+      </div>
+    </fieldset>
   )
 }
 

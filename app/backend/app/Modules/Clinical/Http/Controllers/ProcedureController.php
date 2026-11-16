@@ -150,6 +150,7 @@ class ProcedureController extends Controller
             'surfaces' => ['sometimes', 'array', 'max:5'],
             'surfaces.*' => ['string', 'in:M,O,I,D,V,L'],
             'procedure_code' => ['bail', 'sometimes', 'nullable', 'string', 'regex:'.Soap::ICD9CM, OfficialIcdCode::icd9cm()],
+            'variant' => ['sometimes', 'nullable', 'string', 'regex:/^[a-z0-9_]{1,10}$/'], // price level / stage (S2); unknown => waits for a price (S1)
             'diagnosis_code' => ['bail', 'sometimes', 'nullable', 'string', 'regex:'.Soap::ICD10, OfficialIcdCode::icd10()],
             'span_to' => ['sometimes', 'nullable', 'integer', 'in:'.implode(',', $tax::teeth())],
             'span_roles' => ['sometimes', 'nullable', 'array'],
@@ -197,7 +198,7 @@ class ProcedureController extends Controller
         if ($dx === null && ($d['procedure_code'] ?? null) && ($dx = CodingSuggestions::forProcedure($d['procedure_code'], $d['tooth'], Ctx::current()->userId))) {
             $dxSource = 'aturan';
         }
-        $p = ['diagnosis_code' => $dx, 'diagnosis_source' => $dxSource, 'status' => $tax::procedureStatus($d['status']), 'procedure_code' => $d['procedure_code'] ?? null,
+        $p = ['diagnosis_code' => $dx, 'diagnosis_source' => $dxSource, 'status' => $tax::procedureStatus($d['status']), 'procedure_code' => $d['procedure_code'] ?? null, 'variant' => $d['variant'] ?? null,
             'external_clinic_name' => $d['external_clinic_name'] ?? null, 'external_date' => $d['external_date'] ?? null];
         $roles = null;
         if ($span) {

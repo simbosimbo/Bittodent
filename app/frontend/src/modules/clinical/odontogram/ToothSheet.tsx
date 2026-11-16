@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ApiError, errorText } from '../../../shared/api/http'
-import { saveToothEntry } from '../api'
+import { getCatalog, getStages, saveToothEntry, type CatalogRow } from '../api'
 import { SymbolDefs, SymbolIcon } from './symbols'
 import { conditionByKey, conditionsIn, defaultRoles, padLabel, padsFor, spanEnds, spanTeeth, TAXONOMY, type Condition, type EntryStatus,
   type Material, type SpanRole, type SurfaceKey } from './taxonomy'
@@ -32,6 +32,14 @@ export function ToothSheet({ tooth, visitId, initialSurface, onSaved }: {
   const [ext, setExt] = useState({ clinic: '', date: '' })
   const [codeFor, setCodeFor] = useState<Record<string, string>>({})
   const [pick, setPick] = useState<Pick | null>(null)
+  // S2: stage/level per procedure (PSA kunjungan 1 / lanjutan, mahkota preparasi / pasang). Labels only; the owner sets them in Harga.
+  const [stages, setStages] = useState<Record<string, { variant: string; label: string }[]>>({})
+  const [catalog, setCatalog] = useState<CatalogRow[]>([])
+  const [variantFor, setVariantFor] = useState<Record<string, string>>({})
+  useEffect(() => {
+    getStages().then((s) => setStages(s && typeof s === 'object' && !Array.isArray(s) ? s : {}), () => setStages({}))
+    getCatalog().then((c) => setCatalog(Array.isArray(c) ? c : []), () => setCatalog([]))
+  }, [])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
@@ -43,11 +51,19 @@ export function ToothSheet({ tooth, visitId, initialSurface, onSaved }: {
   const codes = chosen.map((k) => conditionByKey(k)?.code ?? conditionByKey(k)?.label).join('-')
   const span = tab === 'span' && spanTo ? spanTeeth(tooth, spanTo) : []
   const where = tab === 'span' ? (spanTo ? `${Math.min(tooth, spanTo)}-${Math.max(tooth, spanTo)}` : `${tooth}`) : `${tooth}${tab === 'surface' && pads.length ? ' ' + pads.join('') : ''}`
+  const codeOf = (k: string, picked = codeFor) => {
+    const mapped = catalog.filter((r) => r.conditions.includes(conditionByKey(k)?.code ?? '')).map((r) => r.procedure_code)
+    return picked[k] ?? (mapped.length === 1 ? mapped[0] : undefined)
+  }
+  const stagesOf = (k: string, picked = codeFor) => (status === 'selesai' ? stages[codeOf(k, picked) ?? ''] ?? [] : [])
+  const needStage = chosen.some((k) => stagesOf(k).length > 1 && !variantFor[k])
   const missing = !chosen.length ? 'Pilih kondisi.' : tab === 'surface' && !pads.length ? 'Pilih permukaan.' : tab === 'span' && !spanTo ? 'Pilih gigi akhir rentang.'
-    : status === 'klinik_lain' && (!ext.clinic.trim() || !ext.date.trim()) ? 'Isi nama klinik lain dan perkiraan tanggal.' : ''
+    : status === 'klinik_lain' && (!ext.clinic.trim() || !ext.date.trim()) ? 'Isi nama klinik lain dan perkiraan tanggal.'
+    : needStage ? 'Pilih tahap yang dikerjakan hari ini.' : ''
 
   const choose = (k: string) => {
     setPick(null)
+    setVariantFor({})
     setError('')
     if (tab === 'tooth') {
       const next = conds.includes(k) ? conds.filter((x) => x !== k) : [...conds, k]
@@ -68,7 +84,8 @@ export function ToothSheet({ tooth, visitId, initialSurface, onSaved }: {
     try {
       for (const k of chosen) {
         const external = status === 'klinik_lain' ? { external_clinic_name: ext.clinic.trim(), external_date: ext.date.trim() } : {}
-        const base = { tooth, condition: k, status, ...(chosenCodes[k] ? { procedure_code: chosenCodes[k] } : {}), ...external }
+        const base = { tooth, condition: k, status, ...(chosenCodes[k] ? { procedure_code: chosenCodes[k] } : {}),
+          ...(status === 'selesai' && variantFor[k] ? { variant: variantFor[k] } : {}), ...external }
         try {
           await saveToothEntry(visitId, tab === 'surface' ? { ...base, surfaces: pads }
             : tab === 'span' ? { ...base, span_to: spanTo!, span_roles: roles, material: material || null } : base)
@@ -83,7 +100,7 @@ export function ToothSheet({ tooth, visitId, initialSurface, onSaved }: {
         }
       }
       onSaved(`Gigi ${where} ${codes} tersimpan${status === 'selesai' ? ' (masuk tagihan saat Selesai)' : ''}.`)
-      setCond(null); setConds([]); setPick(null); setCodeFor({})
+      setCond(null); setConds([]); setPick(null); setCodeFor({}); setVariantFor({})
     } catch (e) {
       setError(e instanceof ApiError && e.status === 422 ? e.data?.message ?? 'Data tidak valid.' : errorText(e))
     } finally {
@@ -164,12 +181,20 @@ export function ToothSheet({ tooth, visitId, initialSurface, onSaved }: {
           <p className="small">Lebih dari satu tindakan klinik mencatat {conditionByKey(pick.condition)?.code}. Pilih yang dikerjakan:</p>
           {pick.list.map((x) => (
             <button key={x.procedure_code} type="button" role="radio" aria-checked={codeFor[pick.condition] === x.procedure_code}
-              onClick={() => { const next = { ...codeFor, [pick.condition]: x.procedure_code }; setCodeFor(next); save(next) }}>
+              onClick={() => { const next = { ...codeFor, [pick.condition]: x.procedure_code }; setCodeFor(next)
+                if (stagesOf(pick.condition, next).length > 1 && !variantFor[pick.condition]) setPick(null); else save(next) }}>
               {x.name} <code>{x.procedure_code}</code>
             </button>
           ))}
         </div>
       )}
+      {chosen.filter((k) => stagesOf(k).length > 1).map((k) => (
+        <div key={k} className="tsheet-pick" role="radiogroup" aria-label={`Tahap ${conditionByKey(k)?.label}`}>
+          <p className="small">Tahap {conditionByKey(k)?.label} hari ini:</p>
+          {stagesOf(k).map((s) => <button key={s.variant} type="button" role="radio" aria-checked={variantFor[k] === s.variant}
+            onClick={() => setVariantFor({ ...variantFor, [k]: s.variant })}>{s.label}</button>)}
+        </div>
+      ))}
       {error && <p className="form-error" role="alert">{error}</p>}
       {missing && !pick && <p className="muted small" id="tsheet-why">{missing}</p>}
       <button type="button" className="btn btn-primary btn-block" disabled={busy || !!missing || !!pick} aria-describedby={missing ? 'tsheet-why' : undefined}

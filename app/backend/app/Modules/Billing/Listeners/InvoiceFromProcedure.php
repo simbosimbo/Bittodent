@@ -46,8 +46,9 @@ final class InvoiceFromProcedure
 
             return;
         }
+        // procedure_name carries the stage/level label (S2) so the kasir sees what was done today
         InvoiceLine::create(['invoice_id' => $invoice->id, 'procedure_id' => $e->procedureId, 'procedure_code' => $e->procedureCode,
-            'procedure_name' => $quote['name'], 'variant' => $e->variant, 'tooth' => $e->tooth === null || $e->tooth === '' ? null : (int) $e->tooth,
+            'procedure_name' => $quote['name'].(($quote['label'] ?? 'Standar') === 'Standar' ? '' : ' ('.$quote['label'].')'), 'variant' => $e->variant, 'tooth' => $e->tooth === null || $e->tooth === '' ? null : (int) $e->tooth,
             'surface' => $e->surfaces, 'doctor_id' => $e->dentistId, 'dentist_category' => $e->dentistCategory, 'dentist_field' => $e->dentistField,
             'price_rp' => $quote['price_rp'], 'tariff_zero' => (int) $quote['price_rp'] === 0]);
         if ((int) $quote['price_rp'] === 0) { // tariff anomaly (unit B): visible + owner approval, never a correction

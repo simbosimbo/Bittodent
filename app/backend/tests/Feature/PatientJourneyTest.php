@@ -43,7 +43,7 @@ class PatientJourneyTest extends TestCase
 
         // 6. kasir: the visit is in the queue with one line per finished procedure, pays in full
         $row = collect($this->as($kasir)->getJson('/api/billing/invoices')->assertOk()->json('invoices'))->firstWhere('visit_id', $visit);
-        $this->assertSame(['terbuka', ['Tumpatan (contoh) 36']], [$row['status'], $row['items']]);
+        $this->assertSame(['terbuka', ['Tumpatan (contoh) (1 permukaan) 36']], [$row['status'], $row['items']]);
         $cash = collect($this->as($kasir)->getJson('/api/payment-accounts')->json())->firstWhere('name', 'Kas Kemang')['id'];
         $this->as($kasir)->postJson("/api/invoices/{$row['id']}/payments", ['payment_account_id' => $cash, 'amount_rp' => $row['balance_rp']])->assertCreated()->assertJsonPath('status', 'lunas');
 
@@ -74,5 +74,23 @@ class PatientJourneyTest extends TestCase
 
         $row = collect($this->as('kasir@senyum.test')->getJson('/api/billing/invoices')->assertOk()->json('invoices'))->firstWhere('visit_id', $visit);
         $this->assertSame(2500000, $row['balance_rp']);
+    }
+
+    // S2: the dentist picks the stage/level done today (labels only, no prices); the kasir line carries that level's price and label.
+    public function test_dentist_picks_the_stage_and_the_kasir_bills_that_level(): void
+    {
+        $doc = 'dokter@senyum.test';
+        $stages = $this->as($doc)->getJson('/api/tariffs/stages')->assertOk()->json()['23.2'];
+        $this->assertGreaterThan(1, count($stages));
+        $this->assertArrayNotHasKey('price_rp', $stages[1]);
+        $patient = $this->as('depan@senyum.test')->postJson('/api/patients', ['name' => 'Sari Uji Tahap', 'dob' => '1992-07-08', 'sex' => 'perempuan'])->assertCreated()->json('id');
+        $visit = $this->as($doc)->postJson("/api/patients/$patient/visits/walk-in")->assertCreated()->json('id');
+        $this->as($doc)->postJson("/api/visits/$visit/tooth-entries", ['tooth' => 46, 'surfaces' => ['O', 'D'], 'condition' => 'tambalan_komposit', 'status' => 'selesai',
+            'variant' => $stages[1]['variant']])->assertCreated()->assertJsonPath('variant', $stages[1]['variant']);
+        $this->as($doc)->putJson("/api/visits/$visit/note", ['soap' => ['S' => 'Tambal.', 'O' => 'Karies 46 OD.']])->assertOk();
+        $this->as($doc)->postJson("/api/visits/$visit/selesai", ['revision' => 1, 'confirm' => true, 'accept_warnings' => true, 'reason' => 'Diagnosis ditulis di catatan.'])->assertOk();
+        $row = collect($this->as('kasir@senyum.test')->getJson('/api/billing/invoices')->assertOk()->json('invoices'))->firstWhere('visit_id', $visit);
+        $this->assertStringContainsString('('.$stages[1]['label'].')', $row['items'][0]);
+        $this->assertSame(350000, $row['balance_rp']);
     }
 }

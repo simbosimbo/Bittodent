@@ -53,6 +53,20 @@ class TariffController extends Controller
     }
 
     /**
+     * GET /api/tariffs/stages (perm note.write): procedures with more than one price level today -> [{variant, label}] in rank order.
+     * Labels only, never prices (D-035: the dentist picks the stage done today, the price list stays with the owner).
+     */
+    public function stages()
+    {
+        $today = now()->toDateString();
+        $rows = Tariff::where('valid_from', '<=', $today)->where(fn ($q) => $q->whereNull('valid_to')->orWhere('valid_to', '>', $today))
+            ->orderBy('procedure_code')->orderBy('level_rank')->get(['procedure_code', 'variant', 'level_label']);
+
+        return response()->json($rows->groupBy('procedure_code')->filter(fn ($g) => $g->count() > 1)
+            ->map(fn ($g) => $g->map(fn ($t) => ['variant' => $t->variant, 'label' => $t->level_label])->values()));
+    }
+
+    /**
      * POST /api/tariffs {procedure_code, name, price_rp} (owner, perm tariff.manage): first price for a procedure that has none yet
      * (one "Standar" level from today; more levels via levels()). Rp0 is allowed: the owner decides what is free. 409 when it exists.
      */
