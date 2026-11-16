@@ -115,11 +115,17 @@ export const getStages = () => api<Record<string, { variant: string; label: stri
 /** OVv2-06 Pemeriksaan awal: many teeth, ONE Simpan, all or nothing; status Ada sebelumnya / Rencana only (never bills). */
 export const saveToothEntries = (visitId: string, entries: import('./odontogram/taxonomy').ToothEntry[]) =>
   api<{ created: number }>(`/api/visits/${visitId}/tooth-entries/batch`, { method: 'POST', body: { entries } })
-export type CatalogRow = { procedure_code: string; name: string; treat_area: TreatArea; paint_type: string; conditions: string[] }
+export type CatalogRow = { procedure_code: string; name: string; treat_area: TreatArea; paint_type: string; conditions: string[]
+  default_icd10: string | null; default_icd10_display: string | null }
 /** Clinic procedure catalog with the mapped odontogram condition codes (dentist reads; owner edits in Pengaturan > Harga). */
 export const getCatalog = () => api<CatalogRow[]>('/api/procedure-catalog')
 export const setCatalogConditions = (code: string, conditions: string[], name?: string) =>
   api<CatalogRow>(`/api/procedure-catalog/${encodeURIComponent(code)}/conditions`, { method: 'PUT', body: { conditions, ...(name ? { name } : {}) } })
+/** S8: the clinic's default ICD-10 for a procedure saved without a diagnosis (dentists only, note.sign; null clears). */
+export const setCatalogDiagnosis = (code: string, icd10: string | null) =>
+  api<CatalogRow>(`/api/procedure-catalog/${encodeURIComponent(code)}/diagnosis`, { method: 'PUT', body: { icd10 } })
+/** Official valid ICD-10 codes by code prefix or title, at most 20 (q: 2+ characters). */
+export const searchIcd10 = (q: string) => api<{ code: string; display: string }[]>(`/api/icd10?q=${encodeURIComponent(q)}`)
 /** Signed procedure: the server appends a new final row superseding it (only along the allowed transitions). */
 export const changeStatus = (procedureId: string, to: ProcStatus, visitId?: string | null) =>
   api<Procedure>(`/api/procedures/${procedureId}/status`, { method: 'POST', body: { to, visit_id: visitId ?? null } })
