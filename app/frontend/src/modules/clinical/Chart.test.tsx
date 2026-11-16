@@ -787,7 +787,7 @@ test('P0-4: a mouth procedure with stages asks Konsultasi / Kontrol and sends th
   fireEvent.click(within(dlg).getByRole('checkbox'))
   fireEvent.click(within(dlg).getByRole('button', { name: 'Selesai' }))
   expect(await screen.findByText(noWork)).toBeInTheDocument()
-  expect(screen.queryByRole('dialog')).toBeNull() // closed: the mouth buttons are reachable
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull()) // closed (after its exit animation): the mouth buttons are reachable
 
   fireEvent.click(screen.getByRole('tab', { name: 'Odontogram' }))
   const mouth = within(await screen.findByRole('group', { name: 'Tindakan seluruh mulut' }))
